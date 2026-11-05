@@ -75,7 +75,7 @@ export default function PlanTab() {
     const at = x.example ? 0 : lastUsed(x, s.workouts);
     const when = x.example ? '' : at ? f.relDayLower(at) : tr('not done yet');
     return (
-      <ListRow key={x.id} first={i === 0} title={x.name} subtitle={[f.plural(n, 'exercise'), when].filter(Boolean).join(' · ')} chevron
+      <ListRow key={x.id} first={i === 0} title={x.name} subtitle={[f.plural(n, 'exercise'), when].filter(Boolean).join(' · ')} chevron={x.example}
         onPress={() => router.push({ pathname: '/template/[id]', params: { id: x.id } })} testID={`template-${x.id}`}
         right={!x.example && (
           <Pressable onPress={() => templateMenu(x, f)} hitSlop={6} accessibilityRole="button" accessibilityLabel={tr('Options for {name}', { name: x.name })}

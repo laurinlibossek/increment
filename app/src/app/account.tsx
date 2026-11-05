@@ -1,7 +1,7 @@
 // Account: a sheet from the avatar on Today with the name and every setting
 // (units, workouts, stats, plates, theme, language, your data, privacy).
 import { useState } from 'react';
-import { Platform, Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { router, Stack } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import * as WebBrowser from 'expo-web-browser';
@@ -21,11 +21,11 @@ import { bodyUnit, lengthUnit } from '@/lib/measure';
 import { confirm, notice } from '@/lib/notice';
 import { RADIUS, SPACE, TYPE } from '@/design/tally';
 import { useTally } from '@/lib/theme';
-import {
-  Cell, Group, HeaderButton, Page, SectionTitle, SwitchCell, Txt,
-} from '@/ui/kit';
+import { HeaderButton, Txt } from '@/ui/kit';
 import { SegmentedControl } from '@/ui/tally/SegmentedControl';
 import { SymbolIcon } from '@/ui/tally/ListRow';
+import { SectionHeader } from '@/ui/tally/SectionHeader';
+import { SettingRow, SwitchSettingRow } from '@/ui/tally/SettingRow';
 import {
   actionSheet, ask, pickDateTime, prompt, toast,
 } from '@/ui/overlay';
@@ -166,10 +166,10 @@ export default function AccountSheet() {
     .filter(Boolean).join(', ') || tr('None');
 
   return (
-    <Page>
+    <ScrollView style={{ flex: 1, backgroundColor: t.paper }} contentContainerStyle={{ paddingTop: SPACE.s3, paddingBottom: SPACE.s12 }} contentInsetAdjustmentBehavior="automatic">
       <Stack.Screen options={{ headerRight: () => <HeaderButton title={tr('Done')} strong onPress={() => router.back()} testID="account-done" /> }} />
       <Pressable onPress={editName} accessibilityRole="button" testID="set-name"
-        style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: SPACE.s4, paddingHorizontal: 4, opacity: pressed ? 0.6 : 1 })}>
+        style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: SPACE.s4, paddingHorizontal: SPACE.s5, opacity: pressed ? 0.6 : 1 })}>
         <View style={{ width: 56, height: 56, borderRadius: RADIUS.capsule, alignItems: 'center', justifyContent: 'center', backgroundColor: t.paper3 }}>
           {s.profile.name.trim()
             ? <Text style={[TYPE.title2, { color: t.ink }]}>{s.profile.name.trim().charAt(0).toUpperCase()}</Text>
@@ -182,98 +182,98 @@ export default function AccountSheet() {
         <SymbolIcon name="chevron.right" size={13} color={t.ink3} />
       </Pressable>
 
-      <SectionTitle>{tr('Units')}</SectionTitle>
-      <View style={{ gap: 6 }}>
-        <Txt tone="ink2" style={{ fontSize: 14, paddingHorizontal: 4 }}>{tr('Lifting weight')}</Txt>
+      <SectionHeader title={tr('Units')} />
+      <View style={{ gap: SPACE.s2, paddingHorizontal: SPACE.s5 }}>
+        <Txt tone="ink2" style={{ fontSize: 14 }}>{tr('Lifting weight')}</Txt>
         <SegmentedControl testID="set-unit" label={tr('Lifting weight')} value={st.unit} onChange={(v) => set('unit', v)} options={[{ value: 'kg', label: 'kg' }, { value: 'lb', label: 'lb' }]} />
-        <Txt tone="ink2" style={{ fontSize: 14, paddingHorizontal: 4, marginTop: 6 }}>{tr('Distance')}</Txt>
+        <Txt tone="ink2" style={{ fontSize: 14, marginTop: 6 }}>{tr('Distance')}</Txt>
         <SegmentedControl label={tr('Distance')} value={st.distUnit} onChange={(v) => set('distUnit', v)} options={[{ value: 'km', label: 'km' }, { value: 'mi', label: 'mi' }]} />
-        <Txt tone="ink2" style={{ fontSize: 14, paddingHorizontal: 4, marginTop: 6 }}>{tr('Body weight')}</Txt>
+        <Txt tone="ink2" style={{ fontSize: 14, marginTop: 6 }}>{tr('Body weight')}</Txt>
         <SegmentedControl label={tr('Body weight')} value={bodyUnit(st)} onChange={(v) => set('bodyUnit', v)} options={[{ value: 'kg', label: 'kg' }, { value: 'lb', label: 'lb' }]} />
-        <Txt tone="ink2" style={{ fontSize: 14, paddingHorizontal: 4, marginTop: 6 }}>{tr('Body measurements')}</Txt>
+        <Txt tone="ink2" style={{ fontSize: 14, marginTop: 6 }}>{tr('Body measurements')}</Txt>
         <SegmentedControl label={tr('Body measurements')} value={lengthUnit(st)} onChange={(v) => set('sizeUnit', v)} options={[{ value: 'cm', label: 'cm' }, { value: 'in', label: 'in' }]} />
       </View>
 
-      <SectionTitle>{tr('Workouts')}</SectionTitle>
-      <Group>
-        <Cell first title={tr('Default rest timer')} sub={tr('Per-exercise timers override this')} value={restLabel(st.defaultRest)} testID="set-rest"
+      <SectionHeader title={tr('Workouts')} />
+      <View>
+        <SettingRow first title={tr('Default rest timer')} sub={tr('Per-exercise timers override this')} value={restLabel(st.defaultRest)} testID="set-rest"
           onPress={() => pick(tr('Default rest timer'), (REST_CHOICES as number[]).map((x) => ({ value: x, label: restLabel(x) })), st.defaultRest, (v) => set('defaultRest', v))} />
-        <SwitchCell title={tr('Rest timer alerts')} sub={tr('A notification when rest is over, also with the phone locked')} value={st.restAlert !== false}
+        <SwitchSettingRow title={tr('Rest timer alerts')} sub={tr('A notification when rest is over, also with the phone locked')} value={st.restAlert !== false}
           onChange={(v) => set('restAlert', v)} testID="set-rest-alert" />
-        <SwitchCell title={tr('Keep screen on')} sub={tr('While a workout is running')} value={st.appKeepAwake === true} onChange={(v) => set('appKeepAwake', v)} testID="set-keep-awake" />
-        <Cell title={tr('Previous values')} value={st.prevSource === 'template' ? tr('Same routine') : tr('Any workout')}
+        <SwitchSettingRow title={tr('Keep screen on')} sub={tr('While a workout is running')} value={st.appKeepAwake === true} onChange={(v) => set('appKeepAwake', v)} testID="set-keep-awake" />
+        <SettingRow title={tr('Previous values')} testID="set-previous-values" value={st.prevSource === 'template' ? tr('Same routine') : tr('Any workout')}
           onPress={() => pick(tr('Previous values'), [{ value: 'any', label: tr('Any workout') }, { value: 'template', label: tr('Same routine') }], st.prevSource, (v) => set('prevSource', v as Settings['prevSource']))} />
-        <Cell title={tr('Warm-up sets')} value={warmupText} onPress={() => router.push('/warmup')} testID="set-warmup" />
-        <SwitchCell title={tr('Update routines after workouts')} sub={tr('Better numbers go in by themselves; you’re asked when exercises or sets changed')} value={st.askTemplateUpdate !== false}
+        <SettingRow title={tr('Warm-up sets')} value={warmupText} onPress={() => router.push('/warmup')} testID="set-warmup" />
+        <SwitchSettingRow title={tr('Update routines after workouts')} sub={tr('Better numbers go in by themselves; you’re asked when exercises or sets changed')} value={st.askTemplateUpdate !== false}
           onChange={(v) => set('askTemplateUpdate', v)} testID="set-ask-template" />
-        <SwitchCell title={tr('Example routines')} value={st.showExamples !== false} onChange={(v) => set('showExamples', v)} testID="set-examples" />
-        <Cell title={tr('Weekly goal')} value={tr('{n} per week', { n: st.weeklyGoal || 3 })}
+        <SwitchSettingRow title={tr('Example routines')} value={st.showExamples !== false} onChange={(v) => set('showExamples', v)} testID="set-examples" />
+        <SettingRow title={tr('Weekly goal')} value={tr('{n} per week', { n: st.weeklyGoal || 3 })}
           onPress={() => pick(tr('Weekly goal'), [1, 2, 3, 4, 5, 6, 7].map((n) => ({ value: n, label: tr('{n} per week', { n }) })), st.weeklyGoal, (v) => set('weeklyGoal', v))} />
-        <Cell title={tr('Week starts on')} value={weekdays.find((x) => x.value === st.weekStart)?.label || tr('Monday')}
+        <SettingRow title={tr('Week starts on')} value={weekdays.find((x) => x.value === st.weekStart)?.label || tr('Monday')}
           onPress={() => pick(tr('Week starts on'), weekdays, st.weekStart, (v) => set('weekStart', v))} />
-      </Group>
+      </View>
 
-      <SectionTitle>{tr('Stats')}</SectionTitle>
-      <Group>
-        <Cell first title={tr('1RM formula')} value={tr(formula.label)}
+      <SectionHeader title={tr('Stats')} />
+      <View>
+        <SettingRow first title={tr('1RM formula')} value={tr(formula.label)}
           onPress={() => pick(tr('1RM formula'), (FORMULAS as { id: string; label: string }[]).map((x) => ({ value: x.id, label: tr(x.label) })), st.formula, (v) => set('formula', v))} />
-        <SwitchCell title={tr('Count dumbbells twice')} sub={tr('For volume')} value={!!st.dumbbellTwice} onChange={(v) => set('dumbbellTwice', v)} />
-        <SwitchCell title={tr('Weighted bodyweight exercises')} sub={tr('Count body weight in volume')} value={!!st.bwWeighted} onChange={(v) => setBw('bwWeighted', v)} />
-        <SwitchCell title={tr('Assisted bodyweight exercises')} sub={tr('Count body weight in volume')} value={!!st.bwAssisted} onChange={(v) => setBw('bwAssisted', v)} />
-        <Cell title={tr('Start history from')} value={st.historyStart ? f.date.short(st.historyStart) : tr('All workouts')} onPress={historyStart} testID="set-history-start" />
-      </Group>
+        <SwitchSettingRow title={tr('Count dumbbells twice')} sub={tr('For volume')} value={!!st.dumbbellTwice} onChange={(v) => set('dumbbellTwice', v)} />
+        <SwitchSettingRow title={tr('Weighted bodyweight exercises')} sub={tr('Count body weight in volume')} value={!!st.bwWeighted} onChange={(v) => setBw('bwWeighted', v)} />
+        <SwitchSettingRow title={tr('Assisted bodyweight exercises')} sub={tr('Count body weight in volume')} value={!!st.bwAssisted} onChange={(v) => setBw('bwAssisted', v)} />
+        <SettingRow title={tr('Start history from')} value={st.historyStart ? f.date.short(st.historyStart) : tr('All workouts')} onPress={historyStart} testID="set-history-start" />
+      </View>
 
-      <SectionTitle>{tr('Plates')}</SectionTitle>
-      <Group>
-        <Cell first title={tr('Bar weight')} value={`${f.num(st.bar, 1)} ${st.unit}`}
+      <SectionHeader title={tr('Plates')} />
+      <View>
+        <SettingRow first title={tr('Bar weight')} value={`${f.num(st.bar, 1)} ${st.unit}`}
           onPress={() => pick(tr('Bar weight'), barOptions.map((b) => ({ value: b, label: b ? `${f.num(b, 1)} ${st.unit}` : tr('None') })), st.bar, (v) => set('bar', v))} />
-        <Cell title={tr('Available plates')} value={st.plates.map((p) => f.num(p, 2)).join(', ')} onPress={editPlates} testID="set-plates" />
-      </Group>
+        <SettingRow title={tr('Available plates')} value={st.plates.map((p) => f.num(p, 2)).join(', ')} onPress={editPlates} testID="set-plates" />
+      </View>
 
-      <SectionTitle>{tr('Theme')}</SectionTitle>
-      <Group>
+      <SectionHeader title={tr('Theme')} />
+      <View>
         {themes.map((t, i) => (
-          <Cell key={t.value} first={i === 0} title={t.label} onPress={() => set('theme', t.value)} testID={`theme-${t.value}`}
+          <SettingRow key={t.value} first={i === 0} title={t.label} onPress={() => set('theme', t.value)} testID={`theme-${t.value}`}
             checked={st.theme === t.value} />
         ))}
-      </Group>
+      </View>
 
-      <SectionTitle>{tr('Language')}</SectionTitle>
-      <Group>
+      <SectionHeader title={tr('Language')} />
+      <View>
         {langs.map((l, i) => (
-          <Cell key={l.value} first={i === 0} title={l.label} onPress={() => set('language', l.value)} testID={`language-${l.value}`}
+          <SettingRow key={l.value} first={i === 0} title={l.label} onPress={() => set('language', l.value)} testID={`language-${l.value}`}
             checked={(st.language || 'auto') === l.value} />
         ))}
-      </Group>
+      </View>
 
-      <SectionTitle>{tr('Your data')}</SectionTitle>
-      <Group>
-        <Cell first icon="upload" title={tr('Back up now')} sub={s.meta.lastBackupAt ? tr('Last backup {when}', { when: f.relDayLower(s.meta.lastBackupAt) }) : tr('No backup yet')}
+      <SectionHeader title={tr('Your data')} />
+      <View>
+        <SettingRow first symbol="square.and.arrow.up" title={tr('Back up now')} sub={s.meta.lastBackupAt ? tr('Last backup {when}', { when: f.relDayLower(s.meta.lastBackupAt) }) : tr('No backup yet')}
           onPress={busy ? undefined : doBackup} testID="backup-now" />
-        <Cell icon="download" title={tr('Restore from backup')} sub={tr('A backup file from Increment or Setlog')} onPress={busy ? undefined : doRestore} testID="restore" />
-        <Cell icon="swap" title={tr('Import from Strong')} sub={tr('In Strong: Settings → Export Workouts, then pick that CSV here')} onPress={busy ? undefined : doStrong} testID="strong-import" />
-        <Cell icon="share" title={tr('Export as CSV')} sub={tr('Spreadsheet-friendly, Strong column format')} onPress={doCSV} testID="export-csv" />
-      </Group>
-      <Txt tone="ink3" style={{ fontSize: 13, marginTop: 8, paddingHorizontal: 4 }}>{tr('Which units did Strong use?')}</Txt>
-      <View style={{ gap: 6, marginTop: 6 }}>
+        <SettingRow symbol="square.and.arrow.down" title={tr('Restore from backup')} sub={tr('A backup file from Increment or Setlog')} onPress={busy ? undefined : doRestore} testID="restore" />
+        <SettingRow symbol="arrow.left.arrow.right" title={tr('Import from Strong')} sub={tr('In Strong: Settings → Export Workouts, then pick that CSV here')} onPress={busy ? undefined : doStrong} testID="strong-import" />
+        <SettingRow symbol="tablecells" title={tr('Export as CSV')} sub={tr('Spreadsheet-friendly, Strong column format')} onPress={doCSV} testID="export-csv" />
+      </View>
+      <Txt tone="ink3" style={{ fontSize: 13, marginTop: SPACE.s2, paddingHorizontal: SPACE.s5 }}>{tr('Which units did Strong use?')}</Txt>
+      <View style={{ gap: SPACE.s2, marginTop: SPACE.s2, paddingHorizontal: SPACE.s5 }}>
         <SegmentedControl label={tr('Which units did Strong use?')} value={strongUnits.weightUnit} onChange={(v) => setStrongUnits({ ...strongUnits, weightUnit: v })} options={[{ value: 'kg', label: tr('Kilograms') }, { value: 'lb', label: tr('Pounds') }]} />
         <SegmentedControl label={tr('Which units did Strong use?')} value={strongUnits.distUnit} onChange={(v) => setStrongUnits({ ...strongUnits, distUnit: v })} options={[{ value: 'km', label: tr('Kilometres') }, { value: 'mi', label: tr('Miles') }]} />
       </View>
-      <Txt tone="ink3" style={{ fontSize: 13, marginTop: 12, paddingHorizontal: 4 }}>
+      <Txt tone="ink3" style={{ fontSize: 13, marginTop: SPACE.s3, paddingHorizontal: SPACE.s5 }}>
         {tr('Everything stays on this phone. Nothing is uploaded anywhere — back up regularly and keep the file in iCloud Drive or another safe place.')}
       </Txt>
 
-      <Group style={{ marginTop: 22 }}>
-        <Cell first title={tr('Delete all data')} danger chevron={false} onPress={busy ? undefined : doDeleteAll} testID="delete-all" />
-      </Group>
+      <View style={{ marginTop: SPACE.s6 }}>
+        <SettingRow first title={tr('Delete all data')} danger chevron={false} onPress={busy ? undefined : doDeleteAll} testID="delete-all" />
+      </View>
 
-      <Group style={{ marginTop: 22 }}>
-        <Cell first title={tr('Privacy policy')} onPress={openPrivacy} testID="privacy" />
-      </Group>
+      <View style={{ marginTop: SPACE.s6 }}>
+        <SettingRow first title={tr('Privacy policy')} onPress={openPrivacy} testID="privacy" />
+      </View>
 
-      <Txt tone="ink3" style={{ fontSize: 13, textAlign: 'center', marginTop: 28 }}>
+      <Txt tone="ink3" style={{ fontSize: 13, textAlign: 'center', marginTop: SPACE.s6, paddingHorizontal: SPACE.s5 }}>
         {`Increment ${appVersion()} · ${tr('{n} stored', { n: f.plural(s.workouts.length, 'workout') })}`}
       </Txt>
-    </Page>
+    </ScrollView>
   );
 }

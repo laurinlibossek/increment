@@ -30,6 +30,10 @@ export const SYMBOLS = {
   'chevron.right': 'chevron_right',
   'chevron.down': 'expand_more',
   'square.and.arrow.up': 'upload',
+  'square.and.arrow.down': 'download',
+  'arrow.left.arrow.right': 'swap_horiz',
+  tablecells: 'table_chart',
+  checkmark: 'check',
   'person.crop.circle': 'person',
   folder: 'folder',
 } as const;
@@ -58,9 +62,11 @@ type Props = {
   first?: boolean;
   testID?: string;
   accessibilityLabel?: string;
+  /** Choice rows keep radio semantics alongside their visible checkmark. */
+  checked?: boolean;
 };
 
-export function ListRow({ title, subtitle, children, symbol, trailing, right, chevron, onPress, first, testID, accessibilityLabel }: Props) {
+export function ListRow({ title, subtitle, children, symbol, trailing, right, chevron, onPress, first, testID, accessibilityLabel, checked }: Props) {
   const { colors: t } = useTally();
   const inset = symbol ? SPACE.s5 + 30 + SPACE.s3 : SPACE.s5;
   const body = (pressed: boolean) => (
@@ -85,7 +91,7 @@ export function ListRow({ title, subtitle, children, symbol, trailing, right, ch
   );
   if (!onPress) return <View testID={testID}>{body(false)}</View>;
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={accessibilityLabel} testID={testID}>
+    <Pressable onPress={onPress} accessibilityRole={checked === undefined ? 'button' : 'radio'} accessibilityState={checked === undefined ? undefined : { checked }} accessibilityLabel={accessibilityLabel} testID={testID}>
       {({ pressed }) => body(pressed)}
     </Pressable>
   );

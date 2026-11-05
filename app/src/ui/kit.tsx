@@ -2,7 +2,7 @@
 // grouped rows on a tinted background, rounded cards, filled and tinted buttons.
 import type { ReactNode } from 'react';
 import {
-  ActivityIndicator, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View,
+  ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
   type StyleProp, type TextStyle, type ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,7 +10,7 @@ import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 
 import { useSearchFocus } from '@/ui/useSearchFocus';
 import { CONTROL, RADIUS, TYPE } from '@/design/tally';
-import { useColors, useTally, type Colors } from '@/lib/theme';
+import { useColors, type Colors } from '@/lib/theme';
 
 // ---------- icons ----------
 /** SF Symbol on iOS, Material Symbol on Android and web. */
@@ -169,28 +169,6 @@ export function Cell({ title, sub, value, icon, onPress, first, danger, right, c
     <Pressable onPress={onPress} accessibilityRole={checked === undefined ? 'button' : 'radio'} accessibilityState={checked === undefined ? undefined : { checked }} testID={testID}>
       {({ pressed }) => body(pressed)}
     </Pressable>
-  );
-}
-
-/** A row with an on/off switch. */
-export function SwitchCell({ title, sub, value, onChange, first, testID }: { title: string; sub?: string; value: boolean; onChange: (v: boolean) => void; first?: boolean; testID?: string }) {
-  const c = useColors();
-  const { colors: t, scheme } = useTally();
-  // On: an ink track with a paper knob. Off: a paper-3 track whose knob is
-  // paper in light themes and ink-2 in dark ones, so a switch that's off is
-  // the dimmer one there instead of the one with the brightest knob.
-  const offKnob = scheme === 'dark' ? t.ink2 : t.paper;
-  return (
-    <View style={styles.cell}>
-      {!first && <View style={[styles.hairline, { backgroundColor: c.line, left: 16 }]} />}
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={{ color: c.ink, fontSize: 16 }}>{title}</Text>
-        {!!sub && <Text style={{ color: c.ink3, fontSize: 13, marginTop: 2 }} numberOfLines={2}>{sub}</Text>}
-      </View>
-      <Switch value={value} onValueChange={onChange} accessibilityLabel={title} testID={testID}
-        trackColor={{ true: t.ink, false: t.paper3 }} thumbColor={value ? t.paper : offKnob} ios_backgroundColor={t.paper3}
-        {...({ activeThumbColor: t.paper, activeTrackColor: t.ink } as object)} />
-    </View>
   );
 }
 
