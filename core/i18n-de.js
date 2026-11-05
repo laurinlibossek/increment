@@ -672,6 +672,9 @@ export default {
   Record: 'Rekord',
   // the routine after a workout (app): better numbers go in, a changed layout is asked about
   Routine: 'Routine',
+  'Change {name}?': '{name} ändern?',
+  'Your better numbers are saved either way.': 'Deine besseren Werte werden so oder so gespeichert.',
+  'Next time, {name} starts with this workout’s exercises and sets.': 'Beim nächsten Mal startet {name} mit den Übungen und Sätzen aus diesem Training.',
   'Update {name}?': '{name} aktualisieren?',
   'Update routine': 'Routine aktualisieren',
   'Keep routine': 'Routine beibehalten',

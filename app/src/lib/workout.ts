@@ -117,7 +117,7 @@ export interface TemplateDiff {
 /**
  * What finishing a workout did to its routine, for the summary. The better
  * numbers are saved at Finish; when the layout changed too, `answer` is
- * 'pending' until the summary has asked "Update Push A?".
+ * 'pending' until the summary has asked "Change Push A?".
  */
 export interface RoutineResult {
   templateId: string;
@@ -201,9 +201,10 @@ export function routineLine(r: RoutineResult | null, f: F) {
 
 /**
  * Once, when the summary of a just-finished workout opens: ask about the
- * layout if it changed ("Update routine" or "Keep routine"; the better numbers
- * are saved either way), then a toast with Undo, which puts the routine back
- * as it was before the workout.
+ * layout if it changed ("Keep routine", the main button, or "Update routine",
+ * which asks once more and can go back; the better numbers are saved either
+ * way), then a toast with Undo, which puts the routine back as it was before
+ * the workout.
  */
 export async function announceRoutine(workout: Workout, f: F) {
   const { tr } = f;
@@ -215,15 +216,32 @@ export async function announceRoutine(workout: Workout, f: F) {
     restoreTemplateExercises(r.templateId, r.before).then(() => { setResult(workout.id, { undone: true }); toast(tr('Routine change undone')); });
   } };
   if (r.answer === 'pending' && r.diff) {
-    const choice = await choose<'update' | 'keep'>({
-      title: tr('Update {name}?', { name: name() }),
-      message: describeLayout(r.diff, f),
-      cancel: false,
-      options: [
-        { label: tr('Update routine'), value: 'update', tone: 'primary', testID: 'routine-update' },
-        { label: tr('Keep routine'), value: 'keep', tone: 'plain', testID: 'routine-keep' },
-      ],
-    });
+    const changes = describeLayout(r.diff, f);
+    const removes = r.diff.removed.length > 0 || r.diff.removedSets > 0;
+    // Sticking to the routine is the normal case, so Keep is the main button;
+    // changing the layout takes a second, deliberate step (Laurin, 5 Nov 2026).
+    let choice: 'update' | 'keep' | 'back' = 'back';
+    while (choice === 'back') {
+      choice = await choose<'update' | 'keep'>({
+        title: tr('Change {name}?', { name: name() }),
+        message: [changes, r.raised ? tr('Your better numbers are saved either way.') : ''].filter(Boolean).join(' '),
+        cancel: false,
+        options: [
+          { label: tr('Keep routine'), value: 'keep', tone: 'primary', testID: 'routine-keep' },
+          { label: tr('Update routine'), value: 'update', tone: 'plain', testID: 'routine-update' },
+        ],
+      }) ?? 'keep';
+      if (choice !== 'update') break;
+      choice = await choose<'update' | 'back'>({
+        title: tr('Update {name}?', { name: name() }),
+        message: `${changes} ${tr('Next time, {name} starts with this workout’s exercises and sets.', { name: name() })}`,
+        cancel: false,
+        options: [
+          { label: tr('Update routine'), value: 'update', tone: removes ? 'danger' : 'primary', testID: 'routine-update-confirm' },
+          { label: tr('Go back'), value: 'back', tone: 'plain', testID: 'routine-update-back' },
+        ],
+      }) ?? 'back';
+    }
     const t = routineOf(r.templateId);
     if (choice === 'update' && t) {
       const { exercises, raised } = progressTemplate(r.before, workout, categoryOf, { layout: true }) as { exercises: TemplateEntry[]; raised: number };
