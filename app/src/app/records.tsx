@@ -2,12 +2,12 @@
 // the newest first, as counted for "Start history from": one row per exercise
 // with what went up and its headline number. Tap one for the exercise.
 import { useMemo } from 'react';
-import { FlatList } from 'react-native';
+import { FlatList, Text } from 'react-native';
 import { router } from 'expo-router';
 import { PR_LABEL } from '@increment/core';
 
 import { stats, useAppState } from '@/data/store';
-import { SPACE } from '@/design/tally';
+import { SPACE, TYPE } from '@/design/tally';
 import { useFormat } from '@/lib/format';
 import { useTally } from '@/lib/theme';
 import { Empty } from '@/ui/kit';
@@ -53,11 +53,19 @@ export default function RecordsScreen() {
       contentInsetAdjustmentBehavior="automatic"
       data={list}
       keyExtractor={(p) => p.key}
-      renderItem={({ item, index }) => (
-        <ListRow first={index === 0} title={f.exName(s.exercises.get(item.exerciseId))} trailing={value(lead(item))} testID={`record-${index}`}
-          subtitle={`${f.date.short(item.at)} · ${item.prs.map(label).join(', ')}`}
-          onPress={() => router.push({ pathname: '/exercise/[id]', params: { id: item.exerciseId } })} />
-      )}
+      renderItem={({ item, index }) => {
+        const headline = lead(item);
+        const others = item.prs.length - 1;
+        const more = others === 1 ? tr('1 more') : others > 1 ? tr('{n} more', { n: f.num(others, 0) }) : '';
+        const subtitle = [f.date.workoutDay(item.at), label(headline), more].filter(Boolean).join(' · ');
+        return (
+          <ListRow first={index === 0} testID={`record-${index}`}
+            title={<Text style={[TYPE.body, { color: t.ink }]} testID={`record-title-${index}`}>{f.exName(s.exercises.get(item.exerciseId))}</Text>}
+            subtitle={<Text style={[TYPE.footnote, { color: t.ink2, fontVariant: ['tabular-nums'] }]} testID={`record-meta-${index}`}>{subtitle}</Text>}
+            right={<Text style={[TYPE.subhead, { color: t.ink2, fontVariant: ['tabular-nums'], flexShrink: 0, maxWidth: '45%', textAlign: 'right' }]} testID={`record-value-${index}`}>{value(headline)}</Text>}
+            onPress={() => router.push({ pathname: '/exercise/[id]', params: { id: item.exerciseId } })} />
+        );
+      }}
       ListEmptyComponent={<Empty title={tr('No records yet')} text={tr('Your best weight, reps, volume and estimated 1RM per exercise show up here.')} />}
       initialNumToRender={20}
     />

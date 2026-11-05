@@ -101,14 +101,20 @@ Plan, Progress, Lifts and Records use full-width rows with hairlines (Tally prin
 
 ## 6. Less yellow, less noise
 
-- [ ] **6.1 The exercise page has four yellow marks on its first screen:** the "+20.4 kg" chip, Best set, the 5 RM value and every chart dot. Each follows the rule on its own, but for anyone who keeps progressing the page is always yellow, so nothing stands out.
+- [x] **6.1 The exercise page has four yellow marks on its first screen:** the "+20.4 kg" chip, Best set, the 5 RM value and every chart dot. Each follows the rule on its own, but for anyone who keeps progressing the page is always yellow, so nothing stands out.
   - Where: `app/src/app/exercise/[id].tsx` (around lines 100-110 for the stat marks), `app/src/ui/tally/LineChart.tsx`.
   - **Default:** yellow for the hero change and the record dots on the chart; Best set and rep maxes in `ink`.
-- [ ] **6.2 Records rows all have the same cut-off subtitle,** "Nov 3, 2026 · Est. 1RM, Weight, Set volu…", and the number on the right is only one of those.
+- [x] **6.2 Records rows all have the same cut-off subtitle,** "Nov 3, 2026 · Est. 1RM, Weight, Set volu…", and the number on the right is only one of those.
   - Where: `app/src/app/records.tsx:56-57`.
   - Do: the subtitle names what the number is, plus how many other records that workout set ("Tuesday · Est. 1RM · 2 more"), without the year in the current year. Nothing truncates at 375 wide.
-- [ ] **6.3 Progress shows "Records 72" (last 30 days) directly above "Records 231" (all time)**, and the same for Workouts (17 and 62).
+- [x] **6.3 Progress shows "Records 72" (last 30 days) directly above "Records 231" (all time)**, and the same for Workouts (17 and 62).
   - **Default:** keep the 30-day strip; drop the all-time counts from the Workouts, Lifts and Records rows (they're navigation); Body keeps its latest value.
+- [x] **Decided with group 6** (5 Nov 2026, Laurin asked for the open points to be settled by the design principles):
+  - 6.1: the chart keeps a `signal` dot on every new record. For someone who progresses every session that is every dot, and it should be: the colour is earned, and with Best set and the rep maxes in ink the page has no other yellow.
+  - 6.3: the Default stays.
+  - Records are counted as record sets everywhere a count appears: Progress's 30-day strip now counts them like the Workouts rows, the workout page and the summary (it counted exercises with a record).
+  - The exercise page's Heaviest weight shows the logged weight (58.75 kg, not 58.8); volumes there are whole numbers, Est. 1RM keeps one decimal. Chart axis labels keep the decimals their step needs (52.5, not 53).
+  - From group 3: the Workouts exercise line drops the bracketed equipment ("Squat, Romanian Deadlift, Leg Press"), as display names do; the calendar's selected day shows the date as a Title 2 heading over the list's row instead of the old Strong card.
 
 ## 7. Dark mode controls
 

@@ -25,6 +25,16 @@ export function exerciseDisplayName(ex, lang) {
   return ex.name;
 }
 
+/**
+ * The display name without its bracketed equipment or variant: "Squat (Barbell)" → "Squat",
+ * "Kniebeugen (Langhantel)" → "Kniebeugen". For summary lines that list a workout's exercises;
+ * a name that is only brackets keeps them.
+ */
+export function exerciseBaseName(ex, lang) {
+  const name = exerciseDisplayName(ex, lang);
+  return name.replace(/\s*\([^()]*\)\s*$/, '').trim() || name;
+}
+
 function matchName(name, toks) {
   const words = name.split(' ');
   const compact = words.join('');

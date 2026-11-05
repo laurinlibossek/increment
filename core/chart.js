@@ -30,10 +30,11 @@ export function niceTicks(min, max, count = 4, { zero = false, time = false } = 
   return out;
 }
 
-/** Decimals for axis labels with these ticks. */
+/** Decimals for axis labels with these ticks: as many as the step needs (2.5 → 1, 0.25 → 2), at most 2. */
 export const tickDecimals = (ticks) => {
-  const step = ticks.length > 1 ? ticks[1] - ticks[0] : 1;
-  return step >= 1 ? 0 : step >= 0.1 ? 1 : 2;
+  const step = Math.abs(ticks.length > 1 ? ticks[1] - ticks[0] : 1);
+  for (let d = 0; d < 2; d++) if (Math.abs(step * 10 ** d - Math.round(step * 10 ** d)) < 1e-6) return d;
+  return 2;
 };
 
 /** Calendar-aligned labels within the plotted range, oldest first.

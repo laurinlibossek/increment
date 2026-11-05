@@ -7,7 +7,7 @@ import {
 } from 'react-native';
 import { router, Stack } from 'expo-router';
 import {
-  startOfMonth, startOfDay, addMonths, calendarMonth, workoutVolume, bestSet,
+  startOfMonth, startOfDay, addMonths, calendarMonth, workoutVolume,
 } from '@increment/core';
 
 import { stats, useAppState, type State } from '@/data/store';
@@ -19,7 +19,7 @@ import { hm, workoutStrokes, WorkoutTally } from '@/ui/facts';
 import { ListRow } from '@/ui/tally/ListRow';
 import { SectionHeader } from '@/ui/tally/SectionHeader';
 import {
-  Button, Card, Empty, Icon, IconButton, Txt,
+  Button, Empty, Icon, IconButton, Txt,
 } from '@/ui/kit';
 
 type Row = { kind: 'month'; m: number; count: number } | { kind: 'workout'; w: Workout; first: boolean };
@@ -105,8 +105,8 @@ function Calendar({ s, f }: { s: State; f: Format & { tr: (t: string, v?: Record
   const weeks: number[][] = [];
   for (let i = 0; i < cal.days.length; i += 7) weeks.push(cal.days.slice(i, i + 7));
   return (
-    <View style={{ paddingHorizontal: 16 }}>
-      <View style={[st.cal, { backgroundColor: c.surface }]}>
+    <View>
+      <View style={[st.cal, { backgroundColor: c.surface, marginHorizontal: 16 }]}>
         <View style={st.calHead}>
           <MonthButton icon="chevronLeft" label={tr('Previous month')} onPress={() => go(-1)} testID="cal-prev" />
           <Txt style={{ fontSize: 17, fontWeight: '700' }} testID="cal-month">{f.date.monthYear(month)}</Txt>
@@ -151,14 +151,13 @@ function Calendar({ s, f }: { s: State; f: Format & { tr: (t: string, v?: Record
       </View>
       {sel !== null && (
         <>
-          <View style={[st.month, { paddingHorizontal: 4 }]}>
-            <Txt style={{ fontSize: 20, fontWeight: '700' }}>{f.date.full(sel)}</Txt>
-          </View>
-          {selected.map((w) => <View key={w.id} style={{ marginBottom: 10 }}><WorkoutCard w={w} s={s} f={f} /></View>)}
+          {/* the same rows as the list; the heading already says the day */}
+          <SectionHeader title={f.date.full(sel)} style={{ marginTop: SPACE.s6 }} testID="cal-day" />
+          {selected.map((w, i) => <WorkoutRow key={w.id} w={w} s={s} f={f} first={i === 0} day={false} />)}
         </>
       )}
       {sel === null && cal.workouts > 0 && (
-        <Txt tone="ink3" style={{ fontSize: 13, textAlign: 'center', marginTop: 14 }}>{tr('Tap a highlighted day to see that workout.')}</Txt>
+        <Txt tone="ink3" style={{ fontSize: 13, textAlign: 'center', marginTop: 14, paddingHorizontal: 16 }}>{tr('Tap a highlighted day to see that workout.')}</Txt>
       )}
     </View>
   );
@@ -183,8 +182,11 @@ function Stat({ value, label }: { value: string; label: string }) {
   );
 }
 
-/** One finished workout: the same set strokes and record sets as its detail page. */
-function WorkoutRow({ w, s, f, first }: { w: Workout; s: State; f: Format & { tr: (t: string, v?: Record<string, string | number>) => string }; first: boolean }) {
+/**
+ * One finished workout: the same set strokes and record sets as its detail page.
+ * In the calendar the day is the heading above, so the row leaves it out (`day={false}`).
+ */
+function WorkoutRow({ w, s, f, first, day = true }: { w: Workout; s: State; f: Format & { tr: (t: string, v?: Record<string, string | number>) => string }; first: boolean; day?: boolean }) {
   const { colors: t } = useTally();
   const { tr } = f;
   const prs = stats(s).prsByWorkout.get(w.id) || [];
@@ -192,8 +194,9 @@ function WorkoutRow({ w, s, f, first }: { w: Workout; s: State; f: Format & { tr
   const sets = w.exercises.reduce((n, e) => n + e.sets.length, 0);
   const tallyLine = [f.plural(sets, 'set'), recordSets.size ? f.plural(recordSets.size, 'record') : ''].filter(Boolean).join(' · ');
   const vol = workoutVolume(w, s.exercises);
-  const meta = [f.date.workoutDay(w.startedAt), hm((w.endedAt || w.startedAt) - w.startedAt), vol > 0 ? f.volume(vol) : ''].filter(Boolean).join(' · ');
-  const exercises = w.exercises.map((e) => f.exName(s.exercises.get(e.exerciseId)) || tr('Unknown exercise')).join(', ');
+  const meta = [day ? f.date.workoutDay(w.startedAt) : '', hm((w.endedAt || w.startedAt) - w.startedAt), vol > 0 ? f.volume(vol) : ''].filter(Boolean).join(' · ');
+  // names without their equipment ("Squat, Romanian Deadlift"), each once: the line says what was trained
+  const exercises = [...new Set(w.exercises.map((e) => f.exBase(s.exercises.get(e.exerciseId)) || tr('Unknown exercise')))].join(', ');
   return (
     <ListRow first={first}
       title={<Text style={[TYPE.headline, { color: t.ink }]} numberOfLines={2}>{w.name}</Text>}
@@ -213,56 +216,7 @@ function WorkoutRow({ w, s, f, first }: { w: Workout; s: State; f: Format & { tr
   );
 }
 
-/** Calendar cards keep their layout; the list above uses Tally rows. */
-export function WorkoutCard({ w, s, f }: { w: Workout; s: State; f: Format & { tr: (t: string, v?: Record<string, string | number>) => string } }) {
-  const c = useColors();
-  const { tr } = f;
-  // record sets, as in the list and on the workout page (one set can break several records)
-  const prs = new Set((stats(s).prsByWorkout.get(w.id) || []).map((p: { setId: string }) => p.setId)).size;
-  const vol = workoutVolume(w, s.exercises);
-  return (
-    <Card onPress={() => router.push({ pathname: '/workout/[id]', params: { id: w.id } })} testID={`workout-${w.id}`}>
-      <Txt style={{ fontSize: 17, fontWeight: '700' }} numberOfLines={1}>{w.name}</Txt>
-      <Txt tone="ink3" style={{ fontSize: 13, marginTop: 2 }}>{`${f.date.medium(w.startedAt)} · ${f.date.time(w.startedAt)}`}</Txt>
-      <View style={st.facts}>
-        <Fact icon="clock" text={hm((w.endedAt || w.startedAt) - w.startedAt)} color={c.ink2} />
-        {vol > 0 && <Fact icon="weight" text={f.volume(vol)} color={c.ink2} />}
-        {prs > 0 && <Fact icon="trophy" text={f.plural(prs, 'record')} color={c.gold} />}
-      </View>
-      <View style={st.linesHead}>
-        <Txt tone="ink3" style={st.head}>{tr('Exercise')}</Txt>
-        <Txt tone="ink3" style={st.head}>{tr('Best set')}</Txt>
-      </View>
-      {w.exercises.slice(0, 6).map((e) => {
-        const ex = s.exercises.get(e.exerciseId);
-        const b = bestSet(e.sets, ex?.category, s.settings.formula);
-        return (
-          <View key={e.id} style={st.line}>
-            <Txt tone="ink2" style={{ fontSize: 14, flex: 1 }} numberOfLines={1}>{`${e.sets.length} × ${f.exName(ex) || tr('Unknown exercise')}`}</Txt>
-            <Txt tone="ink2" style={{ fontSize: 14, fontVariant: ['tabular-nums'] }} numberOfLines={1}>{b ? f.setText(b, ex?.category) : ''}</Txt>
-          </View>
-        );
-      })}
-      {w.exercises.length > 6 && <Txt tone="ink3" style={{ fontSize: 13, marginTop: 4 }}>{tr('+ {n} more', { n: w.exercises.length - 6 })}</Txt>}
-    </Card>
-  );
-}
-
-function Fact({ icon, text, color }: { icon: 'clock' | 'weight' | 'trophy'; text: string; color: string }) {
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-      <Icon name={icon} size={13} color={color} />
-      <Txt style={{ fontSize: 13, color }}>{text}</Txt>
-    </View>
-  );
-}
-
 const st = StyleSheet.create({
-  month: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', paddingHorizontal: 20, marginTop: 14, marginBottom: 8 },
-  facts: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginTop: 8 },
-  linesHead: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10, marginBottom: 2 },
-  head: { fontSize: 12, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4 },
-  line: { flexDirection: 'row', gap: 8, paddingVertical: 2 },
   cal: { borderRadius: 14, padding: 12 },
   calHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
   monthBtn: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
