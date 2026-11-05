@@ -11,7 +11,7 @@ Last updated 5 Nov 2026 (Increment moved into this repository). Keep this file c
 
 ## Next, in order
 
-1. **Laurin's list of bugs and visual glitches** from trying the app on his phone (5 Nov 2026). His feedback comes before new features.
+1. **Laurin's list of bugs and visual glitches** from trying the app on his phone (5 Nov 2026). His feedback comes before new features. The design audit of the same day is a work list of its own: [`design-todo.md`](design-todo.md) (nine groups, one pull request each, and one decision for Laurin).
 2. **Publish the web build as the open web app** at `laurinlibossek.github.io/increment/`: GitHub Pages from this repository (Settings → Pages → GitHub Actions), the Expo web export with the right base path, installable and offline (manifest and service worker), the privacy pages in `web/` next to it (restyled in Tally), and a deploy that refuses to run while `CONTACT_EMAIL` in `core/links.js` is the `[EMAIL]` placeholder (**blocker: Laurin creates the app's email address**). Check which of the web's limits can be fixed without a server (data the browser may clear: `navigator.storage.persist()` and backup reminders; rest alerts with the phone locked need Web Push and a server; no haptics on iPhone).
 3. **Move Laurin's data from Setlog:** Back up now in Setlog, restore in Increment (same backup format). Then archive the `setlog` repository or make it private (on a free GitHub plan a private repository can't serve Pages, so only after the move).
 4. **Phase 5, blocks** ([`docs/design/phases.md`](../design/phases.md)), and switching the summary, workout and exercise pages from their private stat strip, highlight, section header and list row (`app/src/ui/facts.tsx`) to the shared ones in `app/src/ui/tally/`.
