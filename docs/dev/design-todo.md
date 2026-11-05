@@ -9,7 +9,7 @@ Line numbers are as of `5979a0a`; search for the quoted code if they've moved.
 ## Ground rules
 
 - Read `AGENTS.md` and `docs/design/README.md` first. **Tally is the direction.** Where unslop's general rules and Tally disagree, Tally wins (see "Leave alone" at the end).
-- One pull request per group below, in the order given (groups 1, 7 and 8 don't depend on anything and can run in parallel; group 3 comes after group 2). Branch from `main`, keep each PR to its group.
+- One pull request per group below, in the order given (groups 1, 7, 8 and 10 don't depend on anything and can run in parallel; group 3 comes after group 2). Branch from `main`, keep each PR to its group.
 - Every PR: before/after screenshots of each screen it touches, light and dark, German where text changed (`docs/dev/review-<date>-<topic>/`, removed in the next commit), `npm test` green, `tsc --noEmit` and `npm run bundle` green, the browser suites for the touched screens green, new checks for new behaviour, and `docs/dev/backlog.md` updated (move the group to Done).
 - New text goes through `tr()` with German in `core/i18n-de.js`. Logic goes into `core/` with a unit test in `tests/core.test.mjs`.
 - Items marked **Default** have a proposed answer: build that unless Laurin has said otherwise, and list it under "for Laurin to decide" in the PR description.
@@ -140,6 +140,19 @@ Matters before the web app is published (backlog "Next" item 2).
   - Where: `ink3` / `tone="ink3"` on text in `app/src/app/history.tsx` (8), `app/src/app/tools.tsx` (7), `app/src/ui/kit.tsx` (3), `app/src/app/warmup.tsx` (3), `app/src/app/account.tsx` (3) and single uses in about a dozen more files.
   - Do: `ink-2` for every readable line; `ink-3` stays only on ghost values (last time's numbers, placeholders), pending strokes and disabled text.
 
+## 10. The routine popup: Keep is the normal choice, Update asks again
+
+Laurin's decision (5 Nov 2026). People are expected to stick to their routines: the same exercises and sets each time, trying to beat last time's numbers (more weight or reps, faster, longer). Better numbers keep going into the routine by themselves, without a question, so next time shows what was done last time. Changing the routine's layout is the exception, so it takes a deliberate second step.
+
+Today, when the layout changed (an exercise skipped or added, a set more or fewer, set types or supersets), the popup over the summary asks "Update Upper B?" with **Update routine** as the black main button and Keep routine below it (`announceRoutine` in `app/src/lib/workout.ts:208-237`).
+
+- [ ] **10.1 Keep routine is the main button.** Same two choices, Keep routine first and in the `primary` tone. Update routine looks clearly different, as the special choice (**Default:** `plain`). The title stops pushing towards updating (**Default:** "Change {name}?" with the same one-line summary of what differs, plus "Your better numbers are saved either way.").
+- [ ] **10.2 Update routine always asks once more**, on every finish, not only after Finish early. A second popup says exactly what the routine will lose and gain ("Removes Pull Up and Seated Row (Cable). 1 set fewer in Overhead Press."). **Default** buttons: "Update routine" to confirm, in the `danger` tone when anything is removed, and "Back" to return to the first popup with nothing changed.
+- [ ] **10.3 Undo stays.** After the confirmation the routine is saved and the toast "{name} updated" offers Undo, as now. Keep routine works as now: the layout stays, the better numbers are saved, with Undo.
+- Unchanged: better numbers without a question; no popup with "Update routines after workouts" off, for example routines, "Do this workout again" or empty workouts.
+- Tests: `tests/browser/app-logging.mjs` (around lines 413-426 and 546-563) gets the new step: Keep routine is the main button; Update routine opens the confirmation; Back changes nothing; confirming updates the routine; Undo restores it; in English and German.
+- Docs: once built, update "How finishing a workout from a routine works" in `docs/dev/backlog.md`.
+
 ---
 
 ## Leave alone
@@ -149,7 +162,5 @@ Unslop's general rules would flag these, but they're deliberate Tally choices or
 - Bold titles (`t-large-title`, `t-title-1`, `t-title-2` at 700): the native iOS look.
 - The uppercase date above Today and the summary title (`t-eyebrow`, one per screen).
 - Full stops on one-sentence captions and coach notes (Tally's voice).
-- The ⋯ on every set row (Laurin, #11).
-- The routine popup after Finish early: "Update routine" stays the main button and removes what wasn't logged (Laurin, 5 Nov 2026).
-- The tally strokes, the yellow signal itself, the system fonts, true black in dark.
+- The ⋯ on every set row (Laurin, #11).- The tally strokes, the yellow signal itself, the system fonts, true black in dark.
 - Shadows on the floating navigation (tab bar, Now Lifting), a dragged row and the toast.
