@@ -689,6 +689,8 @@ export default {
   'Better numbers go in by themselves; you’re asked when exercises or sets changed': 'Bessere Werte werden automatisch übernommen; bei geänderten Übungen oder Sätzen wirst du gefragt',
 
   // tools
+  'The plates you need on each side of the bar.': 'Diese Scheiben brauchst du auf jeder Seite der Hantel.',
+  'Estimate your one-rep max from a set.': 'Schätze dein Maximalgewicht für eine Wiederholung aus einem Satz.',
   'Target weight ({unit})': 'Zielgewicht ({unit})',
   'That’s lighter than the bar.': 'Das ist leichter als die Stange.',
   'Each side': 'Pro Seite',

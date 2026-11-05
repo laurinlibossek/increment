@@ -85,7 +85,7 @@ export default function WorkoutEditScreen() {
         <View style={{ marginTop: 16 }}>
           <Button large kind="tinted" icon="plus" title={tr('Add exercises')} onPress={addExercises} testID="add-exercises" />
         </View>
-        <Txt tone="ink3" style={{ fontSize: 13, marginTop: 12, paddingHorizontal: 4 }}>{tr('Sets without reps (or time) are dropped when you save.')}</Txt>
+        <Txt tone="ink2" style={{ fontSize: 13, marginTop: 12, paddingHorizontal: 4 }} testID="edit-save-hint">{tr('Sets without reps (or time) are dropped when you save.')}</Txt>
       </ScrollView>
       <KeyboardDoneBar />
     </View>

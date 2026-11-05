@@ -136,13 +136,13 @@ Matters before the web app is published (backlog "Next" item 2).
 
 ## 9. Older screens on the Tally scale
 
-- [ ] **9.1 Spacing, radii and type from the tokens.** Older code still uses spacing off the 4-point grid (6, 10, 14, 22), radii outside Tally's four (8, 9, 10, 12, 15, 18, 22), hard-coded sizes and weights 700/800 outside the type scale.
+- [x] **9.1 Spacing, radii and type from the tokens.** Older code still uses spacing off the 4-point grid (6, 10, 14, 22), radii outside Tally's four (8, 9, 10, 12, 15, 18, 22), hard-coded sizes and weights 700/800 outside the type scale.
   - Where: mostly `app/src/ui/overlay.tsx` (dialog titles at 18 px / 700 on lines 190, 219, 315, 330; dialog radius 18; toast radius 12), `app/src/ui/kit.tsx` (269: 22 px / 800; 278: 19 px / 700), `app/src/app/tools.tsx` (148: the 1RM result at 40 px / 800 with −0.5 tracking: use `t-number-xl`), `app/src/app/exercise-form.tsx`, `app/src/app/pick-exercises.tsx`, `app/src/app/template-edit.tsx`, `app/src/ui/Chart.tsx`.
   - Do: `SPACE`, `RADIUS` and `TYPE` from `app/src/design/tally.ts`. Allowed exceptions: 1–2 px nudges inside small controls, the stroke sizes, and the plate drawing in the plate calculator (real plate colours and sizes).
   - Done when: a search for off-grid padding, margin and gap values and for raw radii finds only the exceptions; dialogs, sheets, toasts and Tools look unchanged or closer to Tally in the screenshots.
-- [ ] **9.2 The 1RM calculator opens as two empty boxes with no hint;** the plate calculator shows a ghost "100" and nothing else.
+- [x] **9.2 The 1RM calculator opens as two empty boxes with no hint;** the plate calculator shows a ghost "100" and nothing else.
   - Do: placeholders in the fields and one line saying what the tool works out; the plate calculator shows the plates for the ghost value until something is typed.
-- [ ] **9.3 Text people have to read is drawn in `ink-3`.** Tally keeps `ink-3` for pending strokes, ghost values and disabled text, never for text someone reads; on `paper-2` it's about 3.2:1, below the 4.5:1 that small text needs. The setting rows' subtitles and values (`app/src/ui/kit.tsx:157-160`, so all of Account), the hint under the plate calculator (`app/src/app/tools.tsx:119`) and the calendar hint are examples.
+- [x] **9.3 Text people have to read is drawn in `ink-3`.** Tally keeps `ink-3` for pending strokes, ghost values and disabled text, never for text someone reads; on `paper-2` it's about 3.2:1, below the 4.5:1 that small text needs. The setting rows' subtitles and values (`app/src/ui/kit.tsx:157-160`, so all of Account), the hint under the plate calculator (`app/src/app/tools.tsx:119`) and the calendar hint are examples.
   - Where: `ink3` / `tone="ink3"` on text in `app/src/app/history.tsx` (8), `app/src/app/tools.tsx` (7), `app/src/ui/kit.tsx` (3), `app/src/app/warmup.tsx` (3), `app/src/app/account.tsx` (3) and single uses in about a dozen more files.
   - Do: `ink-2` for every readable line; `ink-3` stays only on ghost values (last time's numbers, placeholders), pending strokes and disabled text.
 

@@ -58,15 +58,15 @@ export default function WarmupScreen() {
           <View style={st.row}>
             <Txt style={{ flex: 1 }}>{tr('Empty bar first')}</Txt>
             {input(bar, setBar, tr('Reps with the empty bar'), 'wu-bar')}
-            <Txt tone="ink3" style={st.unit}>{tr('reps')}</Txt>
+            <Txt tone="ink2" style={st.unit}>{tr('reps')}</Txt>
           </View>
           {steps.map(([p, r], i) => (
             <View key={i} style={st.row}>
               <View style={[st.hairline, { backgroundColor: c.line }]} />
               {input(p, (v) => edit(i, 0, v), tr('Step {n} percent', { n: i + 1 }), `wu-pct-${i}`, true)}
-              <Txt tone="ink3" style={st.unit}>%  ×</Txt>
+              <Txt tone="ink2" style={st.unit}>%  ×</Txt>
               {input(r, (v) => edit(i, 1, v), tr('Step {n} reps', { n: i + 1 }), `wu-reps-${i}`)}
-              <Txt tone="ink3" style={[st.unit, { flex: 1 }]}>{tr('reps')}</Txt>
+              <Txt tone="ink2" style={[st.unit, { flex: 1 }]}>{tr('reps')}</Txt>
               <Pressable onPress={() => setSteps(steps.filter((_, j) => j !== i))} hitSlop={8} accessibilityRole="button"
                 accessibilityLabel={tr('Remove step {n}', { n: i + 1 })} testID={`wu-remove-${i}`}
                 style={({ pressed }) => [st.remove, { backgroundColor: pressed ? c.surface3 : 'transparent' }]}>

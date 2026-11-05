@@ -254,12 +254,12 @@ export default function AccountSheet() {
         <SettingRow symbol="arrow.left.arrow.right" title={tr('Import from Strong')} sub={tr('In Strong: Settings → Export Workouts, then pick that CSV here')} onPress={busy ? undefined : doStrong} testID="strong-import" />
         <SettingRow symbol="tablecells" title={tr('Export as CSV')} sub={tr('Spreadsheet-friendly, Strong column format')} onPress={doCSV} testID="export-csv" />
       </View>
-      <Txt tone="ink3" style={{ fontSize: 13, marginTop: SPACE.s2, paddingHorizontal: SPACE.s5 }}>{tr('Which units did Strong use?')}</Txt>
+      <Txt tone="ink2" style={{ fontSize: 13, marginTop: SPACE.s2, paddingHorizontal: SPACE.s5 }}>{tr('Which units did Strong use?')}</Txt>
       <View style={{ gap: SPACE.s2, marginTop: SPACE.s2, paddingHorizontal: SPACE.s5 }}>
         <SegmentedControl label={tr('Which units did Strong use?')} value={strongUnits.weightUnit} onChange={(v) => setStrongUnits({ ...strongUnits, weightUnit: v })} options={[{ value: 'kg', label: tr('Kilograms') }, { value: 'lb', label: tr('Pounds') }]} />
         <SegmentedControl label={tr('Which units did Strong use?')} value={strongUnits.distUnit} onChange={(v) => setStrongUnits({ ...strongUnits, distUnit: v })} options={[{ value: 'km', label: tr('Kilometres') }, { value: 'mi', label: tr('Miles') }]} />
       </View>
-      <Txt tone="ink3" style={{ fontSize: 13, marginTop: SPACE.s3, paddingHorizontal: SPACE.s5 }}>
+      <Txt tone="ink2" style={{ fontSize: 13, marginTop: SPACE.s3, paddingHorizontal: SPACE.s5 }}>
         {tr('Everything stays on this phone. Nothing is uploaded anywhere — back up regularly and keep the file in iCloud Drive or another safe place.')}
       </Txt>
 
@@ -271,7 +271,7 @@ export default function AccountSheet() {
         <SettingRow first title={tr('Privacy policy')} onPress={openPrivacy} testID="privacy" />
       </View>
 
-      <Txt tone="ink3" style={{ fontSize: 13, textAlign: 'center', marginTop: SPACE.s6, paddingHorizontal: SPACE.s5 }}>
+      <Txt tone="ink2" style={{ fontSize: 13, textAlign: 'center', marginTop: SPACE.s6, paddingHorizontal: SPACE.s5 }}>
         {`Increment ${appVersion()} · ${tr('{n} stored', { n: f.plural(s.workouts.length, 'workout') })}`}
       </Txt>
     </ScrollView>

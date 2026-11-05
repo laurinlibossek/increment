@@ -125,7 +125,7 @@ export default function WorkoutDetail() {
               const oneRm = ex && hasLoadRecords(ex.category) && x.type !== 'warmup' ? est1RM(x.w, x.r, s.settings.formula) : 0;
               return (
                 <View key={x.id || i} testID={`workout-set-${x.id}`} style={[styles.set, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.line }]}>
-                  <Text style={[styles.n, { color: x.type === 'warmup' ? t.ink3 : t.ink2 }]}>{labels[i]}</Text>
+                  <Text style={[styles.n, { color: t.ink2 }]}>{labels[i]}</Text>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={[{ ...TYPE.body, color: x.type === 'warmup' ? t.ink2 : t.ink }, tnum]} numberOfLines={1}>{f.setText(x, ex?.category, vol > 0)}</Text>
                     {!!flags && <Text style={{ ...TYPE.footnote, color: t.ink2 }} numberOfLines={1}>{flags.map(label).join(' · ')}</Text>}

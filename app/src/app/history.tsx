@@ -114,14 +114,13 @@ function Calendar({ s, f }: { s: State; f: Format & { tr: (t: string, v?: Record
         </View>
         <View style={st.week}>
           {cal.days.slice(0, 7).map((d) => (
-            <Text key={'w' + d} style={[st.wd, { color: c.ink3 }]}>{f.date.weekdayNarrow(d)}</Text>
+            <Text key={'w' + d} style={[st.wd, { color: c.ink2 }]}>{f.date.weekdayNarrow(d)}</Text>
           ))}
         </View>
         {weeks.map((wk) => (
           <View key={wk[0]} style={st.week}>
             {wk.map((d) => {
               const n = cal.byDay.get(d)?.length || 0;
-              const out = d < cal.start || d >= cal.next;
               const on = sel === d;
               return (
                 <View key={d} style={st.dayWrap}>
@@ -129,7 +128,7 @@ function Calendar({ s, f }: { s: State; f: Format & { tr: (t: string, v?: Record
                     accessibilityRole="button" accessibilityState={{ selected: on }}
                     accessibilityLabel={n ? `${f.date.full(d)}, ${f.plural(n, 'workout')}` : f.date.full(d)}
                     style={[st.day, {
-                      backgroundColor: n ? c.primary : 'transparent', opacity: out ? 0.3 : 1,
+                      backgroundColor: n ? c.primary : 'transparent',
                       borderColor: on ? c.ink : 'transparent',
                     }]}>
                     <Text style={{
@@ -157,7 +156,7 @@ function Calendar({ s, f }: { s: State; f: Format & { tr: (t: string, v?: Record
         </>
       )}
       {sel === null && cal.workouts > 0 && (
-        <Txt tone="ink3" style={{ fontSize: 13, textAlign: 'center', marginTop: 14, paddingHorizontal: 16 }}>{tr('Tap a highlighted day to see that workout.')}</Txt>
+        <Txt tone="ink2" style={{ fontSize: 13, textAlign: 'center', marginTop: 14, paddingHorizontal: 16 }} testID="cal-hint">{tr('Tap a highlighted day to see that workout.')}</Txt>
       )}
     </View>
   );
@@ -177,7 +176,7 @@ function Stat({ value, label }: { value: string; label: string }) {
   return (
     <View style={{ alignItems: 'center', flex: 1 }}>
       <Txt style={{ fontSize: 18, fontWeight: '700', fontVariant: ['tabular-nums'] }}>{value}</Txt>
-      <Txt tone="ink3" style={{ fontSize: 12 }}>{label}</Txt>
+      <Txt tone="ink2" style={{ fontSize: 12 }}>{label}</Txt>
     </View>
   );
 }

@@ -11,6 +11,7 @@ import {
   editDraft, getState, patchDraft, previousSets, saveTemplateDraft, templateFolders, useAppSelector,
 } from '@/data/store';
 import type { TemplateDraft } from '@/data/types';
+import { CONTROL, RADIUS, SPACE, TYPE } from '@/design/tally';
 import { useFormat } from '@/lib/format';
 import { pickExercises } from '@/lib/picker';
 import { useColors } from '@/lib/theme';
@@ -67,19 +68,19 @@ export default function TemplateEditScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       {header}
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 12, paddingBottom: insets.bottom + 48 }}
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: SPACE.s4, paddingTop: SPACE.s3, paddingBottom: insets.bottom + SPACE.s12 }}
         keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets>
-        <View style={{ gap: 10, paddingHorizontal: 4 }}>
+        <View style={{ gap: SPACE.s3, paddingHorizontal: SPACE.s1 }}>
           <Field value={d.name} onChange={(v) => patchDraft('edit', { name: v })} placeholder={tr('Routine name')} big testID="tpl-name" />
           <Field value={d.folder} onChange={(v) => patchDraft('edit', { folder: v })} placeholder={tr('Folder (optional)')} testID="tpl-folder" />
           {folders.length > 0 && (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }} keyboardShouldPersistTaps="handled">
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: SPACE.s2 }} keyboardShouldPersistTaps="handled">
               {folders.map((name) => {
                 const on = d.folder.trim() === name;
                 return (
                   <Pressable key={name} onPress={() => patchDraft('edit', { folder: on ? '' : name })} accessibilityRole="button" accessibilityState={{ selected: on }}
-                    style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: on ? c.chipOn : c.surface }}>
-                    <Text style={{ fontSize: 14, fontWeight: '600', color: on ? c.chipOnInk : c.ink2 }}>{name}</Text>
+                    style={{ minHeight: CONTROL.hitMin, justifyContent: 'center', paddingHorizontal: SPACE.s3, paddingVertical: SPACE.s2, borderRadius: RADIUS.capsule, backgroundColor: on ? c.chipOn : c.surface }}>
+                    <Text style={[TYPE.subhead, { color: on ? c.chipOnInk : c.ink2 }]}>{name}</Text>
                   </Pressable>
                 );
               })}
@@ -89,10 +90,10 @@ export default function TemplateEditScreen() {
         </View>
         <DraftBlocks draftKey="edit" mode="template" draft={d} />
         {!d.exercises.length && <Empty title={tr('Build your routine')} text={tr('Add the exercises and sets you want to repeat.')} />}
-        <View style={{ marginTop: 16 }}>
+        <View style={{ marginTop: SPACE.s4 }}>
           <Button large kind="tinted" icon="plus" title={tr('Add exercises')} onPress={addExercises} testID="add-exercises" />
         </View>
-        <Txt tone="ink3" style={{ fontSize: 13, marginTop: 12, paddingHorizontal: 4 }}>
+        <Txt tone="ink2" style={[TYPE.footnote, { marginTop: SPACE.s3, paddingHorizontal: SPACE.s1 }]} testID="template-target-hint">
           {tr('Numbers you enter here are targets. When you start the routine, your actual numbers from last time take priority.')}
         </Txt>
       </ScrollView>
