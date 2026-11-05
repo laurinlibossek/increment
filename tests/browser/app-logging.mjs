@@ -5,8 +5,9 @@
 // reload, reordering, Up next (switch and drag), finishing early with unlogged
 // sets, a template workout with last time's values, the Log button, records,
 // what a finished workout does to its routine (better numbers go in by
-// themselves, a changed layout asks once, Undo; German and English), "already
-// running", and discarding. 22 checks.
+// themselves, a changed layout asks once with Keep routine first and Update
+// routine confirmed in a second step, Undo; German and English), "already
+// running", and discarding. 23 checks.
 import assert from 'node:assert/strict';
 import { devices, launch, grantWakeLock, APP as BASE, BACKUP, shots } from './env.mjs';
 
@@ -401,17 +402,46 @@ async function pick(page, names) {
   let tpl = await routine(page);
   assert.deepEqual(sets(tpl, LAT), [['warmup', 40, 10], ['normal', 62.5, 10], ['normal', 60, 9]]);
   assert.deepEqual(tpl.exercises.map((e) => e.exerciseId), tplBefore.exercises.map((e) => e.exerciseId));
-  // the layout changed (Squat added, two exercises skipped): it asks once, over the summary
-  await id(page, 'routine-update').waitFor({ timeout: 5000 });
+  // the layout changed (Squat added, two exercises skipped): it asks once, over the summary,
+  // with Keep routine as the main button
+  await id(page, 'routine-keep').waitFor({ timeout: 5000 });
   const dlg = await page.locator('body').innerText();
   await page.screenshot({ path: `${OUT}/06-summary-routine-de.png` });
-  assert.match(dlg, /Pull aktualisieren\?/);
-  assert.match(dlg, /Fügt Kniebeugen \(Langhantel\) hinzu\. Entfernt [^,\n]+, [^.\n]+\./);
-  assert.equal(await id(page, 'routine-keep').count(), 1);
-  ok('Finish puts the better numbers into the routine right away (not the worse ones); a changed layout asks “Pull aktualisieren?” over the summary');
+  assert.match(dlg, /Pull ändern\?/);
+  // what changes, as a diff: + what the routine gains on green, − what it loses on red, "× n" sets
+  assert.deepEqual(await id(page, 'diff-added').allInnerTexts(), ['+ Kniebeugen (Langhantel) × 2']);
+  const lost = await id(page, 'diff-removed').allInnerTexts();
+  assert.equal(lost.length, 2);
+  assert.ok(lost.every((l) => /^− .+ × \d+$/.test(l)), lost.join(' | '));
+  const tint = (t) => id(page, t).first().evaluate((el) => getComputedStyle(el).backgroundColor.match(/\d+/g).map(Number));
+  const [gr, gg] = await tint('diff-added'), [rr, rg] = await tint('diff-removed');
+  assert.ok(gg > gr && rr > rg, 'the + line is on green, the − line on red');
+  assert.match(dlg, /Deine besseren Werte werden so oder so gespeichert\./);
+  const [keepBox, updateBox] = [await id(page, 'routine-keep').boundingBox(), await id(page, 'routine-update').boundingBox()];
+  assert.ok(keepBox.y < updateBox.y, 'Keep routine comes first');
+  const fill = (t) => id(page, t).evaluate((el) => getComputedStyle(el).backgroundColor);
+  assert.notEqual(await fill('routine-keep'), await fill('routine-update'), 'Keep routine looks different from Update routine');
+  ok('Finish puts the better numbers into the routine right away (not the worse ones); a changed layout asks “Pull ändern?” over the summary, Keep routine first');
 
-  // Update routine: the workout's exercises and sets, paired sets still only go up; Undo puts it back
+  // Update routine asks once more; Go back changes nothing and returns to the first question
   await id(page, 'routine-update').click();
+  await id(page, 'routine-update-confirm').waitFor();
+  await wait(page, 300);
+  const confirm = await page.locator('body').innerText();
+  await page.screenshot({ path: `${OUT}/06b-summary-routine-confirm-de.png` });
+  assert.match(confirm, /Pull aktualisieren\?/);
+  assert.equal(await id(page, 'diff-removed').count(), 2, 'the same diff again');
+  assert.match(confirm, /Beim nächsten Mal startet Pull mit den Übungen und Sätzen aus diesem Training\./);
+  const [r, g, b] = (await id(page, 'routine-update-confirm').evaluate((el) => getComputedStyle(el.firstElementChild).color)).match(/\d+/g).map(Number);
+  assert.ok(r > g + 80 && r > b + 80, `removing exercises: the confirm button is red (the theme's danger), got rgb(${r}, ${g}, ${b})`);
+  await id(page, 'routine-update-back').click();
+  await id(page, 'routine-keep').waitFor();
+  assert.deepEqual((await routine(page)).exercises.map((e) => e.exerciseId), tplBefore.exercises.map((e) => e.exerciseId), 'Go back: the layout is untouched');
+  ok('“Routine aktualisieren” asks again (the same diff, the button in red); “Zurück” returns to the first question without changing the routine');
+
+  // Update routine, confirmed: the workout's exercises and sets, paired sets still only go up; Undo puts it back
+  await id(page, 'routine-update').click();
+  await id(page, 'routine-update-confirm').click();
   assert.match(await toastText(page), /Pull aktualisiert/);
   tpl = await routine(page);
   assert.deepEqual(tpl.exercises.map((e) => e.exerciseId), [LAT, SQUAT]);
@@ -543,13 +573,24 @@ async function pick(page, names) {
   assert.equal(await id(page, 'routine-line').count(), 0);
   ok('only better numbers: they go into the routine without a question (worse and equal sets don’t), with Undo');
 
-  // a skipped exercise changes the layout: Keep routine keeps it, the better numbers stay saved
+  // skipped exercises and a skipped warm-up change the layout: Keep routine keeps it (warm-up
+  // included), the better numbers stay saved
   await done();
   await startPull();
   await logAll(LAT, { 0: ['40', '10'], 1: ['67.5', '10'], 2: ['57.5', '9'] });
-  await finish();
+  await checks(page, LAT).nth(0).click(); // the warm-up, un-logged again: dropped at Finish
+  await wait(page, 200);
+  assert.equal(await checked(checks(page, LAT).nth(0)), false);
+  await finishEarly(page);
+  await id(page, 'drop-pending').click(); // "Leave them out": the typed warm-up isn't saved
+  await id(page, 'summary-title').waitFor();
+  await wait(page, 900);
   await id(page, 'routine-keep').waitFor();
-  assert.match(await page.locator('body').innerText(), /Update Pull\?[\s\S]*Removes Seated Row \(Cable\), Pull Up\./);
+  assert.match(await page.locator('body').innerText(), /Change Pull\?[\s\S]*Your better numbers are saved either way\./);
+  const working = (tpl, ex) => sets(tpl, ex).filter(([type]) => type === 'normal' || type === 'failure').length;
+  assert.deepEqual(await id(page, 'diff-removed').allInnerTexts(), [`− Seated Row (Cable) × ${working(original, ROW)}`, `− Pull Up × ${working(original, PULLUP)}`], 'straight sets only');
+  assert.equal(await id(page, 'diff-added').count(), 0);
+  assert.deepEqual(await id(page, 'diff-line').allInnerTexts(), ['Warm-ups changed'], 'a skipped warm-up: a plain line, no count');
   await id(page, 'routine-keep').click();
   assert.match(await toastText(page), /^New numbers for 1 set in Pull/);
   tpl = await routine(page);
@@ -560,7 +601,7 @@ async function pick(page, names) {
   await id(page, 'toast-action').click();
   await wait(page, 300);
   assert.deepEqual((await routine(page)).exercises, original.exercises);
-  ok('“Keep routine” keeps the layout and the better numbers; Undo restores the routine');
+  ok('“Keep routine” keeps the layout (the skipped warm-up too) and the better numbers; the diff counts straight sets, “Warm-ups changed” on its own line; Undo restores the routine');
 
   // Settings → Update routines after workouts off: the routine only changes in the editor
   await done();
