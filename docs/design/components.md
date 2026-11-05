@@ -4,7 +4,7 @@ Every Tally component: what it is for, what you provide and its rules. Props are
 
 ## ActionBar
 
-The bottom of the session: one primary action in thumb reach that changes with the moment, logging, resting or finishing.
+The bottom of the session: one primary action in thumb reach that changes with the moment, logging, resting or finishing. Routine details and Body use the same bar for Start workout and Log body weight.
 
 **You provide** the state and its data: the set to log ("Log 82.5 × 8"), or the rest's end time and length, or that every set is logged ("Finish workout").
 
@@ -13,6 +13,7 @@ The bottom of the session: one primary action in thumb reach that changes with t
 - The drain bar empties from right to left in one linear animation; the countdown text updates once a second.
 - Sits on `paper` with a `line` hairline on top, above the home indicator.
 - Finishing never lives in the top corner.
+- On detail screens the bar stays at the bottom while content scrolls underneath. End padding keeps the last row clear of it. Example routines may include Add to my routines as a secondary action.
 
 ## BlockWeeks
 
@@ -298,7 +299,8 @@ export interface SetRowProps {
 export type ActionBarState =
   | { kind: 'log'; label: string; onLog: () => void }
   | { kind: 'rest'; endsAt: number; total: number; rir?: number; onAdjust: (seconds: number) => void; onSkip: () => void; onRate: (rir: number) => void }
-  | { kind: 'finish'; onFinish: () => void };
+  | { kind: 'finish'; onFinish: () => void }
+  | { kind: 'primary'; label: string; onPress: () => void; testID: string; secondary?: { label: string; onPress: () => void; testID: string } };
 export interface ActionBarProps { state: ActionBarState }
 
 /** Reps left in reserve: 0 (failure), 1 (the target) or 2 (shown "2+"). */

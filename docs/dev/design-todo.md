@@ -94,9 +94,9 @@ Plan, Progress, Lifts and Records use full-width rows with hairlines (Tally prin
 
 ## 5. Headers and the main action
 
-- [ ] **5.1 The routine page shows its name small in the top bar.** The workout and exercise pages put the title in `t-title-1` under the bar, as Tally says for detail screens. Do the same on `app/src/app/template/[id].tsx`.
-- [ ] **5.2 Account on the web has both a back arrow and Done.** It's a modal (`app/src/app/_layout.tsx:42`): one way to close it (Done). Check whether this happens on the phone too or only on the web.
-- [ ] **5.3 Main buttons in the thumb zone** (Tally principle 1): "Start workout" sits in the middle of the routine page (`app/src/app/template/[id].tsx:66`), "Log body weight" at the top of Body (`app/src/app/measure.tsx:45`). Put each in an Action bar at the bottom, like the session's Log button.
+- [x] **5.1 The routine page shows its name small in the top bar.** The workout and exercise pages put the title in `t-title-1` under the bar, as Tally says for detail screens. Do the same on `app/src/app/template/[id].tsx`.
+- [x] **5.2 Account on the web has both a back arrow and Done.** It's a modal (`app/src/app/_layout.tsx:42`): one way to close it (Done). Check whether this happens on the phone too or only on the web.
+- [x] **5.3 Main buttons in the thumb zone** (Tally principle 1): "Start workout" sits in the middle of the routine page (`app/src/app/template/[id].tsx:66`), "Log body weight" at the top of Body (`app/src/app/measure.tsx:45`). Put each in an Action bar at the bottom, like the session's Log button.
   - Done when: both buttons sit at the bottom edge with the content scrolling under them; `app-editing` (uses `start-template`) passes.
 
 ## 6. Less yellow, less noise
