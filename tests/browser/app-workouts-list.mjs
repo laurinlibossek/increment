@@ -124,6 +124,8 @@ try {
       // The calendar still has its original best-set table and day navigation.
       assert.match(await row.innerText(), lang === 'de' ? /bester satz/i : /best set/i);
       assert.doesNotMatch(await row.innerText(), /\bPRs?\b/);
+      // The calendar card counts record sets too, so it agrees with the list row.
+      assert.match(normal(await row.innerText()), new RegExp(`\\b${records} ${lang === 'de' ? 'Rekorde' : 'records'}\\b`));
       await row.click();
       await id('workout-title').waitFor();
       assert.equal(await id('workout-title').innerText(), newest.name);

@@ -217,7 +217,8 @@ function WorkoutRow({ w, s, f, first }: { w: Workout; s: State; f: Format & { tr
 export function WorkoutCard({ w, s, f }: { w: Workout; s: State; f: Format & { tr: (t: string, v?: Record<string, string | number>) => string } }) {
   const c = useColors();
   const { tr } = f;
-  const prs = stats(s).prsByWorkout.get(w.id)?.length || 0;
+  // record sets, as in the list and on the workout page (one set can break several records)
+  const prs = new Set((stats(s).prsByWorkout.get(w.id) || []).map((p: { setId: string }) => p.setId)).size;
   const vol = workoutVolume(w, s.exercises);
   return (
     <Card onPress={() => router.push({ pathname: '/workout/[id]', params: { id: w.id } })} testID={`workout-${w.id}`}>
