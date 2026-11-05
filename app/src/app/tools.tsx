@@ -7,7 +7,7 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-  platesFor, est1RM, formulaLabel, parseNum, toKg, kgTo, roundW,
+  platesFor, est1RM, formulaLabel, parseNum, toKg,
 } from '@increment/core';
 
 import { useSettings } from '@/data/store';
@@ -135,7 +135,7 @@ function OneRM() {
   const oneRm = kg && rN ? est1RM(kg, Math.round(rN), st.formula) : 0;
   const pct = [100, 95, 90, 85, 80, 75, 70, 65, 60, 50];
   const repsAt: Record<number, number> = { 100: 1, 95: 2, 90: 4, 85: 6, 80: 8, 75: 10, 70: 12, 65: 15, 60: 18, 50: 25 };
-  const show = (v: number) => `${f.num(roundW(kgTo(v, u), u), 1)} ${u}`;
+  const show = (v: number) => `${f.e1rm(v)} ${u}`;
   return (
     <View style={{ gap: 14 }}>
       <View style={{ flexDirection: 'row', gap: 10 }}>

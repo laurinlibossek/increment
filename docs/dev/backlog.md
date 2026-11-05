@@ -11,7 +11,7 @@ Last updated 5 Nov 2026 (Increment moved into this repository). Keep this file c
 
 ## Next, in order
 
-1. **Laurin's list of bugs and visual glitches** from trying the app on his phone (5 Nov 2026). His feedback comes before new features. The design audit of the same day is a work list of its own: [`design-todo.md`](design-todo.md) (ten groups, one pull request each; groups 1, 7, 8 and 10 are done, 2–6 and 9 remain).
+1. **Laurin's list of bugs and visual glitches** from trying the app on his phone (5 Nov 2026). His feedback comes before new features. The design audit of the same day is a work list of its own: [`design-todo.md`](design-todo.md) (ten groups, one pull request each; groups 1, 2, 7, 8 and 10 are done, 3–6 and 9 remain).
 2. **Publish the web build as the open web app** at `laurinlibossek.github.io/increment/`: GitHub Pages from this repository (Settings → Pages → GitHub Actions), the Expo web export with the right base path, installable and offline (manifest and service worker), the privacy pages in `web/` next to it (restyled in Tally), and a deploy that refuses to run while `CONTACT_EMAIL` in `core/links.js` is the `[EMAIL]` placeholder (**blocker: Laurin creates the app's email address**). Check which of the web's limits can be fixed without a server (data the browser may clear: `navigator.storage.persist()` and backup reminders; rest alerts with the phone locked need Web Push and a server; no haptics on iPhone).
 3. **Move Laurin's data from Setlog:** Back up now in Setlog, restore in Increment (same backup format). Then archive the `setlog` repository or make it private (on a free GitHub plan a private repository can't serve Pages, so only after the move).
 4. **Phase 5, blocks** ([`docs/design/phases.md`](../design/phases.md)), and switching the summary, workout and exercise pages from their private stat strip, highlight, section header and list row (`app/src/ui/facts.tsx`) to the shared ones in `app/src/ui/tally/`.
@@ -38,6 +38,8 @@ Reference for anyone touching the summary or routines.
 
 
 ## Done
+
+- **Design todo, group 2: one format per number** (5 Nov 2026, `design/group-2-numbers`): one workout's volume is the full thousands-separated figure in Workouts, its page, the summary and shared text, including over 100,000; Progress totals use tonnes or `k` beside the pound figure (`172 t` / `379k lb`). History cards and the calendar use h:mm with Time; running text keeps its duration words. Estimated 1RM rounds once to one decimal on Records, the summary, the workout page and the calculator, matching the exercise chart; logged weights keep their precision. Workout set rows omit the load unit when the Volume stat already states it. The volume choice follows the todo's Default, for Laurin to review. Browser regression: `app-number-format` in English/German and kg/lb.
 
 - **Design todo, group 7: dark-mode controls** (5 Nov 2026, `claude/design-group-7`): one segmented control (`ui/tally/SegmentedControl`) everywhere; the `Segments` in `ui/kit.tsx` is gone (Account units and Strong units, Tools, the plate calculator's bar, a measurement's range). The chosen option sits on the new token `control-on`: paper in light themes, a grey of 3:1 against the track in dark ones (`#6e6e69`, `#6e6e6e` in Intense Red). Switches take their colours from Tally; off in a dark theme has an `ink-2` knob instead of a white one. Suite `app-tabs`: 10 checks (dark contrast and the off knob).
 

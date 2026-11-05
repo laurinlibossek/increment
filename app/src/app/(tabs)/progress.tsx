@@ -5,7 +5,7 @@ import { useMemo } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import {
-  DAY, kgTo, weeklyCounts, weekStreak, workoutVolume,
+  DAY, weeklyCounts, weekStreak, workoutVolume,
 } from '@increment/core';
 
 import { allSessions, setMeta, stats, useAppState } from '@/data/store';
@@ -46,11 +46,7 @@ export default function ProgressTab() {
     };
   }, [s.workouts, s.exercises, s.settings, goal]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // volume in tonnes (or thousands of pounds) once it's big
-  const v = kgTo(m.volume, f.unit);
-  const vol = v >= 10000
-    ? { value: f.num(v / 1000, v >= 100000 ? 0 : 1), unit: f.unit === 'kg' ? 't' : `k ${f.unit}` }
-    : { value: f.num(v, 0), unit: f.unit };
+  const vol = f.totalVolume(m.volume);
   const bw = s.measurements.find((x) => x.type === 'bodyweight');
   const needsBackup = s.workouts.length >= 3 && (!s.meta.lastBackupAt || Date.now() - s.meta.lastBackupAt > 14 * DAY)
     && (!s.meta.backupSnoozedAt || Date.now() - (s.meta.backupSnoozedAt as number) > 7 * DAY);

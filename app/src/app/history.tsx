@@ -14,6 +14,7 @@ import { stats, useAppState, type State } from '@/data/store';
 import type { Workout } from '@/data/types';
 import { useFormat, type Format } from '@/lib/format';
 import { useColors } from '@/lib/theme';
+import { hm } from '@/ui/facts';
 import {
   Button, Card, Empty, Icon, IconButton, Txt,
 } from '@/ui/kit';
@@ -146,7 +147,7 @@ function Calendar({ s, f }: { s: State; f: Format & { tr: (t: string, v?: Record
         <View style={[st.stats, { borderTopColor: c.line }]} testID="cal-stats">
           <Stat value={f.num(cal.workouts, 0)} label={tr('Workouts')} />
           <Stat value={f.num(cal.daysTrained, 0)} label={tr('Days trained')} />
-          <Stat value={f.dur(cal.time)} label={tr('Time')} />
+          <Stat value={hm(cal.time)} label={tr('Time')} />
         </View>
       </View>
       {sel !== null && (
@@ -193,7 +194,7 @@ export function WorkoutCard({ w, s, f }: { w: Workout; s: State; f: Format & { t
       <Txt style={{ fontSize: 17, fontWeight: '700' }} numberOfLines={1}>{w.name}</Txt>
       <Txt tone="ink3" style={{ fontSize: 13, marginTop: 2 }}>{`${f.date.medium(w.startedAt)} · ${f.date.time(w.startedAt)}`}</Txt>
       <View style={st.facts}>
-        <Fact icon="clock" text={f.dur((w.endedAt || w.startedAt) - w.startedAt)} color={c.ink2} />
+        <Fact icon="clock" text={`${tr('Time')} ${hm((w.endedAt || w.startedAt) - w.startedAt)}`} color={c.ink2} />
         {vol > 0 && <Fact icon="weight" text={f.volume(vol)} color={c.ink2} />}
         {prs > 0 && <Fact icon="trophy" text={`${prs} ${prs > 1 ? tr('PRs') : tr('PR')}`} color={c.gold} />}
       </View>

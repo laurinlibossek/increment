@@ -52,22 +52,22 @@ Build and serve the web app with `node tests/browser/run.mjs --serve` (port 8790
 
 Unslop's rule and Tally's ("numbers are the interface") agree: the same kind of number looks the same everywhere.
 
-- [ ] **2.1 Volume.** A workout's volume is "15,740 kg" on the workout page, "15.7k kg" in the history list, and Progress shows "172 t".
+- [x] **2.1 Volume.** A workout's volume is "15,740 kg" on the workout page, "15.7k kg" in the history list, and Progress shows "172 t".
   - Where: `app/src/lib/format.ts:22-35` (`compact`, `volume`: compacts from 10,000), `app/src/app/(tabs)/progress.tsx:49-52`.
   - Do (**Default**): one workout's volume is always the full number with thousands separators ("15,740 kg"). Only totals over many workouts (Progress) may be shortened, in one form for both units ("172 t" / "379k lb"), never "k kg".
   - Done when: every place that shows one workout's volume (workout page, summary, history, shared text) uses the full number.
 
-- [ ] **2.2 Workout length.** "1:11" on the workout page and summary (Tally's h:mm, `hm()` in `app/src/ui/facts.tsx:27`), "1h 11m" on history cards, "2h 11m" in the calendar stats, "1 h 11 min" in German.
+- [x] **2.2 Workout length.** "1:11" on the workout page and summary (Tally's h:mm, `hm()` in `app/src/ui/facts.tsx:27`), "1h 11m" on history cards, "2h 11m" in the calendar stats, "1 h 11 min" in German.
   - Where: `app/src/app/history.tsx:149` and `:196` use `f.dur()` (`app/src/lib/format.ts:63`).
   - Do: workout length as a figure (stats, cards, calendar) is always h:mm with the label "Time", as Tally says. `f.dur()` stays for running text, like the "Finish workout?" dialog.
   - Done when: no screen shows workout length as "1h 11m" next to a figure.
 
-- [ ] **2.3 Estimated 1RM has two decimals on Records** ("142.92 kg") and one everywhere else ("142.9").
+- [x] **2.3 Estimated 1RM has two decimals on Records** ("142.92 kg") and one everywhere else ("142.9").
   - Where: `app/src/app/records.tsx:41` (`f.wu`, which keeps two decimals for weights).
   - Do: estimated 1RM with one decimal everywhere; real weights stay as logged (122.5, 58.75).
   - Done when: Records, the exercise page and the workout page show the same 1RM the same way.
 
-- [ ] **2.4 The unit is repeated on every set row** of the workout page ("122.5 kg × 5" four times). Tally: "in rows just '82.5 × 8' under a unit the screen already states".
+- [x] **2.4 The unit is repeated on every set row** of the workout page ("122.5 kg × 5" four times). Tally: "in rows just '82.5 × 8' under a unit the screen already states".
   - Where: the set rows of `app/src/app/workout/[id].tsx`.
   - Do: drop the unit from the rows where the screen already shows it (the Volume stat in kg).
 
