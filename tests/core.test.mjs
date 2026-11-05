@@ -213,8 +213,13 @@ test('templateChanges pairs warm-ups and working sets separately', () => {
   assert.equal(skipWarmup.removedSets, 1);
   assert.equal(skipWarmup.valueSets, 0);
   assert.equal(skipWarmup.typesChanged, false);
+  assert.deepEqual(skipWarmup.sets, [{ exerciseId: 'a', from: 3, to: 2 }]);
   const reordered = core.templateChanges(tpl, { exercises: [tpl.exercises[1], tpl.exercises[0]] });
   assert.equal(reordered.reordered, true);
+  assert.deepEqual(reordered.sets, [], 'moving exercises changes no set counts');
+  // per exercise: what the routine loses and gains, for the popup's +/− lines
+  const swapped = core.templateChanges(tpl, { exercises: [E('a', [S('warmup', 20, 10), S('normal', 60, 8), S('normal', 60, 8), S('normal', 60, 8)]), E('c', [S('normal', 30, 12), S('normal', 30, 12)])] });
+  assert.deepEqual(swapped.sets, [{ exerciseId: 'a', from: 3, to: 4 }, { exerciseId: 'b', from: 1, to: 0 }, { exerciseId: 'c', from: 0, to: 2 }]);
   assert.equal(core.templateChanges(tpl, JSON.parse(JSON.stringify(tpl))).structure, false);
 });
 
