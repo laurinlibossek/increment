@@ -3,6 +3,9 @@
 // itself so they look the same on iPhone, Android and web and can sit on top
 // of a modal screen. Every modal screen mounts its own <OverlayHost />; the
 // newest mounted host shows them (a host behind a native modal can't be seen).
+// The web has no native modals: there the root layout's host (`root`) draws
+// everything, over the whole window, so the dim isn't cut off at the centred
+// column a wide window shows.
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
 import {
   Animated, BackHandler, Keyboard, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
@@ -102,14 +105,16 @@ export function toast(text: string, action?: { label: string; fn: () => void }) 
 const hideToast = () => { if (toastTimer) clearTimeout(toastTimer); toastNow = null; toastTimer = null; emit(); };
 
 // ---------- host ----------
-export function OverlayHost() {
+export function OverlayHost({ root = false }: { root?: boolean }) {
   const id = useId();
+  const active = root || Platform.OS !== 'web';
   useSyncExternalStore(subscribe, () => version, () => version);
   useEffect(() => {
+    if (!active) return undefined;
     hosts = [...hosts.filter((h) => h !== id), id];
     emit();
     return () => { hosts = hosts.filter((h) => h !== id); emit(); };
-  }, [id]);
+  }, [id, active]);
   useEffect(() => {
     if (!open || Platform.OS !== 'android' || hosts[hosts.length - 1] !== id) return undefined;
     const sub = BackHandler.addEventListener('hardwareBackPress', () => { close(undefined); return true; });

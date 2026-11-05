@@ -24,3 +24,4 @@
 - The same app, built by Expo for the web (react-native-web): the same tokens through `useTally()`; JS tabs drawn like the native bar (`(tabs)/_layout.web.tsx`).
 - `glass` with `backdrop-filter` stands in for Liquid Glass; fall back to `paper-2` where it isn't supported.
 - A web app can't run timers with the phone locked, so offer Keep screen on during a workout and a mostly black rest screen in dark themes to save power.
+- On a wide window the app is the phone layout in a centred column, at most 600 px wide, on `paper` (`app/src/app/_layout.tsx`). Tab bar, Now Lifting, the Action bar and the keypad stay inside it; dialogs, sheets and toasts dim and centre on the whole window (one overlay host at the root on the web). The page behind the app is `paper` too (`+html.tsx`).
