@@ -19,19 +19,20 @@ export function makeFormat(settings: Settings, locale: string, lang: 'en' | 'de'
     if (!nf.has(k)) nf.set(k, new Intl.NumberFormat(locale, { maximumFractionDigits: maxFrac }));
     return nf.get(k)!.format(n);
   };
-  const compact = (n: number) => {
-    const a = Math.abs(n);
-    if (a >= 1e6) return num(n / 1e6, 1) + 'M';
-    if (a >= 1e4) return num(n / 1e3, 1) + 'k';
-    return num(n, 0);
-  };
   /** kg -> "62,5" in the user's unit */
   const w = (kg: number | null | undefined, frac?: number) =>
     (kg === null || kg === undefined ? '' : num(roundW(kgTo(kg, unit), unit), frac ?? (unit === 'lb' ? 1 : 2)));
   const wu = (kg: number) => `${w(kg)} ${unit}`;
-  const volume = (kg: number) => {
+  /** Estimated loads round once to one decimal; logged weights keep their precision. */
+  const e1rm = (kg: number) => num(kgTo(kg, unit), 1);
+  /** One workout's volume is always the full figure, including in shared text. */
+  const volume = (kg: number) => `${num(kgTo(kg || 0, unit), 0)} ${unit}`;
+  /** Totals across workouts may use tonnes or thousands of pounds, never k kg. */
+  const totalVolume = (kg: number) => {
     const v = kgTo(kg || 0, unit);
-    return `${v >= 10000 ? compact(v) : num(v, 0)} ${unit}`;
+    if (v < 10000) return { value: num(v, 0), unit };
+    const value = num(v / 1000, v >= 100000 ? 0 : 1);
+    return unit === 'kg' ? { value, unit: 't' } : { value: `${value}k`, unit };
   };
   const dist = (km: number) => `${num(kmTo(km || 0, dUnit), 2)} ${dUnit}`;
   /** seconds per km -> "5:30 /km" (or per mile) */
@@ -114,7 +115,7 @@ export function makeFormat(settings: Settings, locale: string, lang: 'en' | 'de'
 
   /** An exercise's name as shown: built-ins in German get their German name. */
   const exName = (ex: { id: string; name: string } | null | undefined) => exerciseDisplayName(ex, lang);
-  return { unit, dUnit, num, compact, w, wu, volume, dist, pace, setText, plural, dur, date, relDay, relDayLower, clock: fmtClock, exName };
+  return { unit, dUnit, num, w, wu, e1rm, volume, totalVolume, dist, pace, setText, plural, dur, date, relDay, relDayLower, clock: fmtClock, exName };
 }
 
 export type Format = ReturnType<typeof makeFormat>;

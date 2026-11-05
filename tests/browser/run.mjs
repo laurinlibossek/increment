@@ -15,7 +15,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { HERE, ROOT, APP, STRONG } from './env.mjs';
 
-export const APP_SUITES = ['app-first-start', 'app-logging', 'app-editing', 'app-parity', 'app-tabs', 'app-design-bugs'];
+export const APP_SUITES = ['app-first-start', 'app-logging', 'app-editing', 'app-parity', 'app-tabs', 'app-design-bugs', 'app-number-format'];
 const STRONG_URL = 'https://raw.githubusercontent.com/AlexandrosKyriakakis/StrongAppAnalytics/main/Data/strong.csv';
 
 const args = process.argv.slice(2);

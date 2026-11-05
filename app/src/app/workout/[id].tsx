@@ -101,8 +101,8 @@ export default function WorkoutDetail() {
           {`${f.date.full(w.startedAt)} · ${f.date.time(w.startedAt)}–${f.date.time(w.endedAt)}`}
         </Text>
         <StatStrip style={{ marginTop: SPACE.s5 }} stats={[
-          { label: tr('Time'), value: hm(w.endedAt - w.startedAt) },
-          vol ? { label: tr('Volume'), value: shown >= 100000 ? f.compact(shown) : f.num(shown, 0), unit: f.unit } : { label: tr('Volume'), value: '—' },
+          { label: tr('Time'), value: hm(w.endedAt - w.startedAt), testID: 'workout-time' },
+          vol ? { label: tr('Volume'), value: f.num(shown, 0), unit: f.unit, testID: 'workout-volume' } : { label: tr('Volume'), value: '—' },
           { label: tr('Sets'), value: f.num(sets, 0) },
         ]} />
         <View style={{ marginTop: SPACE.s5 }}>
@@ -124,14 +124,14 @@ export default function WorkoutDetail() {
               const flags: string[] | undefined = st.prSets.get(x.id);
               const oneRm = ex && hasLoadRecords(ex.category) && x.type !== 'warmup' ? est1RM(x.w, x.r, s.settings.formula) : 0;
               return (
-                <View key={x.id || i} style={[styles.set, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.line }]}>
+                <View key={x.id || i} testID={`workout-set-${x.id}`} style={[styles.set, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.line }]}>
                   <Text style={[styles.n, { color: x.type === 'warmup' ? t.ink3 : t.ink2 }]}>{labels[i]}</Text>
                   <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={[{ ...TYPE.body, color: x.type === 'warmup' ? t.ink2 : t.ink }, tnum]} numberOfLines={1}>{f.setText(x, ex?.category)}</Text>
+                    <Text style={[{ ...TYPE.body, color: x.type === 'warmup' ? t.ink2 : t.ink }, tnum]} numberOfLines={1}>{f.setText(x, ex?.category, vol > 0)}</Text>
                     {!!flags && <Text style={{ ...TYPE.footnote, color: t.ink2 }} numberOfLines={1}>{flags.map(label).join(' · ')}</Text>}
                   </View>
                   {flags ? <View><Mark style={{ ...TYPE.footnote, fontWeight: '600' }} testID={`record-${x.id}`}>{tr('Record')}</Mark></View>
-                    : oneRm ? <Text style={[{ ...TYPE.footnote, color: t.ink2 }, tnum]}>{`1RM ${f.w(oneRm, 1)}`}</Text> : null}
+                    : oneRm ? <Text style={[{ ...TYPE.footnote, color: t.ink2 }, tnum]}>{`1RM ${f.e1rm(oneRm)}`}</Text> : null}
                 </View>
               );
             })}

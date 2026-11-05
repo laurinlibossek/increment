@@ -76,7 +76,8 @@ export default function Summary() {
   for (const e of w.exercises) for (const s of e.sets) setById.set(s.id, s);
 
   const value = (metric: string, v: number) => {
-    if (['e1rm', 'weight', 'volume'].includes(metric)) return `${f.w(v, 1)} ${f.unit}`;
+    if (metric === 'e1rm') return `${f.e1rm(v)} ${f.unit}`;
+    if (['weight', 'volume'].includes(metric)) return f.wu(v);
     if (metric === 'reps') return f.plural(v, 'rep');
     if (metric === 'distance') return f.dist(v);
     if (metric === 'time') return f.clock(v);
@@ -109,7 +110,7 @@ export default function Summary() {
           <Text style={{ ...TYPE.largeTitle, color: t.ink, marginTop: 2 }} accessibilityRole="header" testID="summary-title">{w.name}</Text>
           <StatStrip style={{ marginTop: SPACE.s5 }} stats={[
             { label: tr('Time'), value: hm(w.endedAt - w.startedAt), testID: 'summary-time' },
-            volume ? { label: tr('Volume'), value: kgShown >= 100000 ? f.compact(kgShown) : f.num(kgShown, 0), unit: f.unit, testID: 'summary-volume' } : { label: tr('Volume'), value: '—' },
+            volume ? { label: tr('Volume'), value: f.num(kgShown, 0), unit: f.unit, testID: 'summary-volume' } : { label: tr('Volume'), value: '—' },
             { label: tr('Sets'), value: f.num(sets, 0), testID: 'summary-sets' },
           ]} />
           <View style={{ marginTop: SPACE.s6 }}>

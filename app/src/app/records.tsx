@@ -38,7 +38,8 @@ export default function RecordsScreen() {
     return out;
   }, [s.workouts, s.exercises, s.settings]); // eslint-disable-line react-hooks/exhaustive-deps
   const value = (p: Pr) => {
-    if (['e1rm', 'weight', 'volume'].includes(p.metric)) return f.wu(p.value);
+    if (p.metric === 'e1rm') return `${f.e1rm(p.value)} ${f.unit}`;
+    if (['weight', 'volume'].includes(p.metric)) return f.wu(p.value);
     if (p.metric === 'distance') return f.dist(p.value);
     if (p.metric === 'time') return f.clock(p.value);
     return f.num(p.value, 0);
