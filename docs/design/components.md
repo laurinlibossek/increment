@@ -173,6 +173,7 @@ Two to five mutually exclusive options, such as a chart's range.
 
 **Rules**
 - Labels of one word or a short number ("3M", "6M", "1Y", "All").
+- A `paper-3` capsule; the chosen option sits on `control-on`: `paper` in light themes, a lighter grey in dark ones (at least 3:1 against the track), like the system control.
 - Don't use it to switch between whole pages; a detail screen is one scrolling page.
 
 **Native**: the system segmented control.

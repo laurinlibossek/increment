@@ -45,6 +45,7 @@ Voice: plain, short, numbers first. The person is mid-set with sweaty hands; eve
 - `signal` is never a button, link, tab, icon or chrome colour. In light themes use it as a fill behind `on-signal` text (the `ic-hl` highlight, the Record chip) or as a mark outlined in `signal-edge`. In dark themes it may also colour text and strokes directly ("+6%").
 - `danger` only for destructive actions, as text ("Discard workout", "Delete").
 - `line` is a hairline between rows and stat cells. Never draw a border around a card.
+- `control-on` raises the chosen option of a segmented control above its `paper-3` track: `paper` in light themes, a lighter grey in dark ones. A switch that's on has an `ink` track; one that's off a `paper-3` track, with an `ink-2` knob in dark themes so it reads as the dimmer of the two.
 - Dark themes are true black (`paper` #000), so OLED pixels switch off. Raise with `paper-2` only where a surface has to read as separate.
 - Named themes swap `paper`, `ink`, `signal` and `stroke-done` and nothing else: Strawberry Matcha has matcha strokes and strawberry records, Intense Red has red strokes and gold records. A theme never adds a second accent.
 - Keyboard focus is the `focus` ring: 2 px solid, 2 px offset, on every surface.

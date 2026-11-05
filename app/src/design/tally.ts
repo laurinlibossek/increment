@@ -9,7 +9,7 @@ export const TALLY_THEME_IDS = [
   'intense-red'
 ] as const;
 export type TallyThemeId = (typeof TALLY_THEME_IDS)[number];
-export type TallyColors = { paper: string; paper2: string; paper3: string; line: string; ink: string; ink2: string; ink3: string; strokeDone: string; signal: string; onSignal: string; signalEdge: string; danger: string; glass: string; focus: string };
+export type TallyColors = { paper: string; paper2: string; paper3: string; controlOn: string; line: string; ink: string; ink2: string; ink3: string; strokeDone: string; signal: string; onSignal: string; signalEdge: string; danger: string; glass: string; focus: string };
 export type TallyTheme = { scheme: 'light' | 'dark'; colors: TallyColors };
 
 export const TALLY_THEMES: Record<TallyThemeId, TallyTheme> = {
@@ -19,6 +19,7 @@ export const TALLY_THEMES: Record<TallyThemeId, TallyTheme> = {
       paper: '#ffffff',
       paper2: '#f4f4f1',
       paper3: '#e9e9e5',
+      controlOn: '#ffffff',
       line: '#e2e2dd',
       ink: '#0d0d0c',
       ink2: '#5d5d58',
@@ -38,6 +39,7 @@ export const TALLY_THEMES: Record<TallyThemeId, TallyTheme> = {
       paper: '#000000',
       paper2: '#141413',
       paper3: '#232321',
+      controlOn: '#6e6e69',
       line: '#2b2b28',
       ink: '#f4f4f0',
       ink2: '#a6a6a0',
@@ -57,6 +59,7 @@ export const TALLY_THEMES: Record<TallyThemeId, TallyTheme> = {
       paper: '#fbf8f2',
       paper2: '#f2ebde',
       paper3: '#e6dccb',
+      controlOn: '#fbf8f2',
       line: '#e2d8c6',
       ink: '#2b261f',
       ink2: '#5c5346',
@@ -76,6 +79,7 @@ export const TALLY_THEMES: Record<TallyThemeId, TallyTheme> = {
       paper: '#000000',
       paper2: '#141414',
       paper3: '#242424',
+      controlOn: '#6e6e6e',
       line: '#2a2a2a',
       ink: '#f5f5f5',
       ink2: '#bdbdbd',

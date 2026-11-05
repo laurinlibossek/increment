@@ -9,7 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 
 import { CONTROL, RADIUS, TYPE } from '@/design/tally';
-import { useColors, type Colors } from '@/lib/theme';
+import { useColors, useTally, type Colors } from '@/lib/theme';
 
 // ---------- icons ----------
 /** SF Symbol on iOS, Material Symbol on Android and web. */
@@ -174,6 +174,11 @@ export function Cell({ title, sub, value, icon, onPress, first, danger, right, c
 /** A row with an on/off switch. */
 export function SwitchCell({ title, sub, value, onChange, first, testID }: { title: string; sub?: string; value: boolean; onChange: (v: boolean) => void; first?: boolean; testID?: string }) {
   const c = useColors();
+  const { colors: t, scheme } = useTally();
+  // On: an ink track with a paper knob. Off: a paper-3 track whose knob is
+  // paper in light themes and ink-2 in dark ones, so a switch that's off is
+  // the dimmer one there instead of the one with the brightest knob.
+  const offKnob = scheme === 'dark' ? t.ink2 : t.paper;
   return (
     <View style={styles.cell}>
       {!first && <View style={[styles.hairline, { backgroundColor: c.line, left: 16 }]} />}
@@ -182,26 +187,8 @@ export function SwitchCell({ title, sub, value, onChange, first, testID }: { tit
         {!!sub && <Text style={{ color: c.ink3, fontSize: 13, marginTop: 2 }} numberOfLines={2}>{sub}</Text>}
       </View>
       <Switch value={value} onValueChange={onChange} accessibilityLabel={title} testID={testID}
-        trackColor={{ true: c.ink, false: c.surface3 }} thumbColor={value ? c.bg : '#ffffff'} ios_backgroundColor={c.surface3}
-        {...({ activeThumbColor: c.bg, activeTrackColor: c.ink } as object)} />
-    </View>
-  );
-}
-
-/** A row of mutually exclusive choices, like the web app's segmented control. */
-export function Segments<T extends string>({ value, options, onChange, testID }: { value: T; options: { value: T; label: string }[]; onChange: (v: T) => void; testID?: string }) {
-  const c = useColors();
-  return (
-    <View style={[styles.seg, { backgroundColor: c.surface3 }]} accessibilityRole="tablist" testID={testID}>
-      {options.map((o) => {
-        const on = o.value === value;
-        return (
-          <Pressable key={o.value} onPress={() => onChange(o.value)} accessibilityRole="tab" accessibilityState={{ selected: on }}
-            style={[styles.segBtn, on && { backgroundColor: c.bg, shadowOpacity: 0.12 }]}>
-            <Text style={{ color: c.ink, fontWeight: on ? '600' : '500', fontSize: 14 }} numberOfLines={1}>{o.label}</Text>
-          </Pressable>
-        );
-      })}
+        trackColor={{ true: t.ink, false: t.paper3 }} thumbColor={value ? t.paper : offKnob} ios_backgroundColor={t.paper3}
+        {...({ activeThumbColor: t.paper, activeTrackColor: t.ink } as object)} />
     </View>
   );
 }
@@ -307,8 +294,6 @@ export const styles = StyleSheet.create({
   btn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: CONTROL.hitMin, borderRadius: RADIUS.capsule, paddingHorizontal: 20 },
   btnLarge: { minHeight: CONTROL.buttonH, borderRadius: RADIUS.capsule },
   iconBtn: { width: CONTROL.hitMin, height: CONTROL.hitMin, borderRadius: RADIUS.capsule, alignItems: 'center', justifyContent: 'center' },
-  seg: { flexDirection: 'row', borderRadius: RADIUS.capsule, padding: 3 },
-  segBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: 32, borderRadius: RADIUS.capsule, paddingHorizontal: 6, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowRadius: 3, shadowOpacity: 0 },
   search: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: RADIUS.capsule, paddingHorizontal: 14 },
   field: { borderRadius: RADIUS.m, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16 },
 });

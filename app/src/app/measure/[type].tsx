@@ -12,8 +12,9 @@ import {
   fmtMeasure, logMeasurement, measureDef, toDisplay, unitOf,
 } from '@/lib/measure';
 import {
-  Button, Card, Cell, Empty, Group, IconButton, Page, Segments, SectionTitle, Txt,
+  Button, Card, Cell, Empty, Group, IconButton, Page, SectionTitle, Txt,
 } from '@/ui/kit';
+import { SegmentedControl } from '@/ui/tally/SegmentedControl';
 import { LineChart } from '@/ui/Chart';
 import { actionSheet, toast } from '@/ui/overlay';
 
@@ -54,7 +55,7 @@ export default function MeasureDetail() {
         <LineChart points={pts} fmtVal={fv} fmtAxis={(v, dec) => f.num(v, dec)} label={tr(d.label)} testID="measure-chart"
           emptyText={list.length ? tr('No entries in this range') : tr('No entries yet')} />
         <View style={{ marginTop: 10 }}>
-          <Segments value={range} onChange={setRange} options={(MEASURE_RANGES as { value: number; label: string }[]).map((r) => ({ value: String(r.value), label: tr(r.label) }))} />
+          <SegmentedControl value={range} onChange={setRange} label={tr('Range')} options={(MEASURE_RANGES as { value: number; label: string }[]).map((r) => ({ value: String(r.value), label: tr(r.label) }))} />
         </View>
       </Card>
       <View style={{ marginTop: 12 }}>

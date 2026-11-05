@@ -13,7 +13,8 @@ import {
 import { useSettings } from '@/data/store';
 import { useFormat } from '@/lib/format';
 import { useColors } from '@/lib/theme';
-import { Card, Segments, Txt } from '@/ui/kit';
+import { Card, Txt } from '@/ui/kit';
+import { SegmentedControl } from '@/ui/tally/SegmentedControl';
 import { KeyboardDoneBar } from '@/ui/workout/DraftBlocks';
 import { KEYBOARD_BAR } from '@/ui/workout/SetRow';
 
@@ -48,7 +49,7 @@ export default function Tools() {
         </View>
       </View>
       <ScrollView contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: insets.bottom + 32 }} keyboardShouldPersistTaps="handled">
-        <Segments value={tab} onChange={setTab} testID="tools-tabs" options={[{ value: 'plates', label: tr('Plate calculator') }, { value: 'rm', label: tr('1RM calculator') }]} />
+        <SegmentedControl value={tab} onChange={setTab} label={tr('Tools')} testID="tools-tabs" options={[{ value: 'plates', label: tr('Plate calculator') }, { value: 'rm', label: tr('1RM calculator') }]} />
         {tab === 'plates' ? <Plates initial={w} /> : <OneRM />}
       </ScrollView>
       <KeyboardDoneBar />
@@ -86,7 +87,7 @@ function Plates({ initial }: { initial?: string }) {
       <BigInput label={tr('Target weight ({unit})', { unit: u })} value={val} onChange={setVal} placeholder={u === 'lb' ? '225' : '100'} testID="plate-target" />
       <View style={{ gap: 6 }}>
         <Txt tone="ink2" style={{ fontSize: 13, fontWeight: '600', paddingHorizontal: 4 }}>{tr('Bar')}</Txt>
-        <Segments value={String(bar)} onChange={(v) => setBar(Number(v))} testID="plate-bar"
+        <SegmentedControl value={String(bar)} onChange={(v) => setBar(Number(v))} label={tr('Bar')} testID="plate-bar"
           options={barOptions.map((b) => ({ value: String(b), label: b ? f.num(b, 1) : tr('None') }))} />
       </View>
       {res && target !== null && (
