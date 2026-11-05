@@ -35,12 +35,13 @@ export default function Root({ children }: { children: ReactNode }) {
   );
 }
 
+// Tally's paper (docs/design/tokens.json): white, true black in dark.
 const responsiveBackground = `
 body {
-  background-color: #f1f3f6;
+  background-color: #ffffff;
 }
 @media (prefers-color-scheme: dark) {
   body {
-    background-color: #0b0d11;
+    background-color: #000000;
   }
 }`;
