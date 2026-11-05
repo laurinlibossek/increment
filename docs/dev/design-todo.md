@@ -142,10 +142,6 @@ Matters before the web app is published (backlog "Next" item 2).
 
 ---
 
-## For Laurin to decide first (not for the agent)
-
-- [ ] **D1 Finishing early can strip the routine with one tap.** After ⋯ → Finish early with 2 of 18 sets logged, the popup asks "Update Upper B? 3 sets fewer. Removes Pull Up, Incline Bench Press (Dumbbell), Seated Row (Cable), Triceps Pushdown (Cable)." and the black main button is "Update routine". That's the documented behaviour (unlogged sets count as removed; backlog, "How finishing a workout from a routine works"), but the button that looks safest is the one that deletes four exercises. Options: make "Keep routine" the main button after Finish early; or don't count exercises that were never touched as removed; or leave it.
-
 ## Leave alone
 
 Unslop's general rules would flag these, but they're deliberate Tally choices or Laurin's decisions:
@@ -154,5 +150,6 @@ Unslop's general rules would flag these, but they're deliberate Tally choices or
 - The uppercase date above Today and the summary title (`t-eyebrow`, one per screen).
 - Full stops on one-sentence captions and coach notes (Tally's voice).
 - The ⋯ on every set row (Laurin, #11).
+- The routine popup after Finish early: "Update routine" stays the main button and removes what wasn't logged (Laurin, 5 Nov 2026).
 - The tally strokes, the yellow signal itself, the system fonts, true black in dark.
 - Shadows on the floating navigation (tab bar, Now Lifting), a dragged row and the toast.
