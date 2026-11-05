@@ -75,7 +75,7 @@ Unslop's rule and Tally's ("numbers are the interface") agree: the same kind of 
 
 The most out-of-place screen: Progress → Workouts is still Strong's history card.
 
-- [ ] **3.1 Rebuild the history list.**
+- [x] **3.1 Rebuild the history list.**
   - What's wrong: a grey card per past workout (Tally: a card marks something you can start, and never a table in a card), uppercase "EXERCISE / BEST SET" column headers (`app/src/app/history.tsx:232`; Tally: no small-caps labels), a row of Strong-style icons (clock, weight, trophy; Tally's records icon is the rosette), "15 PRs" in signal colour on every card, dates like "Tue, Nov 3, 2026 · 06:23 PM" (year in the current year, leading zero).
   - Do: full-width rows with `line` hairlines, like Lifts and Records, built from the shared `app/src/ui/tally/` components: the workout name; one meta line ("Tuesday · 1:11 · 15,740 kg", the year only for past years); the workout's tally (strokes per set, records as signal strokes, as on the workout page); "5 records" as text instead of the trophy. Keep the month headers with their counts. The exercise list either goes or becomes one plain subhead line ("Squat, Romanian Deadlift, Leg Press…"); **Default:** one line. Show the result to Laurin before polishing further: `docs/design/screens.html` has no Workouts screen yet.
   - Also: "PR"/"PRs" (German keys at `core/i18n-de.js:323-324`) become "record"/"records" ("Rekord"/"Rekorde"); delete the PR keys if nothing uses them any more.

@@ -320,8 +320,6 @@ export default {
   Volume: 'Volumen',
 
   // history
-  PR: 'PR',
-  PRs: 'PRs',
   'Best set': 'Bester Satz',
   '+ {n} more': '+ {n} weitere',
   'Show calendar': 'Kalender zeigen',

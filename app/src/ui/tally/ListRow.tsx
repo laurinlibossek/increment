@@ -42,8 +42,10 @@ export function SymbolIcon({ name, size = 22, color }: { name: SymbolName; size?
 }
 
 type Props = {
-  title: string;
-  subtitle?: string;
+  title: ReactNode;
+  subtitle?: ReactNode;
+  /** Extra row content under the title and metadata, such as a workout tally. */
+  children?: ReactNode;
   symbol?: SymbolName;
   /** A value ("214", "81.4 kg") or a tally. */
   trailing?: string | { tally: StrokeState[][]; label: string };
@@ -58,19 +60,20 @@ type Props = {
   accessibilityLabel?: string;
 };
 
-export function ListRow({ title, subtitle, symbol, trailing, right, chevron, onPress, first, testID, accessibilityLabel }: Props) {
+export function ListRow({ title, subtitle, children, symbol, trailing, right, chevron, onPress, first, testID, accessibilityLabel }: Props) {
   const { colors: t } = useTally();
   const inset = symbol ? SPACE.s5 + 30 + SPACE.s3 : SPACE.s5;
   const body = (pressed: boolean) => (
     <View style={{
       flexDirection: 'row', alignItems: 'center', gap: SPACE.s3, minHeight: CONTROL.rowH,
-      paddingVertical: 6, paddingHorizontal: SPACE.s5, backgroundColor: pressed ? t.paper2 : 'transparent',
+      paddingVertical: children ? SPACE.s4 : 6, paddingHorizontal: SPACE.s5, backgroundColor: pressed ? t.paper2 : 'transparent',
     }}>
       {!first && <View style={{ position: 'absolute', top: 0, right: 0, left: inset, height: 0.5, backgroundColor: t.line }} />}
       {symbol && <View style={{ width: 30, alignItems: 'center' }}><SymbolIcon name={symbol} size={22} color={t.ink2} /></View>}
       <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
-        <Text style={[TYPE.body, { color: t.ink }]} numberOfLines={1}>{title}</Text>
-        {!!subtitle && <Text style={[TYPE.footnote, { color: t.ink2, fontVariant: ['tabular-nums'] }]} numberOfLines={1}>{subtitle}</Text>}
+        {typeof title === 'string' ? <Text style={[TYPE.body, { color: t.ink }]} numberOfLines={1}>{title}</Text> : title}
+        {!!subtitle && (typeof subtitle === 'string' ? <Text style={[TYPE.footnote, { color: t.ink2, fontVariant: ['tabular-nums'] }]} numberOfLines={1}>{subtitle}</Text> : subtitle)}
+        {!!children && <View style={{ marginTop: SPACE.s2 }}>{children}</View>}
       </View>
       {typeof trailing === 'string' && (
         <Text style={[TYPE.subhead, { color: t.ink2, fontVariant: ['tabular-nums'], flexShrink: 0, maxWidth: '45%' }]} numberOfLines={1}>{trailing}</Text>
