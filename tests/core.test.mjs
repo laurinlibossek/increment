@@ -213,14 +213,35 @@ test('templateChanges pairs warm-ups and working sets separately', () => {
   assert.equal(skipWarmup.removedSets, 1);
   assert.equal(skipWarmup.valueSets, 0);
   assert.equal(skipWarmup.typesChanged, false);
-  assert.deepEqual(skipWarmup.sets, [{ exerciseId: 'a', from: 3, to: 2 }]);
+  assert.deepEqual(skipWarmup.sets, [], 'warm-ups are not counted as straight sets');
+  assert.equal(skipWarmup.warmupsChanged, true, 'but a warm-up fewer is a change of its own');
+  assert.equal(skipWarmup.structure, true);
   const reordered = core.templateChanges(tpl, { exercises: [tpl.exercises[1], tpl.exercises[0]] });
   assert.equal(reordered.reordered, true);
   assert.deepEqual(reordered.sets, [], 'moving exercises changes no set counts');
   // per exercise: what the routine loses and gains, for the popup's +/− lines
   const swapped = core.templateChanges(tpl, { exercises: [E('a', [S('warmup', 20, 10), S('normal', 60, 8), S('normal', 60, 8), S('normal', 60, 8)]), E('c', [S('normal', 30, 12), S('normal', 30, 12)])] });
-  assert.deepEqual(swapped.sets, [{ exerciseId: 'a', from: 3, to: 4 }, { exerciseId: 'b', from: 1, to: 0 }, { exerciseId: 'c', from: 0, to: 2 }]);
+  assert.deepEqual(swapped.sets, [{ exerciseId: 'a', from: 2, to: 3 }, { exerciseId: 'b', from: 1, to: 0, removed: true }, { exerciseId: 'c', from: 0, to: 2, added: true }], 'straight sets only');
+  assert.equal(swapped.warmupsChanged, false);
+  // intensifiers: a drop set is its own change, not a straight set; a failure set is a straight set and its own change
+  const dropped = core.templateChanges(tpl, { exercises: [E('a', [S('warmup', 20, 10), S('normal', 60, 8), S('normal', 60, 8), S('drop', 40, 10)]), tpl.exercises[1]] });
+  assert.deepEqual(dropped.sets, []);
+  assert.deepEqual([dropped.dropsChanged, dropped.failuresChanged, dropped.warmupsChanged, dropped.structure], [true, false, false, true]);
+  const failed = core.templateChanges(tpl, { exercises: [E('a', [S('warmup', 20, 10), S('normal', 60, 8), S('failure', 60, 9)]), tpl.exercises[1]] });
+  assert.deepEqual(failed.sets, [], 'a set taken to failure is still a straight set');
+  assert.deepEqual([failed.failuresChanged, failed.dropsChanged, failed.structure], [true, false, true]);
   assert.equal(core.templateChanges(tpl, JSON.parse(JSON.stringify(tpl))).structure, false);
+});
+
+test('progressTemplate with the layout keeps drop sets, failure sets and supersets', () => {
+  const tpl = [E('a', [S('warmup', 20, 10), S('normal', 60, 8)]), E('b', [S('normal', 40, 10)])];
+  const workout = { exercises: [
+    E('a', [S('warmup', 20, 10), S('failure', 60, 9), S('drop', 40, 10)], { supersetId: 'g' }),
+    E('b', [S('normal', 40, 10)], { supersetId: 'g' }),
+  ] };
+  const { exercises } = core.progressTemplate(tpl, workout, () => 'weight', { layout: true });
+  assert.deepEqual(exercises[0].sets.map((x) => x.type), ['warmup', 'failure', 'drop']);
+  assert.deepEqual(exercises.map((e) => e.supersetId), ['g', 'g']);
 });
 
 test('applyWorkoutToTemplate: values only vs. the new structure; RPE is kept', () => {

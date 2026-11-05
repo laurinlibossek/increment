@@ -573,15 +573,24 @@ async function pick(page, names) {
   assert.equal(await id(page, 'routine-line').count(), 0);
   ok('only better numbers: they go into the routine without a question (worse and equal sets don’t), with Undo');
 
-  // a skipped exercise changes the layout: Keep routine keeps it, the better numbers stay saved
+  // skipped exercises and a skipped warm-up change the layout: Keep routine keeps it (warm-up
+  // included), the better numbers stay saved
   await done();
   await startPull();
   await logAll(LAT, { 0: ['40', '10'], 1: ['67.5', '10'], 2: ['57.5', '9'] });
-  await finish();
+  await checks(page, LAT).nth(0).click(); // the warm-up, un-logged again: dropped at Finish
+  await wait(page, 200);
+  assert.equal(await checked(checks(page, LAT).nth(0)), false);
+  await finishEarly(page);
+  await id(page, 'drop-pending').click(); // "Leave them out": the typed warm-up isn't saved
+  await id(page, 'summary-title').waitFor();
+  await wait(page, 900);
   await id(page, 'routine-keep').waitFor();
   assert.match(await page.locator('body').innerText(), /Change Pull\?[\s\S]*Your better numbers are saved either way\./);
-  assert.deepEqual(await id(page, 'diff-removed').allInnerTexts(), [`− Seated Row (Cable) × ${sets(original, ROW).length}`, `− Pull Up × ${sets(original, PULLUP).length}`]);
+  const working = (tpl, ex) => sets(tpl, ex).filter(([type]) => type === 'normal' || type === 'failure').length;
+  assert.deepEqual(await id(page, 'diff-removed').allInnerTexts(), [`− Seated Row (Cable) × ${working(original, ROW)}`, `− Pull Up × ${working(original, PULLUP)}`], 'straight sets only');
   assert.equal(await id(page, 'diff-added').count(), 0);
+  assert.deepEqual(await id(page, 'diff-line').allInnerTexts(), ['Warm-ups changed'], 'a skipped warm-up: a plain line, no count');
   await id(page, 'routine-keep').click();
   assert.match(await toastText(page), /^New numbers for 1 set in Pull/);
   tpl = await routine(page);
@@ -592,7 +601,7 @@ async function pick(page, names) {
   await id(page, 'toast-action').click();
   await wait(page, 300);
   assert.deepEqual((await routine(page)).exercises, original.exercises);
-  ok('“Keep routine” keeps the layout and the better numbers; Undo restores the routine');
+  ok('“Keep routine” keeps the layout (the skipped warm-up too) and the better numbers; the diff counts straight sets, “Warm-ups changed” on its own line; Undo restores the routine');
 
   // Settings → Update routines after workouts off: the routine only changes in the editor
   await done();

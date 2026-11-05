@@ -112,8 +112,10 @@ export interface TemplateDiff {
   addedExercises: number; removedExercises: number; reordered: boolean; addedSets: number; removedSets: number;
   typesChanged: boolean; supersetsChanged: boolean; valueSets: number; structure: boolean;
   added: string[]; removed: string[];
-  /** Per exercise whose set count changed: the routine's sets and the workout's (0: added or removed). */
-  sets: { exerciseId: string; from: number; to: number }[];
+  /** Per exercise whose number of straight sets (normal and failure) changed: the routine's and the workout's; added and removed exercises too. */
+  sets: { exerciseId: string; from: number; to: number; added?: boolean; removed?: boolean }[];
+  /** A kept exercise has a different number of warm-ups, drop sets or failure sets. */
+  warmupsChanged: boolean; dropsChanged: boolean; failuresChanged: boolean;
 }
 
 /**
@@ -179,22 +181,32 @@ export async function progressRoutine(workout: Workout) {
 /**
  * What's different in the layout, as diff lines for the routine popup: the
  * exercises and sets the routine would gain (+, on diff-added) first, then
- * what it would lose (−, on diff-removed), "× n" counting sets, then plain
- * lines for order, set types and supersets.
+ * what it would lose (−, on diff-removed), "× n" counting straight sets
+ * (normal and failure). Then, plain, what else differs: warm-ups, drop sets,
+ * failure sets, supersets, the order. Straight sets after warm-ups are the
+ * plan Increment encourages, so intensifiers get a line of their own instead
+ * of a count (Laurin, 5 Nov 2026); Update routine remembers them all.
  */
 export function layoutLines(d: TemplateDiff, f: F): DiffLine[] {
   const { tr } = f;
   const name = (id: string) => f.exName(getState().exercises.get(id)) || tr('Unknown exercise');
-  const line = ({ exerciseId, from, to }: TemplateDiff['sets'][number]): DiffLine => {
-    const sign = to > from ? '+' : '−';
-    const count = !from ? `× ${to}` : !to ? `× ${from}` : `× ${from} → ${to}`;
-    return { text: `${sign} ${name(exerciseId)} ${count}`, tone: to > from ? 'added' : 'removed' };
+  const gains = (x: TemplateDiff['sets'][number]) => !x.removed && (x.added || x.to > x.from);
+  const line = (x: TemplateDiff['sets'][number]): DiffLine => {
+    const n = x.added ? x.to : x.removed ? x.from : 0;
+    const count = x.added || x.removed ? (n ? ` × ${n}` : '') : ` × ${x.from} → ${x.to}`;
+    return { text: `${gains(x) ? '+' : '−'} ${name(x.exerciseId)}${count}`, tone: gains(x) ? 'added' : 'removed' };
   };
   return [
-    ...d.sets.filter((x) => x.to > x.from).map(line),
-    ...d.sets.filter((x) => x.to < x.from).map(line),
-    ...[d.reordered && tr('Reorders exercises.'), d.typesChanged && tr('Changes set types.'), d.supersetsChanged && tr('Changes supersets.')]
-      .filter((x): x is string => !!x).map((text) => ({ text })),
+    ...d.sets.filter(gains).map(line),
+    ...d.sets.filter((x) => !gains(x)).map(line),
+    ...[
+      d.warmupsChanged && tr('Warm-ups changed'),
+      d.dropsChanged && tr('Drop sets changed'),
+      d.failuresChanged && tr('Failure sets changed'),
+      d.supersetsChanged && tr('Supersets changed'),
+      d.reordered && tr('Order changed'),
+      d.typesChanged && !d.warmupsChanged && !d.dropsChanged && !d.failuresChanged && tr('Set types changed'),
+    ].filter((x): x is string => !!x).map((text) => ({ text })),
   ];
 }
 
