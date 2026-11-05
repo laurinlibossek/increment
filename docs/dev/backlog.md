@@ -21,6 +21,7 @@ Last updated 5 Nov 2026 (Increment moved into this repository). Keep this file c
 
 - Not answered yet: "Account" in German (kept as "Account"); the body part under the exercise name in the session; added exercises wait under Up next; the just-logged exercise stays on screen during its rest; the routine editor keeps RPE as a target.
 - Unknowns that need Laurin's input: where Strong puts exercise notes in a real export (sticky notes are probably not exported at all), and what Strong's exercise ⋯ → Preferences contains.
+- **Exercise naming convention** (Laurin, 5 Nov 2026: later, its own pull request). The design rule is a display name ("Bench Press") with equipment and muscle on the line below ("Barbell · Chest"), but the stored names follow Strong ("Bench Press (Barbell)") and most screens show them whole, so the exercise page reads "Overhead Press (Barbell)" over "Barbell · Shoulders". Only the Workouts rows' exercise line drops the brackets so far (`exerciseBaseName`). Decide how names are shown everywhere (titles, lists, search, the session, custom names with their own brackets, German names), keeping the stored English names for Strong import and export.
 - The dictionary (`core/i18n-de.js`) still holds keys only the Setlog web app used; they do no harm, but could be pruned.
 
 ## How finishing a workout from a routine works
