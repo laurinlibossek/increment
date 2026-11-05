@@ -10,7 +10,7 @@ import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { ScrollView, Text, View } from 'react-native';
 import {
   BODY_PARTS, CATEGORIES, exerciseRecords, exerciseSeries, chartMetricsFor, hasLoadRecords, formulaLabel,
-  kgTo, kmTo, DAY, EXERCISE_RANGES, REST_CHOICES, canMergeExercises, startOfDay,
+  kgTo, kmTo, roundW, DAY, EXERCISE_RANGES, REST_CHOICES, canMergeExercises, startOfDay,
 } from '@increment/core';
 
 import {
@@ -76,7 +76,9 @@ export default function ExerciseDetail() {
   const toDisplay = (v: number) => (m.kind === 'weight' ? kgTo(v, f.unit) : m.kind === 'distance' ? kmTo(v, f.dUnit) : m.kind === 'pace' && f.dUnit === 'mi' ? v * 1.609344 : v);
   const points: LineChartPoint[] = series.filter((p) => p.at >= from).map((p) => ({ at: p.at, value: toDisplay(p.y), record: p.record }));
   const unit = m.kind === 'weight' ? f.unit : m.kind === 'distance' ? f.dUnit : m.kind === 'pace' ? `/${f.dUnit}` : m.kind === 'count' ? tr('reps') : '';
-  const number = (v: number) => (m.kind === 'weight' ? f.num(v, 1) : m.kind === 'distance' ? f.num(v, 2) : m.kind === 'time' || m.kind === 'pace' ? f.clock(v) : f.num(v, 0));
+  // an estimate to one decimal, a logged weight as logged (58.75), a volume as the full figure
+  const weight = (v: number) => (m.id === 'e1rm' ? f.num(v, 1) : m.id === 'weight' ? f.num(roundW(v, f.unit), f.unit === 'lb' ? 1 : 2) : f.num(v, 0));
+  const number = (v: number) => (m.kind === 'weight' ? weight(v) : m.kind === 'distance' ? f.num(v, 2) : m.kind === 'time' || m.kind === 'pace' ? f.clock(v) : f.num(v, 0));
   const withUnit = (v: number) => (unit ? `${number(v)} ${unit}` : number(v));
   const axis = (v: number, dec: number) => (m.kind === 'time' || m.kind === 'pace' ? f.clock(v) : Math.abs(v) >= 10000 ? `${f.num(v / 1000, 0)}k` : f.num(v, dec));
 
@@ -84,7 +86,8 @@ export default function ExerciseDetail() {
   const first = points[0];
   const diff = points.length > 1 && last !== null ? last - first.value : 0;
   const up = diff !== 0 && (diff > 0) !== lowerBetter;
-  const change = Math.abs(diff) >= 0.05 ? `${diff > 0 ? '+' : '−'}${withUnit(Math.abs(diff))}` : undefined;
+  // no change chip when the difference rounds to nothing at the metric's precision
+  const change = number(Math.abs(diff)) !== number(0) ? `${diff > 0 ? '+' : '−'}${withUnit(Math.abs(diff))}` : undefined;
   const heroLabel = m.id === 'e1rm' ? tr('Estimated 1RM, best of last session') : tr('{metric}, last session', { metric: tr(m.label) });
 
   const label = (list: { id: string; label: string }[], key: string) => tr(list.find((x) => x.id === key)?.label || 'Other');

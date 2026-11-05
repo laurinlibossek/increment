@@ -165,7 +165,8 @@ try {
       const lib = new Map(data.exercises.map(ex => [ex.id, ex]));
       const stats = buildStats(data.workouts, lib, data.kv.settings.formula);
       const recent = data.workouts.filter(workout => workout.startedAt >= Date.now() - 30 * DAY);
-      const records = recent.reduce((sum, workout) => sum + new Set((stats.prsByWorkout.get(workout.id) || []).map(record => record.exerciseId)).size, 0);
+      // record sets, the same count the Workouts rows, the workout page and the summary show
+      const records = recent.reduce((sum, workout) => sum + new Set((stats.prsByWorkout.get(workout.id) || []).map(record => record.setId)).size, 0);
       const volume = recent.reduce((sum, workout) => sum + workoutVolume(workout, lib), 0);
       const total = volume >= 10000 ? `${num(lang, volume / 1000, volume >= 100000 ? 0 : 1)} t` : `${num(lang, volume)} kg`;
       assert.equal(normal(await id('last-30').innerText()), `${tr('Workouts')} ${num(lang, recent.length)} ${tr('Volume')} ${total} ${tr('Records')} ${num(lang, records)}`);
@@ -180,7 +181,7 @@ try {
       }
       const latest = [...data.measurements].filter(value => value.type === 'bodyweight').sort((a, b) => b.at - a.at)[0];
       assert.ok(normal(await id('progress-body').innerText()).includes(`${num(lang, roundW(latest.value, 'kg'), 1)} kg`), 'Body keeps its latest measurement');
-      ok(`${lang} ${theme}: Progress preserves all 30-day figures and Body, with working count-free navigation`);
+      ok(`${lang} ${theme}: Progress counts record sets like the Workouts rows, keeps the other 30-day figures and Body, with working count-free navigation`);
     }
     assert.deepEqual(errors, []);
     await ctx.close();
@@ -195,11 +196,12 @@ try {
       { id: 'c-noise-barbell', name: 'Record load', category: 'barbell', bodyPart: 'legs' },
     ];
     data.exercises.push(...custom);
-    const workout = (id, at, entries) => ({ id, name: id, startedAt: at, endedAt: at + 3600000, exercises: entries.map(([exerciseId, values], index) => ({ id: `${id}-${index}`, exerciseId, sets: [{ id: `${id}-set-${index}`, type: 'normal', ...values }] })) });
+    const workout = (id, at, entries) => ({ id, name: id, startedAt: at, endedAt: at + 3600000, exercises: entries.map(([exerciseId, ...sets], index) => ({ id: `${id}-${index}`, exerciseId, sets: sets.map((values, n) => ({ id: `${id}-set-${index}-${n}`, type: 'normal', ...values })) })) });
     // Three exercises are enough to exercise zero, one and two other records.
+    // Record load's second set beats only the set volume, so its three records sit on two sets.
     // A previous-year record and a long custom name stress both metadata and title wrapping.
     data.workouts = [
-      workout('noise-new', now.getTime() - DAY, [['c-noise-cardio', { d: 2, t: 600 }], ['c-noise-barbell', { w: 58.75, r: 7 }]]),
+      workout('noise-new', now.getTime() - DAY, [['c-noise-cardio', { d: 2, t: 600 }], ['c-noise-barbell', { w: 58.75, r: 7 }, { w: 50, r: 12 }]]),
       workout('noise-old', new Date(year - 1, 5, 6, 12).getTime(), [['c-noise-reps', { r: 11 }]]),
       workout('noise-baseline', new Date(year - 1, 0, 2, 12).getTime(), [['c-noise-reps', { r: 10 }], ['c-noise-cardio', { d: 1, t: 300 }], ['c-noise-barbell', { w: 50, r: 5 }]]),
     ];
@@ -212,6 +214,18 @@ try {
     const longTitle = await id('record-title-2').evaluate(e => ({ height: e.getBoundingClientRect().height, line: parseFloat(getComputedStyle(e).lineHeight) }));
     assert.ok(longTitle.height > longTitle.line * 1.5, 'long exercise names wrap onto multiple lines');
     ok(`${lang}: one, two and three record metrics; singular/plural others, a past year and a complete long name at 375 px`);
+    // two exercises set records yesterday, on three sets: Progress counts the sets, as the Workouts row does
+    const lib = new Map(data.exercises.map(ex => [ex.id, ex]));
+    const yesterday = buildStats(data.workouts, lib, data.kv.settings.formula).prsByWorkout.get('noise-new');
+    assert.equal(new Set(yesterday.map(record => record.setId)).size, 3);
+    assert.equal(new Set(yesterday.map(record => record.exerciseId)).size, 2);
+    await go('/history');
+    assert.equal(normal(await id('history-records-noise-new').innerText()), lang === 'de' ? '3 Rekorde' : '3 records');
+    await go('/');
+    await id('tab-progress').click();
+    await id('last-30').waitFor();
+    assert.ok(normal(await id('last-30').innerText()).endsWith(`${translator(lang)('Records')} 3`), await id('last-30').innerText());
+    ok(`${lang}: Progress's 30-day records and the Workouts row both count 3 record sets, not 2 exercises`);
     await go('/exercise/c-noise-reps');
     await id('exercise-best').waitFor();
     assert.ok((await id('exercise-best').innerText()).includes(translator(lang)('Most reps')));

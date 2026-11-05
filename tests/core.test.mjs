@@ -601,6 +601,11 @@ test('chart ticks, weekly counts and the streak', () => {
   assert.deepEqual(core.niceTicks(50, 50), [45, 47.5, 50, 52.5, 55]);
   assert.equal(core.niceTicks(100, 400, 4, { time: true })[1] - core.niceTicks(100, 400, 4, { time: true })[0], 120);
   assert.equal(core.tickDecimals([1, 1.5, 2]), 1);
+  assert.equal(core.tickDecimals([50, 52.5, 55, 57.5, 60]), 1, 'a 2.5 kg step keeps its half: 52.5, not 53');
+  assert.equal(core.tickDecimals([100, 125, 150]), 0);
+  assert.equal(core.tickDecimals([1, 1.25, 1.5]), 2);
+  assert.equal(core.tickDecimals([0.1, 0.2, 0.3]), 1);
+  assert.equal(core.tickDecimals([5]), 0);
   const now = new Date(2026, 9, 21, 12).getTime(); // a Wednesday
   const day = (d) => new Date(2026, 9, d, 18).getTime();
   const ws = [day(20), day(19), day(14), day(13), day(12), day(6)].map((t) => ({ startedAt: t }));
@@ -903,6 +908,12 @@ test('German exercise names: every built-in has one, shown only in German and on
   assert.equal(core.exerciseDisplayName({ ...bench, name: 'Flat Bench' }, 'de'), 'Flat Bench', 'a renamed built-in keeps its name');
   assert.equal(core.exerciseDisplayName({ id: 'c-bench-press-barbell', name: 'Bench Press (Barbell)' }, 'de'), 'Bench Press (Barbell)', 'custom ones keep theirs');
   assert.equal(core.exerciseDisplayName(undefined, 'de'), '');
+  assert.equal(core.exerciseBaseName(bench, 'en'), 'Bench Press', 'the equipment in brackets goes');
+  assert.equal(core.exerciseBaseName(bench, 'de'), 'Bankdrücken');
+  assert.equal(core.exerciseBaseName({ id: 'c-row', name: 'Row (Cable) (wide grip)' }, 'en'), 'Row (Cable)', 'only the last bracket');
+  assert.equal(core.exerciseBaseName({ id: 'c-x', name: '(Warm-up)' }, 'en'), '(Warm-up)', 'a name that is only brackets keeps them');
+  assert.equal(core.exerciseBaseName({ id: 'c-curl', name: 'Hammer Curl' }, 'en'), 'Hammer Curl');
+  assert.equal(core.exerciseBaseName(undefined, 'en'), '');
   // search finds built-ins by either name, in either language
   const find = (q) => core.SEED_EXERCISES.filter((e) => core.matchExercise(e, q)).map((e) => e.id);
   assert.deepEqual(find('latzug'), find('lat pulldown'));

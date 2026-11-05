@@ -34,8 +34,8 @@ export default function ProgressTab() {
     let recent = 0, workouts = 0, volume = 0;
     for (const w of s.workouts) {
       if (w.startedAt >= since) {
-        // one record per exercise and workout, however many of its numbers went up
-        const n = new Set((st.prsByWorkout.get(w.id) || []).map((p: { exerciseId: string }) => p.exerciseId)).size;
+        // record sets, as the Workouts rows, the workout page and the summary count them
+        const n = new Set((st.prsByWorkout.get(w.id) || []).map((p: { setId: string }) => p.setId)).size;
         workouts++; recent += n; volume += workoutVolume(w, s.exercises);
       }
     }

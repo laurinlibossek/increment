@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 import { launch, devices, grantWakeLock, APP, shots } from './env.mjs';
 import { demoData } from './store-demo.mjs';
-import { est1RM, kgTo, toKg, workoutVolume, calendarMonth } from '../../core/index.js';
+import { est1RM, kgTo, roundW, toKg, workoutVolume, calendarMonth } from '../../core/index.js';
 
 const before = process.env.REVIEW_BEFORE === '1';
 const toolsOnly = process.env.REVIEW_TOOLS_ONLY === '1';
@@ -151,6 +151,11 @@ try {
     assert.equal(normal(await id('exercise-hero').innerText()), `${edgeRm} ${unit}`);
     await go(`/exercise/${BENCH}`);
     assert.equal(normal(await id('exercise-hero').innerText()), `${rm} ${unit}`);
+    // Heaviest weight is a logged weight: 58.75 kg stays 58.75 (129.5 lb), not 58.8
+    await id('exercise-metric').click();
+    await id('metric-weight').click();
+    const heaviest = unit === 'kg' ? nf(58.75, 2) : nf(roundW(kgTo(58.75, 'lb'), 'lb'), 1);
+    assert.equal(normal(await id('exercise-hero').innerText()), `${heaviest} ${unit}`, 'Heaviest weight keeps the logged precision');
     await go(`/workout/${precise.id}`);
     const repeat = normal(await id('workout-set-precise-repeat').innerText());
     assert.ok(repeat.endsWith(`1RM ${rm}`), repeat);
@@ -165,7 +170,7 @@ try {
     }
     await go(`/workout/${zero.id}`);
     assert.ok(normal(await id('workout-set-zero-set').innerText()).includes(`0 ${unit} × 5`), 'a zero-volume workout still states the weight unit on its set');
-    ok(`${lang} ${unit}: one-decimal estimated 1RM on Records, exercise and workout; logged precision and zero-volume units preserved`);
+    ok(`${lang} ${unit}: one-decimal estimated 1RM on Records, exercise and workout; logged precision (also the exercise's Heaviest weight) and zero-volume units preserved`);
 
     await go('/tools?tab=rm');
     const toolWeight = unit === 'kg' ? 58.74 : 129.5;

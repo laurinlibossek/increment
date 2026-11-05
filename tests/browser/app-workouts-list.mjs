@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 import { launch, devices, grantWakeLock, APP, shots } from './env.mjs';
 import { demoData } from './store-demo.mjs';
-import { buildStats, workoutVolume, exerciseDisplayName, startOfMonth, startOfDay, calendarMonth } from '../../core/index.js';
+import { buildStats, workoutVolume, exerciseBaseName, startOfMonth, startOfDay, calendarMonth } from '../../core/index.js';
 
 const before = process.env.REVIEW_BEFORE === '1';
 const checksOnly = process.env.WORKOUTS_CHECKS_ONLY === '1';
@@ -73,8 +73,10 @@ try {
       const signal = marks.filter(({ rgb: [r, g, b] }) => r > 100 && g > 80 && b < Math.min(r, g) * 0.6);
       assert.equal(signal.length, records, 'only the record sets have signal strokes');
       const exercises = id(`history-exercises-${newest.id}`);
-      const names = newest.exercises.map(entry => exerciseDisplayName(lib.get(entry.exerciseId), lang));
+      // display names without the equipment in brackets, each once ("Squat, Romanian Deadlift, …")
+      const names = [...new Set(newest.exercises.map(entry => exerciseBaseName(lib.get(entry.exerciseId), lang)))];
       assert.equal(normal(await exercises.innerText()), names.join(', '));
+      assert.doesNotMatch(await exercises.innerText(), /[()]/, 'no brackets in the exercise line');
       const line = await exercises.evaluate(e => { const s = getComputedStyle(e); return { height: e.getBoundingClientRect().height, lineHeight: parseFloat(s.lineHeight), clamp: s.webkitLineClamp, whiteSpace: s.whiteSpace }; });
       assert.ok(line.clamp === '1' || line.whiteSpace === 'nowrap' || line.height <= line.lineHeight + 1, JSON.stringify(line));
       const card = await row.evaluate(e => [...e.querySelectorAll('div')].some(child => {
@@ -121,19 +123,21 @@ try {
     await row.waitFor();
     await shot('calendar-selected');
     if (!before) {
-      // The calendar still has its original best-set table and day navigation.
-      assert.match(await row.innerText(), lang === 'de' ? /bester satz/i : /best set/i);
-      assert.doesNotMatch(await row.innerText(), /\bPRs?\b/);
-      // The calendar card counts record sets too, so it agrees with the list row.
-      assert.match(normal(await row.innerText()), new RegExp(`\\b${records} ${lang === 'de' ? 'Rekorde' : 'records'}\\b`));
-      // The clock icon says what the duration is; no "Time" label beside it.
+      // The selected day is a Title 2 heading over the same full-width row as the list.
+      const dayTitle = new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(newest.startedAt);
+      assert.equal(normal(await id('cal-day').innerText()), dayTitle);
       const cardText = normal(await row.innerText());
-      assert.ok(cardText.includes(hm(newest.endedAt - newest.startedAt)), cardText);
-      assert.doesNotMatch(cardText, lang === 'de' ? /\bZeit\b/ : /\bTime\b/);
+      assert.doesNotMatch(cardText, /best set|bester satz|\bPRs?\b/i, 'no old Strong card table');
+      assert.equal(normal(await id(`history-records-${newest.id}`).innerText()), `${records} ${lang === 'de' ? 'Rekorde' : 'records'}`);
+      const vol = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(workoutVolume(newest, lib));
+      assert.equal(normal(await id(`history-meta-${newest.id}`).innerText()), `${hm(newest.endedAt - newest.startedAt)} · ${vol} kg`, 'the heading has the day, the row length and volume');
+      assert.ok(await id(`history-tally-${newest.id}`).isVisible(), 'the row has the workout tally');
+      const r = await row.boundingBox();
+      assert.ok(Math.abs(r.x) <= 1 && Math.abs(r.width - 390) <= 1, `the row runs full width: ${JSON.stringify(r)}`);
       await row.click();
       await id('workout-title').waitFor();
       assert.equal(await id('workout-title').innerText(), newest.name);
-      ok(`${lang} ${theme}: the calendar grid, h:mm totals and selected-day card still open the workout`);
+      ok(`${lang} ${theme}: the calendar grid, h:mm totals, and the selected day as a heading over the list's row, which opens the workout`);
     }
     assert.deepEqual(errors, []);
     await ctx.close();
