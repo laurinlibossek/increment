@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { ScrollView, Text, View } from 'react-native';
 import { EXAMPLE_TEMPLATES, usesWeight } from '@increment/core';
@@ -10,9 +11,10 @@ import { useTally } from '@/lib/theme';
 import { templateMenu } from '@/lib/templates';
 import { beginWorkout } from '@/lib/workout';
 import {
-  Button, Empty, IconButton, Page,
+  Empty, IconButton, Page,
 } from '@/ui/kit';
 import { toast } from '@/ui/overlay';
+import { ActionBar } from '@/ui/tally/ActionBar';
 import { ListRow } from '@/ui/tally/ListRow';
 import { SectionHeader } from '@/ui/tally/SectionHeader';
 
@@ -22,6 +24,7 @@ export default function TemplatePreview() {
   const f = useFormat();
   const { tr } = f;
   const { colors } = useTally();
+  const [barHeight, setBarHeight] = useState(0);
   const own = s.templates.find((t) => t.id === id);
   const ex = !own && (EXAMPLE_TEMPLATES as Template[]).find((t) => t.id === id);
   const t: Template | undefined = own || (ex ? { ...ex, name: tr(ex.name), folder: tr(ex.folder || '') } : undefined);
@@ -47,34 +50,39 @@ export default function TemplatePreview() {
   };
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.paper }} contentContainerStyle={{ paddingTop: SPACE.s3, paddingBottom: SPACE.s12 }} contentInsetAdjustmentBehavior="automatic">
+    <View style={{ flex: 1, backgroundColor: colors.paper }}>
       <Stack.Screen options={{
-        title: t.name,
+        title: '',
         headerRight: t.example ? undefined : () => <IconButton icon="more" label={tr('Routine options')} onPress={menu} testID="template-options" />,
       }} />
-      <Text style={[TYPE.footnote, { color: colors.ink2, paddingHorizontal: SPACE.s5 }]}>{info}</Text>
-      {!!t.notes && <>
-        <SectionHeader title={tr('Notes')} />
-        <Text style={[TYPE.subhead, { color: colors.ink, paddingHorizontal: SPACE.s5 }]} testID="template-notes">{t.notes}</Text>
-      </>}
-      <SectionHeader title={tr('Exercises')} />
-      {rows.map((e, i) => {
-        const exr = s.exercises.get(e.exerciseId)!;
-        const targets = e.sets.map((x) => {
-          if (usesWeight(exr.category) && (x.w === undefined || x.w === null) && x.r) return f.plural(x.r, 'rep');
-          return x.w || x.r || x.t || x.d ? f.setText(x, exr.category, true) : null;
-        }).filter(Boolean);
-        const sub = f.plural(e.sets.length, 'set')
-          + (targets.length ? ' · ' + [...new Set(targets)].join(', ') : '')
-          + (e.restSec ? ` · ${tr('rest {time}', { time: f.clock(e.restSec) })}` : '');
-        return <ListRow key={i} first={i === 0} testID={`template-exercise-${i}`}
-          title={<Text style={[TYPE.body, { color: colors.ink }]}>{f.exName(exr)}</Text>}
-          subtitle={<Text style={[TYPE.footnote, { color: colors.ink2, fontVariant: ['tabular-nums'] }]}>{sub}</Text>} />;
-      })}
-      <View style={{ marginTop: SPACE.s5, gap: SPACE.s2, paddingHorizontal: SPACE.s5 }}>
-        <Button large icon="play" title={tr('Start workout')} onPress={() => beginWorkout({ template: t }, f)} testID="start-template" />
-        {t.example && <Button kind="tinted" title={tr('Add to my routines')} onPress={saveExample} testID="add-example" />}
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: SPACE.s3, paddingBottom: barHeight + SPACE.s5 }} contentInsetAdjustmentBehavior="automatic" testID="template-scroll">
+        <Text style={[TYPE.title1, { color: colors.ink, paddingHorizontal: SPACE.s5 }]} accessibilityRole="header" testID="template-title">{t.name}</Text>
+        <Text style={[TYPE.footnote, { color: colors.ink2, paddingHorizontal: SPACE.s5, marginTop: SPACE.s1 }]}>{info}</Text>
+        {!!t.notes && <>
+          <SectionHeader title={tr('Notes')} />
+          <Text style={[TYPE.subhead, { color: colors.ink, paddingHorizontal: SPACE.s5 }]} testID="template-notes">{t.notes}</Text>
+        </>}
+        <SectionHeader title={tr('Exercises')} />
+        {rows.map((e, i) => {
+          const exr = s.exercises.get(e.exerciseId)!;
+          const targets = e.sets.map((x) => {
+            if (usesWeight(exr.category) && (x.w === undefined || x.w === null) && x.r) return f.plural(x.r, 'rep');
+            return x.w || x.r || x.t || x.d ? f.setText(x, exr.category, true) : null;
+          }).filter(Boolean);
+          const sub = f.plural(e.sets.length, 'set')
+            + (targets.length ? ' · ' + [...new Set(targets)].join(', ') : '')
+            + (e.restSec ? ` · ${tr('rest {time}', { time: f.clock(e.restSec) })}` : '');
+          return <ListRow key={i} first={i === 0} testID={`template-exercise-${i}`}
+            title={<Text style={[TYPE.body, { color: colors.ink }]}>{f.exName(exr)}</Text>}
+            subtitle={<Text style={[TYPE.footnote, { color: colors.ink2, fontVariant: ['tabular-nums'] }]}>{sub}</Text>} />;
+        })}
+      </ScrollView>
+      <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
+        <ActionBar testID="template-action-bar" onLayout={(e) => setBarHeight(e.nativeEvent.layout.height)} state={{
+          kind: 'primary', label: tr('Start workout'), onPress: () => beginWorkout({ template: t }, f), testID: 'start-template',
+          secondary: t.example ? { label: tr('Add to my routines'), onPress: saveExample, testID: 'add-example' } : undefined,
+        }} />
       </View>
-    </ScrollView>
+    </View>
   );
 }

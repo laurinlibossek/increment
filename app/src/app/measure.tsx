@@ -1,4 +1,5 @@
 // Body (Progress → Body): body weight and the other measurements.
+import { useState } from 'react';
 import { router } from 'expo-router';
 import { ScrollView, Text, View } from 'react-native';
 import { MEASUREMENTS, DAY } from '@increment/core';
@@ -11,7 +12,7 @@ import { useTally } from '@/lib/theme';
 import {
   fmtMeasure, logMeasurement, measureDef, toDisplay, unitOf, type MeasureDef,
 } from '@/lib/measure';
-import { Button } from '@/ui/kit';
+import { ActionBar } from '@/ui/tally/ActionBar';
 import { ListRow } from '@/ui/tally/ListRow';
 import { SectionHeader } from '@/ui/tally/SectionHeader';
 
@@ -20,6 +21,7 @@ export default function MeasureTab() {
   const f = useFormat();
   const { tr } = f;
   const { colors: t } = useTally();
+  const [barHeight, setBarHeight] = useState(0);
   const st = s.settings;
   const byType = new Map<string, Measurement[]>();
   for (const m of s.measurements) { if (!byType.has(m.type)) byType.set(m.type, []); byType.get(m.type)!.push(m); }
@@ -46,13 +48,16 @@ export default function MeasureTab() {
   };
   const defs = MEASUREMENTS as MeasureDef[];
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: t.paper }} contentContainerStyle={{ paddingTop: SPACE.s4, paddingBottom: SPACE.s12 }} contentInsetAdjustmentBehavior="automatic">
-      <View style={{ paddingHorizontal: SPACE.s5 }}>
-        <Button large icon="weight" title={tr('Log body weight')} onPress={() => logMeasurement(measureDef('bodyweight'), f)} testID="log-bodyweight" />
+    <View style={{ flex: 1, backgroundColor: t.paper }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: SPACE.s4, paddingBottom: barHeight + SPACE.s5 }} contentInsetAdjustmentBehavior="automatic" testID="body-scroll">
+        {defs.filter((d) => d.group === 'core').map(row)}
+        <SectionHeader title={tr('Circumference')} />
+        {defs.filter((d) => d.group === 'body').map(row)}
+      </ScrollView>
+      <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
+        <ActionBar testID="body-action-bar" onLayout={(e) => setBarHeight(e.nativeEvent.layout.height)}
+          state={{ kind: 'primary', label: tr('Log body weight'), onPress: () => logMeasurement(measureDef('bodyweight'), f), testID: 'log-bodyweight' }} />
       </View>
-      <View style={{ marginTop: SPACE.s5 }}>{defs.filter((d) => d.group === 'core').map(row)}</View>
-      <SectionHeader title={tr('Circumference')} />
-      {defs.filter((d) => d.group === 'body').map(row)}
-    </ScrollView>
+    </View>
   );
 }
