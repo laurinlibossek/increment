@@ -8,6 +8,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 
+import { useSearchFocus } from '@/ui/useSearchFocus';
 import { CONTROL, RADIUS, TYPE } from '@/design/tally';
 import { useColors, type Colors } from '@/lib/theme';
 
@@ -154,10 +155,10 @@ export function Cell({ title, sub, value, icon, onPress, first, danger, right, c
       {!first && <View style={[styles.hairline, { backgroundColor: c.line, left: icon ? 52 : 16 }]} />}
       {icon && <View style={[styles.cellIcon, { backgroundColor: c.accentSoft }]}><Icon name={icon} size={17} color={c.accentText} /></View>}
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={{ color: danger ? c.danger : c.ink, fontSize: 16 }} numberOfLines={1}>{title}</Text>
+        <Text style={{ color: danger ? c.danger : c.ink, fontSize: 16 }}>{title}</Text>
         {!!sub && <Text style={{ color: c.ink3, fontSize: 13, marginTop: 2 }} numberOfLines={2}>{sub}</Text>}
       </View>
-      {!!value && <Text style={{ color: c.ink3, fontSize: 15, marginLeft: 8, flexShrink: 0, maxWidth: '45%' }} numberOfLines={1}>{value}</Text>}
+      {!!value && <Text style={{ color: c.ink3, fontSize: 15, marginLeft: 8, flexShrink: 1, maxWidth: '45%' }} numberOfLines={1}>{value}</Text>}
       {right}
       {checked && <Icon name="check" size={17} color={c.accentText} />}
       {onPress && chevron && checked === undefined && <View style={{ marginLeft: 4 }}><Icon name="chevron" size={13} color={c.ink3} /></View>}
@@ -178,7 +179,7 @@ export function SwitchCell({ title, sub, value, onChange, first, testID }: { tit
     <View style={styles.cell}>
       {!first && <View style={[styles.hairline, { backgroundColor: c.line, left: 16 }]} />}
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={{ color: c.ink, fontSize: 16 }} numberOfLines={1}>{title}</Text>
+        <Text style={{ color: c.ink, fontSize: 16 }}>{title}</Text>
         {!!sub && <Text style={{ color: c.ink3, fontSize: 13, marginTop: 2 }} numberOfLines={2}>{sub}</Text>}
       </View>
       <Switch value={value} onValueChange={onChange} accessibilityLabel={title} testID={testID}
@@ -284,11 +285,12 @@ export function Empty({ title, text, children }: { title: string; text?: string;
 
 export function SearchField({ value, onChange, placeholder, testID }: { value: string; onChange: (v: string) => void; placeholder: string; testID?: string }) {
   const c = useColors();
+  const focus = useSearchFocus();
   return (
-    <View style={[styles.search, { backgroundColor: c.surface3 }]}>
+    <View style={[styles.search, { backgroundColor: c.surface3 }, focus.containerStyle]}>
       <Icon name="search" size={16} color={c.ink3} />
       <TextInput value={value} onChangeText={onChange} placeholder={placeholder} placeholderTextColor={c.ink3} testID={testID}
-        autoCorrect={false} autoCapitalize="none" clearButtonMode="while-editing" style={{ flex: 1, minWidth: 0, color: c.ink, fontSize: 16, paddingVertical: 8 }} />
+        onFocus={focus.onFocus} onBlur={focus.onBlur} autoCorrect={false} autoCapitalize="none" clearButtonMode="while-editing" style={[{ flex: 1, minWidth: 0, color: c.ink, fontSize: 16, paddingVertical: 8 }, focus.inputStyle]} />
     </View>
   );
 }
