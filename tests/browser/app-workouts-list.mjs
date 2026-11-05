@@ -126,6 +126,10 @@ try {
       assert.doesNotMatch(await row.innerText(), /\bPRs?\b/);
       // The calendar card counts record sets too, so it agrees with the list row.
       assert.match(normal(await row.innerText()), new RegExp(`\\b${records} ${lang === 'de' ? 'Rekorde' : 'records'}\\b`));
+      // The clock icon says what the duration is; no "Time" label beside it.
+      const cardText = normal(await row.innerText());
+      assert.ok(cardText.includes(hm(newest.endedAt - newest.startedAt)), cardText);
+      assert.doesNotMatch(cardText, lang === 'de' ? /\bZeit\b/ : /\bTime\b/);
       await row.click();
       await id('workout-title').waitFor();
       assert.equal(await id('workout-title').innerText(), newest.name);

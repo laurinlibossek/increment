@@ -225,7 +225,7 @@ export function WorkoutCard({ w, s, f }: { w: Workout; s: State; f: Format & { t
       <Txt style={{ fontSize: 17, fontWeight: '700' }} numberOfLines={1}>{w.name}</Txt>
       <Txt tone="ink3" style={{ fontSize: 13, marginTop: 2 }}>{`${f.date.medium(w.startedAt)} · ${f.date.time(w.startedAt)}`}</Txt>
       <View style={st.facts}>
-        <Fact icon="clock" text={`${tr('Time')} ${hm((w.endedAt || w.startedAt) - w.startedAt)}`} color={c.ink2} />
+        <Fact icon="clock" text={hm((w.endedAt || w.startedAt) - w.startedAt)} color={c.ink2} />
         {vol > 0 && <Fact icon="weight" text={f.volume(vol)} color={c.ink2} />}
         {prs > 0 && <Fact icon="trophy" text={f.plural(prs, 'record')} color={c.gold} />}
       </View>
