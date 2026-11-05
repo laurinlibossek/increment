@@ -533,6 +533,34 @@ test('copies, folders, new exercises, exercise changes waiting in a draft', () =
   assert.equal(core.exerciseInDraft(lib, null, BENCH.id), BENCH);
 });
 
+test('date ticks use consecutive month starts across year end and respect limits', () => {
+  const at = (y, m, d = 1) => new Date(y, m - 1, d).getTime();
+  const months = (xs) => xs.map((t) => [new Date(t).getFullYear(), new Date(t).getMonth() + 1, new Date(t).getDate(), new Date(t).getHours()]);
+  assert.deepEqual(months(core.dateTicks(at(2025, 10, 15), at(2026, 4, 15))),
+    [[2026, 1, 1, 0], [2026, 2, 1, 0], [2026, 3, 1, 0], [2026, 4, 1, 0]]);
+  assert.deepEqual(months(core.dateTicks(at(2025, 9, 1), at(2026, 2, 28))),
+    [[2025, 11, 1, 0], [2025, 12, 1, 0], [2026, 1, 1, 0], [2026, 2, 1, 0]]);
+  assert.deepEqual(core.dateTicks(at(2026, 8, 1), at(2026, 11, 1)), [8, 9, 10, 11].map((m) => at(2026, m)));
+  assert.deepEqual(core.dateTicks(at(2026, 7, 20), at(2026, 11, 4), 3), [9, 10, 11].map((m) => at(2026, m)));
+  assert.deepEqual(core.dateTicks(at(2025, 11, 5), at(2026, 11, 4)), [8, 9, 10, 11].map((m) => at(2026, m)));
+  const long = core.dateTicks(at(2020, 1, 15), at(2026, 11, 4));
+  assert.equal(long.length, 4);
+  assert.ok(long.every((t) => new Date(t).getDate() === 1 && t >= at(2020, 1, 15) && t <= at(2026, 11, 4)));
+});
+
+test('date ticks handle short, single-point and invalid ranges in local calendar days', () => {
+  const from = new Date(2024, 2, 8, 12).getTime(), to = new Date(2024, 2, 20, 12).getTime();
+  const ticks = core.dateTicks(from, to);
+  assert.ok(ticks.length <= 4 && ticks.length >= 2);
+  assert.ok(ticks.every((t) => t >= from && t <= to && new Date(t).getHours() === 0));
+  assert.deepEqual(core.dateTicks(from, from), [from]);
+  assert.deepEqual(core.dateTicks(from, from + 1000), [from]);
+  assert.equal(core.dateTicks(from, to, 1).length, 1);
+  assert.deepEqual(core.dateTicks(to, from), []);
+  assert.deepEqual(core.dateTicks(NaN, to), []);
+  assert.deepEqual(core.dateTicks(from, to, 0), []);
+});
+
 test('chart ticks, weekly counts and the streak', () => {
   assert.deepEqual(core.niceTicks(81, 99), [80, 85, 90, 95, 100]);
   assert.deepEqual(core.niceTicks(0, 3, 3, { zero: true }), [0, 1, 2, 3]);

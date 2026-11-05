@@ -36,6 +36,37 @@ export const tickDecimals = (ticks) => {
   return step >= 1 ? 0 : step >= 0.1 ? 1 : 2;
 };
 
+/** Calendar-aligned labels within the plotted range, oldest first.
+ * Month-only labels stay consecutive: when space is limited, label the most
+ * recent months instead of implying an irregular month sequence. Longer ranges
+ * use evenly spaced month boundaries with month/year labels supplied by the UI.
+ * Use local calendar arithmetic so DST and variable month lengths stay correct.
+ */
+export function dateTicks(from, to, max = 4) {
+  if (!Number.isFinite(from) || !Number.isFinite(to) || to < from || !Number.isFinite(max) || max < 1) return [];
+  max = Math.floor(max);
+  if (from === to) return [from];
+  const days = (to - from) / 86400000;
+  if (days < 75) {
+    let first = startOfDay(from);
+    if (first < from) first = addDays(first, 1);
+    if (first > to) return [from];
+    const step = Math.max(1, Math.ceil(days / Math.max(1, max - 1)));
+    const out = [];
+    for (let at = first; at <= to && out.length < max; at = addDays(at, step)) out.push(at);
+    return out;
+  }
+  let first = startOfMonth(from);
+  if (first < from) first = addMonths(first, 1);
+  const last = startOfMonth(to);
+  const a = new Date(first), b = new Date(last);
+  const months = (b.getFullYear() - a.getFullYear()) * 12 + b.getMonth() - a.getMonth() + 1;
+  const step = days <= 366 ? 1 : Math.max(1, Math.ceil(months / max));
+  const out = [];
+  for (let at = last; at >= first && out.length < max; at = addMonths(at, -step)) out.unshift(at);
+  return out;
+}
+
 /** Range choices in days (0 = everything) for exercise and measurement charts. */
 export const EXERCISE_RANGES = [{ value: 90, label: '3M' }, { value: 182, label: '6M' }, { value: 365, label: '1Y' }, { value: 0, label: 'All' }];
 export const MEASURE_RANGES = [{ value: 30, label: '1M' }, { value: 90, label: '3M' }, { value: 365, label: '1Y' }, { value: 0, label: 'All' }];

@@ -116,7 +116,7 @@ function Plates({ initial }: { initial?: string }) {
           )}
         </Card>
       )}
-      <Txt tone="ink3" style={{ fontSize: 13, paddingHorizontal: 4 }}>{tr('Plates and bar weights can be changed in Settings → Plates.')}</Txt>
+      <Txt tone="ink3" style={{ fontSize: 13, paddingHorizontal: 4 }}>{tr('Plates and bar weights can be changed in Account → Plates.')}</Txt>
     </View>
   );
 }

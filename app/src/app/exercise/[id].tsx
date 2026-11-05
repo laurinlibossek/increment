@@ -119,8 +119,8 @@ export default function ExerciseDetail() {
     const v = await actionSheet<string>({
       title: tr('Chart'),
       message: metrics.some((x) => x.id === 'e1rm') ? (formula === 'average'
-        ? tr('Estimated 1RM uses the average of all formulas on your best working set of each session. Change it in Settings.')
-        : tr('Estimated 1RM uses the {name} formula on your best working set of each session. Change it in Settings.', { name: formulaLabel(formula) })) : undefined,
+        ? tr('Estimated 1RM uses the average of all formulas on your best working set of each session. Change it in Account.')
+        : tr('Estimated 1RM uses the {name} formula on your best working set of each session. Change it in Account.', { name: formulaLabel(formula) })) : undefined,
       actions: metrics.map((x) => ({ label: tr(x.label), value: x.id, checked: x.id === m.id, testID: `metric-${x.id}` })),
     });
     if (v) setMetricId(v);

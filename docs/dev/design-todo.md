@@ -23,27 +23,27 @@ Build and serve the web app with `node tests/browser/run.mjs --serve` (port 8790
 
 ## 1. Bugs and wrong text
 
-- [ ] **1.1 The exercise chart's month labels are wrong.** On Squat (Barbell), 6M reads "Jul, Aug, Sep, Nov": October is missing, and "Sep" sits at the end of September. The labels sit at 0, ⅓, ⅔ and 1 of the date range and take whatever month falls there.
+- [x] **1.1 The exercise chart's month labels are wrong.** On Squat (Barbell), 6M reads "Jul, Aug, Sep, Nov": October is missing, and "Sep" sits at the end of September. The labels sit at 0, ⅓, ⅔ and 1 of the date range and take whatever month falls there.
   - Where: `app/src/ui/tally/LineChart.tsx:76-80`.
   - Do: put date labels on real boundaries: the 1st of each month for ranges of about 75 days to a year (thin them out to 3–4 labels that fit, never skip a month in between and then show the next), day and month for shorter ranges, month and year for longer ones. Pick the dates in `core/` (e.g. `dateTicks(from, to, max)`) with unit tests.
   - Done when: Squat at 3M, 6M, 1Y and All has labels at month starts with no gap in the sequence; unit tests cover a 6-month range that crosses a year end.
 
-- [ ] **1.2 Text still says "Settings"; the screen is called Account.**
+- [x] **1.2 Text still says "Settings"; the screen is called Account.**
   - Where: `app/src/app/tools.tsx:119` ("…changed in Settings → Plates."), `app/src/app/exercise/[id].tsx:122-123` ("Change it in Settings."), and their German keys.
   - Do: say Account ("Account → Plates", "Change it in Account."). Keep `app/src/app/account.tsx:253`, which means Strong's own Settings.
   - Done when: no app string points to "Settings" except the Strong one; German matches.
 
-- [ ] **1.3 The search field on the web shows a square outline inside the rounded field**, offset to the left, while it's focused (Search tab, both themes).
+- [x] **1.3 The search field on the web shows a square outline inside the rounded field**, offset to the left, while it's focused (Search tab, both themes).
   - Where: `app/src/app/(tabs)/search.tsx:62`; check the other search fields too (Lifts, Add exercises).
   - Do: remove the browser's default outline on the inner input. If keyboard focus needs a visible ring, draw Tally's `focus` ring (2 px, 2 px offset) around the whole capsule.
   - Done when: no square outline in any search field; Tab-key focus is still visible.
 
-- [ ] **1.4 Two Account rows have the same title, "Body weight in volume".** Only the grey subtitle tells them apart.
+- [x] **1.4 Two Account rows have the same title, "Body weight in volume".** Only the grey subtitle tells them apart.
   - Where: `app/src/app/account.tsx:220-221`.
   - Do (**Default**): titles "Weighted bodyweight exercises" and "Assisted bodyweight exercises", both with the subtitle "Count body weight in volume" (like "Count dumbbells twice / For volume" just above).
   - Done when: every row title in Account is unique, in both languages.
 
-- [ ] **1.5 Account titles are cut off in German:** "Routinen nach dem Training aktua…", "Verfügbare Sc…".
+- [x] **1.5 Account titles are cut off in German:** "Routinen nach dem Training aktua…", "Verfügbare Sc…".
   - Where: the setting rows in `app/src/ui/kit.tsx` (title on one line; the value next to it takes up to 45 %, line 160).
   - Do: a row title never truncates: let it wrap to two lines, and shorten the value instead.
   - Done when: German Account at 375 and 390 wide shows every title in full.

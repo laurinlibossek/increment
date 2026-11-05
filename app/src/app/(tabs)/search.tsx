@@ -12,6 +12,7 @@ import { allSessions, useAppState } from '@/data/store';
 import { CONTROL, RADIUS, SPACE, TYPE } from '@/design/tally';
 import { editExercise } from '@/lib/exerciseForm';
 import { useFormat } from '@/lib/format';
+import { useSearchFocus } from '@/ui/useSearchFocus';
 import { useTally } from '@/lib/theme';
 import { Button, Empty } from '@/ui/kit';
 import { ListRow, SymbolIcon } from '@/ui/tally/ListRow';
@@ -25,6 +26,7 @@ export default function SearchTab() {
   const { colors: t } = useTally();
   const pad = useTabPadding();
   const [q, setQ] = useState('');
+  const focus = useSearchFocus();
   const [part, setPart] = useState('all');
   const input = useRef<TextInputInstance>(null);
   const sessions = allSessions(s);
@@ -55,11 +57,11 @@ export default function SearchTab() {
     <View>
       <TabTitle title={tr('Search')} right={plus} />
       <View style={{ paddingHorizontal: SPACE.s5, gap: SPACE.s3, marginBottom: SPACE.s3 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACE.s2, borderRadius: RADIUS.capsule, paddingHorizontal: 14, backgroundColor: t.paper3 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACE.s2, borderRadius: RADIUS.capsule, paddingHorizontal: 14, backgroundColor: t.paper3, ...focus.containerStyle }}>
           <SymbolIcon name="magnifyingglass" size={16} color={t.ink2} />
           <TextInput ref={input} value={q} onChangeText={setQ} placeholder={tr('Search {n} exercises', { n: total })} placeholderTextColor={t.ink3}
-            testID="exercise-search" accessibilityLabel={tr('Search')} autoCorrect={false} autoCapitalize="none" clearButtonMode="while-editing" returnKeyType="search"
-            style={[TYPE.body, { flex: 1, minWidth: 0, color: t.ink, paddingVertical: 10, outlineWidth: 0 }]} />
+            testID="exercise-search" accessibilityLabel={tr('Search')} onFocus={focus.onFocus} onBlur={focus.onBlur} autoCorrect={false} autoCapitalize="none" clearButtonMode="while-editing" returnKeyType="search"
+            style={[TYPE.body, { flex: 1, minWidth: 0, color: t.ink, paddingVertical: 10 }, focus.inputStyle]} />
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }} keyboardShouldPersistTaps="handled">
           {parts.map((p) => {
