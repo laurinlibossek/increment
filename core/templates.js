@@ -4,6 +4,8 @@ import { remapSupersets } from './drafts.js';
 
 const VALUE_KEYS = ['w', 'r', 'd', 't'];
 const setType = (s) => s.type || 'normal';
+/** How many sets of a kind: 'straight' (normal and failure sets, the working sets), 'warmup', 'drop', 'failure'. */
+const count = (sets, kind) => sets.filter((s) => (kind === 'straight' ? ['normal', 'failure'].includes(setType(s)) : setType(s) === kind)).length;
 const setBucket = (s) => (setType(s) === 'warmup' ? 'warmup' : 'work');
 
 /** "exerciseId#n" per entry, so the n-th Bench Press pairs with the n-th Bench Press. */
@@ -76,11 +78,22 @@ export function templateChanges(template, workout) {
     addedExercises: 0, removedExercises: 0, reordered: false, addedSets: 0, removedSets: 0,
     typesChanged: false, supersetsChanged: false, valueSets: 0, structure: false,
     added: [], removed: [],
+    // per exercise whose number of straight sets (normal and failure) changed:
+    // the routine's (`from`) and the workout's (`to`); added and removed
+    // exercises too. Template order, added last. Warm-ups and drop sets aren't
+    // counted here; a different number of them (or of failure sets) in an
+    // exercise both kept sets the flags below.
+    sets: [],
+    warmupsChanged: false, dropsChanged: false, failuresChanged: false,
   };
   const order = [];
   const matched = new Set();
   pairs.forEach((wi, ti) => {
-    if (wi < 0) { c.removedExercises++; c.removed.push(T[ti].exerciseId); return; }
+    if (wi < 0) {
+      c.removedExercises++; c.removed.push(T[ti].exerciseId);
+      c.sets.push({ exerciseId: T[ti].exerciseId, from: count(T[ti].sets, 'straight'), to: 0, removed: true });
+      return;
+    }
     order.push(wi);
     matched.add(tk[ti]);
     const ts = T[ti].sets, ws = W[wi].sets;
@@ -93,16 +106,22 @@ export function templateChanges(template, workout) {
       if (!sameValues(ts[i], ws[j])) c.valueSets++;
     });
     c.addedSets += ws.length - paired;
+    const [from, to] = [count(ts, 'straight'), count(ws, 'straight')];
+    if (from !== to) c.sets.push({ exerciseId: T[ti].exerciseId, from, to });
+    if (count(ts, 'warmup') !== count(ws, 'warmup')) c.warmupsChanged = true;
+    if (count(ts, 'drop') !== count(ws, 'drop')) c.dropsChanged = true;
+    if (count(ts, 'failure') !== count(ws, 'failure')) c.failuresChanged = true;
     // same set types, but in another order (a warm-up moved after a working set)
     if (ts.length === ws.length && ts.some((s, i) => setType(s) !== setType(ws[i]))) c.typesChanged = true;
   });
   c.addedExercises = W.length - order.length;
   c.added = W.filter((e, wi) => !order.includes(wi)).map((e) => e.exerciseId);
+  W.forEach((e, wi) => { if (!order.includes(wi)) c.sets.push({ exerciseId: e.exerciseId, from: 0, to: count(e.sets, 'straight'), added: true }); });
   c.reordered = order.some((w, i) => i > 0 && w < order[i - 1]);
   const lt = supersetLeaders(T, tk, matched), lw = supersetLeaders(W, wk, matched);
   c.supersetsChanged = [...matched].some((k) => lt.get(k) !== lw.get(k));
-  c.structure = !!(c.addedExercises || c.removedExercises || c.reordered || c.addedSets || c.removedSets
-    || c.typesChanged || c.supersetsChanged);
+  c.structure = !!(c.addedExercises || c.removedExercises || c.reordered || c.sets.length
+    || c.warmupsChanged || c.dropsChanged || c.failuresChanged || c.typesChanged || c.supersetsChanged);
   return c;
 }
 /** Did a finished workout change the structure of its template? */
