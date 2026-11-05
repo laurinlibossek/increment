@@ -1,22 +1,25 @@
 // Body (Progress → Body): body weight and the other measurements.
 import { router } from 'expo-router';
-import { View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { MEASUREMENTS, DAY } from '@increment/core';
 
 import { useAppState } from '@/data/store';
 import type { Measurement } from '@/data/types';
+import { SPACE, TYPE } from '@/design/tally';
 import { useFormat } from '@/lib/format';
+import { useTally } from '@/lib/theme';
 import {
   fmtMeasure, logMeasurement, measureDef, toDisplay, unitOf, type MeasureDef,
 } from '@/lib/measure';
-import {
-  Button, Cell, Group, Page, SectionTitle,
-} from '@/ui/kit';
+import { Button } from '@/ui/kit';
+import { ListRow } from '@/ui/tally/ListRow';
+import { SectionHeader } from '@/ui/tally/SectionHeader';
 
 export default function MeasureTab() {
   const s = useAppState();
   const f = useFormat();
   const { tr } = f;
+  const { colors: t } = useTally();
   const st = s.settings;
   const byType = new Map<string, Measurement[]>();
   for (const m of s.measurements) { if (!byType.has(m.type)) byType.set(m.type, []); byType.get(m.type)!.push(m); }
@@ -24,7 +27,7 @@ export default function MeasureTab() {
   const row = (d: MeasureDef, i: number) => {
     const list = byType.get(d.id) || [];
     const last = list[0];
-    let sub = tr('No entries yet');
+    let sub: string | undefined;
     if (last) {
       sub = f.relDay(last.at);
       const ref = list.find((m) => m.at <= last.at - 28 * DAY);
@@ -34,19 +37,22 @@ export default function MeasureTab() {
       }
     }
     return (
-      <Cell key={d.id} first={i === 0} title={tr(d.label)} sub={sub} value={last ? fmtMeasure(d, last.value, st, f) : undefined}
+      <ListRow key={d.id} first={i === 0}
+        title={<Text style={[TYPE.body, { color: t.ink }]}>{tr(d.label)}</Text>}
+        subtitle={sub ? <Text style={[TYPE.footnote, { color: t.ink2 }]}>{sub}</Text> : undefined}
+        trailing={last ? fmtMeasure(d, last.value, st, f) : undefined} chevron
         onPress={() => router.push({ pathname: '/measure/[type]', params: { type: d.id } })} testID={`measure-${d.id}`} />
     );
   };
   const defs = MEASUREMENTS as MeasureDef[];
   return (
-    <Page>
-      <View style={{ marginTop: 4 }}>
+    <ScrollView style={{ flex: 1, backgroundColor: t.paper }} contentContainerStyle={{ paddingTop: SPACE.s4, paddingBottom: SPACE.s12 }} contentInsetAdjustmentBehavior="automatic">
+      <View style={{ paddingHorizontal: SPACE.s5 }}>
         <Button large icon="weight" title={tr('Log body weight')} onPress={() => logMeasurement(measureDef('bodyweight'), f)} testID="log-bodyweight" />
       </View>
-      <Group style={{ marginTop: 20 }}>{defs.filter((d) => d.group === 'core').map(row)}</Group>
-      <SectionTitle>{tr('Circumference')}</SectionTitle>
-      <Group>{defs.filter((d) => d.group === 'body').map(row)}</Group>
-    </Page>
+      <View style={{ marginTop: SPACE.s5 }}>{defs.filter((d) => d.group === 'core').map(row)}</View>
+      <SectionHeader title={tr('Circumference')} />
+      {defs.filter((d) => d.group === 'body').map(row)}
+    </ScrollView>
   );
 }

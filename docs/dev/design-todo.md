@@ -85,12 +85,12 @@ The most out-of-place screen: Progress → Workouts is still Strong's history ca
 
 Plan, Progress, Lifts and Records use full-width rows with hairlines (Tally principle 4). Account, Body, a routine's page and Tools use inset grey cards (the iOS Settings look).
 
-- [ ] **4.1 Account, Body and the routine page use full-width rows** (`ListRow` and the section header from `app/src/ui/tally/`), with section titles in `t-title-2`.
+- [x] **4.1 Account, Body and the routine page use full-width rows** (`ListRow` and the section header from `app/src/ui/tally/`), with section titles in `t-title-2`.
   - Where: `app/src/app/account.tsx`, `app/src/app/measure.tsx`, `app/src/app/template/[id].tsx`.
   - **Default:** follow Tally on all three, Account included (a settings sheet could keep the grouped look; Laurin may prefer that).
   - Related: backlog "Next" item 4 moves the summary, workout and exercise pages from `app/src/ui/facts.tsx` to the shared components; reuse the same ones here.
-- [ ] **4.2 Body says "No entries yet" eleven times.** Show the subtitle only when there's an entry; an empty row is just its name.
-- [ ] **4.3 Plan rows have both a ⋯ and a ›** (`app/src/app/(tabs)/plan.tsx:78-82`). **Default:** keep the ⋯ (the menu), drop the chevron; the whole row still opens the routine.
+- [x] **4.2 Body says "No entries yet" eleven times.** Show the subtitle only when there's an entry; an empty row is just its name.
+- [x] **4.3 Plan rows have both a ⋯ and a ›** (`app/src/app/(tabs)/plan.tsx:78-82`). **Default:** keep the ⋯ (the menu), drop the chevron; the whole row still opens the routine.
 
 ## 5. Headers and the main action
 
