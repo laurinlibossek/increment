@@ -1,0 +1,80 @@
+# Increment: the app
+
+Built with [Expo](https://expo.dev) (React Native). One codebase becomes a real iPhone app, a real Android app and the web app. The training logic lives in `../core` (imported as `@increment/core`): records, the suggested workout, progressive overload, the Strong import, backups and translations.
+
+**Status:** not released yet; everything Setlog did, redesigned in Tally, plus a rest timer that alerts you with the phone locked.
+
+- **Logging:** start a workout empty, from a routine or again from History. One exercise at a time, last time's numbers in ghost ink; the button at the bottom logs the next set with them (or tap its stroke), then counts down the rest and asks how many reps were left, and after the last set says "Finish workout". Numbers are typed on the app's own keypad, with the exercise's step and plates per side. The other exercises wait under "Up next" (tap to switch, press and hold to drag). Set types, reps in reserve, supersets, warm-up sets, focus metric, plate calculator, reordering, a start time you can move, and Finish with records; the routine's numbers go up by themselves, and a changed layout asks whether to update the routine. Pull the workout down and it waits above the tab bar (Now Lifting: the exercise and set, the rest and Skip); it survives closing the app.
+- **Rest timer alerts:** when rest is over and the app isn't open (phone locked, another app), a notification arrives. The first rest timer asks for permission. Settings → Rest timer alerts turns it off.
+- **Routines** (templates in the code): create and edit them (or make one from a finished workout), with ⋯ to rename, duplicate, move to a folder, archive, share as a link and delete (with undo). Routines ⋯ sorts, makes folders and adds a routine someone shared with you.
+- **History:** a list by month or a calendar; edit a finished workout (sets, name, start, duration), save it as a routine, share it as text, delete it with undo.
+- **Exercises:** create your own (also right from the picker), edit, pin a note, merge into another, hide or delete; charts and records per exercise.
+- **Measure:** log body weight and measurements, with a chart per measurement.
+- **Today:** the routine that's up next with Start (or the running workout), this week's sessions and sets per muscle for the last 7 days. The avatar opens Account: your name and every setting.
+- **Progress:** the last 30 days, Workouts (History), Lifts, Records and Body (Measure), workouts per week, a reminder to back up, plate and 1RM calculators.
+- **Your data:** Back up now (Save to Files, iCloud Drive, AirDrop…), restore, Strong import, CSV export, Delete all data. Backups are the same file as Setlog's, in both directions.
+
+Still to come for the phone apps: routine links that open the app straight from the web address (a universal link; until then the app opens `increment://` links, and web links are pasted under Plan → Routines ⋯ → Add shared routine).
+
+## Try it on your iPhone (free, no Apple Developer account)
+
+1. Install **Expo Go** from the App Store.
+2. On your Mac, in your copy of the repo (needs [Node.js](https://nodejs.org) 22.13 or newer):
+   ```sh
+   cd app
+   npm install
+   npx expo start
+   ```
+3. Scan the QR code with the iPhone camera. The app opens in Expo Go and reloads whenever the code changes.
+4. To bring your data from Setlog: there, Settings → Back up now, save the file to iCloud Drive. In the app, Today → the avatar at the top right → Restore from backup.
+
+Your phone and Mac need to be on the same Wi-Fi. If that doesn't work (eduroam, for example), install the tunnel once with `npm i -g @expo/ngrok`, then use `npx expo start --tunnel`.
+
+Android works the same with Expo Go from the Play Store. `npx expo start --web` opens it in a browser.
+
+## How it's organised
+
+```
+src/app/              screens (Expo Router: every file is a route)
+  (tabs)/             Today, Plan, Progress, Search: native tabs on the phone (_layout.tsx),
+                      JS tabs in the web build the tests use (_layout.web.tsx)
+  account.tsx         the Account sheet from Today's avatar: name and settings
+  history.tsx         Progress → Workouts: by month or as a calendar
+  exercises.tsx       Progress → Lifts: the exercises you've done
+  records.tsx         Progress → Records
+  measure.tsx         Progress → Body
+  active.tsx          the running workout (slides up; pull down to minimize)
+  pick-exercises.tsx  adding or replacing exercises (and creating one)
+  reorder.tsx         drag-and-drop order of a workout or template (?draft=edit)
+  summary/[id].tsx    after Finish: records, and the template question
+  template-edit.tsx   the template editor (?id= to edit, ?from= a finished workout)
+  workout-edit/[id]   editing a finished workout
+  tools.tsx           plate calculator and 1RM calculator
+  exercise-form.tsx   creating or editing an exercise
+  warmup.tsx          the warm-up scheme (Account → Warm-up sets)
+  +native-intent.tsx  links that open the app: template links are offered, not routed
+  workout/[id].tsx    a finished workout and its ⋯ menu
+  exercise/[id].tsx   an exercise: about, history, charts, records
+  measure/[type].tsx  a measurement: chart, entries
+  template/[id].tsx   a template preview and its ⋯ menu
+src/data/             state (store.ts) and storage: SQLite on the phone, localStorage on web
+src/lib/              language, colours, formatting, starting and finishing a workout, templates,
+                      measurements, backups and files, rest timer notifications
+src/ui/kit.tsx        shared building blocks (large titles, grouped rows, switches, fields, buttons)
+src/ui/overlay.tsx    action sheets, dialogs, date/time and number entry, toasts
+src/ui/Chart.tsx      line and column charts (react-native-svg)
+src/ui/tally/         Tally components (docs/design/components.md): strokes, rows, section headers,
+                      stat strip, week strip, sets per muscle, routine card, Now Lifting, tab roots;
+                      the session's set rows, Action bar, rest bar, keypad and reps left
+src/ui/workout/       the session (Session.tsx), exercise blocks (running workout, template editor,
+                      Edit workout), set fields, the rest watcher, the minimized workout (MiniBar)
+```
+
+## Rules
+
+- Logic goes in `../core`, not here, without UI or browser APIs. `npm test` in the repo root tests it.
+- Editors work on a draft in the store: `active` is the running workout, `edit` the template or finished workout being edited (`editDraft(key, fn, entryId)`). Exercise changes made while editing wait in the draft until Save.
+- Texts are English and go through `tr()`. Add the German to `../core/i18n-de.js`; the tests fail when a text has none.
+- Colours, spacing and type come from the Tally tokens (`../docs/design/tokens.json` → `src/design/tally.ts` with `npm run tally`). Use `useTally()` in new code, never hard-coded colours.
+- Before pushing: `npx tsc --noEmit` and `npm run bundle` (CI runs both).
+- Expo changes with every SDK. Check the docs for the SDK in `package.json` (`https://docs.expo.dev/versions/v58.0.0/`) rather than memory; see `AGENTS.md`.

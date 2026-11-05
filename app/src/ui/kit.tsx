@@ -1,0 +1,314 @@
+// Building blocks for every screen, in the web app's look: large titles,
+// grouped rows on a tinted background, rounded cards, filled and tinted buttons.
+import type { ReactNode } from 'react';
+import {
+  ActivityIndicator, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View,
+  type StyleProp, type TextStyle, type ViewStyle,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SymbolView, type SymbolViewProps } from 'expo-symbols';
+
+import { CONTROL, RADIUS, TYPE } from '@/design/tally';
+import { useColors, type Colors } from '@/lib/theme';
+
+// ---------- icons ----------
+/** SF Symbol on iOS, Material Symbol on Android and web. */
+export const ICONS = {
+  profile: { ios: 'person.crop.circle', android: 'person', web: 'person' },
+  history: { ios: 'clock.arrow.circlepath', android: 'history', web: 'history' },
+  workout: { ios: 'plus.circle.fill', android: 'add_circle', web: 'add_circle' },
+  exercises: { ios: 'dumbbell.fill', android: 'fitness_center', web: 'fitness_center' },
+  measure: { ios: 'ruler', android: 'straighten', web: 'straighten' },
+  settings: { ios: 'gearshape', android: 'settings', web: 'settings' },
+  chevron: { ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' },
+  chevronLeft: { ios: 'chevron.left', android: 'chevron_left', web: 'chevron_left' },
+  list: { ios: 'list.bullet', android: 'list', web: 'list' },
+  play: { ios: 'play.fill', android: 'play_arrow', web: 'play_arrow' },
+  plus: { ios: 'plus', android: 'add', web: 'add' },
+  trophy: { ios: 'trophy.fill', android: 'emoji_events', web: 'emoji_events' },
+  clock: { ios: 'clock', android: 'schedule', web: 'schedule' },
+  weight: { ios: 'scalemass', android: 'scale', web: 'scale' },
+  download: { ios: 'square.and.arrow.down', android: 'download', web: 'download' },
+  swap: { ios: 'arrow.left.arrow.right', android: 'swap_horiz', web: 'swap_horiz' },
+  search: { ios: 'magnifyingglass', android: 'search', web: 'search' },
+  check: { ios: 'checkmark', android: 'check', web: 'check' },
+  more: { ios: 'ellipsis', android: 'more_horiz', web: 'more_horiz' },
+  chevronDown: { ios: 'chevron.down', android: 'expand_more', web: 'expand_more' },
+  timer: { ios: 'timer', android: 'timer', web: 'timer' },
+  note: { ios: 'note.text', android: 'sticky_note_2', web: 'sticky_note_2' },
+  pin: { ios: 'pin', android: 'push_pin', web: 'push_pin' },
+  link: { ios: 'link', android: 'link', web: 'link' },
+  unlink: { ios: 'xmark.circle', android: 'link_off', web: 'link_off' },
+  flame: { ios: 'flame', android: 'local_fire_department', web: 'local_fire_department' },
+  grip: { ios: 'line.3.horizontal', android: 'drag_handle', web: 'drag_handle' },
+  reorder: { ios: 'arrow.up.arrow.down', android: 'swap_vert', web: 'swap_vert' },
+  trash: { ios: 'trash', android: 'delete', web: 'delete' },
+  calendar: { ios: 'calendar', android: 'calendar_today', web: 'calendar_today' },
+  close: { ios: 'xmark', android: 'close', web: 'close' },
+  repeat: { ios: 'arrow.clockwise', android: 'replay', web: 'replay' },
+  trend: { ios: 'chart.line.uptrend.xyaxis', android: 'trending_up', web: 'trending_up' },
+  plate: { ios: 'circle.circle', android: 'adjust', web: 'adjust' },
+  edit: { ios: 'pencil', android: 'edit', web: 'edit' },
+  copy: { ios: 'doc.on.doc', android: 'content_copy', web: 'content_copy' },
+  folder: { ios: 'folder', android: 'folder', web: 'folder' },
+  archive: { ios: 'archivebox', android: 'archive', web: 'archive' },
+  share: { ios: 'square.and.arrow.up', android: 'share', web: 'share' },
+  upload: { ios: 'square.and.arrow.up', android: 'upload', web: 'upload' },
+  eyeOff: { ios: 'eye.slash', android: 'visibility_off', web: 'visibility_off' },
+  eye: { ios: 'eye', android: 'visibility', web: 'visibility' },
+  bell: { ios: 'bell', android: 'notifications', web: 'notifications' },
+  chart: { ios: 'chart.xyaxis.line', android: 'show_chart', web: 'show_chart' },
+  calculator: { ios: 'function', android: 'calculate', web: 'calculate' },
+} as const;
+export type IconName = keyof typeof ICONS;
+
+export function Icon({ name, size = 20, color }: { name: IconName; size?: number; color: string }) {
+  return <SymbolView name={ICONS[name] as SymbolViewProps['name']} size={size} tintColor={color} />;
+}
+
+// ---------- text ----------
+type TxtProps = { children: ReactNode; style?: StyleProp<TextStyle>; numberOfLines?: number; tone?: 'ink' | 'ink2' | 'ink3' | 'accent' | 'danger' | 'gold'; testID?: string };
+export function Txt({ children, style, numberOfLines, tone = 'ink', testID }: TxtProps) {
+  const c = useColors();
+  const color = { ink: c.ink, ink2: c.ink2, ink3: c.ink3, accent: c.accentText, danger: c.danger, gold: c.gold }[tone];
+  return <Text style={[{ color, fontSize: 16 }, style]} numberOfLines={numberOfLines} testID={testID}>{children}</Text>;
+}
+
+// ---------- screens ----------
+/** A tab's main screen: large title, optional button on the right, scrolling content. */
+export function Screen({ title, right, children, scroll = true }: { title: string; right?: ReactNode; children: ReactNode; scroll?: boolean }) {
+  const c = useColors();
+  const insets = useSafeAreaInsets();
+  const head = <LargeTitle title={title} right={right} />;
+  if (!scroll) {
+    return <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top }}>{head}{children}</View>;
+  }
+  return (
+    <ScrollView style={{ flex: 1, backgroundColor: c.bg }} contentContainerStyle={{ paddingTop: insets.top, paddingBottom: 32 }}>
+      {head}
+      <View style={styles.page}>{children}</View>
+    </ScrollView>
+  );
+}
+
+export function LargeTitle({ title, right }: { title: string; right?: ReactNode }) {
+  const c = useColors();
+  return (
+    <View style={styles.titleRow}>
+      <Text style={[styles.largeTitle, { color: c.ink }]} numberOfLines={1} accessibilityRole="header">{title}</Text>
+      {right}
+    </View>
+  );
+}
+
+/** Content of a pushed screen (the navigation bar gives the title). */
+export function Page({ children }: { children: ReactNode }) {
+  const c = useColors();
+  return (
+    <ScrollView style={{ flex: 1, backgroundColor: c.bg }} contentContainerStyle={[styles.page, { paddingTop: 12, paddingBottom: 40 }]} contentInsetAdjustmentBehavior="automatic">
+      {children}
+    </ScrollView>
+  );
+}
+
+export function Loading() {
+  const c = useColors();
+  return <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.bg }}><ActivityIndicator color={c.accent} /></View>;
+}
+
+// ---------- grouped lists ----------
+export function SectionTitle({ children, right }: { children: ReactNode; right?: ReactNode }) {
+  const c = useColors();
+  return (
+    <View style={styles.sectionRow}>
+      <Text style={[styles.sectionTitle, { color: c.ink }]}>{children}</Text>
+      {right}
+    </View>
+  );
+}
+
+export function Group({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
+  const c = useColors();
+  return <View style={[styles.group, { backgroundColor: c.surface }, style]}>{children}</View>;
+}
+
+type CellProps = {
+  title: string;
+  sub?: string;
+  value?: string;
+  icon?: IconName;
+  onPress?: () => void;
+  first?: boolean;
+  danger?: boolean;
+  right?: ReactNode;
+  /** a ">" on rows that open another screen; off for choices */
+  chevron?: boolean;
+  /** a checkmark for the chosen option in a list of choices */
+  checked?: boolean;
+  testID?: string;
+};
+export function Cell({ title, sub, value, icon, onPress, first, danger, right, chevron = true, checked, testID }: CellProps) {
+  const c = useColors();
+  const body = (pressed: boolean) => (
+    <View style={[styles.cell, { backgroundColor: pressed ? c.surface2 : 'transparent' }]}>
+      {!first && <View style={[styles.hairline, { backgroundColor: c.line, left: icon ? 52 : 16 }]} />}
+      {icon && <View style={[styles.cellIcon, { backgroundColor: c.accentSoft }]}><Icon name={icon} size={17} color={c.accentText} /></View>}
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={{ color: danger ? c.danger : c.ink, fontSize: 16 }} numberOfLines={1}>{title}</Text>
+        {!!sub && <Text style={{ color: c.ink3, fontSize: 13, marginTop: 2 }} numberOfLines={2}>{sub}</Text>}
+      </View>
+      {!!value && <Text style={{ color: c.ink3, fontSize: 15, marginLeft: 8, flexShrink: 0, maxWidth: '45%' }} numberOfLines={1}>{value}</Text>}
+      {right}
+      {checked && <Icon name="check" size={17} color={c.accentText} />}
+      {onPress && chevron && checked === undefined && <View style={{ marginLeft: 4 }}><Icon name="chevron" size={13} color={c.ink3} /></View>}
+    </View>
+  );
+  if (!onPress) return body(false);
+  return (
+    <Pressable onPress={onPress} accessibilityRole={checked === undefined ? 'button' : 'radio'} accessibilityState={checked === undefined ? undefined : { checked }} testID={testID}>
+      {({ pressed }) => body(pressed)}
+    </Pressable>
+  );
+}
+
+/** A row with an on/off switch. */
+export function SwitchCell({ title, sub, value, onChange, first, testID }: { title: string; sub?: string; value: boolean; onChange: (v: boolean) => void; first?: boolean; testID?: string }) {
+  const c = useColors();
+  return (
+    <View style={styles.cell}>
+      {!first && <View style={[styles.hairline, { backgroundColor: c.line, left: 16 }]} />}
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={{ color: c.ink, fontSize: 16 }} numberOfLines={1}>{title}</Text>
+        {!!sub && <Text style={{ color: c.ink3, fontSize: 13, marginTop: 2 }} numberOfLines={2}>{sub}</Text>}
+      </View>
+      <Switch value={value} onValueChange={onChange} accessibilityLabel={title} testID={testID}
+        trackColor={{ true: c.ink, false: c.surface3 }} thumbColor={value ? c.bg : '#ffffff'} ios_backgroundColor={c.surface3}
+        {...({ activeThumbColor: c.bg, activeTrackColor: c.ink } as object)} />
+    </View>
+  );
+}
+
+/** A row of mutually exclusive choices, like the web app's segmented control. */
+export function Segments<T extends string>({ value, options, onChange, testID }: { value: T; options: { value: T; label: string }[]; onChange: (v: T) => void; testID?: string }) {
+  const c = useColors();
+  return (
+    <View style={[styles.seg, { backgroundColor: c.surface3 }]} accessibilityRole="tablist" testID={testID}>
+      {options.map((o) => {
+        const on = o.value === value;
+        return (
+          <Pressable key={o.value} onPress={() => onChange(o.value)} accessibilityRole="tab" accessibilityState={{ selected: on }}
+            style={[styles.segBtn, on && { backgroundColor: c.bg, shadowOpacity: 0.12 }]}>
+            <Text style={{ color: c.ink, fontWeight: on ? '600' : '500', fontSize: 14 }} numberOfLines={1}>{o.label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+// ---------- cards & buttons ----------
+export function Card({ children, onPress, style, testID }: { children: ReactNode; onPress?: () => void; style?: StyleProp<ViewStyle>; testID?: string }) {
+  const c = useColors();
+  const box = (pressed = false) => [styles.card, { backgroundColor: pressed ? c.surface2 : c.surface }, style];
+  if (!onPress) return <View style={box()} testID={testID}>{children}</View>;
+  return <Pressable onPress={onPress} style={({ pressed }) => box(pressed)} accessibilityRole="button" testID={testID}>{children}</Pressable>;
+}
+
+type ButtonProps = { title: string; onPress: () => void; kind?: 'primary' | 'tinted' | 'plain' | 'danger'; icon?: IconName; large?: boolean; disabled?: boolean; testID?: string };
+export function Button({ title, onPress, kind = 'primary', icon, large, disabled, testID }: ButtonProps) {
+  const c = useColors();
+  const look = buttonLook(c, kind);
+  return (
+    <Pressable onPress={onPress} disabled={disabled} accessibilityRole="button" testID={testID}
+      style={({ pressed }) => [styles.btn, large && styles.btnLarge, { backgroundColor: look.bg, opacity: disabled ? 0.45 : pressed ? 0.8 : 1 }]}>
+      {icon && <Icon name={icon} size={large ? 18 : 16} color={look.ink} />}
+      <Text style={{ color: look.ink, fontSize: large ? 17 : 16, fontWeight: '600' }} numberOfLines={1}>{title}</Text>
+    </Pressable>
+  );
+}
+function buttonLook(c: Colors, kind: ButtonProps['kind']) {
+  if (kind === 'tinted') return { bg: c.accentSoft, ink: c.accentText };
+  if (kind === 'plain') return { bg: c.surface, ink: c.accentText };
+  if (kind === 'danger') return { bg: c.dangerSoft, ink: c.danger };
+  return { bg: c.primary, ink: c.primaryInk };
+}
+
+export function IconButton({ icon, onPress, label, testID }: { icon: IconName; onPress: () => void; label: string; testID?: string }) {
+  const c = useColors();
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} testID={testID} hitSlop={8}
+      style={({ pressed }) => [styles.iconBtn, { backgroundColor: pressed ? c.surface3 : 'transparent' }]}>
+      <Icon name={icon} size={22} color={c.accentText} />
+    </Pressable>
+  );
+}
+
+/** A text button for a navigation bar (Cancel, Save). */
+export function HeaderButton({ title, onPress, strong, testID }: { title: string; onPress: () => void; strong?: boolean; testID?: string }) {
+  const c = useColors();
+  return (
+    <Pressable onPress={onPress} hitSlop={10} accessibilityRole="button" testID={testID} style={{ paddingHorizontal: 6, paddingVertical: 4 }}>
+      <Text style={{ color: c.accentText, fontSize: 17, fontWeight: strong ? '700' : '400' }}>{title}</Text>
+    </Pressable>
+  );
+}
+
+/** A labelled text field in the grouped style. */
+export function Field({
+  label, value, onChange, placeholder, multiline, keyboardType, testID, big,
+}: {
+  label?: string; value: string; onChange: (v: string) => void; placeholder?: string; multiline?: boolean;
+  keyboardType?: 'default' | 'number-pad' | 'decimal-pad'; testID?: string; big?: boolean;
+}) {
+  const c = useColors();
+  return (
+    <View style={{ gap: 6 }}>
+      {!!label && <Text style={{ color: c.ink2, fontSize: 13, fontWeight: '600', paddingHorizontal: 4 }}>{label}</Text>}
+      <TextInput value={value} onChangeText={onChange} placeholder={placeholder} placeholderTextColor={c.ink3} multiline={multiline}
+        keyboardType={keyboardType} testID={testID} accessibilityLabel={label || placeholder}
+        style={[styles.field, { color: c.ink, backgroundColor: c.surface }, multiline && { minHeight: 64, textAlignVertical: 'top' }, big && { fontSize: 22, fontWeight: '800' }]} />
+    </View>
+  );
+}
+
+export function Empty({ title, text, children }: { title: string; text?: string; children?: ReactNode }) {
+  const c = useColors();
+  return (
+    <View style={{ alignItems: 'center', paddingVertical: 40, paddingHorizontal: 16, gap: 8 }}>
+      <Text style={{ color: c.ink, fontSize: 19, fontWeight: '700', textAlign: 'center' }}>{title}</Text>
+      {!!text && <Text style={{ color: c.ink2, fontSize: 15, textAlign: 'center', lineHeight: 21 }}>{text}</Text>}
+      {children && <View style={{ marginTop: 12, alignSelf: 'stretch' }}>{children}</View>}
+    </View>
+  );
+}
+
+export function SearchField({ value, onChange, placeholder, testID }: { value: string; onChange: (v: string) => void; placeholder: string; testID?: string }) {
+  const c = useColors();
+  return (
+    <View style={[styles.search, { backgroundColor: c.surface3 }]}>
+      <Icon name="search" size={16} color={c.ink3} />
+      <TextInput value={value} onChangeText={onChange} placeholder={placeholder} placeholderTextColor={c.ink3} testID={testID}
+        autoCorrect={false} autoCapitalize="none" clearButtonMode="while-editing" style={{ flex: 1, minWidth: 0, color: c.ink, fontSize: 16, paddingVertical: 8 }} />
+    </View>
+  );
+}
+
+export const styles = StyleSheet.create({
+  page: { paddingHorizontal: 16 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 10, paddingBottom: 8, gap: 8 },
+  largeTitle: { fontSize: TYPE.largeTitle.fontSize, lineHeight: TYPE.largeTitle.lineHeight, fontWeight: '700', letterSpacing: TYPE.largeTitle.letterSpacing, flexShrink: 1 },
+  sectionRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 28, marginBottom: 8, paddingHorizontal: 4 },
+  sectionTitle: { fontSize: TYPE.title2.fontSize, lineHeight: TYPE.title2.lineHeight, fontWeight: '700' },
+  group: { borderRadius: RADIUS.l, overflow: 'hidden' },
+  cell: { flexDirection: 'row', alignItems: 'center', minHeight: 50, paddingHorizontal: 16, paddingVertical: 10, gap: 12 },
+  hairline: { position: 'absolute', top: 0, right: 0, height: StyleSheet.hairlineWidth },
+  cellIcon: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  card: { borderRadius: RADIUS.l, padding: 16 },
+  btn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: CONTROL.hitMin, borderRadius: RADIUS.capsule, paddingHorizontal: 20 },
+  btnLarge: { minHeight: CONTROL.buttonH, borderRadius: RADIUS.capsule },
+  iconBtn: { width: CONTROL.hitMin, height: CONTROL.hitMin, borderRadius: RADIUS.capsule, alignItems: 'center', justifyContent: 'center' },
+  seg: { flexDirection: 'row', borderRadius: RADIUS.capsule, padding: 3 },
+  segBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: 32, borderRadius: RADIUS.capsule, paddingHorizontal: 6, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowRadius: 3, shadowOpacity: 0 },
+  search: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: RADIUS.capsule, paddingHorizontal: 14 },
+  field: { borderRadius: RADIUS.m, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16 },
+});
