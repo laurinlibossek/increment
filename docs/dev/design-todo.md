@@ -123,10 +123,10 @@ Plan, Progress, Lifts and Records use full-width rows with hairlines (Tally prin
 
 Matters before the web app is published (backlog "Next" item 2).
 
-- [ ] **8.1 No maximum width.** At 1280 × 800 the Start button is about 1,200 px wide, a set's weight and its ⋯ are about 1,100 px apart, and the tab bar spans the screen.
+- [x] **8.1 No maximum width.** At 1280 × 800 the Start button is about 1,200 px wide, a set's weight and its ⋯ are about 1,100 px apart, and the tab bar spans the screen.
   - Do: on wide windows the app is a centred column of about 600 px on `paper` (tab bar, Now Lifting and the Action bar included; sheets and dialogs are already capped in `app/src/ui/overlay.tsx`). Phones don't change. Add a line about it to "The web build" in `docs/design/platforms.md`.
   - Done when: Today, the session and Progress at 1280 × 800 look like the phone layout in the middle of the window, in light and dark.
-- [ ] **8.2 The page background is blue-grey** (`#f1f3f6` / `#0b0d11` in `app/src/app/+html.tsx:37-46`), left from the old look. Use Tally's `paper` (`#ffffff` light, `#000000` dark).
+- [x] **8.2 The page background is blue-grey** (`#f1f3f6` / `#0b0d11` in `app/src/app/+html.tsx:37-46`), left from the old look. Use Tally's `paper` (`#ffffff` light, `#000000` dark).
 
 ## 9. Older screens on the Tally scale
 

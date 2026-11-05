@@ -3,8 +3,8 @@
 // card, week strip and sets per muscle against the core's own numbers; Now
 // Lifting with the rest and Skip; Plan's + menu; the Progress hub and its
 // pages; Search focused on open; the Account sheet; German and dark; routines,
-// not templates, in English and German; dark segmented controls and switches.
-// 10 checks.
+// not templates, in English and German; a wide window (the centred column);
+// dark segmented controls and switches. 11 checks.
 import assert from 'node:assert/strict';
 import { devices, launch, grantWakeLock, APP as BASE, shots } from './env.mjs';
 import * as core from '../../core/index.js';
@@ -239,7 +239,39 @@ for (const lang of ['en', 'de']) {
   await ctx.close();
 }
 
-// ---------- 4. dark controls: the chosen segment stands out from its track, a switch that's off is dim ----------
+// ---------- 4. a wide window: the phone layout in a centred column, dialogs dim the whole window ----------
+{
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, colorScheme: 'light' });
+  await ctx.addInitScript(grantWakeLock);
+  await ctx.addInitScript((json) => { if (!localStorage.getItem('increment.data')) localStorage.setItem('increment.data', json); }, JSON.stringify(demoData('en')));
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  await page.goto(BASE);
+  await id(page, 'start-suggested').waitFor();
+  const box = (t) => id(page, t).boundingBox();
+  const inColumn = (b, what) => assert.ok(b.x >= 340 - 1 && b.x + b.width <= 940 + 1, `${what} inside the 600 px column: ${b.x}–${b.x + b.width}`);
+  inColumn(await box('start-suggested'), 'Start');
+  inColumn(await box('tab-index'), 'the Today tab');
+  inColumn(await box('tab-search'), 'the Search tab');
+  assert.equal(await page.evaluate(() => getComputedStyle(document.body).backgroundColor), 'rgb(255, 255, 255)', 'the page background is paper');
+  await id(page, 'start-suggested').click();
+  await id(page, 'workout-name').waitFor();
+  inColumn(await box('workout-name'), 'the workout');
+  await id(page, 'workout-menu').click();
+  await id(page, 'menu-finish').waitFor();
+  await wait(page, 300);
+  const scrim = await page.getByLabel('Close').boundingBox();
+  assert.ok(scrim.x <= 0 && scrim.width >= 1280, `the dim covers the window: ${scrim.x}, ${scrim.width}`);
+  inColumn(await box('menu-finish'), 'the menu');
+  await page.screenshot({ path: `${OUT}/09-wide-menu.png` });
+  await id(page, 'sheet-cancel').click();
+  ok('a 1280 px window shows the app in a centred 600 px column on paper; a menu dims the whole window');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+}
+
+// ---------- 5. dark controls: the chosen segment stands out from its track, a switch that's off is dim ----------
 {
   const { ctx, page, errors } = await newPage({ scheme: 'dark' });
   await id(page, 'open-account').click();
