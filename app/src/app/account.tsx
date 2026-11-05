@@ -22,8 +22,9 @@ import { confirm, notice } from '@/lib/notice';
 import { RADIUS, SPACE, TYPE } from '@/design/tally';
 import { useTally } from '@/lib/theme';
 import {
-  Cell, Group, HeaderButton, Page, Segments, SectionTitle, SwitchCell, Txt,
+  Cell, Group, HeaderButton, Page, SectionTitle, SwitchCell, Txt,
 } from '@/ui/kit';
+import { SegmentedControl } from '@/ui/tally/SegmentedControl';
 import { SymbolIcon } from '@/ui/tally/ListRow';
 import {
   actionSheet, ask, pickDateTime, prompt, toast,
@@ -184,13 +185,13 @@ export default function AccountSheet() {
       <SectionTitle>{tr('Units')}</SectionTitle>
       <View style={{ gap: 6 }}>
         <Txt tone="ink2" style={{ fontSize: 14, paddingHorizontal: 4 }}>{tr('Lifting weight')}</Txt>
-        <Segments testID="set-unit" value={st.unit} onChange={(v) => set('unit', v)} options={[{ value: 'kg', label: 'kg' }, { value: 'lb', label: 'lb' }]} />
+        <SegmentedControl testID="set-unit" label={tr('Lifting weight')} value={st.unit} onChange={(v) => set('unit', v)} options={[{ value: 'kg', label: 'kg' }, { value: 'lb', label: 'lb' }]} />
         <Txt tone="ink2" style={{ fontSize: 14, paddingHorizontal: 4, marginTop: 6 }}>{tr('Distance')}</Txt>
-        <Segments value={st.distUnit} onChange={(v) => set('distUnit', v)} options={[{ value: 'km', label: 'km' }, { value: 'mi', label: 'mi' }]} />
+        <SegmentedControl label={tr('Distance')} value={st.distUnit} onChange={(v) => set('distUnit', v)} options={[{ value: 'km', label: 'km' }, { value: 'mi', label: 'mi' }]} />
         <Txt tone="ink2" style={{ fontSize: 14, paddingHorizontal: 4, marginTop: 6 }}>{tr('Body weight')}</Txt>
-        <Segments value={bodyUnit(st)} onChange={(v) => set('bodyUnit', v)} options={[{ value: 'kg', label: 'kg' }, { value: 'lb', label: 'lb' }]} />
+        <SegmentedControl label={tr('Body weight')} value={bodyUnit(st)} onChange={(v) => set('bodyUnit', v)} options={[{ value: 'kg', label: 'kg' }, { value: 'lb', label: 'lb' }]} />
         <Txt tone="ink2" style={{ fontSize: 14, paddingHorizontal: 4, marginTop: 6 }}>{tr('Body measurements')}</Txt>
-        <Segments value={lengthUnit(st)} onChange={(v) => set('sizeUnit', v)} options={[{ value: 'cm', label: 'cm' }, { value: 'in', label: 'in' }]} />
+        <SegmentedControl label={tr('Body measurements')} value={lengthUnit(st)} onChange={(v) => set('sizeUnit', v)} options={[{ value: 'cm', label: 'cm' }, { value: 'in', label: 'in' }]} />
       </View>
 
       <SectionTitle>{tr('Workouts')}</SectionTitle>
@@ -255,8 +256,8 @@ export default function AccountSheet() {
       </Group>
       <Txt tone="ink3" style={{ fontSize: 13, marginTop: 8, paddingHorizontal: 4 }}>{tr('Which units did Strong use?')}</Txt>
       <View style={{ gap: 6, marginTop: 6 }}>
-        <Segments value={strongUnits.weightUnit} onChange={(v) => setStrongUnits({ ...strongUnits, weightUnit: v })} options={[{ value: 'kg', label: tr('Kilograms') }, { value: 'lb', label: tr('Pounds') }]} />
-        <Segments value={strongUnits.distUnit} onChange={(v) => setStrongUnits({ ...strongUnits, distUnit: v })} options={[{ value: 'km', label: tr('Kilometres') }, { value: 'mi', label: tr('Miles') }]} />
+        <SegmentedControl label={tr('Which units did Strong use?')} value={strongUnits.weightUnit} onChange={(v) => setStrongUnits({ ...strongUnits, weightUnit: v })} options={[{ value: 'kg', label: tr('Kilograms') }, { value: 'lb', label: tr('Pounds') }]} />
+        <SegmentedControl label={tr('Which units did Strong use?')} value={strongUnits.distUnit} onChange={(v) => setStrongUnits({ ...strongUnits, distUnit: v })} options={[{ value: 'km', label: tr('Kilometres') }, { value: 'mi', label: tr('Miles') }]} />
       </View>
       <Txt tone="ink3" style={{ fontSize: 13, marginTop: 12, paddingHorizontal: 4 }}>
         {tr('Everything stays on this phone. Nothing is uploaded anywhere — back up regularly and keep the file in iCloud Drive or another safe place.')}

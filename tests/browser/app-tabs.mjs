@@ -3,8 +3,8 @@
 // card, week strip and sets per muscle against the core's own numbers; Now
 // Lifting with the rest and Skip; Plan's + menu; the Progress hub and its
 // pages; Search focused on open; the Account sheet; German and dark; routines,
-// not templates, in English and German; a wide window (the centred column).
-// 10 checks.
+// not templates, in English and German; a wide window (the centred column);
+// dark segmented controls and switches. 11 checks.
 import assert from 'node:assert/strict';
 import { devices, launch, grantWakeLock, APP as BASE, shots } from './env.mjs';
 import * as core from '../../core/index.js';
@@ -267,6 +267,31 @@ for (const lang of ['en', 'de']) {
   await page.screenshot({ path: `${OUT}/09-wide-menu.png` });
   await id(page, 'sheet-cancel').click();
   ok('a 1280 px window shows the app in a centred 600 px column on paper; a menu dims the whole window');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+}
+
+// ---------- 5. dark controls: the chosen segment stands out from its track, a switch that's off is dim ----------
+{
+  const { ctx, page, errors } = await newPage({ scheme: 'dark' });
+  await id(page, 'open-account').click();
+  await id(page, 'set-unit').waitFor();
+  await wait(page, 400);
+  const rgb = (css) => css.match(/\d+/g).slice(0, 3).map(Number);
+  const lum = ([r, g, b]) => [r, g, b].map((v) => v / 255).map((x) => (x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4))
+    .reduce((a, x, i) => a + x * [0.2126, 0.7152, 0.0722][i], 0);
+  const contrast = (a, b) => { const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05); };
+  const bg = (loc) => loc.evaluate((el) => getComputedStyle(el).backgroundColor);
+  const track = rgb(await bg(id(page, 'set-unit')));
+  const chosen = rgb(await bg(id(page, 'set-unit-kg')));
+  const ratio = contrast(chosen, track);
+  assert.ok(ratio >= 3, `the chosen segment against its track: ${ratio.toFixed(2)}:1`);
+  const knobs = (t) => id(page, t).locator('div').evaluateAll((els) => els.map((el) => getComputedStyle(el).backgroundColor));
+  const off = await knobs('set-keep-awake');
+  assert.ok(off.includes('rgb(166, 166, 160)'), `an off switch has an ink-2 knob: ${off}`);
+  assert.ok(!off.includes('rgb(255, 255, 255)'), 'and no white one');
+  await page.screenshot({ path: `${OUT}/09-dark-controls.png` });
+  ok(`dark: the chosen segment stands out from its track (${ratio.toFixed(1)}:1); a switch that's off has a dim knob`);
   assert.deepEqual(errors, []);
   await ctx.close();
 }

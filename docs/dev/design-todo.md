@@ -112,11 +112,11 @@ Plan, Progress, Lifts and Records use full-width rows with hairlines (Tally prin
 
 ## 7. Dark mode controls
 
-- [ ] **7.1 The selected segment is black on a dark grey track**, so it reads as a hole and is hard to spot (Account units, Tools, the exercise page's 3M/6M/1Y/All).
+- [x] **7.1 The selected segment is black on a dark grey track**, so it reads as a hole and is hard to spot (Account units, Tools, the exercise page's 3M/6M/1Y/All).
   - Where: `app/src/ui/kit.tsx:200` (`Segments`, selected = `c.bg`) and `app/src/ui/tally/SegmentedControl.tsx:33` (selected = `paper`).
   - Do: the selected segment is lighter than the track in dark (a new token step if needed: change `docs/design/tokens.json`, run `npm run tally`). While at it, one segmented control instead of two: move every screen to `SegmentedControl` and delete `Segments`.
-  - Done when: the selected segment has at least 3:1 contrast against the track in every theme.
-- [ ] **7.2 Switches: on and off look too alike in dark.** The off knob is hard-coded white (`app/src/ui/kit.tsx:185`), so off is a white knob on dark grey and on is a black knob on white.
+  - Done when: the selected segment has at least 3:1 contrast against the track in the dark themes. (Light themes keep the system look, the chosen option raised in white on a light grey track, about 1.2:1, with a shadow and a darker label; Laurin decides on the group 7 pull request whether that's enough.)
+- [x] **7.2 Switches: on and off look too alike in dark.** The off knob is hard-coded white (`app/src/ui/kit.tsx:185`), so off is a white knob on dark grey and on is a black knob on white.
   - Do: take every switch colour from `useTally()`, and make on and off tell apart at a glance in all four themes.
 
 ## 8. The web build at desktop width

@@ -1,6 +1,7 @@
 // Two to five mutually exclusive options, such as a chart's range
 // (docs/design/components.md, SegmentedControl): a paper-3 capsule, the chosen
-// option raised on paper. Labels of one word or a short number ("3M", "All").
+// option raised on control-on (paper in light themes, a lighter grey in dark
+// ones, like the system control). Labels of one word or a short number ("3M", "All").
 // Drawn in JS so it needs no native module (Expo Go) and looks the same on
 // iPhone, Android and the web.
 import { Pressable, Text, View } from 'react-native';
@@ -30,7 +31,7 @@ export function SegmentedControl<T extends string>({ options, value, onChange, l
             testID={testID ? `${testID}-${o.value}` : undefined} hitSlop={{ top: 7, bottom: 7 }}
             style={{
               flex: 1, height: 30, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.capsule,
-              backgroundColor: on ? t.paper : 'transparent',
+              backgroundColor: on ? t.controlOn : 'transparent',
               shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowRadius: 3, shadowOpacity: on ? 0.12 : 0,
             }}>
             <Text style={{ fontSize: 13, fontWeight: '600', color: on ? t.ink : t.ink2 }} numberOfLines={1}>{o.label}</Text>

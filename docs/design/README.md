@@ -46,6 +46,7 @@ Voice: plain, short, numbers first. The person is mid-set with sweaty hands; eve
 - `danger` only for destructive actions, as text ("Discard workout", "Delete").
 - `diff-added` and `diff-removed` (green and red markers, like the record highlight) only in the routine popup after a workout, behind its diff lines: "+ Squat (Barbell) × 2" for what the routine would gain, "− Pull Up × 3" for what it would lose, × counting straight sets; warm-ups, drop sets and other changes are plain lines without a marker (Laurin, 5 Nov 2026). The + and − carry the meaning without the colour. Nowhere else.
 - `line` is a hairline between rows and stat cells. Never draw a border around a card.
+- `control-on` raises the chosen option of a segmented control above its `paper-3` track: `paper` in light themes, a lighter grey in dark ones. A switch that's on has an `ink` track; one that's off a `paper-3` track, with an `ink-2` knob in dark themes so it reads as the dimmer of the two.
 - Dark themes are true black (`paper` #000), so OLED pixels switch off. Raise with `paper-2` only where a surface has to read as separate.
 - Named themes swap `paper`, `ink`, `signal` and `stroke-done` and nothing else: Strawberry Matcha has matcha strokes and strawberry records, Intense Red has red strokes and gold records. A theme never adds a second accent.
 - Keyboard focus is the `focus` ring: 2 px solid, 2 px offset, on every surface.
