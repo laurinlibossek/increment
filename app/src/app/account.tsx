@@ -218,8 +218,8 @@ export default function AccountSheet() {
         <Cell first title={tr('1RM formula')} value={tr(formula.label)}
           onPress={() => pick(tr('1RM formula'), (FORMULAS as { id: string; label: string }[]).map((x) => ({ value: x.id, label: tr(x.label) })), st.formula, (v) => set('formula', v))} />
         <SwitchCell title={tr('Count dumbbells twice')} sub={tr('For volume')} value={!!st.dumbbellTwice} onChange={(v) => set('dumbbellTwice', v)} />
-        <SwitchCell title={tr('Body weight in volume')} sub={tr('Weighted bodyweight exercises')} value={!!st.bwWeighted} onChange={(v) => setBw('bwWeighted', v)} />
-        <SwitchCell title={tr('Body weight in volume')} sub={tr('Assisted bodyweight exercises')} value={!!st.bwAssisted} onChange={(v) => setBw('bwAssisted', v)} />
+        <SwitchCell title={tr('Weighted bodyweight exercises')} sub={tr('Count body weight in volume')} value={!!st.bwWeighted} onChange={(v) => setBw('bwWeighted', v)} />
+        <SwitchCell title={tr('Assisted bodyweight exercises')} sub={tr('Count body weight in volume')} value={!!st.bwAssisted} onChange={(v) => setBw('bwAssisted', v)} />
         <Cell title={tr('Start history from')} value={st.historyStart ? f.date.short(st.historyStart) : tr('All workouts')} onPress={historyStart} testID="set-history-start" />
       </Group>
 

@@ -533,6 +533,42 @@ test('copies, folders, new exercises, exercise changes waiting in a draft', () =
   assert.equal(core.exerciseInDraft(lib, null, BENCH.id), BENCH);
 });
 
+test('date ticks spread 3M, 6M and 1Y labels over the whole range at regular month starts', () => {
+  const at = (y, m, d = 1) => new Date(y, m - 1, d).getTime();
+  // Three months: show every boundary when they fit.
+  assert.deepEqual(core.dateTicks(at(2026, 8, 1), at(2026, 11, 1)), [8, 9, 10, 11].map((m) => at(2026, m)));
+  assert.deepEqual(core.dateTicks(at(2026, 7, 20), at(2026, 11, 4), 3), [9, 11].map((m) => at(2026, m)));
+  // Six months, including a year end: a regular two-month step.
+  assert.deepEqual(core.dateTicks(at(2026, 5, 5), at(2026, 11, 4)), [7, 9, 11].map((m) => at(2026, m)));
+  assert.deepEqual(core.dateTicks(at(2025, 10, 15), at(2026, 4, 15)), [at(2025, 12), at(2026, 2), at(2026, 4)]);
+  assert.deepEqual(core.dateTicks(at(2025, 9, 1), at(2026, 2, 28)), [at(2025, 10), at(2025, 12), at(2026, 2)]);
+  assert.equal(core.dateTicks(at(2025, 11, 1), at(2026, 11, 1), 1).length, 1);
+  // A full year must not leave its first two thirds unlabelled.
+  assert.deepEqual(core.dateTicks(at(2025, 11, 5), at(2026, 11, 4)), [2, 5, 8, 11].map((m) => at(2026, m)));
+  assert.deepEqual(core.dateTicks(at(2025, 11, 5), at(2026, 11, 4), 3), [5, 11].map((m) => at(2026, m)));
+});
+
+test('multi-year date ticks align to January and July, then whole years', () => {
+  const at = (y, m, d = 1) => new Date(y, m - 1, d).getTime();
+  assert.deepEqual(core.dateTicks(at(2025, 5, 15), at(2026, 11, 4)), [at(2025, 7), at(2026, 1), at(2026, 7)]);
+  assert.deepEqual(core.dateTicks(at(2023, 11, 5), at(2026, 11, 4)), [2024, 2025, 2026].map((y) => at(y, 1)));
+  assert.deepEqual(core.dateTicks(at(2020, 1, 15), at(2026, 11, 4)), [2022, 2024, 2026].map((y) => at(y, 1)));
+  assert.deepEqual(core.dateTicks(at(2024, 1), at(2026, 1)), [2024, 2025, 2026].map((y) => at(y, 1)));
+});
+
+test('date ticks handle short, single-point and invalid ranges in local calendar days', () => {
+  const from = new Date(2024, 2, 8, 12).getTime(), to = new Date(2024, 2, 20, 12).getTime();
+  const ticks = core.dateTicks(from, to);
+  assert.ok(ticks.length <= 4 && ticks.length >= 2);
+  assert.ok(ticks.every((t) => t >= from && t <= to && new Date(t).getHours() === 0));
+  assert.deepEqual(core.dateTicks(from, from), [from]);
+  assert.deepEqual(core.dateTicks(from, from + 1000), [from]);
+  assert.equal(core.dateTicks(from, to, 1).length, 1);
+  assert.deepEqual(core.dateTicks(to, from), []);
+  assert.deepEqual(core.dateTicks(NaN, to), []);
+  assert.deepEqual(core.dateTicks(from, to, 0), []);
+});
+
 test('chart ticks, weekly counts and the streak', () => {
   assert.deepEqual(core.niceTicks(81, 99), [80, 85, 90, 95, 100]);
   assert.deepEqual(core.niceTicks(0, 3, 3, { zero: true }), [0, 1, 2, 3]);

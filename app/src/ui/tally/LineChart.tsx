@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import Svg, { Circle, Line, Path, Text as SvgText } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
-import { niceTicks, tickDecimals } from '@increment/core';
+import { dateTicks, niceTicks, tickDecimals } from '@increment/core';
 
 import { TYPE } from '@/design/tally';
 import { useFormat } from '@/lib/format';
@@ -73,12 +73,12 @@ export function LineChart({
   const sy = (y: number) => padT + ih - ((y - y0) / (y1 - y0 || 1)) * ih;
   const d = points.map((p, i) => `${i ? 'L' : 'M'}${sx(p.at).toFixed(1)} ${sy(p.value).toFixed(1)}`).join(' ');
 
-  // three or four date labels, evenly spread
+  // Calendar boundaries picked by the core; never label a late September point October.
   const span = (x1 - x0) / DAY;
   const dateText = (at: number) => (span < 75 ? f.date.dayMonth(at)
-    : span > 400 ? `${f.date.monthShort(at)} ${String(new Date(at).getFullYear()).slice(2)}` : f.date.monthShort(at));
-  const fractions = points.length === 1 || span < 1 ? [0.5] : iw < 260 ? [0, 0.5, 1] : [0, 1 / 3, 2 / 3, 1];
-  const anchor = (fr: number) => (fr === 0 ? 'start' : fr === 1 ? 'end' : 'middle');
+    : span > 366 ? `${f.date.monthShort(at)} ${String(new Date(at).getFullYear()).slice(2)}` : f.date.monthShort(at));
+  const dates = dateTicks(x0, x1, iw < 260 ? 3 : 4);
+  const anchor = (at: number) => (sx(at) < 24 ? 'start' : iw - sx(at) < 24 ? 'end' : 'middle');
 
   const pick = (px: number) => {
     let best = 0, bd = Infinity;
@@ -108,9 +108,9 @@ export function LineChart({
           {ticks.map((v, i) => (
             <SvgText key={`v${v}`} fontFamily={FONT} x={iw + 6} y={sy(v) + 4} textAnchor="start" fontSize={11} fontWeight="500" fill={t.ink2}>{tickText[i]}</SvgText>
           ))}
-          {fractions.map((fr) => (
-            <SvgText key={`d${fr}`} fontFamily={FONT} x={fr * iw} y={H - 6} textAnchor={anchor(fr)} fontSize={11} fontWeight="500" fill={t.ink2}>
-              {dateText(x0 + fr * (x1 - x0))}
+          {dates.map((at) => (
+            <SvgText key={`d${at}`} fontFamily={FONT} x={sx(at)} y={H - 6} textAnchor={anchor(at)} fontSize={11} fontWeight="500" fill={t.ink2}>
+              {dateText(at)}
             </SvgText>
           ))}
           {sp && <Line x1={sx(sp.at)} x2={sx(sp.at)} y1={padT} y2={sy(y0)} stroke={t.ink3} strokeWidth={1} />}
