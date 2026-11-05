@@ -61,7 +61,7 @@ export default function PickExercises() {
         <Pressable onPress={() => done(null)} hitSlop={SPACE.s2} accessibilityRole="button" testID="pick-cancel" style={styles.side}>
           <Text style={[TYPE.body, { color: c.accentText }]}>{tr('Cancel')}</Text>
         </Pressable>
-        <Text style={[TYPE.headline, { color: c.ink }]} numberOfLines={1}>{pick?.title || tr('Add exercises')}</Text>
+        <Text style={[TYPE.headline, styles.title, { color: c.ink }]} testID="pick-title">{pick?.title || tr('Add exercises')}</Text>
         <View style={[styles.side, { alignItems: 'flex-end' }]}>
           {multi && (
             <Pressable onPress={() => done(chosen)} disabled={!chosen.length} hitSlop={SPACE.s2} accessibilityRole="button" testID="pick-add">
@@ -129,7 +129,8 @@ export default function PickExercises() {
 
 const styles = StyleSheet.create({
   bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SPACE.s5, paddingBottom: SPACE.s3, gap: SPACE.s2 },
-  side: { flex: 1 },
+  side: { flexShrink: 0, minHeight: CONTROL.hitMin, justifyContent: 'center' },
+  title: { flex: 1, minWidth: 0, textAlign: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: SPACE.s3, minHeight: CONTROL.rowH, paddingHorizontal: SPACE.s4, paddingVertical: SPACE.s2 },
   hairline: { position: 'absolute', top: 0, left: SPACE.s4, right: 0, height: StyleSheet.hairlineWidth },
 });

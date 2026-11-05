@@ -7,6 +7,7 @@ import { DEFAULT_SETTINGS, platesFor, translator } from '../../core/index.js';
 
 const before = process.env.REVIEW_BEFORE === '1';
 const emptyOnly = process.env.REVIEW_EMPTY_ONLY === '1';
+const pickerOnly = process.env.REVIEW_PICKER_ONLY === '1';
 const OUT = shots(before ? 'before' : 'after');
 const browser = await launch();
 const normal = text => text.replace(/\s+/g, ' ').trim();
@@ -116,6 +117,39 @@ async function ghostPlates(s, lang, unit) {
   assert.equal(normal(await id('plate-loaded').innerText()), initial);
 }
 
+async function pickerHeader(s, tr) {
+  const { id, page } = s;
+  const title = id('pick-title'), cancel = id('pick-cancel'), add = id('pick-add');
+  const exercise = page.locator('[data-testid^="pick-x-"]').first();
+  for (const width of [375, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    for (const selected of [false, true]) {
+      assert.equal(await add.getAttribute('aria-disabled') === 'true', !selected, 'Add is enabled only after selecting an exercise');
+      assert.equal(normal(await add.innerText()), selected ? tr('Add {n}', { n: 1 }) : tr('Add'));
+      assert.equal(await title.innerText(), tr('Add exercises'));
+      if (selected) await readable(add);
+      const [t, c, a] = await Promise.all([title.boundingBox(), cancel.boundingBox(), add.boundingBox()]);
+      assert.ok(t && c && a, 'all three picker header parts are rendered');
+      assert.ok(c.x >= 0 && a.x + a.width <= width + 1, JSON.stringify({ width, selected, t, c, a }));
+      assert.ok(c.x + c.width + 4 <= t.x && t.x + t.width + 4 <= a.x,
+        `picker title stays between its actions at ${width}px: ${JSON.stringify({ selected, t, c, a })}`);
+      const full = await title.evaluate(e => {
+        const style = getComputedStyle(e), box = e.getBoundingClientRect(), range = document.createRange();
+        range.selectNodeContents(e);
+        return {
+          width: e.clientWidth, needed: e.scrollWidth, height: e.clientHeight, neededHeight: e.scrollHeight,
+          overflow: style.textOverflow,
+          inside: [...range.getClientRects()].every(r => r.left >= box.left - 1 && r.right <= box.right + 1 && r.top >= box.top - 1 && r.bottom <= box.bottom + 1),
+        };
+      });
+      assert.ok(full.needed <= full.width + 1 && full.neededHeight <= full.height + 1 && full.inside && full.overflow !== 'ellipsis',
+        `complete picker title at ${width}px: ${JSON.stringify({ selected, full })}`);
+      await exercise.click(); // enable Add, then restore the empty selection
+    }
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+}
+
 async function emptyRoutine(s, lang, theme) {
   // Use a fresh screen context for this second instance of the same editor.
   // The earlier picker is still unwinding its navigation stack after Cancel.
@@ -141,6 +175,17 @@ try {
     const tr = translator(lang), routine = data.templates[0], workout = data.workouts[0];
     const check = async label => { if (!before) { await readable(page.locator('body')); ok(`${lang} ${theme}: ${label}`); } };
     if (emptyOnly) { await emptyRoutine(s, lang, theme); assert.deepEqual(errors, []); await ctx.close(); continue; }
+    if (pickerOnly) {
+      await go(`/template-edit?id=${routine.id}`);
+      await id('tpl-name').waitFor();
+      await id('add-exercises').click();
+      await id('pick-search').waitFor();
+      if (!before) { await pickerHeader(s, tr); await check('picker metadata and complete header fit at 375/390 px with disabled/enabled Add'); }
+      await shot('picker');
+      assert.deepEqual(errors, []);
+      await ctx.close();
+      continue;
+    }
 
     await go('/tools');
     await id('plate-target').waitFor();
@@ -223,8 +268,9 @@ try {
     await check('routine-editor target guidance and set captions remain readable');
     await id('add-exercises').click();
     await id('pick-search').waitFor();
+    if (!before) await pickerHeader(s, tr);
     await shot('picker');
-    await check('picker metadata remains readable');
+    await check('picker metadata and complete header fit at 375/390 px with disabled/enabled Add');
     await id('pick-new').click();
     await id('exercise-name').waitFor();
     await shot('exercise-form-top');
@@ -324,7 +370,7 @@ try {
     await ctx.close();
   }
 
-  if (!before && !emptyOnly) for (const lang of ['en', 'de']) for (const theme of ['light', 'dark']) {
+  if (!before && !emptyOnly && !pickerOnly) for (const lang of ['en', 'de']) for (const theme of ['light', 'dark']) {
     const s = await scenario(lang, theme, 'lb');
     await s.go('/tools');
     await s.id('plate-target').waitFor();
