@@ -252,7 +252,7 @@ export default function AccountSheet() {
           onPress={busy ? undefined : doBackup} testID="backup-now" />
         <SettingRow symbol="square.and.arrow.down" title={tr('Restore from backup')} sub={tr('A backup file from Increment or Setlog')} onPress={busy ? undefined : doRestore} testID="restore" />
         <SettingRow symbol="arrow.left.arrow.right" title={tr('Import from Strong')} sub={tr('In Strong: Settings → Export Workouts, then pick that CSV here')} onPress={busy ? undefined : doStrong} testID="strong-import" />
-        <SettingRow symbol="square.and.arrow.up" title={tr('Export as CSV')} sub={tr('Spreadsheet-friendly, Strong column format')} onPress={doCSV} testID="export-csv" />
+        <SettingRow symbol="tablecells" title={tr('Export as CSV')} sub={tr('Spreadsheet-friendly, Strong column format')} onPress={doCSV} testID="export-csv" />
       </View>
       <Txt tone="ink3" style={{ fontSize: 13, marginTop: SPACE.s2, paddingHorizontal: SPACE.s5 }}>{tr('Which units did Strong use?')}</Txt>
       <View style={{ gap: SPACE.s2, marginTop: SPACE.s2, paddingHorizontal: SPACE.s5 }}>

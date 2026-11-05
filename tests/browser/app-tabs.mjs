@@ -271,7 +271,7 @@ for (const lang of ['en', 'de']) {
   await ctx.close();
 }
 
-// ---------- 5. dark controls: the chosen segment stands out from its track, a switch that's off is dim ----------
+// ---------- 5. dark controls: the chosen segment stands out from its track, a switch that's off is dim, one that's on is visible ----------
 {
   const { ctx, page, errors } = await newPage({ scheme: 'dark' });
   await id(page, 'open-account').click();
@@ -290,8 +290,20 @@ for (const lang of ['en', 'de']) {
   const off = await knobs('set-keep-awake');
   assert.ok(off.includes('rgb(166, 166, 160)'), `an off switch has an ink-2 knob: ${off}`);
   assert.ok(!off.includes('rgb(255, 255, 255)'), 'and no white one');
+  // A switch that's on: its track and its knob both stand out from the page
+  // (a paper knob would vanish into the black page beside the white track).
+  const pageBg = rgb(await id(page, 'set-rest-alert').evaluate((el) => {
+    for (let p = el.parentElement; p; p = p.parentElement) {
+      const c = getComputedStyle(p).backgroundColor;
+      if (c !== 'transparent' && !/rgba\(.*,\s*0\)$/.test(c)) return c;
+    }
+    return 'rgb(0, 0, 0)';
+  }));
+  const on = (await knobs('set-rest-alert')).filter((c) => c !== 'transparent' && !/rgba\(.*,\s*0\)$/.test(c)).map(rgb);
+  assert.ok(on.length >= 2, `an on switch draws a track and a knob: ${JSON.stringify(on)}`);
+  for (const part of on) assert.ok(contrast(part, pageBg) >= 3, `every part of an on switch stands out from the page: ${part} on ${pageBg}`);
   await page.screenshot({ path: `${OUT}/09-dark-controls.png` });
-  ok(`dark: the chosen segment stands out from its track (${ratio.toFixed(1)}:1); a switch that's off has a dim knob`);
+  ok(`dark: the chosen segment stands out from its track (${ratio.toFixed(1)}:1); a switch that's off has a dim knob, one that's on stands out from the page`);
   assert.deepEqual(errors, []);
   await ctx.close();
 }

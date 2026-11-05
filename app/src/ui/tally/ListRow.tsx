@@ -32,6 +32,7 @@ export const SYMBOLS = {
   'square.and.arrow.up': 'upload',
   'square.and.arrow.down': 'download',
   'arrow.left.arrow.right': 'swap_horiz',
+  tablecells: 'table_chart',
   checkmark: 'check',
   'person.crop.circle': 'person',
   folder: 'folder',
