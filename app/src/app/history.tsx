@@ -13,19 +13,22 @@ import {
 import { stats, useAppState, type State } from '@/data/store';
 import type { Workout } from '@/data/types';
 import { useFormat, type Format } from '@/lib/format';
-import { useColors } from '@/lib/theme';
-import { hm } from '@/ui/facts';
+import { useColors, useTally } from '@/lib/theme';
+import { SPACE, TYPE } from '@/design/tally';
+import { hm, workoutStrokes, WorkoutTally } from '@/ui/facts';
+import { ListRow } from '@/ui/tally/ListRow';
+import { SectionHeader } from '@/ui/tally/SectionHeader';
 import {
   Button, Card, Empty, Icon, IconButton, Txt,
 } from '@/ui/kit';
 
-type Row = { kind: 'month'; m: number; count: number } | { kind: 'workout'; w: Workout };
+type Row = { kind: 'month'; m: number; count: number } | { kind: 'workout'; w: Workout; first: boolean };
 
 export default function HistoryTab() {
   const s = useAppState();
   const f = useFormat();
   const { tr } = f;
-  const c = useColors();
+  const { colors: t } = useTally();
   const [limit, setLimit] = useState(40);
   const [view, setView] = useState<'list' | 'cal'>('list');
 
@@ -36,15 +39,16 @@ export default function HistoryTab() {
     let cur = -1;
     for (const w of s.workouts.slice(0, limit)) {
       const m = startOfMonth(w.startedAt);
-      if (m !== cur) { out.push({ kind: 'month', m, count: counts.get(m) || 0 }); cur = m; }
-      out.push({ kind: 'workout', w });
+      const first = m !== cur;
+      if (first) { out.push({ kind: 'month', m, count: counts.get(m) || 0 }); cur = m; }
+      out.push({ kind: 'workout', w, first });
     }
     return out;
   }, [s.workouts, limit]);
 
   if (!s.workouts.length) {
     return (
-      <View style={{ flex: 1, backgroundColor: c.bg }}>
+      <View style={{ flex: 1, backgroundColor: t.paper }}>
         <Empty title={tr('No workouts yet')} text={tr('Bring your workouts over from the Setlog web app: make a backup there, then restore it here in Account.')}>
           <Button kind="tinted" icon="download" title={tr('Restore from backup')} onPress={() => router.push('/account')} testID="history-restore" />
         </Empty>
@@ -58,7 +62,7 @@ export default function HistoryTab() {
   const bar = <Stack.Screen options={{ headerRight: () => toggle }} />;
   if (view === 'cal') {
     return (
-      <ScrollView style={{ flex: 1, backgroundColor: c.bg }} contentContainerStyle={{ paddingTop: 12, paddingBottom: 32 }} contentInsetAdjustmentBehavior="automatic">
+      <ScrollView style={{ flex: 1, backgroundColor: t.paper }} contentContainerStyle={{ paddingTop: 12, paddingBottom: 32 }} contentInsetAdjustmentBehavior="automatic">
         {bar}
         <Calendar s={s} f={f} />
       </ScrollView>
@@ -66,22 +70,17 @@ export default function HistoryTab() {
   }
   return (
     <FlatList
-      style={{ flex: 1, backgroundColor: c.bg }}
-      contentContainerStyle={{ paddingBottom: 32 }}
+      style={{ flex: 1, backgroundColor: t.paper }}
+      contentContainerStyle={{ paddingTop: SPACE.s4, paddingBottom: SPACE.s8 }}
       contentInsetAdjustmentBehavior="automatic"
       data={rows}
       keyExtractor={(r) => (r.kind === 'month' ? 'm' + r.m : r.w.id)}
       ListHeaderComponent={bar}
-      renderItem={({ item }) => (item.kind === 'month'
-        ? (
-          <View style={st.month}>
-            <Txt style={{ fontSize: 20, fontWeight: '700' }}>{f.date.monthYear(item.m)}</Txt>
-            <Txt tone="ink3" style={{ fontSize: 14 }}>{f.plural(item.count, 'workout')}</Txt>
-          </View>
-        )
-        : <View style={{ paddingHorizontal: 16, marginBottom: 10 }}><WorkoutCard w={item.w} s={s} f={f} /></View>)}
+      renderItem={({ item, index }) => (item.kind === 'month'
+        ? <SectionHeader first={index === 0} title={f.date.monthYear(item.m)} scope={f.plural(item.count, 'workout')} testID={`history-month-${item.m}`} />
+        : <WorkoutRow w={item.w} s={s} f={f} first={item.first} />)}
       ListFooterComponent={s.workouts.length > limit
-        ? <View style={{ paddingHorizontal: 16 }}><Button kind="tinted" title={tr('Show older workouts')} onPress={() => setLimit(limit + 60)} /></View>
+        ? <View style={{ paddingHorizontal: SPACE.s5, marginTop: SPACE.s6 }}><Button kind="tinted" testID="history-older" title={tr('Show older workouts')} onPress={() => setLimit(limit + 60)} /></View>
         : undefined}
       initialNumToRender={12}
       windowSize={7}
@@ -184,6 +183,37 @@ function Stat({ value, label }: { value: string; label: string }) {
   );
 }
 
+/** One finished workout: the same set strokes and record sets as its detail page. */
+function WorkoutRow({ w, s, f, first }: { w: Workout; s: State; f: Format & { tr: (t: string, v?: Record<string, string | number>) => string }; first: boolean }) {
+  const { colors: t } = useTally();
+  const { tr } = f;
+  const prs = stats(s).prsByWorkout.get(w.id) || [];
+  const recordSets = new Set<string>(prs.map((p: { setId: string }) => p.setId));
+  const sets = w.exercises.reduce((n, e) => n + e.sets.length, 0);
+  const tallyLine = [f.plural(sets, 'set'), recordSets.size ? f.plural(recordSets.size, 'record') : ''].filter(Boolean).join(' · ');
+  const vol = workoutVolume(w, s.exercises);
+  const meta = [f.date.workoutDay(w.startedAt), hm((w.endedAt || w.startedAt) - w.startedAt), vol > 0 ? f.volume(vol) : ''].filter(Boolean).join(' · ');
+  const exercises = w.exercises.map((e) => f.exName(s.exercises.get(e.exerciseId)) || tr('Unknown exercise')).join(', ');
+  return (
+    <ListRow first={first}
+      title={<Text style={[TYPE.headline, { color: t.ink }]} numberOfLines={2}>{w.name}</Text>}
+      subtitle={<Text style={[TYPE.footnote, { color: t.ink2, fontVariant: ['tabular-nums'] }]} numberOfLines={1} testID={`history-meta-${w.id}`}>{meta}</Text>}
+      onPress={() => router.push({ pathname: '/workout/[id]', params: { id: w.id } })} testID={`workout-${w.id}`}
+      accessibilityLabel={[w.name, meta, tallyLine, exercises].filter(Boolean).join('. ')}>
+      <View style={{ gap: SPACE.s2 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACE.s3 }}>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <WorkoutTally groups={workoutStrokes(w, recordSets)} size="regular" label={tallyLine} testID={`history-tally-${w.id}`} />
+          </View>
+          {recordSets.size > 0 && <Text style={[TYPE.footnote, { color: t.ink2, fontVariant: ['tabular-nums'] }]} testID={`history-records-${w.id}`}>{f.plural(recordSets.size, 'record')}</Text>}
+        </View>
+        {!!exercises && <Text style={[TYPE.subhead, { color: t.ink2 }]} numberOfLines={1} testID={`history-exercises-${w.id}`}>{exercises}</Text>}
+      </View>
+    </ListRow>
+  );
+}
+
+/** Calendar cards keep their layout; the list above uses Tally rows. */
 export function WorkoutCard({ w, s, f }: { w: Workout; s: State; f: Format & { tr: (t: string, v?: Record<string, string | number>) => string } }) {
   const c = useColors();
   const { tr } = f;
@@ -196,7 +226,7 @@ export function WorkoutCard({ w, s, f }: { w: Workout; s: State; f: Format & { t
       <View style={st.facts}>
         <Fact icon="clock" text={`${tr('Time')} ${hm((w.endedAt || w.startedAt) - w.startedAt)}`} color={c.ink2} />
         {vol > 0 && <Fact icon="weight" text={f.volume(vol)} color={c.ink2} />}
-        {prs > 0 && <Fact icon="trophy" text={`${prs} ${prs > 1 ? tr('PRs') : tr('PR')}`} color={c.gold} />}
+        {prs > 0 && <Fact icon="trophy" text={f.plural(prs, 'record')} color={c.gold} />}
       </View>
       <View style={st.linesHead}>
         <Txt tone="ink3" style={st.head}>{tr('Exercise')}</Txt>
