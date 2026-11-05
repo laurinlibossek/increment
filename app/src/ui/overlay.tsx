@@ -10,15 +10,18 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useLang } from '@/lib/i18n';
-import { useColors } from '@/lib/theme';
+import { RADIUS, SPACE, TYPE } from '@/design/tally';
+import { useColors, useTally } from '@/lib/theme';
 import { Icon, type IconName } from './kit';
 
 export type SheetAction<T> = { label: string; value: T; destructive?: boolean; checked?: boolean; icon?: IconName; testID?: string };
 export type ChoiceOption<T> = { label: string; sub?: string; value: T; tone?: 'primary' | 'danger' | 'plain'; testID?: string };
+/** One line of a diff in a choice dialog: "+ Lat Pulldown (Cable) × 2" on diff-added, "− Pull Up × 3" on diff-removed. */
+export type DiffLine = { text: string; tone?: 'added' | 'removed' };
 
 type Open =
   | { kind: 'sheet'; title?: string; message?: string; actions: SheetAction<unknown>[]; resolve: (v: unknown) => void }
-  | { kind: 'choice'; title: string; message?: string; options: ChoiceOption<unknown>[]; cancel?: string | false; resolve: (v: unknown) => void }
+  | { kind: 'choice'; title: string; lines?: DiffLine[]; message?: string; options: ChoiceOption<unknown>[]; cancel?: string | false; resolve: (v: unknown) => void }
   | { kind: 'prompt'; title: string; message?: string; value: string; placeholder?: string; multiline?: boolean; ok?: string; resolve: (v: unknown) => void }
   | { kind: 'datetime'; title: string; message?: string; value: number; max?: number; maxMessage?: string; ok?: string; resolve: (v: unknown) => void }
   | { kind: 'number'; title: string; message?: string; unit: string; placeholder?: string; at: number; integer?: boolean; ok?: string; resolve: (v: unknown) => void };
@@ -58,7 +61,7 @@ export function actionSheet<T>(o: { title?: string; message?: string; actions: (
 }
 
 /** A dialog with a few big choices (each can have a line of detail). */
-export function choose<T>(o: { title: string; message?: string; options: ChoiceOption<T>[]; cancel?: string | false }) {
+export function choose<T>(o: { title: string; lines?: DiffLine[]; message?: string; options: ChoiceOption<T>[]; cancel?: string | false }) {
   return show<T>({ kind: 'choice', ...o } as OpenInput);
 }
 
@@ -180,6 +183,24 @@ function SheetView({ o }: { o: Extract<Open, { kind: 'sheet' }> }) {
   );
 }
 
+/** A diff as lines, left-aligned in a centred block; + and − lines on a marker like the record highlight's. */
+function DiffLines({ lines }: { lines: DiffLine[] }) {
+  const { colors: t } = useTally();
+  return (
+    <View style={{ alignSelf: 'center', alignItems: 'flex-start', gap: SPACE.s1, marginTop: SPACE.s3 }}>
+      {lines.map((l, i) => (
+        <Text key={i} testID={l.tone ? `diff-${l.tone}` : 'diff-line'}
+          style={[TYPE.subhead, {
+            color: l.tone ? t.ink : t.ink2, fontVariant: ['tabular-nums'], borderRadius: RADIUS.s, paddingHorizontal: 5, overflow: 'hidden',
+            backgroundColor: l.tone === 'added' ? t.diffAdded : l.tone === 'removed' ? t.diffRemoved : 'transparent',
+          }]}>
+          {l.text}
+        </Text>
+      ))}
+    </View>
+  );
+}
+
 function ChoiceView({ o }: { o: Extract<Open, { kind: 'choice' }> }) {
   const c = useColors();
   const { tr } = useLang();
@@ -188,7 +209,8 @@ function ChoiceView({ o }: { o: Extract<Open, { kind: 'choice' }> }) {
   return (
     <View style={[styles.dialog, { backgroundColor: c.surface }]} accessibilityRole="alert" accessibilityViewIsModal>
       <Text style={{ color: c.ink, fontSize: 18, fontWeight: '700', textAlign: 'center' }}>{o.title}</Text>
-      {!!o.message && <Text style={{ color: c.ink2, fontSize: 15, textAlign: 'center', marginTop: 6, lineHeight: 21 }}>{o.message}</Text>}
+      {!!o.lines?.length && <DiffLines lines={o.lines} />}
+      {!!o.message && <Text style={{ color: c.ink2, fontSize: 15, textAlign: 'center', marginTop: o.lines?.length ? 12 : 6, lineHeight: 21 }}>{o.message}</Text>}
       <View style={{ gap: 8, marginTop: 16 }}>
         {o.options.map((opt, i) => {
           const l = look(opt.tone);

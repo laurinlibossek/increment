@@ -76,11 +76,18 @@ export function templateChanges(template, workout) {
     addedExercises: 0, removedExercises: 0, reordered: false, addedSets: 0, removedSets: 0,
     typesChanged: false, supersetsChanged: false, valueSets: 0, structure: false,
     added: [], removed: [],
+    // per exercise whose set count changed: the routine's sets (`from`) and the
+    // workout's (`to`); 0 means added or removed. Template order, added last.
+    sets: [],
   };
   const order = [];
   const matched = new Set();
   pairs.forEach((wi, ti) => {
-    if (wi < 0) { c.removedExercises++; c.removed.push(T[ti].exerciseId); return; }
+    if (wi < 0) {
+      c.removedExercises++; c.removed.push(T[ti].exerciseId);
+      c.sets.push({ exerciseId: T[ti].exerciseId, from: T[ti].sets.length, to: 0 });
+      return;
+    }
     order.push(wi);
     matched.add(tk[ti]);
     const ts = T[ti].sets, ws = W[wi].sets;
@@ -93,11 +100,13 @@ export function templateChanges(template, workout) {
       if (!sameValues(ts[i], ws[j])) c.valueSets++;
     });
     c.addedSets += ws.length - paired;
+    if (ts.length !== ws.length) c.sets.push({ exerciseId: T[ti].exerciseId, from: ts.length, to: ws.length });
     // same set types, but in another order (a warm-up moved after a working set)
     if (ts.length === ws.length && ts.some((s, i) => setType(s) !== setType(ws[i]))) c.typesChanged = true;
   });
   c.addedExercises = W.length - order.length;
   c.added = W.filter((e, wi) => !order.includes(wi)).map((e) => e.exerciseId);
+  W.forEach((e, wi) => { if (!order.includes(wi)) c.sets.push({ exerciseId: e.exerciseId, from: 0, to: e.sets.length }); });
   c.reordered = order.some((w, i) => i > 0 && w < order[i - 1]);
   const lt = supersetLeaders(T, tk, matched), lw = supersetLeaders(W, wk, matched);
   c.supersetsChanged = [...matched].some((k) => lt.get(k) !== lw.get(k));

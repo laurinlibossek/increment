@@ -44,6 +44,7 @@ Voice: plain, short, numbers first. The person is mid-set with sweaty hands; eve
 - `ink` for text, icons, logged strokes and the primary button (with `paper` as its label). `ink-2` for everything secondary. `ink-3` only for pending strokes, ghost values and disabled text, never for text someone has to read.
 - `signal` is never a button, link, tab, icon or chrome colour. In light themes use it as a fill behind `on-signal` text (the `ic-hl` highlight, the Record chip) or as a mark outlined in `signal-edge`. In dark themes it may also colour text and strokes directly ("+6%").
 - `danger` only for destructive actions, as text ("Discard workout", "Delete").
+- `diff-added` and `diff-removed` (green and red markers, like the record highlight) only in the routine popup after a workout, behind its diff lines: "+ Squat (Barbell) × 2" for what the routine would gain, "− Pull Up × 3" for what it would lose (Laurin, 5 Nov 2026). The + and − carry the meaning without the colour. Nowhere else.
 - `line` is a hairline between rows and stat cells. Never draw a border around a card.
 - Dark themes are true black (`paper` #000), so OLED pixels switch off. Raise with `paper-2` only where a surface has to read as separate.
 - Named themes swap `paper`, `ink`, `signal` and `stroke-done` and nothing else: Strawberry Matcha has matcha strokes and strawberry records, Intense Red has red strokes and gold records. A theme never adds a second accent.

@@ -16,7 +16,7 @@ import type {
   ActiveWorkout, Template, TemplateEntry, Workout,
 } from '@/data/types';
 import {
-  actionSheet, ask, choose, toast,
+  actionSheet, ask, choose, toast, type DiffLine,
 } from '@/ui/overlay';
 import type { Format } from './format';
 import type { Tr } from './i18n';
@@ -112,6 +112,8 @@ export interface TemplateDiff {
   addedExercises: number; removedExercises: number; reordered: boolean; addedSets: number; removedSets: number;
   typesChanged: boolean; supersetsChanged: boolean; valueSets: number; structure: boolean;
   added: string[]; removed: string[];
+  /** Per exercise whose set count changed: the routine's sets and the workout's (0: added or removed). */
+  sets: { exerciseId: string; from: number; to: number }[];
 }
 
 /**
@@ -174,21 +176,26 @@ export async function progressRoutine(workout: Workout) {
   return r;
 }
 
-/** One line of what's different in the layout: "1 set fewer. Adds Cable Fly." */
-export function describeLayout(d: TemplateDiff, f: F) {
+/**
+ * What's different in the layout, as diff lines for the routine popup: the
+ * exercises and sets the routine would gain (+, on diff-added) first, then
+ * what it would lose (−, on diff-removed), "× n" counting sets, then plain
+ * lines for order, set types and supersets.
+ */
+export function layoutLines(d: TemplateDiff, f: F): DiffLine[] {
   const { tr } = f;
-  const names = (ids: string[]) => ids.map((id) => f.exName(getState().exercises.get(id)) || tr('Unknown exercise')).join(', ');
-  const swap = d.added.length === 1 && d.removed.length === 1;
+  const name = (id: string) => f.exName(getState().exercises.get(id)) || tr('Unknown exercise');
+  const line = ({ exerciseId, from, to }: TemplateDiff['sets'][number]): DiffLine => {
+    const sign = to > from ? '+' : '−';
+    const count = !from ? `× ${to}` : !to ? `× ${from}` : `× ${from} → ${to}`;
+    return { text: `${sign} ${name(exerciseId)} ${count}`, tone: to > from ? 'added' : 'removed' };
+  };
   return [
-    d.addedSets ? (d.addedSets === 1 ? tr('1 set more.') : tr('{n} sets more.', { n: d.addedSets })) : '',
-    d.removedSets ? (d.removedSets === 1 ? tr('1 set fewer.') : tr('{n} sets fewer.', { n: d.removedSets })) : '',
-    swap ? tr('Swaps {from} for {to}.', { from: names(d.removed), to: names(d.added) }) : '',
-    !swap && d.added.length ? tr('Adds {names}.', { names: names(d.added) }) : '',
-    !swap && d.removed.length ? tr('Removes {names}.', { names: names(d.removed) }) : '',
-    d.reordered ? tr('Reorders exercises.') : '',
-    d.typesChanged ? tr('Changes set types.') : '',
-    d.supersetsChanged ? tr('Changes supersets.') : '',
-  ].filter(Boolean).join(' ');
+    ...d.sets.filter((x) => x.to > x.from).map(line),
+    ...d.sets.filter((x) => x.to < x.from).map(line),
+    ...[d.reordered && tr('Reorders exercises.'), d.typesChanged && tr('Changes set types.'), d.supersetsChanged && tr('Changes supersets.')]
+      .filter((x): x is string => !!x).map((text) => ({ text })),
+  ];
 }
 
 /** The summary's line about the routine, or '' when there's nothing to say (yet). */
@@ -216,7 +223,7 @@ export async function announceRoutine(workout: Workout, f: F) {
     restoreTemplateExercises(r.templateId, r.before).then(() => { setResult(workout.id, { undone: true }); toast(tr('Routine change undone')); });
   } };
   if (r.answer === 'pending' && r.diff) {
-    const changes = describeLayout(r.diff, f);
+    const lines = layoutLines(r.diff, f);
     const removes = r.diff.removed.length > 0 || r.diff.removedSets > 0;
     // Sticking to the routine is the normal case, so Keep is the main button;
     // changing the layout takes a second, deliberate step (Laurin, 5 Nov 2026).
@@ -224,7 +231,8 @@ export async function announceRoutine(workout: Workout, f: F) {
     while (choice === 'back') {
       choice = await choose<'update' | 'keep'>({
         title: tr('Change {name}?', { name: name() }),
-        message: [changes, r.raised ? tr('Your better numbers are saved either way.') : ''].filter(Boolean).join(' '),
+        lines,
+        message: r.raised ? tr('Your better numbers are saved either way.') : undefined,
         cancel: false,
         options: [
           { label: tr('Keep routine'), value: 'keep', tone: 'primary', testID: 'routine-keep' },
@@ -234,7 +242,8 @@ export async function announceRoutine(workout: Workout, f: F) {
       if (choice !== 'update') break;
       choice = await choose<'update' | 'back'>({
         title: tr('Update {name}?', { name: name() }),
-        message: `${changes} ${tr('Next time, {name} starts with this workout’s exercises and sets.', { name: name() })}`,
+        lines,
+        message: tr('Next time, {name} starts with this workout’s exercises and sets.', { name: name() }),
         cancel: false,
         options: [
           { label: tr('Update routine'), value: 'update', tone: removes ? 'danger' : 'primary', testID: 'routine-update-confirm' },

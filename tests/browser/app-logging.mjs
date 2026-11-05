@@ -408,7 +408,15 @@ async function pick(page, names) {
   const dlg = await page.locator('body').innerText();
   await page.screenshot({ path: `${OUT}/06-summary-routine-de.png` });
   assert.match(dlg, /Pull ändern\?/);
-  assert.match(dlg, /Fügt Kniebeugen \(Langhantel\) hinzu\. Entfernt [^,\n]+, [^.\n]+\. Deine besseren Werte werden so oder so gespeichert\./);
+  // what changes, as a diff: + what the routine gains on green, − what it loses on red, "× n" sets
+  assert.deepEqual(await id(page, 'diff-added').allInnerTexts(), ['+ Kniebeugen (Langhantel) × 2']);
+  const lost = await id(page, 'diff-removed').allInnerTexts();
+  assert.equal(lost.length, 2);
+  assert.ok(lost.every((l) => /^− .+ × \d+$/.test(l)), lost.join(' | '));
+  const tint = (t) => id(page, t).first().evaluate((el) => getComputedStyle(el).backgroundColor.match(/\d+/g).map(Number));
+  const [gr, gg] = await tint('diff-added'), [rr, rg] = await tint('diff-removed');
+  assert.ok(gg > gr && rr > rg, 'the + line is on green, the − line on red');
+  assert.match(dlg, /Deine besseren Werte werden so oder so gespeichert\./);
   const [keepBox, updateBox] = [await id(page, 'routine-keep').boundingBox(), await id(page, 'routine-update').boundingBox()];
   assert.ok(keepBox.y < updateBox.y, 'Keep routine comes first');
   const fill = (t) => id(page, t).evaluate((el) => getComputedStyle(el).backgroundColor);
@@ -418,16 +426,18 @@ async function pick(page, names) {
   // Update routine asks once more; Go back changes nothing and returns to the first question
   await id(page, 'routine-update').click();
   await id(page, 'routine-update-confirm').waitFor();
+  await wait(page, 300);
   const confirm = await page.locator('body').innerText();
   await page.screenshot({ path: `${OUT}/06b-summary-routine-confirm-de.png` });
   assert.match(confirm, /Pull aktualisieren\?/);
-  assert.match(confirm, /Entfernt [^.\n]+\. Beim nächsten Mal startet Pull mit den Übungen und Sätzen aus diesem Training\./);
+  assert.equal(await id(page, 'diff-removed').count(), 2, 'the same diff again');
+  assert.match(confirm, /Beim nächsten Mal startet Pull mit den Übungen und Sätzen aus diesem Training\./);
   const [r, g, b] = (await id(page, 'routine-update-confirm').evaluate((el) => getComputedStyle(el.firstElementChild).color)).match(/\d+/g).map(Number);
   assert.ok(r > g + 80 && r > b + 80, `removing exercises: the confirm button is red (the theme's danger), got rgb(${r}, ${g}, ${b})`);
   await id(page, 'routine-update-back').click();
   await id(page, 'routine-keep').waitFor();
   assert.deepEqual((await routine(page)).exercises.map((e) => e.exerciseId), tplBefore.exercises.map((e) => e.exerciseId), 'Go back: the layout is untouched');
-  ok('“Routine aktualisieren” asks again (what it removes, in red); “Zurück” returns to the first question without changing the routine');
+  ok('“Routine aktualisieren” asks again (the same diff, the button in red); “Zurück” returns to the first question without changing the routine');
 
   // Update routine, confirmed: the workout's exercises and sets, paired sets still only go up; Undo puts it back
   await id(page, 'routine-update').click();
@@ -569,7 +579,9 @@ async function pick(page, names) {
   await logAll(LAT, { 0: ['40', '10'], 1: ['67.5', '10'], 2: ['57.5', '9'] });
   await finish();
   await id(page, 'routine-keep').waitFor();
-  assert.match(await page.locator('body').innerText(), /Change Pull\?[\s\S]*Removes Seated Row \(Cable\), Pull Up\. Your better numbers are saved either way\./);
+  assert.match(await page.locator('body').innerText(), /Change Pull\?[\s\S]*Your better numbers are saved either way\./);
+  assert.deepEqual(await id(page, 'diff-removed').allInnerTexts(), [`− Seated Row (Cable) × ${sets(original, ROW).length}`, `− Pull Up × ${sets(original, PULLUP).length}`]);
+  assert.equal(await id(page, 'diff-added').count(), 0);
   await id(page, 'routine-keep').click();
   assert.match(await toastText(page), /^New numbers for 1 set in Pull/);
   tpl = await routine(page);
