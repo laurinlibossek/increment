@@ -1,8 +1,8 @@
-// Design todo group 1. REVIEW_BEFORE=1 captures the same screens on main.
+// Design todo group 1. REVIEW_BEFORE=1 captures the same screens on the review baseline.
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { launch, devices, grantWakeLock, APP, shots } from './env.mjs';
-import { demoData } from './store-demo.mjs';
+import { chartDemoData } from './chart-demo.mjs';
 import { dateTicks } from '../../core/index.js';
 
 const before = process.env.REVIEW_BEFORE === '1';
@@ -12,7 +12,7 @@ let passed = 0;
 const ok = (label) => { passed++; console.log('PASS', label); };
 try {
   for (const lang of ['en', 'de']) for (const theme of ['light', 'dark']) {
-    const data = demoData(lang);
+    const data = chartDemoData(lang);
     data.kv.settings.theme = theme;
     const ctx = await browser.newContext({ ...devices['iPhone 13'], viewport: { width: 390, height: 844 }, locale: lang === 'de' ? 'de-DE' : 'en-US', colorScheme: theme });
     await ctx.addInitScript(grantWakeLock);
@@ -52,8 +52,24 @@ try {
         const days = { '3M': 90, '6M': 182, '1Y': 365 }[range] || 0;
         const times = data.workouts.filter(w => w.exercises.some(e => e.exerciseId === 'x-squat-barbell') && (!days || w.startedAt >= Date.now() - days * 86400000)).map(w => w.startedAt).sort((a,b) => a-b);
         const labels = await id('exercise-chart').locator('svg text').allTextContents();
-        const expected = dateTicks(times[0], times.at(-1)).map(at => new Intl.DateTimeFormat(lang === 'de' ? 'de-DE' : 'en-US', { month: 'short' }).format(at));
+        const ticks = dateTicks(times[0], times.at(-1));
+        const span = times.at(-1) - times[0];
+        const long = span > 366 * 86400000;
+        const expected = ticks.map(at => new Intl.DateTimeFormat(lang === 'de' ? 'de-DE' : 'en-US', { month: 'short' }).format(at)
+          + (long ? ` ${String(new Date(at).getFullYear()).slice(2)}` : ''));
         assert.deepEqual(labels.slice(-expected.length), expected);
+        // Independent regression: a one-year view must label the left side,
+        // not just the last four months (the former 16-week fixture hid this).
+        if (range !== '3M') {
+          assert.ok((ticks[0] - times[0]) / span < 0.35, `${range}: first label too far right`);
+          assert.ok((ticks.at(-1) - times[0]) / span > 0.7, `${range}: last label too far left`);
+          assert.ok((ticks.at(-1) - ticks[0]) / span > 0.6, `${range}: labels do not span the axis`);
+        }
+        if (long) assert.ok(ticks.every(at => [0, 6].includes(new Date(at).getMonth())));
+        const bounds = await id('exercise-chart').locator('svg text').evaluateAll((texts, n) => texts.slice(-n).map(e => {
+          const r = e.getBoundingClientRect(); return { left: r.left, right: r.right };
+        }), ticks.length);
+        for (let i = 1; i < bounds.length; i++) assert.ok(bounds[i].left > bounds[i - 1].right, `${range}: overlapping date labels`);
       }
       await shot(`exercise-${range}`);
     }
@@ -85,6 +101,10 @@ try {
       await shot(`account-stats-${width}`);
       if (!before) {
         const titles = [lang === 'de' ? 'Routinen nach dem Training aktualisieren' : 'Update routines after workouts', lang === 'de' ? 'Verfügbare Scheiben' : 'Available plates', lang === 'de' ? 'Übungen mit Zusatzgewicht' : 'Weighted bodyweight exercises', lang === 'de' ? 'Übungen mit Unterstützung' : 'Assisted bodyweight exercises'];
+        if (lang === 'de') {
+          const value = page.getByText('Aus jedem Training', { exact: true });
+          assert.ok(await value.evaluate(e => e.scrollWidth <= e.clientWidth), `${width}: previous-values text is truncated`);
+        }
         for (const title of titles) {
           const text = page.getByText(title, { exact: true });
           assert.equal(await text.count(), 1, title);

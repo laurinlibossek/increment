@@ -37,9 +37,9 @@ export const tickDecimals = (ticks) => {
 };
 
 /** Calendar-aligned labels within the plotted range, oldest first.
- * Month-only labels stay consecutive: when space is limited, label the most
- * recent months instead of implying an irregular month sequence. Longer ranges
- * use evenly spaced month boundaries with month/year labels supplied by the UI.
+ * Month-only labels span the range in regular 1, 2, 3 or 6 month steps.
+ * Longer ranges use January/July or January boundaries (whole-year multiples
+ * for ranges too long to label every year), with month/year labels in the UI.
  * Use local calendar arithmetic so DST and variable month lengths stay correct.
  */
 export function dateTicks(from, to, max = 4) {
@@ -61,9 +61,26 @@ export function dateTicks(from, to, max = 4) {
   const last = startOfMonth(to);
   const a = new Date(first), b = new Date(last);
   const months = (b.getFullYear() - a.getFullYear()) * 12 + b.getMonth() - a.getMonth() + 1;
-  const step = days <= 366 ? 1 : Math.max(1, Math.ceil(months / max));
+  let step;
+  let end = last;
+  if (days <= 366) {
+    step = [1, 2, 3, 6, 12].find((n) => Math.ceil(months / n) <= max) || 12;
+  } else {
+    // Align to January and July, even when the data starts mid-year.
+    end = new Date(b.getFullYear(), b.getMonth() < 6 ? 0 : 6, 1).getTime();
+    const count = (lastTick, stride) => {
+      const d = new Date(lastTick);
+      const distance = (d.getFullYear() - a.getFullYear()) * 12 + d.getMonth() - a.getMonth();
+      return Math.floor(distance / stride) + 1;
+    };
+    step = 6;
+    if (count(end, step) > max) {
+      end = new Date(b.getFullYear(), 0, 1).getTime();
+      step = 12 * Math.max(1, Math.ceil(count(end, 12) / max));
+    }
+  }
   const out = [];
-  for (let at = last; at >= first && out.length < max; at = addMonths(at, -step)) out.unshift(at);
+  for (let at = end; at >= first && out.length < max; at = addMonths(at, -step)) out.unshift(at);
   return out;
 }
 

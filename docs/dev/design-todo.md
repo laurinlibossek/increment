@@ -25,8 +25,8 @@ Build and serve the web app with `node tests/browser/run.mjs --serve` (port 8790
 
 - [x] **1.1 The exercise chart's month labels are wrong.** On Squat (Barbell), 6M reads "Jul, Aug, Sep, Nov": October is missing, and "Sep" sits at the end of September. The labels sit at 0, ⅓, ⅔ and 1 of the date range and take whatever month falls there.
   - Where: `app/src/ui/tally/LineChart.tsx:76-80`.
-  - Do: put date labels on real boundaries: the 1st of each month for ranges of about 75 days to a year (thin them out to 3–4 labels that fit, never skip a month in between and then show the next), day and month for shorter ranges, month and year for longer ones. Pick the dates in `core/` (e.g. `dateTicks(from, to, max)`) with unit tests.
-  - Done when: Squat at 3M, 6M, 1Y and All has labels at month starts with no gap in the sequence; unit tests cover a 6-month range that crosses a year end.
+  - Do: put date labels on real boundaries: the 1st of each month for ranges of about 75 days to a year (thin them out with a regular 1-, 2-, 3- or 6-month step so labels span the whole range), day and month for shorter ranges, month and year for longer ones, on January/July or January starts. Pick the dates in `core/` (e.g. `dateTicks(from, to, max)`) with unit tests.
+  - Done when: Squat at 3M, 6M, 1Y and All has labels at month starts, evenly spaced across the whole range; unit tests cover 6M across a year end, 1Y and multi-year ranges.
 
 - [x] **1.2 Text still says "Settings"; the screen is called Account.**
   - Where: `app/src/app/tools.tsx:119` ("…changed in Settings → Plates."), `app/src/app/exercise/[id].tsx:122-123` ("Change it in Settings."), and their German keys.
