@@ -101,13 +101,13 @@ Plan, Progress, Lifts and Records use full-width rows with hairlines (Tally prin
 
 ## 6. Less yellow, less noise
 
-- [ ] **6.1 The exercise page has four yellow marks on its first screen:** the "+20.4 kg" chip, Best set, the 5 RM value and every chart dot. Each follows the rule on its own, but for anyone who keeps progressing the page is always yellow, so nothing stands out.
+- [x] **6.1 The exercise page has four yellow marks on its first screen:** the "+20.4 kg" chip, Best set, the 5 RM value and every chart dot. Each follows the rule on its own, but for anyone who keeps progressing the page is always yellow, so nothing stands out.
   - Where: `app/src/app/exercise/[id].tsx` (around lines 100-110 for the stat marks), `app/src/ui/tally/LineChart.tsx`.
   - **Default:** yellow for the hero change and the record dots on the chart; Best set and rep maxes in `ink`.
-- [ ] **6.2 Records rows all have the same cut-off subtitle,** "Nov 3, 2026 · Est. 1RM, Weight, Set volu…", and the number on the right is only one of those.
+- [x] **6.2 Records rows all have the same cut-off subtitle,** "Nov 3, 2026 · Est. 1RM, Weight, Set volu…", and the number on the right is only one of those.
   - Where: `app/src/app/records.tsx:56-57`.
   - Do: the subtitle names what the number is, plus how many other records that workout set ("Tuesday · Est. 1RM · 2 more"), without the year in the current year. Nothing truncates at 375 wide.
-- [ ] **6.3 Progress shows "Records 72" (last 30 days) directly above "Records 231" (all time)**, and the same for Workouts (17 and 62).
+- [x] **6.3 Progress shows "Records 72" (last 30 days) directly above "Records 231" (all time)**, and the same for Workouts (17 and 62).
   - **Default:** keep the 30-day strip; drop the all-time counts from the Workouts, Lifts and Records rows (they're navigation); Body keeps its latest value.
 
 ## 7. Dark mode controls

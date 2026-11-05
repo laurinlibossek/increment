@@ -117,17 +117,25 @@ async function discard(page) {
   const since = Date.now() - 30 * DAY;
   const recent = data.workouts.filter((w) => w.startedAt >= since).length;
   assert.match(await id(page, 'last-30').innerText(), new RegExp(`^Workouts\\n${recent}\\n`));
-  assert.match(await id(page, 'progress-workouts').innerText(), new RegExp(`Workouts\\s+${data.workouts.length}`));
+  for (const [key, title] of [['workouts', 'Workouts'], ['lifts', 'Lifts'], ['records', 'Records']]) {
+    const row = id(page, `progress-${key}`);
+    const labels = await row.locator('[dir="auto"]:not([aria-hidden="true"])').allTextContents();
+    assert.deepEqual(labels, [title], `${title}: navigation label without an all-time count`);
+    assert.equal(await row.getAttribute('role'), 'button', `${title}: navigation remains tappable`);
+    assert.equal(await row.locator('[aria-hidden="true"]').count(), 2, `${title}: leading symbol and chevron`);
+  }
   const lifts = new Set(data.workouts.flatMap((w) => w.exercises.map((e) => e.exerciseId))).size;
-  assert.match(await id(page, 'progress-lifts').innerText(), new RegExp(`Lifts\\s+${lifts}`));
   const bw = [...data.measurements].sort((a, b) => b.at - a.at)[0];
   assert.ok((await id(page, 'progress-body').innerText()).includes(`${bw.value} kg`));
   await page.screenshot({ path: `${OUT}/04-progress.png`, fullPage: true });
   await id(page, 'progress-records').click();
   await id(page, 'record-0').waitFor();
-  assert.match(await id(page, 'record-0').innerText(), /\d{4} · .*(Est\. 1RM|Weight|Reps)/);
+  assert.match(await id(page, 'record-0').innerText(), / · (Est\. 1RM|Weight|Reps)(?: · \d+ more)?/);
+  assert.doesNotMatch(await id(page, 'record-0').innerText(), new RegExp(`\\b${new Date().getFullYear()}\\b`), 'current-year record date omits the year');
   await page.goBack();
   await id(page, 'progress-lifts').click();
+  await page.locator('[data-testid^="lift-"]').first().waitFor();
+  assert.equal(await page.locator('[data-testid^="lift-"]').count(), lifts, 'Lifts still lists every trained exercise');
   await id(page, 'lifts-search').fill('squat bb');
   await wait(page);
   assert.deepEqual(await page.locator('[data-testid^="lift-"]').evaluateAll((els) => els.map((e) => e.getAttribute('data-testid'))), ['lift-x-squat-barbell']);
@@ -137,7 +145,7 @@ async function discard(page) {
   await id(page, 'progress-workouts').click();
   await page.locator('[data-testid^="workout-"]').first().waitFor();
   await page.goBack();
-  ok(`Progress: ${recent} workouts in 30 days; Workouts (${data.workouts.length}), Lifts (${lifts}, searchable), Records and Body (${bw.value} kg)`);
+  ok(`Progress: ${recent} workouts in 30 days; Workouts, Lifts and Records navigate without counts; ${lifts} searchable lifts and Body (${bw.value} kg)`);
 
   // Search is focused when it opens
   await id(page, 'tab-search').click();

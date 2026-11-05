@@ -8,7 +8,7 @@ import {
   DAY, weeklyCounts, weekStreak, workoutVolume,
 } from '@increment/core';
 
-import { allSessions, setMeta, stats, useAppState } from '@/data/store';
+import { setMeta, stats, useAppState } from '@/data/store';
 import { SPACE, TYPE } from '@/design/tally';
 import { backupNow } from '@/lib/backup';
 import { useFormat } from '@/lib/format';
@@ -31,16 +31,16 @@ export default function ProgressTab() {
     const weekStart = s.settings.weekStart;
     const since = Date.now() - 30 * DAY;
     const st = stats(s);
-    let records = 0, recent = 0, workouts = 0, volume = 0;
+    let recent = 0, workouts = 0, volume = 0;
     for (const w of s.workouts) {
-      // one record per exercise and workout, however many of its numbers went up
-      const n = new Set((st.prsByWorkout.get(w.id) || []).map((p: { exerciseId: string }) => p.exerciseId)).size;
-      records += n;
-      if (w.startedAt >= since) { workouts++; recent += n; volume += workoutVolume(w, s.exercises); }
+      if (w.startedAt >= since) {
+        // one record per exercise and workout, however many of its numbers went up
+        const n = new Set((st.prsByWorkout.get(w.id) || []).map((p: { exerciseId: string }) => p.exerciseId)).size;
+        workouts++; recent += n; volume += workoutVolume(w, s.exercises);
+      }
     }
     return {
-      workouts, volume, recent, records,
-      lifts: [...allSessions(s).keys()].filter((id) => s.exercises.has(id)).length,
+      workouts, volume, recent,
       weeks: weeklyCounts(s.workouts, { weeks: 12, weekStart }) as { start: number; value: number }[],
       streak: weekStreak(s.workouts, { goal, weekStart }) as number,
     };
@@ -76,9 +76,9 @@ export default function ProgressTab() {
       </View>
 
       <View style={{ marginTop: SPACE.s6 }}>
-        <ListRow first symbol="calendar" title={tr('Workouts')} trailing={f.num(s.workouts.length, 0)} chevron onPress={() => router.push('/history')} testID="progress-workouts" />
-        <ListRow symbol="dumbbell" title={tr('Lifts')} trailing={f.num(m.lifts, 0)} chevron onPress={() => router.push('/exercises')} testID="progress-lifts" />
-        <ListRow symbol="rosette" title={tr('Records')} trailing={f.num(m.records, 0)} chevron onPress={() => router.push('/records')} testID="progress-records" />
+        <ListRow first symbol="calendar" title={tr('Workouts')} chevron onPress={() => router.push('/history')} testID="progress-workouts" />
+        <ListRow symbol="dumbbell" title={tr('Lifts')} chevron onPress={() => router.push('/exercises')} testID="progress-lifts" />
+        <ListRow symbol="rosette" title={tr('Records')} chevron onPress={() => router.push('/records')} testID="progress-records" />
         <ListRow symbol="figure.stand" title={tr('Body')} trailing={bw ? fmtMeasure(measureDef('bodyweight'), bw.value, s.settings, f) : undefined} chevron
           onPress={() => router.push('/measure')} testID="progress-body" />
       </View>

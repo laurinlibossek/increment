@@ -23,7 +23,7 @@ import { pickExercises } from '@/lib/picker';
 import { useFormat } from '@/lib/format';
 import { useTally } from '@/lib/theme';
 import {
-  Mark, MARGIN, Row, SectionHead, StatStrip, tnum, type Stat,
+  MARGIN, Row, SectionHead, StatStrip, tnum, type Stat,
 } from '@/ui/facts';
 import { Button, Empty, IconButton, Page } from '@/ui/kit';
 import { LineChart, type LineChartPoint } from '@/ui/tally/LineChart';
@@ -87,7 +87,6 @@ export default function ExerciseDetail() {
   const change = Math.abs(diff) >= 0.05 ? `${diff > 0 ? '+' : '−'}${withUnit(Math.abs(diff))}` : undefined;
   const heroLabel = m.id === 'e1rm' ? tr('Estimated 1RM, best of last session') : tr('{metric}, last session', { metric: tr(m.label) });
 
-  const lastId = every[0]?.workoutId;
   const label = (list: { id: string; label: string }[], key: string) => tr(list.find((x) => x.id === key)?.label || 'Other');
   /** today, yesterday, a weekday within the week, then the date */
   const when = (at: number, compact = false) => {
@@ -101,10 +100,10 @@ export default function ExerciseDetail() {
 
   const load = hasLoadRecords(category);
   const best: Stat = load
-    ? { label: tr('Best set'), value: rec.e1rm ? `${f.w(rec.e1rm.w)} × ${rec.e1rm.r}` : '—', mark: !!rec.e1rm && counted.length > 1 && rec.e1rm.workoutId === lastId }
+    ? { label: tr('Best set'), value: rec.e1rm ? `${f.w(rec.e1rm.w)} × ${rec.e1rm.r}` : '—' }
     : category === 'cardio' ? { label: tr('Longest distance'), value: rec.distance ? f.dist(rec.distance.value) : '—' }
       : category === 'duration' ? { label: tr('Longest time'), value: rec.time ? f.clock(rec.time.value) : '—' }
-        : { label: tr('Most reps'), value: rec.reps ? f.num(rec.reps.value, 0) : '—', mark: !!rec.reps && counted.length > 1 && rec.reps.workoutId === lastId };
+        : { label: tr('Most reps'), value: rec.reps ? f.num(rec.reps.value, 0) : '—' };
   const stripStats: Stat[] = [
     { ...best, testID: 'exercise-best' },
     { label: tr('Sessions'), value: f.num(every.length, 0), testID: 'exercise-sessions' },
@@ -160,9 +159,7 @@ export default function ExerciseDetail() {
           {repMaxes.map(([r, v], i) => (
             <Row key={r} first={i === 0} testID={`repmax-${r}`}
               lead={<Text style={[{ ...TYPE.headline, color: t.ink, width: 58 }, tnum]}>{tr('{n} RM', { n: r })}</Text>}
-              title={counted.length > 1 && v.workoutId === lastId
-                ? <Mark style={{ ...TYPE.body }}>{f.wu(v.w)}</Mark>
-                : <Text style={[{ ...TYPE.body, color: t.ink }, tnum]}>{f.wu(v.w)}</Text>}
+              title={<Text style={[{ ...TYPE.body, color: t.ink }, tnum]}>{f.wu(v.w)}</Text>}
               trailing={<Text style={{ ...TYPE.subhead, color: t.ink2 }}>{when(v.at)}</Text>} />
           ))}
         </>

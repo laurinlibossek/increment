@@ -322,6 +322,8 @@ export default {
   // history
   'Best set': 'Bester Satz',
   '+ {n} more': '+ {n} weitere',
+  '1 more': '1 weiterer',
+  '{n} more': '{n} weitere',
   'Show calendar': 'Kalender zeigen',
   'Show list': 'Liste zeigen',
   'No workouts yet': 'Noch keine Trainings',
