@@ -1,12 +1,16 @@
-// The app language: the setting from Settings (also carried in backups), or
-// the phone's language. Texts are English keys translated by the shared
-// dictionary in core/i18n-de.js.
+// Ship in English for now; keep German maintained for its return.
+// Texts remain English keys translated by core/i18n-de.js.
 import { useMemo } from 'react';
-import { translator, pickLanguage, configureUnits } from '@increment/core';
+import { translator, pickLanguage, configureUnits, englishFormatLocale } from '@increment/core';
 
 import { useSettings } from '@/data/store';
 
 export type Tr = (text: string, vars?: Record<string, string | number>) => string;
+
+// German returns with EXPO_PUBLIC_ENABLE_GERMAN=1 at build time: the language follows the
+// setting or the phone again, and Account shows its Language choice. Builds without it
+// (the store and web apps) are English. The browser tests build both; no file is edited.
+export const ENABLE_GERMAN = process.env.EXPO_PUBLIC_ENABLE_GERMAN === '1';
 
 export function phoneLocale(): string {
   try {
@@ -17,14 +21,15 @@ export function phoneLocale(): string {
 }
 
 export function resolveLanguage(setting: unknown): 'en' | 'de' {
+  if (!ENABLE_GERMAN) return 'en';
   return setting === 'en' || setting === 'de' ? setting : pickLanguage([phoneLocale()]);
 }
 
-/** Locale for numbers and dates: German formats in German, the phone's otherwise. */
+/** Locale for dates and numbers: German formats in German; in English, English words in the phone's region (en-DE: 6 November, 19:15, 62,5). */
 export function localeFor(lang: 'en' | 'de'): string {
   const phone = phoneLocale();
   if (lang === 'de') return /^de\b/i.test(phone) ? phone : 'de-DE';
-  return /^de\b/i.test(phone) ? 'en-US' : phone;
+  return englishFormatLocale(phone);
 }
 
 export function useLang() {
