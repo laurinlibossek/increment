@@ -17,6 +17,7 @@ import type { LanguageSetting, Settings, ThemeSetting } from '@/data/types';
 import { appVersion, backupNow } from '@/lib/backup';
 import { dateStamp, saveTextFile } from '@/lib/files';
 import { useFormat } from '@/lib/format';
+import { ENABLE_GERMAN } from '@/lib/i18n';
 import { reviewStrongImport } from '@/lib/strongImport';
 import { bodyUnit, lengthUnit } from '@/lib/measure';
 import { confirm, notice } from '@/lib/notice';
@@ -228,13 +229,15 @@ export default function AccountSheet() {
         ))}
       </View>
 
-      <SectionHeader title={tr('Language')} />
-      <View>
-        {langs.map((l, i) => (
-          <SettingRow key={l.value} first={i === 0} title={l.label} onPress={() => set('language', l.value)} testID={`language-${l.value}`}
-            checked={(st.language || 'auto') === l.value} />
-        ))}
-      </View>
+      {ENABLE_GERMAN && <>
+        <SectionHeader title={tr('Language')} />
+        <View>
+          {langs.map((l, i) => (
+            <SettingRow key={l.value} first={i === 0} title={l.label} onPress={() => set('language', l.value)} testID={`language-${l.value}`}
+              checked={(st.language || 'auto') === l.value} />
+          ))}
+        </View>
+      </>}
 
       <SectionHeader title={tr('Your data')} />
       <View>

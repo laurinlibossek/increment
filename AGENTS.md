@@ -24,7 +24,7 @@ Read next, in this order:
 
 ## Rules for every change
 
-- **Both languages:** every text people see goes through `tr('…')` (`useLang()` in `app/src/lib/i18n.ts`) and has German in `core/i18n-de.js`. The English text is the key; German uses "du". `npm test` fails on a missing translation or a duplicate key.
+- **Both languages:** ship the apps in English only for now (Laurin, 6 Nov 2026); German stays maintained but hidden behind `ENABLE_GERMAN` in `app/src/lib/i18n.ts`, including Account’s Language choice. Every new text people see still goes through `tr('…')` (`useLang()`) and has German in `core/i18n-de.js`. Keep `core/exercise-names-de.js` and the German browser checks working with that switch on. The English text is the key; German uses "du". `npm test` still fails on a missing translation or a duplicate key.
 - **Logic goes into `core/`**, with no browser APIs (checked by `npm test`), and gets a unit test in `tests/core.test.mjs`.
 - **Design:** the app's colours, spacing and type are the Tally tokens in `docs/design/tokens.json` (after changing one, run `npm run tally`, which regenerates `app/src/design/tally.ts`; `npm test` checks it). New code takes colours from `useTally()`. The look follows `docs/design/`.
 - **Units:** stored as kg, km and seconds; inputs accept decimal commas. Stored exercise names stay English (they match Strong exports); German is a display name from `core/exercise-names-de.js`, so show exercises with `f.exName(ex)`, never `ex.name`.

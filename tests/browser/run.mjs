@@ -3,19 +3,19 @@
 //
 //   node tests/browser/run.mjs              every suite (builds the web export first)
 //   node tests/browser/run.mjs app-logging app-tabs   single suites (file names without .mjs)
-//   --no-build    reuse app/dist instead of running `expo export` again
+//   --no-build    reuse the English-only and German-enabled exports
 //   --serve       only build and serve the app and keep it running, e.g. for screenshot
 //                 scripts; Ctrl-C stops it
 //
-// It serves app/dist at $APP (default :8790), unless something already answers there,
-// downloads the sample Strong export and builds a fresh backup for the suites.
+// It checks the shipped English-only build, then the existing bilingual suites
+// with the same code switch enabled. German's export stays separate from app/dist.
 import { spawn, spawnSync } from 'node:child_process';
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { HERE, ROOT, APP, STRONG } from './env.mjs';
 
-export const APP_SUITES = ['app-families', 'app-strong-review', 'app-exercise-catalogue', 'app-first-start', 'app-logging', 'app-editing', 'app-parity', 'app-tabs', 'app-design-bugs', 'app-number-format', 'app-workouts-list', 'app-list-style', 'app-main-actions', 'app-progress-noise', 'app-tally-scale'];
+export const APP_SUITES = ['app-english-only', 'app-families', 'app-strong-review', 'app-exercise-catalogue', 'app-first-start', 'app-logging', 'app-editing', 'app-parity', 'app-tabs', 'app-design-bugs', 'app-number-format', 'app-workouts-list', 'app-list-style', 'app-main-actions', 'app-progress-noise', 'app-tally-scale'];
 const STRONG_URL = 'https://raw.githubusercontent.com/AlexandrosKyriakakis/StrongAppAnalytics/main/Data/strong.csv';
 
 const args = process.argv.slice(2);
@@ -92,22 +92,34 @@ function expoRoute(dist, pathname) {
 function sh(cmd, argv, cwd) {
   console.log(`$ (${path.relative(ROOT, cwd) || '.'}) ${cmd} ${argv.join(' ')}`);
   const r = spawnSync(cmd, argv, { cwd, stdio: 'inherit', env: { ...process.env, CI: '1' } });
-  if (r.status !== 0) { console.error(`failed: ${cmd} ${argv.join(' ')}`); process.exit(1); }
+  if (r.status !== 0) throw new Error(`failed: ${cmd} ${argv.join(' ')}`);
 }
 
-async function serveApp() {
+async function serveApp(german = false) {
   const appDir = path.join(ROOT, 'app');
-  const dist = path.join(appDir, 'dist');
+  const dist = german ? path.join(HERE, '.out/german-app') : path.join(appDir, 'dist');
   if (!fs.existsSync(path.join(appDir, 'node_modules'))) sh('npm', ['ci'], appDir);
   // `npm run bundle` writes the iOS/Android export into the same dist/, so build web unless told not to
   if (!noBuild || !isFile(path.join(dist, 'index.html'))) {
-    sh('npx', ['expo', 'export', '--platform', 'web', '--output-dir', 'dist'], appDir);
+    const languageFile = path.join(appDir, 'src/lib/i18n.ts');
+    const source = fs.readFileSync(languageFile, 'utf8');
+    const enabled = source.replace('export const ENABLE_GERMAN = false;', 'export const ENABLE_GERMAN = true;');
+    if (german && !enabled.includes('export const ENABLE_GERMAN = true;')) throw new Error('ENABLE_GERMAN code switch not found');
+    try {
+      if (german) fs.writeFileSync(languageFile, enabled);
+      sh('npx', ['expo', 'export', '--platform', 'web', '--output-dir', dist], appDir);
+    } finally {
+      if (german) fs.writeFileSync(languageFile, source);
+    }
   }
   const port = new URL(APP).port || '8790';
   const already = await get(APP);
-  if (already && already.status === 200) { console.log(`app: already served at ${APP}`); return null; }
+  if (already && already.status === 200) {
+    if (!serveOnly) throw new Error(`Stop the server at ${APP} before testing both language builds`);
+    console.log(`app: already served at ${APP}`); return null;
+  }
   const server = await serve(port, (p) => expoRoute(dist, p.replace(/\/+$/, '') || '/'), path.join(dist, '+not-found.html'));
-  console.log(`app: serving app/dist at ${APP}`);
+  console.log(`app: serving ${path.relative(ROOT, dist)} at ${APP}${german ? ' (German enabled)' : ''}`);
   return server;
 }
 
@@ -146,8 +158,14 @@ try {
   results.push(await runSuite('make-backup'));
   if (!results[0].ok) throw new Error('make-backup failed');
   results.length = 0;
-  app = await serveApp();
-  for (const s of suites) results.push(await runSuite(s));
+  for (const german of [false, true]) {
+    const selected = suites.filter((s) => (s !== 'app-english-only') === german);
+    if (!selected.length) continue;
+    app = await serveApp(german);
+    for (const s of selected) results.push(await runSuite(s));
+    await new Promise((resolve, reject) => app.close((error) => error ? reject(error) : resolve()));
+    app = null;
+  }
 } finally {
   app?.close();
 }
