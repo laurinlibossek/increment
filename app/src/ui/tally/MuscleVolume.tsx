@@ -1,6 +1,6 @@
-// Working sets per muscle over the last 7 days, as tallies in fives. With Pro
-// (later), hairlines show the sets still missing to the weekly floor; without
-// it there are no targets. docs/design/components.md
+// Working sets per muscle over the last 7 days, as tallies in fives. Given a
+// target range (the store version may pass one), hairlines show the sets still
+// missing to its lower end; the open app passes none. docs/design/components.md
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 

@@ -4,7 +4,7 @@ Increment is a workout log for people who lift. It records sets, shows what you 
 
 Build every screen of the app (Expo, `app/`: iPhone, Android and the web build) from this system. Where it disagrees with the existing screens, this system wins; the old look was a copy of Strong and is being replaced phase by phase (`phases.md`).
 
-Files here: `tokens.json` (the source of every value; `npm run tally` turns it into `app/src/design/tally.ts`), `components.md` (every component, its props and rules), `navigation.md`, `coaching.md`, `motion.md`, `platforms.md`, `phases.md` (the build plan) and `screens.html` (eight screens drawn with the system; open it in a browser). The same system is browsable as a Claude design system for Laurin: https://claude.ai/artifact/RYFLoWSo8sDSVFmgGRxP2W
+Files here: `tokens.json` (the source of every value; `npm run tally` turns it into `app/src/design/tally.ts`), `components.md` (every component, its props and rules), `navigation.md`, `motion.md`, `platforms.md`, `phases.md` (the build plan) and `screens.html` (eight screens drawn with the system; open it in a browser). The same system is browsable as a Claude design system for Laurin: https://claude.ai/artifact/RYFLoWSo8sDSVFmgGRxP2W
 
 ## Principles
 
@@ -36,7 +36,6 @@ Voice: plain, short, numbers first. The person is mid-set with sweaty hands; eve
 - Rests and timers as m:ss ("1:42"). Workout length as h:mm ("1:04") with the label "Time".
 - A standalone exercise name always includes its exact variation ("Squat (Smith Machine)"); only the exercise-page and current-session headers split the last bracket onto the equipment · body-part line below.
 - Dates: "Tuesday, 3 November" on Today; within a week say "today", "yesterday", "Saturday".
-- Coach notes are one sentence of finding and at most one of action: "Legs are at 5 of 10 sets for the week. Thursday's Legs A brings them to 15."
 
 ## Colour
 
@@ -84,8 +83,8 @@ Voice: plain, short, numbers first. The person is mid-set with sweaty hands; eve
 
 - No spreadsheet set table with SET · PREVIOUS · KG · REPS · ✓ columns, no green completed rows, no checkmark column. Last time's numbers are ghost values in the fields and one line under the exercise name.
 - No blue links. Tappable text is `ink` with weight, or carries a chevron.
-- No five-tab bar with Workout in the middle and no Profile tab. The account is the avatar on Today.
+- No Workout tab in the middle and no Profile tab. The account is the avatar on Today.
 - No muscle heat maps, radar charts, streak flames, confetti or badges.
 - No gradients, glows, glass on content, card shadows, cards in cards, emoji, or sparkles to mark coaching.
-- No paywall over charts, history or records. Pro adds coaching; it never hides the person's own numbers.
+- No paywall over charts, history, records or backups. The free app is a complete tracker. TrueTrain, the membership in the App Store and Google Play apps, adds coaching and never hides the person's own numbers; its tab is the one place that explains it (navigation.md).
 

@@ -139,7 +139,7 @@ export default function Summary() {
           </>
         )}
 
-        {/* the coach's notes (TrueTrain, phase 7) go here too */}
+        {/* a slot the store version can fill (phase 7) */}
         {!!w.notes && (
           <>
             <SectionHead title={tr('Notes')} />
