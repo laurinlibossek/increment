@@ -2,6 +2,7 @@
 import { EXERCISE_CATALOGUE } from './exercise-catalogue.js';
 import { SEED_EXERCISES } from './seed.js';
 import { exerciseBaseName } from './search.js';
+import { exerciseEquipment, compareExerciseEquipment } from './exercise-equipment.js';
 
 /** English/German family names and ordered exercise ids; no stored migration. */
 export const EXERCISE_FAMILIES = EXERCISE_CATALOGUE.map(({ members, ...family }) => ({
@@ -22,11 +23,6 @@ export function familyOf(ex) {
   return familyByExerciseId.get(ex.id);
 }
 
-/** The trailing bracket, including legacy Strong qualifiers (Weighted/Assisted/Single Arm). */
-export function exerciseEquipment(ex) {
-  return ex?.name?.match(/\(([^()]*)\)\s*$/)?.[1] || '';
-}
-
 /**
  * Members present in the supplied library, in catalogue order; custom members
  * follow in their input order. Uses the actual stored objects (names, categories,
@@ -44,6 +40,7 @@ export function familyMembers(familyId, exercises = SEED_EXERCISES, { includeHid
  * Family → exercise base name → equipment entries. Names here stay English;
  * screens translate each actual exercise when rendering. Weighted/assisted
  * versions share a base group but retain their own id and logging category.
+ * Equipment uses the common order, including custom members in a base group.
  */
 export function familyMemberGroups(familyId, exercises = SEED_EXERCISES, options = {}) {
   const groups = new Map();
@@ -52,5 +49,7 @@ export function familyMemberGroups(familyId, exercises = SEED_EXERCISES, options
     if (!groups.has(name)) groups.set(name, { name, members: [] });
     groups.get(name).members.push({ equipment: exerciseEquipment(exercise), exercise });
   }
-  return [...groups.values()];
+  return [...groups.values()].map((group) => ({
+    ...group, members: group.members.sort((a, b) => compareExerciseEquipment(a.exercise, b.exercise)),
+  }));
 }

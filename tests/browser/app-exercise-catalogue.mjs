@@ -40,7 +40,7 @@ function checkUpgrade(actual, before) {
   assert.equal(actual.kv.meta.createdAt, 123);
   assert.equal(actual.exercises.length, SEED_EXERCISES.length);
   assert.deepEqual(actual.exercises.find((e) => e.id === before.exercises[0].id), before.exercises[0]);
-  assert.deepEqual(actual.exercises.find((e) => e.id === 'c-kelso'), { ...before.exercises.at(-1), family: 'f-shrug' });
+  assert.deepEqual(actual.exercises.find((e) => e.id === 'c-kelso'), { ...before.exercises.at(-1), family: 'f-kelso-shrug' });
   assert.ok(!actual.exercises.some((e) => e.id === 'x-kelso-shrug-dumbbell'));
   assert.deepEqual(actual.workouts, before.workouts);
   assert.deepEqual(actual.templates, before.templates);

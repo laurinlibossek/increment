@@ -404,4 +404,12 @@ export const EXERCISE_NAMES_DE = {
   "Turkish Get Up (Dumbbell)": "Turkish Get-up (Kurzhantel)",
   "Walking (Treadmill)": "Gehen (Laufband)",
   "Recumbent Bike": "Liegerad",
+  "Neck Curl (Plate)": "Nackenbeugen (Gewichtsscheibe)",
+  "Neck Curl (Machine)": "Nackenbeugen (Maschine)",
+  "Neck Extension (Plate)": "Nackenstrecken (Gewichtsscheibe)",
+  "Neck Extension (Machine)": "Nackenstrecken (Maschine)",
+  "Chest Supported T Bar Row (Machine)": "T-Bar-Rudern brustgestützt (Maschine)",
+  "Kroc Row (Dumbbell)": "Kroc-Rudern (Kurzhantel)",
+  "Donkey Calf Raise (Machine)": "Donkey-Wadenheben (Maschine)",
+  "Dead Hang": "Dead Hang",
 };

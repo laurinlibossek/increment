@@ -985,6 +985,35 @@ test('catalogue has unique stable ids, valid logging types, and exactly one fami
   }
 });
 
+test('family names are unique in English and German', () => {
+  for (const field of ['name', 'nameDe']) {
+    const seen = new Set();
+    for (const family of core.EXERCISE_FAMILIES) {
+      const name = family[field].trim().normalize('NFC').toLocaleLowerCase(field === 'nameDe' ? 'de' : 'en');
+      assert.ok(name && !seen.has(name), `${field}: ${family[field]}`);
+      seen.add(name);
+    }
+  }
+  assert.equal(core.FAMILY_BY_ID['f-row'].nameDe, 'Rudern');
+  assert.equal(core.FAMILY_BY_ID['f-rowing'].nameDe, 'Rudergerät');
+});
+
+test('families group variations by their program slot', () => {
+  for (const e of core.SEED_EXERCISES) {
+    if (e.name.includes('Split Squat')) assert.equal(core.familyOf(e), 'f-split-squat', e.name);
+    if (/Romanian Deadlift|Stiff Leg Deadlift/.test(e.name)) assert.equal(core.familyOf(e), 'f-romanian-deadlift', e.name);
+    if (e.name.includes('Glute Bridge')) assert.equal(core.familyOf(e), 'f-hip-thrust', e.name);
+    if (e.name.startsWith('Kelso Shrug')) assert.equal(core.familyOf(e), 'f-kelso-shrug', e.name);
+  }
+  assert.equal(core.familyOf(byName('Sissy Squat')), 'f-sissy-squat');
+  assert.equal(core.familyOf(byName('Copenhagen Plank')), 'f-copenhagen-plank');
+  assert.equal(byName('Copenhagen Plank').bodyPart, 'legs');
+  assert.equal(core.familyOf(byName('Deadlift (Barbell)')), 'f-deadlift');
+  assert.equal(core.familyOf(byName('Shrug (Barbell)')), 'f-shrug');
+  assert.equal(core.familyOf(byName('Plank')), 'f-plank');
+  assert.equal(core.FAMILY_BY_ID['f-glute-bridge'], undefined);
+});
+
 test('families use catalogue ids after rename/hide, and explicit custom assignments win', () => {
   const squat = byName('Squat (Barbell)');
   assert.equal(core.familyOf(squat), 'f-squat');
@@ -1017,7 +1046,7 @@ test('family members keep main-first catalogue order, actual stored records and 
   assert.deepEqual(core.familyMembers('f-squat', library), [main, front, custom]);
   assert.equal(core.familyMembers('f-squat', library)[0], main);
   assert.deepEqual(core.familyMembers('f-squat', new Map(library.map((e) => [e.id, e]))), [main, front, custom]);
-  assert.deepEqual(core.familyMembers('f-squat', library, { includeHidden: true }), [main, front, smith, custom]);
+  assert.deepEqual(core.familyMembers('f-squat', library, { includeHidden: true }), [main, smith, front, custom]);
   assert.deepEqual(core.familyMembers(undefined, library), []);
   assert.deepEqual(core.familyMembers('f-no-such-family', library), []);
   assert.deepEqual(library, original);
@@ -1028,16 +1057,77 @@ test('family members keep main-first catalogue order, actual stored records and 
 test('family groups keep exercises then equipment, including different logged fields', () => {
   const groups = core.familyMemberGroups('f-pull-up');
   const pull = groups.find((g) => g.name === 'Pull Up');
-  assert.deepEqual(pull.members.map((m) => m.equipment), ['', 'Weighted', 'Assisted', 'Band']);
-  assert.deepEqual(pull.members.map((m) => m.exercise.category), ['reps', 'weighted_bw', 'assisted_bw', 'reps']);
+  assert.deepEqual(pull.members.map((m) => m.equipment), ['Band', '', 'Weighted', 'Assisted']);
+  assert.deepEqual(pull.members.map((m) => m.exercise.category), ['reps', 'reps', 'weighted_bw', 'assisted_bw']);
   assert.equal(new Set(pull.members.map((m) => m.exercise.id)).size, 4);
   const squat = core.familyMemberGroups('f-squat');
   assert.equal(squat[0].name, 'Squat');
-  assert.deepEqual(squat[0].members.map((m) => m.equipment), ['Barbell', 'Smith Machine', 'Bodyweight', 'Dumbbell']);
+  assert.deepEqual(squat[0].members.map((m) => m.equipment), ['Barbell', 'Dumbbell', 'Smith Machine', 'Bodyweight']);
   assert.ok(squat.some((g) => g.name === 'Front Squat'));
   assert.deepEqual(core.familyMemberGroups('f-unknown'), []);
   assert.equal(core.exerciseEquipment({ name: 'Row (Cable) (wide grip)' }), 'wide grip');
   assert.equal(core.exerciseEquipment({ name: 'Pull Up' }), '');
+});
+
+test('every family keeps related movements contiguous and equipment in the shared order', () => {
+  const equipmentOrder = ['Barbell', 'EZ Bar', 'Trap Bar', 'Dumbbell', 'Kettlebell', 'Plate', 'Smith Machine', 'Machine', 'Cable', 'Band', 'Bodyweight', 'Weighted', 'Assisted'];
+  assert.deepEqual(core.EXERCISE_EQUIPMENT_ORDER, equipmentOrder);
+  for (const f of core.EXERCISE_CATALOGUE) {
+    const seen = new Set();
+    let previousBase, previousRank = -1;
+    for (const e of f.members) {
+      const base = core.exerciseBaseName(e, 'en');
+      if (base !== previousBase) {
+        assert.ok(!seen.has(base), `${f.name}: ${base} equipment is separated by another movement`);
+        seen.add(base);
+        previousRank = -1;
+      }
+      const label = core.exerciseEquipment(e) || (['reps', 'duration'].includes(e.category) ? 'Bodyweight' : '');
+      const rank = equipmentOrder.includes(label) ? equipmentOrder.indexOf(label) : equipmentOrder.length;
+      assert.ok(rank >= previousRank, `${f.name}: ${e.name} breaks equipment order`);
+      previousBase = base;
+      previousRank = rank;
+    }
+    assert.deepEqual(core.familyMemberGroups(f.id).flatMap(g => g.members.map(m => m.exercise.id)), f.members.map(e => e.id));
+  }
+  const groups = (id) => core.familyMemberGroups(id).map(g => g.name);
+  assert.deepEqual(groups('f-squat'), ['Squat', 'Front Squat', 'Safety Bar Squat', 'Zercher Squat', 'Box Squat', 'Paused Squat', 'Pin Squat', 'Hack Squat', 'Pendulum Squat', 'Belt Squat', 'Goblet Squat', 'Pistol Squat']);
+  assert.deepEqual(groups('f-split-squat'), ['Split Squat', 'Bulgarian Split Squat', 'Front Foot Elevated Split Squat']);
+  assert.deepEqual(groups('f-romanian-deadlift'), ['Romanian Deadlift', 'Stiff Leg Deadlift', 'Single Leg Romanian Deadlift', 'B Stance Romanian Deadlift']);
+  assert.deepEqual(groups('f-hip-thrust'), ['Hip Thrust', 'Glute Bridge', 'Single Leg Hip Thrust', 'Single Leg Glute Bridge']);
+});
+
+test('equipment ordering also applies to custom groups without changing stored records', () => {
+  const labels = ['Assisted', 'Weighted', 'Bodyweight', 'Band', 'Cable', 'Machine', 'Smith Machine', 'Plate', 'Kettlebell', 'Dumbbell', 'Trap Bar', 'EZ Bar', 'Barbell'];
+  const exercises = labels.map((label, i) => ({ id: `c-${i}`, name: `Own (${label})`, family: 'f-own', category: 'machine' }));
+  const bare = { id: 'c-bare', name: 'Own', family: 'f-own', category: 'reps' };
+  const unknown = { id: 'c-unknown', name: 'Own (Custom attachment)', family: 'f-own', category: 'machine' };
+  const library = [unknown, ...exercises, bare];
+  const snapshot = structuredClone(library);
+  const [group] = core.familyMemberGroups('f-own', library);
+  assert.deepEqual(group.members.map(m => m.equipment), ['Barbell', 'EZ Bar', 'Trap Bar', 'Dumbbell', 'Kettlebell', 'Plate', 'Smith Machine', 'Machine', 'Cable', 'Band', 'Bodyweight', '', 'Weighted', 'Assisted', 'Custom attachment']);
+  assert.equal(group.members.find(m => m.exercise.id === bare.id).exercise, bare);
+  assert.deepEqual(library, snapshot);
+});
+
+test('review additions log the verified movement and equipment without extra fields', () => {
+  for (const movement of ['Neck Curl', 'Neck Extension']) for (const equipment of ['Plate', 'Machine']) {
+    const e = byName(`${movement} (${equipment})`);
+    assert.equal(core.familyOf(e), 'f-' + core.slug(movement));
+    assert.equal(e.bodyPart, 'other', 'there is no Neck body-part category');
+    assert.equal(e.category, 'machine', 'load × reps without a bar weight or two dumbbells');
+    assert.deepEqual(core.loggedFields(e.category), ['w', 'r']);
+  }
+  for (const [name, family, category] of [
+    ['Chest Supported T Bar Row (Machine)', 'f-row', 'machine'],
+    ['Kroc Row (Dumbbell)', 'f-row', 'dumbbell'],
+    ['Donkey Calf Raise (Machine)', 'f-calf-raise', 'machine'],
+    ['Dead Hang', 'f-dead-hang', 'duration'],
+  ]) {
+    assert.equal(core.familyOf(byName(name)), family);
+    assert.equal(byName(name).category, category);
+  }
+  assert.deepEqual(core.loggedFields(byName('Dead Hang').category), ['t']);
 });
 
 test('seeding upgrades v1, is repeatable, and never overwrites renamed or hidden built-ins', () => {
@@ -1059,7 +1149,7 @@ test('new built-in name collisions keep custom ids, logging fields, settings and
   const library = [...seedV1.exercises, custom, ownFamily, optOut];
   const before = structuredClone(library);
   const upgraded = core.withSeedExercises(library);
-  assert.deepEqual(upgraded.find((e) => e.id === custom.id), { ...custom, family: 'f-shrug' });
+  assert.deepEqual(upgraded.find((e) => e.id === custom.id), { ...custom, family: 'f-kelso-shrug' });
   for (const name of ['Kelso Shrug (Dumbbell)', ownFamily.name, optOut.name]) assert.ok(!upgraded.some((e) => e.id === byName(name).id));
   assert.equal(upgraded.find((e) => e.id === ownFamily.id), ownFamily);
   assert.equal(upgraded.find((e) => e.id === optOut.id), optOut);
@@ -1071,7 +1161,7 @@ test('new built-in name collisions keep custom ids, logging fields, settings and
   assert.deepEqual(restored.exercises, upgraded);
   assert.deepEqual(restored.workouts, data.workouts);
   assert.deepEqual(restored.templates, data.templates);
-  assert.equal(core.familyOf(restored.exercises.find((e) => e.id === custom.id)), 'f-shrug');
+  assert.equal(core.familyOf(restored.exercises.find((e) => e.id === custom.id)), 'f-kelso-shrug');
 });
 
 test('name collisions never reassign a renamed built-in, even to a newly added exercise', () => {

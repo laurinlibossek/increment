@@ -47,6 +47,22 @@ Each row records the distinguishing movement checked against both sources. Links
 
 These checks concern movement descriptions, not how many independent trials support them. Two pages embedding the same coach's demonstration confirm a label/setup but do not constitute independent experimental evidence. The Y-raise cable and cuffed triceps checks include that situation explicitly.
 
+## PR #12 review additions
+
+Eight exercise records were added after Laurin's review; each setup was cross-checked below. Neck work uses two families, Neck Curl and Neck Extension, each with Plate and Machine. Both equipment types log load × reps using the Machine category (no bar weight or dumbbell multiplier); the body part is Other because the app has no Neck category. Dead Hang has its own family, logs Duration and sits under Arms for its grip work. The row additions join Row; Donkey Calf Raise joins Calf Raise.
+
+| Movement admitted | Identity checked | Source 1 | Source 2 |
+|---|---|---|---|
+| Neck Curl (Plate) | Supine on a bench, head beyond its end, plate held over the forehead; neck flexion without lifting the torso. | [StrengthLog: lying neck curl](https://www.strengthlog.com/lying-neck-curl/) | [Inspire US: plate setup and flexion](https://www.inspireusafoundation.org/neck-curls/) |
+| Neck Extension (Plate) | Prone on a bench, head beyond its end, plate held at the back of the head; neck extension, not a torso back extension. | [StrengthLog: lying neck extension](https://www.strengthlog.com/lying-neck-extension/) | [Lance Dreher's exercise library, citing ExRx](https://www.zoomlance.com/exercise-library/lying-neck-flex) |
+| Neck Curl (Machine) / Neck Extension (Machine) | Seated four-way neck machine: face against pad for flexion, back of head against pad for extension; separate exercise records. | [Gabe Harrington / Rogers Athletic: both setups](https://rogersathletic.com/updates/get-strong-blog/the-neck-machine-set-up-and-use/) | [CSCCa: four-way neck machine demonstrations and instructions](https://cscca.clubexpress.com/content.aspx?club_id=408309&module_id=732305&page_id=22) |
+| Chest Supported T Bar Row (Machine) | Dedicated T-bar row station with the torso supported on a chest pad; elbow flexion and scapular retraction, distinct from unsupported T Bar Row and straight-arm Kelso Shrug. | [Phoenix Physiques: demonstration and setup](https://www.phoenixphysiques.com/videos/chest-supported-tbar-row/) | [Michael Matthews: chest-supported T-bar instructions](https://legionathletics.com/t-bar-row/) |
+| Kroc Row (Dumbbell) | Named one-arm dumbbell row, supported by the other hand, full shoulder travel and some body movement; separate from the strict one-arm row. The guides differ on torso angle and momentum cues; this confirms the named movement, not a prescribed angle or rep scheme. | [Kroc's own technique article](https://t-nation.com/t/kroc-rows-101/284491) | [Michael Matthews: setup, row and descent](https://legionathletics.com/kroc-rows/) |
+| Donkey Calf Raise (Machine) | Forward-leaning calf raise with forearms supported and a machine pad loading the hips/lower back; heels rise and lower while knees stay straight. | [MuscleWiki: machine demonstration](https://musclewiki.com/exercise/machine-donkey-calf-raise) | [RepCount: machine setup and execution](https://www.repcountapp.com/exercises/donkey-calf-raise) |
+| Dead Hang | Two hands on an overhead bar, straight arms and feet off the floor, held for time; no added load and no pull-up repetitions. | [GMB: passive hang with feet off the floor and timed holds](https://gmb.io/hanging/) | [Healthline: dead-hang steps](https://www.healthline.com/health/fitness-exercise/dead-hang) |
+
+Laurin also separated Split Squat from Squat, Romanian Deadlift from Deadlift, and Sissy Squat, Copenhagen Plank and Kelso Shrug into their own families, and grouped Glute Bridge under Hip Thrust. Those are program-slot decisions, not new exercise identities. Copenhagen Plank is tagged Legs for adductor work; its Duration category and id are retained. The original 190 entries are unchanged.
+
 ## Long-length scope and ordinary variations
 
 The catalogue retains Seated Leg Curl, Incline Curl and Overhead Triceps Extension, and expands their cable/attachment/support options. [Maeo et al.'s overhead versus neutral-arm elbow-extension methods](https://pubmed.ncbi.nlm.nih.gov/35819335/) and [the calf-training methods](https://pmc.ncbi.nlm.nih.gov/articles/PMC10753835/) are examples of why setup and range deserve separate identities. They are not evidence that every library member is superior, or interchangeable in records. The core deliberately contains no study claims.
@@ -59,10 +75,13 @@ Existing English names and ids are immutable in this PR. New names reuse existin
 
 [The public Ryot Strong import mapping](https://gist.github.com/IgnisDa/c21c28dd83571ca07f1a7a824b5e8139) is a spelling cross-check, **not an authoritative complete Strong catalogue**: an export may include custom names. Do not infer movement mechanics from its target mapping (some targets are visibly unrelated). It exposes existing discrepancies such as Close Grip Bench Press versus Bench Press - Close Grip. They are marked as proposals in the generated review table, never renamed or added again as duplicates. An authoritative current Strong name list remains a review question; PR 3's importer can add aliases separately without renaming historical exercises.
 
-## For Laurin to decide
+## Compatibility decisions confirmed in Laurin's review
 
-- Existing Farmer's Walk (Dumbbell) and Sled Push log load × reps. Proper load + distance/time needs a new logging category and an explicit history policy. Keep them unchanged here; new loaded carries, sled pulls and weighted planks are deferred rather than losing part of their data.
-- Pullover (Dumbbell) stays in Chest, as originally stored; propose Back for a future deliberate body-part correction. Its family can still include machine/cable pullovers already logged as Back.
-- Existing names differing from the available Strong export examples are marked in the review table. Keep this PR's original names; decide separately whether future display names/import aliases should use those spellings.
+- Existing Farmer's Walk (Dumbbell) and Sled Push keep load × reps. Load + distance/time needs a later PR with a new logging category and an explicit history policy. New loaded carries, sled pulls and weighted planks remain deferred.
+- Pullover (Dumbbell) stays in Chest, as originally stored. Its family can still include machine/cable pullovers already logged as Back.
+- Existing names differing from the available Strong export examples stay unchanged. The review table records possible import aliases for the Strong import PR, without proposing renames here.
+
+## Scope notes
+
 - Lu Raise guides differ on hand rotation and some stop at shoulder height. This entry denotes the large overhead arc described by Catalyst Athletics and Body of Evidence; no separate shoulder-height “Lu Raise” was added.
 - No claim-only trend names, speculative cuff × grip combinations or dynamic Copenhagen repetitions were added. New candidates without two matching movement descriptions should be proposed as questions, not silently admitted.
