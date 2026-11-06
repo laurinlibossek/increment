@@ -18,6 +18,7 @@ import {
 import { pickDateTime, toast } from '@/ui/overlay';
 import { DraftBlocks, KeyboardDoneBar } from '@/ui/workout/DraftBlocks';
 import { useEditor } from '@/ui/workout/useEditor';
+import { SPACE, TYPE } from '@/design/tally';
 
 export default function WorkoutEditScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -68,11 +69,11 @@ export default function WorkoutEditScreen() {
           <Field value={d.name} onChange={(v) => patchDraft('edit', { name: v })} placeholder={tr('Workout name')} big testID="edit-name" />
           <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-end' }}>
             <View style={{ flex: 1, gap: 6 }}>
-              <Txt tone="ink2" style={{ fontSize: 13, fontWeight: '600', paddingHorizontal: 4 }}>{tr('Started')}</Txt>
+              <Txt tone="ink2" style={[TYPE.footnote, { paddingHorizontal: SPACE.s1 }]}>{tr('Started')}</Txt>
               <Pressable onPress={changeStart} accessibilityRole="button" testID="edit-start"
                 style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 12, paddingHorizontal: 14, minHeight: 46, backgroundColor: pressed ? c.surface2 : c.surface })}>
                 <Icon name="calendar" size={15} color={c.ink2} />
-                <Txt style={{ fontSize: 15, flex: 1 }} numberOfLines={1}>{`${f.date.short(d.startedAt)} · ${f.date.time(d.startedAt)}`}</Txt>
+                <Txt style={[TYPE.subhead, { flex: 1 }]} numberOfLines={1}>{`${f.date.short(d.startedAt)} · ${f.date.time(d.startedAt)}`}</Txt>
               </Pressable>
             </View>
             <View style={{ width: 110 }}>
@@ -85,7 +86,7 @@ export default function WorkoutEditScreen() {
         <View style={{ marginTop: 16 }}>
           <Button large kind="tinted" icon="plus" title={tr('Add exercises')} onPress={addExercises} testID="add-exercises" />
         </View>
-        <Txt tone="ink2" style={{ fontSize: 13, marginTop: 12, paddingHorizontal: 4 }} testID="edit-save-hint">{tr('Sets without reps (or time) are dropped when you save.')}</Txt>
+        <Txt tone="ink2" style={[TYPE.footnote, { marginTop: SPACE.s3, paddingHorizontal: SPACE.s1 }]} testID="edit-save-hint">{tr('Sets without reps (or time) are dropped when you save.')}</Txt>
       </ScrollView>
       <KeyboardDoneBar />
     </View>

@@ -112,7 +112,7 @@ export function BarChart({
             return (
               <G key={'b' + i}>
                 {b.value > 0 && <Path d={barPath(x, b.value)} fill={c.chart} opacity={dim ? 0.45 : 1} />}
-                {(i === lastI || i === sel) && b.value > 0 && <SvgText fontFamily={FONT} x={x + bw / 2} y={sy(b.value) - SPACE.s2} textAnchor="middle" fontSize={TYPE.caption.fontSize} fontWeight={TYPE.caption.fontWeight} fill={c.ink}>{fmtVal(b.value)}</SvgText>}
+                {(i === lastI || i === sel) && b.value > 0 && <SvgText fontFamily={FONT} x={x + bw / 2} y={sy(b.value) - SPACE.s2} textAnchor="middle" fontSize={TYPE.footnote.fontSize} fontWeight={TYPE.headline.fontWeight} fill={c.ink}>{fmtVal(b.value)}</SvgText>}
                 {i % every === lastI % every && <SvgText fontFamily={FONT} x={x + bw / 2} y={H - SPACE.s2} textAnchor="middle" fontSize={TYPE.footnote.fontSize} fill={c.ink2}>{b.label}</SvgText>}
               </G>
             );

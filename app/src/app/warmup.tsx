@@ -18,6 +18,7 @@ import {
 } from '@/ui/kit';
 import { KeyboardDoneBar } from '@/ui/workout/DraftBlocks';
 import { KEYBOARD_BAR } from '@/ui/workout/SetRow';
+import { SPACE, TYPE } from '@/design/tally';
 
 type Scheme = { barReps: number; steps: [number, number][] };
 type Row = [string, string];
@@ -53,7 +54,7 @@ export default function WarmupScreen() {
       }} />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: insets.bottom + 48 }}
         keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets>
-        <Txt tone="ink2" style={{ fontSize: 14, marginBottom: 12, paddingHorizontal: 4 }}>{tr('Used by ⋯ → Add warm-up sets, based on your first working set.')}</Txt>
+        <Txt tone="ink2" style={[TYPE.footnote, { marginBottom: SPACE.s3, paddingHorizontal: SPACE.s1 }]}>{tr('Used by ⋯ → Add warm-up sets, based on your first working set.')}</Txt>
         <Group>
           <View style={st.row}>
             <Txt style={{ flex: 1 }}>{tr('Empty bar first')}</Txt>
@@ -89,6 +90,6 @@ const st = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 54, paddingHorizontal: 16, paddingVertical: 8 },
   hairline: { position: 'absolute', top: 0, left: 16, right: 0, height: StyleSheet.hairlineWidth },
   input: { width: 64, height: 38, borderRadius: 9, textAlign: 'center', fontSize: 17, fontWeight: '600', fontVariant: ['tabular-nums'] },
-  unit: { fontSize: 15 },
+  unit: TYPE.subhead,
   remove: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
 });

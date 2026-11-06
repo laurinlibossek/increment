@@ -79,7 +79,10 @@ for (const scheme of ['light', 'dark']) {
   assert.equal(await id(page, 'cal-month').innerText(), new Date(newest).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }));
   const statsText = await id(page, 'cal-stats').innerText();
   assert.ok(statsText.includes(String(cal.workouts)) && statsText.includes(String(cal.daysTrained)), `month totals ${cal.workouts} / ${cal.daysTrained} in “${statsText}”`);
-  assert.equal(await page.locator('[data-testid^="cal-"][aria-label*="workout"]').count(), cal.byDay.size, 'every day with a workout is highlighted');
+  const inMonth = (d) => d >= cal.start && d < cal.next;
+  assert.equal(await page.locator('[data-testid^="cal-"][aria-label*="workout"]').count(), [...cal.byDay.keys()].filter(inMonth).length, 'every day of the month with a workout is highlighted');
+  // the days of the months around it are empty cells: only the month's own days are drawn
+  for (const d of cal.days.filter((d) => !inMonth(d))) assert.equal(await id(page, `cal-${dayKey(d)}`).count(), 0, `no cell content for ${dayKey(d)}`);
   await page.screenshot({ path: `${OUT}/01-calendar-${scheme}.png` });
   // a highlighted day lists its workout; tapping it opens the workout
   const day = startOfDayOf(newest);
@@ -90,7 +93,7 @@ for (const scheme of ['light', 'dark']) {
   await page.screenshot({ path: `${OUT}/02-calendar-day-${scheme}.png` });
   if (scheme === 'light') {
     // a day without a workout clears the selection; the next month button works
-    await id(page, `cal-${dayKey(cal.days.find((d) => !cal.byDay.has(d)))}`).click();
+    await id(page, `cal-${dayKey(cal.days.find((d) => inMonth(d) && !cal.byDay.has(d)))}`).click();
     assert.equal(await id(page, `workout-${w.id}`).count(), 0, 'an empty day shows no workouts');
     await id(page, `cal-${dayKey(day)}`).click();
     await id(page, `workout-${w.id}`).click();

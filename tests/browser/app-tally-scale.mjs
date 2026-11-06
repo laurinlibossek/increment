@@ -81,13 +81,19 @@ async function readable(locator) {
       const foreground = rgba(element.namespaceURI === 'http://www.w3.org/2000/svg' ? style.fill : style.color);
       foreground[3] *= opacity;
       const rendered = over(foreground, background), l1 = light(rendered), l2 = light(background);
-      out.push({ text, ratio: (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05), color: style.color, background, opacity });
+      // line height against font size: Tally's styles stay at or below 1.38 (Footnote)
+      // (a nested span such as the unit in "7,052 kg" sits on its parent's line, so it doesn't count)
+      const leading = element.namespaceURI === 'http://www.w3.org/2000/svg' || style.display === 'inline' || style.lineHeight === 'normal' ? null : parseFloat(style.lineHeight) / parseFloat(style.fontSize);
+      out.push({ text, ratio: (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05), color: style.color, background, opacity, fontSize: style.fontSize, lineHeight: style.lineHeight, leading });
     }
     return out;
   });
   assert.ok(rows.length > 0, 'some visible readable text was measured');
   const low = rows.filter(row => row.ratio < 4.5);
   assert.deepEqual(low, [], `readable text needs 4.5:1 contrast: ${JSON.stringify(low)}`);
+  // a smaller size over Body's 22 px line height (13 px at 1.7) spreads paragraphs apart
+  const loose = rows.filter(row => row.leading !== null && row.leading > 1.45).map(({ text, fontSize, lineHeight }) => ({ text, fontSize, lineHeight }));
+  assert.deepEqual(loose, [], `readable text keeps its own style's line height: ${JSON.stringify(loose)}`);
   return rows;
 }
 

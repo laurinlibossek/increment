@@ -90,7 +90,11 @@ export default function HistoryTab() {
 
 const dayKey = (t: number) => { const d = new Date(t); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
 
-/** A month of days with workouts highlighted; tap one to see its workouts below. */
+/**
+ * A month of days with workouts highlighted; tap one to see its workouts below.
+ * Only the month's own days are drawn: the cells before and after stay empty, so
+ * the grid shows exactly what the totals under it count.
+ */
 function Calendar({ s, f }: { s: State; f: Format & { tr: (t: string, v?: Record<string, string | number>) => string } }) {
   const c = useColors();
   const { tr } = f;
@@ -109,7 +113,7 @@ function Calendar({ s, f }: { s: State; f: Format & { tr: (t: string, v?: Record
       <View style={[st.cal, { backgroundColor: c.surface, marginHorizontal: 16 }]}>
         <View style={st.calHead}>
           <MonthButton icon="chevronLeft" label={tr('Previous month')} onPress={() => go(-1)} testID="cal-prev" />
-          <Txt style={{ fontSize: 17, fontWeight: '700' }} testID="cal-month">{f.date.monthYear(month)}</Txt>
+          <Txt style={TYPE.headline} testID="cal-month">{f.date.monthYear(month)}</Txt>
           <MonthButton icon="chevron" label={tr('Next month')} onPress={() => go(1)} testID="cal-next" />
         </View>
         <View style={st.week}>
@@ -120,6 +124,7 @@ function Calendar({ s, f }: { s: State; f: Format & { tr: (t: string, v?: Record
         {weeks.map((wk) => (
           <View key={wk[0]} style={st.week}>
             {wk.map((d) => {
+              if (d < cal.start || d >= cal.next) return <View key={d} style={st.dayWrap} />;
               const n = cal.byDay.get(d)?.length || 0;
               const on = sel === d;
               return (
@@ -156,7 +161,7 @@ function Calendar({ s, f }: { s: State; f: Format & { tr: (t: string, v?: Record
         </>
       )}
       {sel === null && cal.workouts > 0 && (
-        <Txt tone="ink2" style={{ fontSize: 13, textAlign: 'center', marginTop: 14, paddingHorizontal: 16 }} testID="cal-hint">{tr('Tap a highlighted day to see that workout.')}</Txt>
+        <Txt tone="ink2" style={[TYPE.footnote, { textAlign: 'center', marginTop: SPACE.s4, paddingHorizontal: SPACE.s4 }]} testID="cal-hint">{tr('Tap a highlighted day to see that workout.')}</Txt>
       )}
     </View>
   );
@@ -175,8 +180,8 @@ function MonthButton({ icon, label, onPress, testID }: { icon: 'chevron' | 'chev
 function Stat({ value, label }: { value: string; label: string }) {
   return (
     <View style={{ alignItems: 'center', flex: 1 }}>
-      <Txt style={{ fontSize: 18, fontWeight: '700', fontVariant: ['tabular-nums'] }}>{value}</Txt>
-      <Txt tone="ink2" style={{ fontSize: 12 }}>{label}</Txt>
+      <Txt style={[TYPE.title3, { fontVariant: ['tabular-nums'] }]}>{value}</Txt>
+      <Txt tone="ink2" style={TYPE.caption}>{label}</Txt>
     </View>
   );
 }
