@@ -160,7 +160,7 @@ export const ExerciseBlock = memo(function ExerciseBlock({
       if (v !== null) changeExercise(draftKey, ex.id, { pinnedNote: v.trim() });
     }
     if (choice === 'replace') {
-      const ids = await pickExercises({ multi: false, title: tr('Replace exercise') });
+      const ids = await pickExercises({ multi: false, title: tr('Replace exercise'), currentExerciseId: ex.id });
       const nex = ids && getState().exercises.get(ids[0]);
       if (nex) edit((e) => replaceExercise(e, ex, nex));
     }
@@ -240,7 +240,7 @@ export const ExerciseBlock = memo(function ExerciseBlock({
   const fieldNames: Record<Field, string> = { w: tr('Weight'), r: tr('Reps'), d: tr('Distance'), t: tr('Time') };
   const last = lastTimeText(prevSets, cat, f, tr);
   const part = BODY_PART_LABEL[ex.bodyPart as keyof typeof BODY_PART_LABEL];
-  const facts = [part ? tr(part) : '', last ? tr('last time {sets}', { sets: last }) : ''].filter(Boolean).join(' · ');
+  const facts = [active ? f.exEquipment(ex) : '', part ? tr(part) : '', last ? tr('last time {sets}', { sets: last }) : ''].filter(Boolean).join(' · ');
   const target = session?.target;
 
   const row = (set: SetDraft, i: number) => {
@@ -291,7 +291,7 @@ export const ExerciseBlock = memo(function ExerciseBlock({
       <View style={styles.head}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACE.s2 }}>
           <Pressable onPress={menu} style={{ flex: 1, minWidth: 0, paddingVertical: 2 }} accessibilityRole="button" testID={`ex-title-${ex.id}`}>
-            <Text style={{ ...TYPE.title3, color: t.ink }} numberOfLines={2}>{name}</Text>
+            <Text style={{ ...TYPE.title3, color: t.ink }} testID={`exercise-header-${ex.id}`}>{active ? f.exBase(ex) : name}</Text>
           </Pressable>
           {focusOpts.length > 0 && (
             <Pressable onPress={pickFocus} hitSlop={6} accessibilityRole="button" testID={`focus-${ex.id}`}
@@ -306,7 +306,7 @@ export const ExerciseBlock = memo(function ExerciseBlock({
             <Icon name="more" size={20} color={t.ink} />
           </Pressable>
         </View>
-        {!!facts && <Text style={{ ...TYPE.footnote, color: t.ink2 }} numberOfLines={2} testID={`last-${ex.id}`}>{facts}</Text>}
+        {!!facts && <Text style={{ ...TYPE.footnote, color: t.ink2 }} testID={`last-${ex.id}`}>{facts}</Text>}
         {(superset || (active && rest > 0)) && (
           <Text style={{ ...TYPE.footnote, color: t.ink2 }}>
             {superset ? <Text>{tr('Superset {letter}', { letter: superset.letter })}</Text> : null}

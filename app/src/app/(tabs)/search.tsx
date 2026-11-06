@@ -1,15 +1,17 @@
-// Search: every exercise in the library, the field focused when the tab
-// opens, body part chips, and + to create one. (Routines and past workouts
+// Search: browse families or query exact variations. The field focuses on
+// open; body-part chips filter the list, and + creates an exercise. (Routines and past workouts
 // join this list later; docs/design/navigation.md.)
 import { useCallback, useMemo, useRef, useState } from 'react';
 import {
-  FlatList, Pressable, ScrollView, Text, TextInput, type TextInputInstance, View,
+  FlatList, Pressable, Text, TextInput, type TextInputInstance, View,
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import { BODY_PARTS, matchExercise } from '@increment/core';
+import { BODY_PARTS } from '@increment/core';
 
 import { allSessions, useAppState } from '@/data/store';
 import { CONTROL, RADIUS, SPACE, TYPE } from '@/design/tally';
+import { exerciseBrowserRows } from '@/lib/exerciseBrowser';
+import { ChoiceChips } from '@/ui/tally/ChoiceChips';
 import { editExercise } from '@/lib/exerciseForm';
 import { useFormat } from '@/lib/format';
 import { useSearchFocus } from '@/ui/useSearchFocus';
@@ -36,12 +38,9 @@ export default function SearchTab() {
     return () => clearTimeout(timer);
   }, []));
 
-  const list = useMemo(() => [...s.exercises.values()]
-    .filter((e) => !e.hidden && (part === 'all' || e.bodyPart === part) && matchExercise(e, q))
-    .sort((a, b) => f.exName(a).localeCompare(f.exName(b))), [s.exercises, q, part, f]);
+  const list = useMemo(() => exerciseBrowserRows(s.exercises, sessions, f, { query: q, part }), [s.exercises, sessions, q, part, f]);
   const total = useMemo(() => [...s.exercises.values()].filter((e) => !e.hidden).length, [s.exercises]);
   const parts = [{ id: 'all', label: tr('All') }, ...(BODY_PARTS as { id: string; label: string }[]).map((b) => ({ id: b.id, label: tr(b.label) }))];
-  const partLabel = (id: string) => tr((BODY_PARTS as { id: string; label: string }[]).find((b) => b.id === id)?.label || 'Other');
   const create = async () => {
     const ex = await editExercise({ name: q.trim() });
     if (ex) router.push({ pathname: '/exercise/[id]', params: { id: ex.id } });
@@ -63,17 +62,7 @@ export default function SearchTab() {
             testID="exercise-search" accessibilityLabel={tr('Search')} onFocus={focus.onFocus} onBlur={focus.onBlur} autoCorrect={false} autoCapitalize="none" clearButtonMode="while-editing" returnKeyType="search"
             style={[TYPE.body, { flex: 1, minWidth: 0, color: t.ink, paddingVertical: 10 }, focus.inputStyle]} />
         </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }} keyboardShouldPersistTaps="handled">
-          {parts.map((p) => {
-            const on = p.id === part;
-            return (
-              <Pressable key={p.id} onPress={() => setPart(p.id)} accessibilityRole="button" accessibilityState={{ selected: on }}
-                style={{ paddingHorizontal: 12, minHeight: 32, justifyContent: 'center', borderRadius: RADIUS.capsule, backgroundColor: on ? t.ink : t.paper3 }}>
-                <Text style={{ fontSize: 14, fontWeight: '600', color: on ? t.paper : t.ink2 }}>{p.label}</Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
+        <ChoiceChips label={tr('Body part')} testID="search-parts" value={part} onChange={setPart} options={parts.map((p) => ({ value: p.id, label: p.label }))} />
       </View>
     </View>
   );
@@ -90,12 +79,11 @@ export default function SearchTab() {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         renderItem={({ item, index }) => {
-          const n = sessions.get(item.id)?.length || 0;
-          const last = sessions.get(item.id)?.[0]?.startedAt;
           return (
-            <ListRow first={index === 0} title={f.exName(item)} testID={`exercise-${item.id}`} chevron
-              subtitle={partLabel(item.bodyPart) + (n ? ` · ${f.plural(n, 'time')} · ${f.relDayLower(last!)}` : '')}
-              onPress={() => router.push({ pathname: '/exercise/[id]', params: { id: item.id } })} />
+            <ListRow first={index === 0} title={<Text style={[TYPE.body, { color: t.ink }]}>{item.title}</Text>}
+              testID={item.family ? `family-${item.id}` : `exercise-${item.exercise.id}`} chevron
+              subtitle={<Text style={[TYPE.footnote, { color: t.ink2 }]}>{item.subtitle}</Text>}
+              onPress={() => router.push({ pathname: '/exercise/[id]', params: { id: item.exercise.id } })} />
           );
         }}
         ListEmptyComponent={(

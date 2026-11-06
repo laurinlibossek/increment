@@ -9,7 +9,7 @@ import { useMemo, useState } from 'react';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { ScrollView, Text, View } from 'react-native';
 import {
-  BODY_PARTS, CATEGORIES, exerciseRecords, exerciseSeries, chartMetricsFor, hasLoadRecords, formulaLabel,
+  BODY_PARTS, exerciseRecords, exerciseSeries, chartMetricsFor, hasLoadRecords, formulaLabel,
   kgTo, kmTo, roundW, DAY, EXERCISE_RANGES, REST_CHOICES, canMergeExercises, startOfDay,
 } from '@increment/core';
 
@@ -29,6 +29,7 @@ import { Button, Empty, IconButton, Page } from '@/ui/kit';
 import { LineChart, type LineChartPoint } from '@/ui/tally/LineChart';
 import { NumberDisplay } from '@/ui/tally/NumberDisplay';
 import { SegmentedControl } from '@/ui/tally/SegmentedControl';
+import { ExerciseFamilyChips } from '@/ui/exerciseFamilyChips';
 import {
   actionSheet, ask, prompt, toast,
 } from '@/ui/overlay';
@@ -40,6 +41,11 @@ type Metric = { id: string; label: string; kind: 'weight' | 'count' | 'distance'
 
 export default function ExerciseDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  // setParams replaces the sibling in place; per-exercise chart controls reset.
+  return <ExercisePage key={id} id={id} />;
+}
+
+function ExercisePage({ id }: { id: string }) {
   const s = useAppState();
   const f = useFormat();
   const { tr } = f;
@@ -133,10 +139,11 @@ export default function ExerciseDetail() {
     <ScrollView style={{ flex: 1, backgroundColor: t.paper }} contentContainerStyle={{ paddingTop: SPACE.s1, paddingBottom: SPACE.s12 }} contentInsetAdjustmentBehavior="automatic">
       <Stack.Screen options={{ title: '', headerRight: () => <IconButton icon="more" label={tr('Exercise options')} onPress={menu} testID="exercise-options" /> }} />
       <View style={{ paddingHorizontal: MARGIN }}>
-        <Text style={{ ...TYPE.title1, color: t.ink }} accessibilityRole="header" testID="exercise-title">{f.exName(ex)}</Text>
-        <Text style={{ ...TYPE.footnote, color: t.ink2 }}>
-          {[label(CATEGORIES, ex.category), label(BODY_PARTS, ex.bodyPart), ex.hidden ? tr('Hidden') : ''].filter(Boolean).join(' · ')}
+        <Text style={{ ...TYPE.title1, color: t.ink }} accessibilityRole="header" testID="exercise-title">{f.exBase(ex)}</Text>
+        <Text style={{ ...TYPE.footnote, color: t.ink2 }} testID="exercise-equipment">
+          {[f.exEquipment(ex), label(BODY_PARTS, ex.bodyPart), ex.hidden ? tr('Hidden') : ''].filter(Boolean).join(' · ')}
         </Text>
+        <ExerciseFamilyChips exercise={ex} />
 
         {last !== null && (
           <View style={{ marginTop: SPACE.s5 }}>

@@ -199,8 +199,8 @@ function WorkoutRow({ w, s, f, first, day = true }: { w: Workout; s: State; f: F
   const tallyLine = [f.plural(sets, 'set'), recordSets.size ? f.plural(recordSets.size, 'record') : ''].filter(Boolean).join(' · ');
   const vol = workoutVolume(w, s.exercises);
   const meta = [day ? f.date.workoutDay(w.startedAt) : '', hm((w.endedAt || w.startedAt) - w.startedAt), vol > 0 ? f.volume(vol) : ''].filter(Boolean).join(' · ');
-  // names without their equipment ("Squat, Romanian Deadlift"), each once: the line says what was trained
-  const exercises = [...new Set(w.exercises.map((e) => f.exBase(s.exercises.get(e.exerciseId)) || tr('Unknown exercise')))].join(', ');
+  // Exact variations, each once, so history says which equipment was used.
+  const exercises = [...new Set(w.exercises.map((e) => f.exName(s.exercises.get(e.exerciseId)) || tr('Unknown exercise')))].join(', ');
   return (
     <ListRow first={first}
       title={<Text style={[TYPE.headline, { color: t.ink }]} numberOfLines={2}>{w.name}</Text>}
@@ -214,7 +214,7 @@ function WorkoutRow({ w, s, f, first, day = true }: { w: Workout; s: State; f: F
           </View>
           {recordSets.size > 0 && <Text style={[TYPE.footnote, { color: t.ink2, fontVariant: ['tabular-nums'] }]} testID={`history-records-${w.id}`}>{f.plural(recordSets.size, 'record')}</Text>}
         </View>
-        {!!exercises && <Text style={[TYPE.subhead, { color: t.ink2 }]} numberOfLines={1} testID={`history-exercises-${w.id}`}>{exercises}</Text>}
+        {!!exercises && <Text style={[TYPE.subhead, { color: t.ink2 }]} testID={`history-exercises-${w.id}`}>{exercises}</Text>}
       </View>
     </ListRow>
   );

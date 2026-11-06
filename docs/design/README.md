@@ -34,7 +34,7 @@ Voice: plain, short, numbers first. The person is mid-set with sweaty hands; eve
 - Second person. German uses "du", like the rest of the app. Every visible string goes through `tr()` with a German translation.
 - Weight × reps with a real multiplication sign and the unit once: "82.5 kg × 8", in rows just "82.5 × 8" under a unit the screen already states. Decimal comma in German: "82,5".
 - Rests and timers as m:ss ("1:42"). Workout length as h:mm ("1:04") with the label "Time".
-- Exercise names are display names ("Bench Press"); equipment and muscle go on the line below ("Barbell · Chest").
+- A standalone exercise name always includes its exact variation ("Squat (Smith Machine)"); only the exercise-page and current-session headers split the last bracket onto the equipment · body-part line below.
 - Dates: "Tuesday, 3 November" on Today; within a week say "today", "yesterday", "Saturday".
 - Coach notes are one sentence of finding and at most one of action: "Legs are at 5 of 10 sets for the week. Thursday's Legs A brings them to 15."
 

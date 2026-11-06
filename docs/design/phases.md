@@ -34,7 +34,7 @@ Owns: `src/app/active.tsx`, `src/ui/workout/`, a new `src/ui/tally/Keypad.tsx`.
 
 - Set rows as in `components.md` → SetRow: stroke, weight × reps with ghost values from last time, chips for set type and reps left; no PREVIOUS column, no header row, no field boxes except on the set being logged.
 - Header: minimize, ⋯, workout name, elapsed time, the hero tally of the whole session, "4 of 22 sets · 1 record".
-- Up next: the remaining exercises as rows with their own tally; drag to reorder.
+- Up next: the remaining exercises with full variation names and their own tally; drag to reorder. Only the current exercise header splits its last equipment bracket onto the equipment · body-part line.
 - Action bar: Log (logs the next set with its shown values) → Rest (countdown, −15, +15, Skip, drain bar, "Reps left?" 0 · 1 · 2+, since 4 Nov 2026) → "Finish workout" after the last set. Finish leaves the top corner.
 - Store reps in reserve on the set (`rir`, core); RPE stays readable and maps to it (since 4 Nov 2026: 10 → 0, 9 and 9.5 → 1, 8.5 and below → 2+; 0 is a failure set).
 - The keypad sheet for weights, reps and times, with the exercise's real step and plates per side.
@@ -48,6 +48,7 @@ Owns: `src/app/summary/[id].tsx`, `src/app/exercise/[id].tsx`, `src/app/workout/
 
 - Summary: Done, date eyebrow, name, Stat strip (Time, Volume, Sets), hero tally, Records with the highlight, Notes slot, and the routine question as a switch row ("Save changes to Push A" with one line of what changes) instead of the dialog. Undo stays.
 - Exercise page: one scroll, no inner tabs: name, equipment and muscle, estimated 1RM as the hero number with its change, range control, the line chart with record dots, Stat strip, Rep maxes, History, How to.
+- Exercise families (after #13): Search and the picker browse families while query results keep exact variation names. The exercise page splits its header into base name and equipment · body part, with movement/equipment chips that replace the selected exercise in place. These are sibling choices, not inner section tabs. Charts, records, previous sets and progression stay per exercise id; every standalone exercise line, including Workouts, keeps the full variation.
 - Tests: `app-logging` (template question), `app-editing` (exercise charts).
 
 ## 5. Blocks

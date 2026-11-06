@@ -137,8 +137,9 @@ async function pickerHeader(s, tr) {
       const [t, c, a] = await Promise.all([title.boundingBox(), cancel.boundingBox(), add.boundingBox()]);
       assert.ok(t && c && a, 'all three picker header parts are rendered');
       assert.ok(c.x >= 0 && a.x + a.width <= width + 1, JSON.stringify({ width, selected, t, c, a }));
-      assert.ok(c.x + c.width + 4 <= t.x && t.x + t.width + 4 <= a.x,
-        `picker title stays between its actions at ${width}px: ${JSON.stringify({ selected, t, c, a })}`);
+      assert.ok(t.x >= 19 && t.x + t.width <= width - 19 && t.y >= Math.max(c.y + c.height, a.y + a.height) + 4,
+        `picker Title 1 stays below its actions within the screen margin at ${width}px: ${JSON.stringify({ selected, t, c, a })}`);
+      await tokenStyle(title, { fontSize: '28px', lineHeight: '34px' });
       const full = await title.evaluate(e => {
         const style = getComputedStyle(e), box = e.getBoundingClientRect(), range = document.createRange();
         range.selectNodeContents(e);

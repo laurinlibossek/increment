@@ -1109,6 +1109,56 @@ test('catalogue has unique stable ids, valid logging types, and exactly one fami
   }
 });
 
+test('browse families open on the last logged visible version, or the usual version without history', () => {
+  const all = structuredClone(core.SEED_EXERCISES);
+  const members = core.familyMembers('f-squat', all);
+  const usual = members[0], smith = members.find((e) => e.id === 'x-squat-smith-machine');
+  const sessions = new Map([[usual.id, [{ startedAt: 10 }]], [smith.id, [{ startedAt: 20 }]]]);
+  assert.equal(core.lastLoggedExercise(members, new Map()), usual);
+  assert.equal(core.lastLoggedExercise(members, sessions), smith);
+  assert.equal(core.lastLoggedExercise([], sessions), undefined);
+  assert.equal(core.lastLoggedExercise(members, new Map([[usual.id, [{ startedAt: 20 }]], [smith.id, [{ startedAt: 20 }]]])), usual, 'ties keep catalogue order');
+  const row = core.exerciseBrowseRows(new Map(all.map((e) => [e.id, e])), sessions).find((r) => r.id === 'f-squat');
+  assert.equal(row.members.length, members.length);
+  assert.equal(row.exercise, smith);
+  assert.equal(row.lastAt, 20);
+  assert.equal(row.bodyPart, usual.bodyPart);
+  smith.hidden = true;
+  const hidden = core.exerciseBrowseRows(all, sessions).find((r) => r.id === 'f-squat');
+  assert.equal(hidden.members.length, members.length - 1);
+  assert.equal(hidden.exercise, usual, 'hidden last-used versions never become an opening target');
+  assert.equal(hidden.lastAt, 10);
+});
+
+test('family browsing filters actual members, keeps usual body parts, custom order and standalone exercises', () => {
+  const builtins = core.familyMembers('f-squat').map((e) => ({ ...e }));
+  const usual = builtins[0];
+  usual.hidden = true;
+  builtins[1].bodyPart = 'other';
+  const custom = { id: 'c-cybex', name: 'Squat (Cybex Machine)', category: 'machine', bodyPart: 'legs', family: 'f-squat' };
+  const alone = { id: 'c-alone', name: 'Squat (My Own)', category: 'machine', bodyPart: 'back', family: null };
+  const unknown = { ...alone, id: 'c-unknown', family: 'f-future' };
+  const exercises = [...builtins, custom, alone, unknown];
+  const before = JSON.stringify(exercises);
+  const rows = core.exerciseBrowseRows(exercises, new Map());
+  assert.equal(rows.length, 3);
+  const row = rows[0];
+  assert.equal(row.bodyPart, usual.bodyPart, 'body-part filtering follows the usual member, including a hidden one');
+  assert.equal(row.members.find((e) => e.id === custom.id), custom, 'actual custom object is retained');
+  assert.ok(row.members.indexOf(custom) < row.members.findIndex((e) => e.id === 'x-front-squat-barbell'), 'custom equipment stays with its movement');
+  assert.equal(rows[1].exercise, alone);
+  assert.equal(rows[1].family, null);
+  assert.equal(rows[2].exercise, unknown, 'an unknown custom family has no invented display name');
+  const filtered = core.exerciseBrowseRows(exercises, new Map(), { accepts: (e) => core.canMergeExercises({ id: null, category: 'reps' }, e) });
+  assert.ok(filtered[0].members.every((e) => e.category === 'reps'));
+  assert.equal(filtered[0].exercise.category, 'reps');
+  assert.deepEqual(core.exerciseBrowseRows(exercises, new Map(), { accepts: () => false }), []);
+  assert.deepEqual(core.exerciseBrowseRows(builtins.map((e) => ({ ...e, hidden: true })), new Map()), []);
+  assert.equal(JSON.stringify(exercises), before, 'browsing never changes records');
+  assert.equal(core.exerciseEquipment({ name: 'My Row (Upper) (Cybex Machine)' }), 'Cybex Machine');
+  assert.equal(core.exerciseBaseName({ name: 'My Row (Upper) (Cybex Machine)' }, 'en'), 'My Row (Upper)');
+});
+
 test('family names are unique in English and German', () => {
   for (const field of ['name', 'nameDe']) {
     const seen = new Set();

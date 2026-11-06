@@ -409,7 +409,8 @@ function startOfDayOf(t) { const d = new Date(t); d.setHours(0, 0, 0, 0); return
   await search('bankdrücken lh');
   await id(page, 'exercise-x-bench-press-barbell').click();
   await wait(page, 400);
-  assert.match(await visibleText(page), /Bankdrücken \(Langhantel\)/);
+  assert.equal(await id(page, 'exercise-title').innerText(), 'Bankdrücken');
+  assert.equal(await id(page, 'exercise-equipment').innerText(), 'Langhantel · Brust');
   const data = await store(page);
   assert.equal(data.exercises.find((e) => e.id === 'x-bench-press-barbell').name, 'Bench Press (Barbell)', 'stored in English');
   ok('German: built-ins show German names (list, search by either name, exercise page); custom names and stored names stay');
