@@ -532,16 +532,9 @@ export const EXERCISE_CATALOGUE = [
   family("Sled Push", "Schlittenschieben", [
     ["Sled Push", M, "full"],
   ]),
-  family("Medicine Ball Slam", "Medizinball-Slams", [
-    ["Medicine Ball Slam", M, "full"],
-  ]),
-  family("Jumping Jack", "Hampelmänner", [
-    ["Jumping Jack", R, "full"],
-  ]),
   family("Running", "Laufen", [
     ["Running", C, "cardio"],
     ["Running (Treadmill)", C, "cardio"],
-    ["Running (Trail)", C, "cardio"],
   ]),
   family("Walking", "Gehen", [
     ["Walking", C, "cardio"],
@@ -552,18 +545,15 @@ export const EXERCISE_CATALOGUE = [
     ["Cycling", C, "cardio"],
     ["Cycling (Indoor)", C, "cardio"],
     ["Recumbent Bike", C, "cardio"],
-    ["Spinning", C, "cardio"],
   ]),
   family("Rowing", "Rudern", [
     ["Rowing (Machine)", C, "cardio"],
-    ["Rowing (Outdoor)", C, "cardio"],
   ]),
   family("Elliptical Trainer", "Crosstrainer", [
     ["Elliptical Trainer", C, "cardio"],
   ]),
   family("Stair Climber", "Treppensteiger", [
     ["Stair Climber", T, "cardio"],
-    ["Stair Climbing", T, "cardio"],
   ]),
   family("Ski Erg", "SkiErg", [
     ["Ski Erg", C, "cardio"],
@@ -580,35 +570,11 @@ export const EXERCISE_CATALOGUE = [
   family("Jump Rope", "Seilspringen", [
     ["Jump Rope", T, "cardio"],
   ]),
-  family("Cross Country Skiing", "Skilanglauf", [
-    ["Cross Country Skiing", C, "cardio"],
-  ]),
-  family("Assault Runner", "Assault Runner", [
-    ["Assault Runner", C, "cardio"],
-  ]),
-  family("Boxing", "Boxen", [
-    ["Boxing", T, "cardio"],
-  ]),
-  family("Kickboxing", "Kickboxen", [
-    ["Kickboxing", T, "cardio"],
-  ]),
-  family("Dancing", "Tanzen", [
-    ["Dancing", T, "cardio"],
-  ]),
   family("Stretching", "Dehnen", [
     ["Stretching", T, "other"],
   ]),
   family("Yoga", "Yoga", [
     ["Yoga", T, "other"],
-  ]),
-  family("Pilates", "Pilates", [
-    ["Pilates", T, "other"],
-  ]),
-  family("Mobility", "Mobilität", [
-    ["Mobility", T, "other"],
-  ]),
-  family("Foam Rolling", "Faszienrollen", [
-    ["Foam Rolling", T, "other"],
   ]),
   family("Warm Up", "Aufwärmen", [
     ["Warm Up", T, "other"],
