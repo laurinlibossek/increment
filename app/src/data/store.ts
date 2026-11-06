@@ -5,7 +5,7 @@ import { useSyncExternalStore } from 'react';
 import { AppState } from 'react-native';
 import {
   SEED_EXERCISES, SEED_VERSION, withDefaults, buildStats, sessionsByExercise, configureCalc, bodyweightFrom,
-  parseBackup, parseStrongCSV, suggestTemplate, previousSetsFrom, newActiveWorkout, finishWorkout, prsForNewWorkout,
+  parseBackup, parseStrongCSV, resolveStrongImport, STRONG_EXERCISE_ALIASES, suggestTemplate, previousSetsFrom, newActiveWorkout, finishWorkout, prsForNewWorkout,
   workoutVolume, makeBackup, uid, seedExerciseChanges,
   templateFromDraft, workoutFromEditDraft, copyTemplateRecord, folderNames, findExerciseByName, newExerciseRecord,
   exerciseInDraft, patchDraftExercise, changeSetting, convertDraftUnits, mergeExercisePatch, moveExerciseEntries,
@@ -29,6 +29,7 @@ export interface State {
   settings: Settings;
   profile: Profile;
   meta: Meta;
+  strongAliases: Record<string, string>;
   /** the running workout, or null */
   active: ActiveWorkout | null;
   /** the template or finished workout being edited, or null (not stored) */
@@ -45,6 +46,7 @@ let state: State = {
   settings: withDefaults({}) as Settings,
   profile: { name: '' },
   meta: {},
+  strongAliases: { ...STRONG_EXERCISE_ALIASES },
   active: null,
   edit: null,
 };
@@ -77,6 +79,7 @@ function fromData(data: Data): Partial<State> {
     settings: withDefaults(data.kv.settings) as Settings,
     profile: { name: '', ...(data.kv.profile || {}) },
     meta: { ...(data.kv.meta || {}) },
+    strongAliases: { ...STRONG_EXERCISE_ALIASES, ...(data.kv.strongAliases || {}) },
     active: data.kv.active || null,
   };
 }
@@ -221,33 +224,34 @@ export function backupText(appVersion: string) {
   const s = state;
   return makeBackup({
     exercises: [...s.exercises.values()], workouts: s.workouts, templates: s.templates, measurements: s.measurements,
-    kv: { settings: s.settings, profile: s.profile, meta: s.meta },
+    kv: { settings: s.settings, profile: s.profile, meta: s.meta, strongAliases: s.strongAliases },
   }, appVersion) as string;
 }
 
 export const markBackedUp = () => setMeta({ lastBackupAt: Date.now() });
 
 // ---------- Strong import ----------
-export type StrongImport = ReturnType<typeof readStrong>;
+export type StrongReview = ReturnType<typeof parseStrongCSV>;
+export type StrongChoice = { kind: 'existing'; exerciseId: string } | { kind: 'new'; name: string; category: string; bodyPart: string };
+export type StrongChoices = Record<string, StrongChoice>;
 
 /** Parse a Strong export against the app's data. Nothing is saved yet. */
 export function readStrong(text: string, units: { weightUnit: 'kg' | 'lb'; distUnit: 'km' | 'mi' }, defaultName: string) {
-  const byName = new Map([...state.exercises.values()].map((e) => [e.name.toLowerCase().replace(/\s+/g, ' ').trim(), e]));
   return parseStrongCSV(text, {
     ...units,
-    findExercise: (name: string) => byName.get(String(name).trim().toLowerCase().replace(/\s+/g, ' ')) || null,
-    hasExercise: (id: string) => state.exercises.has(id),
+    exercises: state.exercises,
+    aliases: state.strongAliases,
     workouts: state.workouts,
     defaultName,
-  }) as {
-    workouts: Workout[];
-    exercises: Exercise[];
-    noteUpdates: { id: string; notes?: string; entries: [number, string][] }[];
-    stats: { workouts: number; sets: number; duplicates: number; notesAdded: number; newExercises: string[]; first: number | null; last: number | null; hasWeightUnitColumn: boolean };
-  };
+  });
 }
 
-export async function saveStrongImport(r: StrongImport) {
+export async function saveStrongImport(preview: StrongReview, choices: StrongChoices) {
+  const r = resolveStrongImport(preview, choices, {
+    exercises: state.exercises, workouts: state.workouts, aliases: state.strongAliases,
+  }) as { exercises: Exercise[]; workouts: Workout[]; aliases: Record<string, string>;
+    noteUpdates: { id: string; notes?: string; entries: [number, string][] }[];
+    stats: { workouts: number; notesAdded: number; duplicates: number } };
   const exercises = new Map(state.exercises);
   for (const e of r.exercises) exercises.set(e.id, e);
   // notes for workouts that are already here (older imports that dropped them)
@@ -261,9 +265,9 @@ export async function saveStrongImport(r: StrongImport) {
     updated.set(copy.id, copy);
   }
   const workouts = [...state.workouts.map((w) => updated.get(w.id) || w), ...r.workouts].sort(byNewest);
-  await db.putMany('exercises', r.exercises);
-  await db.putMany('workouts', [...r.workouts, ...updated.values()]);
-  setState({ exercises, workouts });
+  await db.commitStrongImport(r.exercises, [...r.workouts, ...updated.values()], r.aliases);
+  setState({ exercises, workouts, strongAliases: r.aliases });
+  return r.stats;
 }
 
 // ---------- exercises ----------

@@ -56,6 +56,7 @@ export default function RootLayout() {
             {/* Done closes Account; the web header also needs an empty headerLeft to hide Back. */}
             <Stack.Screen name="account" options={{ presentation: 'modal', title: tr('Account'), headerBackVisible: false, headerLeft: () => null }} />
             <Stack.Screen name="warmup" options={{ title: tr('Warm-up sets') }} />
+            <Stack.Screen name="strong-import" options={{ title: '', gestureEnabled: false }} />
             <Stack.Screen name="workout/[id]" options={{ title: '' }} />
             <Stack.Screen name="template/[id]" options={{ title: '' }} />
             <Stack.Screen name="exercise/[id]" options={{ title: '' }} />

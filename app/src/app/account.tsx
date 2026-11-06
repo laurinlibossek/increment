@@ -11,12 +11,13 @@ import {
 } from '@increment/core';
 
 import {
-  deleteAllData, readBackup, readStrong, restoreBackup, saveStrongImport, setProfile, setSetting, useAppState,
+  deleteAllData, readBackup, readStrong, restoreBackup, setProfile, setSetting, useAppState,
 } from '@/data/store';
 import type { LanguageSetting, Settings, ThemeSetting } from '@/data/types';
 import { appVersion, backupNow } from '@/lib/backup';
 import { dateStamp, saveTextFile } from '@/lib/files';
 import { useFormat } from '@/lib/format';
+import { reviewStrongImport } from '@/lib/strongImport';
 import { bodyUnit, lengthUnit } from '@/lib/measure';
 import { confirm, notice } from '@/lib/notice';
 import { RADIUS, SPACE, TYPE } from '@/design/tally';
@@ -96,26 +97,11 @@ export default function AccountSheet() {
     if (!file) return;
     let r;
     try { r = readStrong(file.text, strongUnits, tr('Workout')); } catch (e) { notice(tr('Import from Strong'), tr((e as Error).message)); return; }
-    const x = r.stats;
-    if (!x.workouts && !x.notesAdded) {
-      notice(tr('Import from Strong'), x.duplicates ? tr('All {n} are already imported', { n: f.plural(x.duplicates, 'workout') }) : tr('No workouts found in this file'));
+    if (!r.groups.length) {
+      notice(tr('Import from Strong'), tr('No workouts found in this file'));
       return;
     }
-    const ok = await confirm(
-      x.workouts ? tr('Import {n}?', { n: f.plural(x.workouts, 'workout') }) : tr('Add notes to {n}?', { n: f.plural(x.notesAdded, 'workout') }),
-      [
-        x.workouts && x.first && x.last ? tr('{sets} from {first} to {last}.', { sets: f.plural(x.sets, 'set'), first: f.date.short(x.first), last: f.date.short(x.last) }) : '',
-        x.duplicates ? tr('{n} already in Increment will be skipped.', { n: f.plural(x.duplicates, 'workout') }) : '',
-        x.newExercises.length ? `${f.plural(x.newExercises.length, 'new exercise')} ${tr('will be created:')} ${x.newExercises.slice(0, 8).join(', ')}` : '',
-      ].filter(Boolean).join('\n\n'),
-      x.workouts ? tr('Import') : tr('Add notes'), tr('Cancel'),
-    );
-    if (!ok) return;
-    setBusy(true);
-    try {
-      await saveStrongImport(r);
-      notice(tr('Import from Strong'), x.workouts ? tr('Imported {n}', { n: f.plural(x.workouts, 'workout') }) : tr('Notes added to {n}', { n: f.plural(x.notesAdded, 'workout') }));
-    } finally { setBusy(false); }
+    reviewStrongImport(r);
   };
 
   const pick = async <T extends string | number>(title: string, options: { value: T; label: string }[], current: T, apply: (v: T) => void) => {

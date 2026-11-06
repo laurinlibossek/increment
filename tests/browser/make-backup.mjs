@@ -10,13 +10,19 @@ import * as core from '../../core/index.js';
 import { BACKUP, STRONG, ROOT } from './env.mjs';
 
 const exercises = new Map(core.SEED_EXERCISES.map((e) => [e.id, { ...e }]));
-const r = core.parseStrongCSV(fs.readFileSync(STRONG, 'utf8'), {
+const preview = core.parseStrongCSV(fs.readFileSync(STRONG, 'utf8'), {
   weightUnit: 'kg', distUnit: 'km',
-  findExercise: (name) => core.findExerciseByName(exercises, name),
-  hasExercise: (id) => exercises.has(id),
+  exercises,
   workouts: [],
   defaultName: 'Workout',
 });
+// Explicit fixture decisions retain the legacy Setlog backup's custom names.
+// Production never creates these from guesses; its review requires a choice.
+const decisions = Object.fromEntries(preview.review.map((row) => [row.name, {
+  kind: 'new', name: row.name, category: row.category, bodyPart: row.bodyPart || 'other',
+}]));
+const r = core.resolveStrongImport(preview, decisions, { exercises });
+
 for (const e of r.exercises) exercises.set(e.id, e);
 const workouts = [...r.workouts].sort((a, b) => b.startedAt - a.startedAt);
 

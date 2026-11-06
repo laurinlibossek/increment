@@ -91,7 +91,7 @@ export function ListRow({ title, subtitle, children, symbol, trailing, right, ch
   );
   if (!onPress) return <View testID={testID}>{body(false)}</View>;
   return (
-    <Pressable onPress={onPress} accessibilityRole={checked === undefined ? 'button' : 'radio'} accessibilityState={checked === undefined ? undefined : { checked }} accessibilityLabel={accessibilityLabel} testID={testID}>
+    <Pressable onPress={onPress} accessibilityRole={checked === undefined ? 'button' : 'radio'} aria-checked={checked} accessibilityState={checked === undefined ? undefined : { checked }} accessibilityLabel={accessibilityLabel} testID={testID}>
       {({ pressed }) => body(pressed)}
     </Pressable>
   );

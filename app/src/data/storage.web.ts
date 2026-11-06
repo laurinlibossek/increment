@@ -1,6 +1,6 @@
 // In a browser (development and tests only): the same interface as
 // storage.ts, kept in localStorage. The phone apps use SQLite.
-import { STORES, type Data, type Kv, type StoreName } from './types';
+import { STORES, type Data, type Exercise, type Workout, type Kv, type StoreName } from './types';
 
 type Doc = { id: string };
 const KEY = 'increment.data';
@@ -56,6 +56,19 @@ export async function kvSet(key: keyof Kv, value: unknown): Promise<void> {
   if (value === null || value === undefined) delete d.kv[key];
   else (d.kv as Record<string, unknown>)[key] = JSON.parse(JSON.stringify(value));
   write(d);
+}
+
+/** Publish the new in-memory data only after the single durable write succeeds. */
+export async function commitStrongImport(exercises: Exercise[], workouts: Workout[], aliases: Record<string, string>): Promise<void> {
+  const next: Data = JSON.parse(JSON.stringify(data()));
+  for (const [store, records] of [['exercises', exercises], ['workouts', workouts]] as const) {
+    const merged = new Map<string, Doc>(next[store].map((o) => [o.id, o]));
+    for (const o of records) merged.set(o.id, o);
+    (next[store] as Doc[]) = [...merged.values()];
+  }
+  next.kv.strongAliases = aliases;
+  globalThis.localStorage.setItem(KEY, JSON.stringify(next));
+  cache = next;
 }
 
 export async function replaceAll(next: Data): Promise<void> {
