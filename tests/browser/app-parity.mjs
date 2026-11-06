@@ -8,7 +8,7 @@ import { devices, launch, grantWakeLock, APP as BASE, BACKUP, shots } from './en
 import * as core from '../../core/index.js';
 
 const OUT = shots('app-parity');
-const SNATCH = 'x-snatch-barbell', HANG = 'c-hang-snatch-barbell', AEROBICS = 'c-aerobics', BENCH = 'x-bench-press-barbell';
+const SNATCH = 'x-snatch-barbell', PULL = 'c-snatch-pull-barbell', AEROBICS = 'c-aerobics', BENCH = 'x-bench-press-barbell';
 const browser = await launch();
 let passed = 0;
 const ok = (n) => { passed++; console.log('PASS', n); };
@@ -122,10 +122,10 @@ function startOfDayOf(t) { const d = new Date(t); d.setHours(0, 0, 0, 0); return
   let data = await store(page);
   const count = (d, ex) => d.workouts.filter((w) => w.exercises.some((e) => e.exerciseId === ex)).length;
   const entries = (d, ex) => d.workouts.reduce((n, w) => n + w.exercises.filter((e) => e.exerciseId === ex).length, 0);
-  const hang = entries(data, HANG);
-  const either = data.workouts.filter((w) => w.exercises.some((e) => e.exerciseId === HANG || e.exerciseId === SNATCH)).length;
+  const pull = entries(data, PULL);
+  const either = data.workouts.filter((w) => w.exercises.some((e) => e.exerciseId === PULL || e.exerciseId === SNATCH)).length;
   const snatchEntries = entries(data, SNATCH);
-  assert.ok(hang > 0 && snatchEntries > 0);
+  assert.ok(pull > 0 && snatchEntries > 0);
   // different fields: refused
   await openExercise(page, AEROBICS, 'aerobics');
   await id(page, 'exercise-options').click();
@@ -140,7 +140,7 @@ function startOfDayOf(t) { const d = new Date(t); d.setHours(0, 0, 0, 0); return
   await wait(page, 300);
 
   // same fields: asks, merges, opens the target
-  await openExercise(page, HANG, 'hang snatch');
+  await openExercise(page, PULL, 'snatch pull');
   await id(page, 'exercise-options').click();
   await page.screenshot({ path: `${OUT}/03-exercise-menu.png` });
   await id(page, 'ex-merge').click();
@@ -149,18 +149,18 @@ function startOfDayOf(t) { const d = new Date(t); d.setHours(0, 0, 0, 0); return
   await id(page, `pick-${SNATCH}`).click();
   await id(page, 'confirm-merge').waitFor();
   await wait(page, 250);
-  assert.match(await visibleText(page), new RegExp(`All ${hang} sessions of “Hang Snatch \\(Barbell\\)” move to “Snatch \\(Barbell\\)”`));
+  assert.match(await visibleText(page), new RegExp(`All ${pull} sessions of “Snatch Pull \\(Barbell\\)” move to “Snatch \\(Barbell\\)”`));
   await page.screenshot({ path: `${OUT}/04-merge-confirm.png` });
   await id(page, 'confirm-merge').click();
   assert.equal(await toastText(page), 'Exercises merged');
   await wait(page, 300);
   assert.ok(page.url().includes(`/exercise/${SNATCH}`), 'the target’s page is open');
   data = await store(page);
-  assert.equal(data.exercises.some((e) => e.id === HANG), false, 'the source is deleted');
-  assert.equal(count(data, HANG), 0);
+  assert.equal(data.exercises.some((e) => e.id === PULL), false, 'the source is deleted');
+  assert.equal(count(data, PULL), 0);
   assert.equal(count(data, SNATCH), either, 'its workouts moved to the target');
-  assert.equal(entries(data, SNATCH), snatchEntries + hang);
-  ok(`Merge into another exercise: ${hang} sessions of Hang Snatch move to Snatch, Hang Snatch is deleted, Snatch opens`);
+  assert.equal(entries(data, SNATCH), snatchEntries + pull);
+  ok(`Merge into another exercise: ${pull} sessions of Snatch Pull move to Snatch, Snatch Pull is deleted, Snatch opens`);
   assert.deepEqual(errors, []);
   await ctx.close();
 }
@@ -403,8 +403,8 @@ function startOfDayOf(t) { const d = new Date(t); d.setHours(0, 0, 0, 0); return
   assert.equal(await rowName('x-lat-pulldown-cable'), 'Latzug (Kabelzug)', 'the English name finds it too');
   await search('bankdrücken lh');
   assert.equal(await rowName('x-bench-press-barbell'), 'Bankdrücken (Langhantel)');
-  await search('hang snatch');
-  assert.equal(await rowName('c-hang-snatch-barbell'), 'Hang Snatch (Barbell)', 'a custom exercise keeps its name');
+  await search('snatch pull');
+  assert.equal(await rowName('c-snatch-pull-barbell'), 'Snatch Pull (Barbell)', 'a custom exercise keeps its name');
   await page.screenshot({ path: `${OUT}/15-exercises-de.png` });
   await search('bankdrücken lh');
   await id(page, 'exercise-x-bench-press-barbell').click();
