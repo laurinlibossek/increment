@@ -7,7 +7,7 @@
 
 import { EXERCISE_NAMES_DE } from './exercise-names-de.js';
 
-const ALIASES = {
+export const EXERCISE_SEARCH_SHORTCUTS = {
   db: 'dumbbell', bb: 'barbell', ohp: 'overhead press', rdl: 'romanian deadlift', bp: 'bench press',
   dl: 'deadlift', kb: 'kettlebell', ez: 'ez bar', smith: 'smith', tri: 'triceps', tris: 'triceps', bi: 'bicep',
   bis: 'bicep', lat: 'lat', pulldown: 'pulldown', pullup: 'pull up', pushup: 'push up', chinup: 'chin up',
@@ -42,7 +42,7 @@ function matchName(name, toks) {
   const words = name.split(' ');
   const compact = words.join('');
   return toks.every((tok) => {
-    const alias = ALIASES[tok];
+    const alias = EXERCISE_SEARCH_SHORTCUTS[tok];
     if (alias) return words.includes(tok) || alias.split(' ').every((a) => name.includes(a));
     return name.includes(tok) || compact.includes(tok);
   });

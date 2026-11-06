@@ -15,7 +15,7 @@ export type ActionBarState =
   | { kind: 'next'; label: string; onNext: () => void }
   | { kind: 'finish'; label: string; onFinish: () => void }
   /** A detail screen's main action, with an optional supporting action. */
-  | { kind: 'primary'; label: string; onPress: () => void; testID: string;
+  | { kind: 'primary'; label: string; onPress: () => void; testID: string; disabled?: boolean;
     secondary?: { label: string; onPress: () => void; testID: string } }
   /** an empty workout: add the first exercises */
   | { kind: 'add'; label: string; onAdd: () => void };
@@ -30,7 +30,7 @@ export function ActionBar({ state, testID = 'action-bar', onLayout }: { state: A
   else if (state.kind === 'finish') body = <CapsuleButton block title={state.label} onPress={state.onFinish} testID="finish-workout" />;
   else if (state.kind === 'primary') body = (
     <View style={{ gap: SPACE.s2 }}>
-      <CapsuleButton block title={state.label} onPress={state.onPress} testID={state.testID} />
+      <CapsuleButton block title={state.label} onPress={state.onPress} testID={state.testID} disabled={state.disabled} />
       {state.secondary && <CapsuleButton block kind="secondary" title={state.secondary.label} onPress={state.secondary.onPress} testID={state.secondary.testID} />}
     </View>
   );

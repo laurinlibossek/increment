@@ -3,7 +3,7 @@
 // between them is a backup file and nothing else.
 import * as SQLite from 'expo-sqlite';
 
-import { STORES, type Data, type Kv, type StoreName } from './types';
+import { STORES, type Data, type Exercise, type Workout, type Kv, type StoreName } from './types';
 
 type Row = { id: string; data: string };
 type KvRow = { key: string; value: string };
@@ -64,6 +64,17 @@ export async function kvSet(key: keyof Kv, value: unknown): Promise<void> {
   const d = await db();
   if (value === null || value === undefined) await d.runAsync('DELETE FROM kv WHERE key = ?', key);
   else await d.runAsync('INSERT OR REPLACE INTO kv (key, value) VALUES (?, ?)', key, JSON.stringify(value));
+}
+
+/** Exercises, workouts and remembered decisions either all save or none do. */
+export async function commitStrongImport(exercises: Exercise[], workouts: Workout[], aliases: Record<string, string>): Promise<void> {
+  const d = await db();
+  await d.withExclusiveTransactionAsync(async (tx) => {
+    for (const [store, records] of [['exercises', exercises], ['workouts', workouts]] as const) {
+      for (const o of records) await tx.runAsync('INSERT OR REPLACE INTO docs (store, id, data) VALUES (?, ?, ?)', store, o.id, JSON.stringify(o));
+    }
+    await tx.runAsync('INSERT OR REPLACE INTO kv (key, value) VALUES (?, ?)', 'strongAliases', JSON.stringify(aliases));
+  });
 }
 
 /** Replace everything at once (backup restore). Nothing changes if it fails halfway. */

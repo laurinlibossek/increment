@@ -30,17 +30,17 @@ export function useSecondsLeft(end: number) {
 
 /** A capsule button: `primary` ink, `secondary` paper-3; `small` is 36 high with a 44 touch area. */
 export function CapsuleButton({
-  title, onPress, kind = 'primary', small, block, testID, label, icon,
-}: { title: string; onPress: () => void; kind?: 'primary' | 'secondary'; small?: boolean; block?: boolean; testID?: string; label?: string; icon?: ReactNode }) {
+  title, onPress, kind = 'primary', small, block, testID, label, icon, disabled,
+}: { title: string; onPress: () => void; kind?: 'primary' | 'secondary'; small?: boolean; block?: boolean; testID?: string; label?: string; icon?: ReactNode; disabled?: boolean }) {
   const { colors: t } = useTally();
   const h = small ? 36 : CONTROL.buttonH;
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} testID={testID}
+    <Pressable onPress={onPress} disabled={disabled} aria-disabled={!!disabled} accessibilityState={{ disabled: !!disabled }} accessibilityRole="button" accessibilityLabel={label} testID={testID}
       hitSlop={small ? (CONTROL.hitMin - h) / 2 : undefined}
       style={({ pressed }) => ({
         minHeight: h, paddingHorizontal: small ? SPACE.s4 : SPACE.s6, borderRadius: RADIUS.capsule,
         flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACE.s2,
-        backgroundColor: kind === 'primary' ? t.ink : t.paper3, opacity: pressed ? 0.8 : 1,
+        backgroundColor: kind === 'primary' ? t.ink : t.paper3, opacity: disabled ? 0.45 : pressed ? 0.8 : 1,
         alignSelf: block ? 'stretch' : 'auto',
       })}>
       {icon}

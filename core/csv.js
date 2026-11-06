@@ -4,6 +4,9 @@ import {
   uid, slug, parseNum, KG_PER_LB, KM_PER_MI, kgTo, kmTo, roundW,
 } from './units.js';
 import { rpeFromRir } from './calc.js';
+import { canMergeExercises } from './editing.js';
+import { BODY_PARTS, CATEGORIES, SEED_EXERCISES } from './seed.js';
+import { strongNameKey, STRONG_EXERCISE_ALIASES, strongExerciseSuggestions, strongExerciseFamily } from './strong-matching.js';
 
 // ---------- CSV ----------
 export function detectDelimiter(text) {
@@ -103,13 +106,13 @@ export function parseDuration(str) {
 function inferCategory(name, rows) {
   const n = name.toLowerCase();
   const anyDist = rows.some((r) => r.d > 0);
-  const anyW = rows.some((r) => r.w > 0);
+  const anyW = rows.some((r) => r.w != null && r.w !== 0);
   const anyR = rows.some((r) => r.r > 0);
   const anyT = rows.some((r) => r.t > 0);
   if (anyDist) return 'cardio';
-  if (n.includes('(assisted)')) return 'assisted_bw';
-  if (n.includes('(weighted)')) return 'weighted_bw';
   if (anyW) {
+    if (n.includes('(assisted)')) return 'assisted_bw';
+    if (n.includes('(weighted)')) return 'weighted_bw';
     if (n.includes('(barbell)') || n.includes('(ez bar)') || n.includes('(trap bar)')) return 'barbell';
     if (n.includes('(dumbbell)')) return 'dumbbell';
     if (!n.includes('(') && /clean|snatch|jerk|deadlift|squat|bench press|overhead press/.test(n)) return 'barbell';
@@ -130,9 +133,10 @@ const BODY_RULES = [
   ['shoulders', /overhead|shoulder|military|arnold|lateral|front raise|face pull|rear delt|reverse fly|upright|press/],
   ['arms', /curl|tricep|skull|kickback|pushdown|extension|wrist/],
 ];
+/** @returns {string} */
 function inferBodyPart(name) {
   const n = name.toLowerCase();
-  for (const [part, re] of BODY_RULES) if (re.test(n)) return part;
+  for (const [part, re] of BODY_RULES) if (re.test(n)) return String(part);
   return 'other';
 }
 
@@ -179,19 +183,19 @@ const HEADER_ALIASES = {
 };
 
 /**
- * Parse a Strong export. Returns a preview object; nothing is saved yet.
+ * Parse a Strong export into an unsaved review. Unmatched names never create
+ * exercises here. resolveStrongImport requires a decision for each of them.
  * opts:
  *  - weightUnit / distUnit: units the Strong app was set to (used when the file doesn't say)
- *  - findExercise(name): the app's exercise with that name, or null
- *  - hasExercise(id): whether an exercise id is taken
+ *  - exercises: the app's exercises (array or Map)
+ *  - aliases: remembered Strong name → exercise id choices
  *  - workouts: workouts already in the app, to skip duplicates
  *  - defaultName: name for rows without a workout name
  * Errors carry English messages that double as translation keys.
  */
 export function parseStrongCSV(text, opts = {}) {
-  const {
-    findExercise = () => null, hasExercise = () => false, workouts: known = [], defaultName = 'Workout',
-  } = opts;
+  const { workouts: known = [], defaultName = 'Workout' } = opts;
+  const exercises = [...(opts.exercises instanceof Map ? opts.exercises.values() : opts.exercises || [])];
   const rows = parseCSV(text);
   if (rows.length < 2) throw new Error('The file is empty or not a CSV export.');
   const header = rows[0].map((h) => h.trim().toLowerCase());
@@ -271,41 +275,137 @@ export function parseStrongCSV(text, opts = {}) {
     last.sets.push(set);
   }
 
-  // resolve exercises
-  const byName = new Map();
+  // One review row per Strong name, counting distinct sessions, not sets or
+  // repeated exercise blocks in the same session. Rest-only rows don't count.
   const rowsByName = new Map();
   for (const g of groups.values()) {
-    for (const e of g.entries) {
-      if (!rowsByName.has(e.name)) rowsByName.set(e.name, []);
-      rowsByName.get(e.name).push(...e.sets);
+    for (const e of g.entries.filter((e) => e.sets.length)) {
+      const key = strongNameKey(e.name);
+      if (!rowsByName.has(key)) rowsByName.set(key, { name: e.name, sets: [], sessions: new Set() });
+      const item = rowsByName.get(key);
+      item.sets.push(...e.sets);
+      item.sessions.add(workoutKey(g.startedAt, g.name));
     }
   }
-  const newExercises = [];
-  for (const [name, sets] of rowsByName) {
-    const existing = findExercise(name);
-    if (existing) { byName.set(name, existing.id); continue; }
-    let id = 'c-' + slug(name);
-    if (!slug(name) || hasExercise(id) || newExercises.some((x) => x.id === id)) id = 'c-' + uid();
-    const ex = {
-      id, name: name.trim(), category: inferCategory(name, sets), bodyPart: inferBodyPart(name),
-      createdAt: Date.now(), imported: true,
-    };
-    newExercises.push(ex);
-    byName.set(name, id);
+  const byName = new Map(exercises.map((e) => [strongNameKey(e.name), e]));
+  const byId = new Map(exercises.map((e) => [e.id, e]));
+  const shippedAliases = new Map(Object.entries(STRONG_EXERCISE_ALIASES).map(([name, id]) => [strongNameKey(name), id]));
+  const aliases = new Map([...shippedAliases, ...Object.entries(opts.aliases || {}).map(([name, id]) => [strongNameKey(name), id])]);
+  const matches = {}, review = [];
+  for (const { name, sets, sessions } of rowsByName.values()) {
+    const exact = byName.get(strongNameKey(name));
+    if (exact) { Object.defineProperty(matches, name, { value: exact.id, enumerable: true }); continue; }
+    const category = inferCategory(name, sets);
+    const aliasId = aliases.get(strongNameKey(name));
+    // A catalogue upgrade can preserve a same-name custom instead of adding
+    // the built-in id. Its existing identity is the alias target in that case.
+    const seedTarget = shippedAliases.get(strongNameKey(name)) === aliasId && SEED_EXERCISES.find((e) => e.id === aliasId);
+    const target = byId.get(aliasId) || (seedTarget && byName.get(strongNameKey(seedTarget.name)));
+    const categories = strongImportCategories(sets);
+    if (target && categories.includes(target.category) && canMergeExercises({ id: null, category }, target)) {
+      Object.defineProperty(matches, name, { value: target.id, enumerable: true }); continue;
+    }
+    const part = inferBodyPart(name);
+    review.push({
+      name, sessions: sessions.size, category, bodyPart: part === 'other' ? '' : part, categories,
+      suggestions: categories.length ? strongExerciseSuggestions(name, category, exercises) : [],
+    });
+  }
+  const nonempty = [...groups.values()].filter((g) => g.entries.some((e) => e.sets.length));
+  const existing = new Set(known.map((w) => workoutKey(w.startedAt, w.name)));
+  const fresh = nonempty.filter((g) => {
+    const key = workoutKey(g.startedAt, g.name);
+    if (existing.has(key)) return false;
+    existing.add(key);
+    return true;
+  });
+  return {
+    groups: nonempty, matches, review,
+    stats: {
+      workouts: fresh.length, sets: fresh.reduce((n, g) => n + g.entries.reduce((m, e) => m + e.sets.length, 0), 0),
+      duplicates: nonempty.length - fresh.length, matchedExercises: Object.keys(matches).length,
+      skippedRows, restRows, hasWeightUnitColumn: col.weightUnit >= 0,
+      first: fresh.length ? Math.min(...fresh.map((g) => g.startedAt)) : null,
+      last: fresh.length ? Math.max(...fresh.map((g) => g.startedAt)) : null,
+    },
+  };
+}
+
+/** Categories that retain the fields actually logged, including negative loads. */
+export function strongImportCategories(sets) {
+  const w = sets.some((s) => s.w != null && s.w !== 0), r = sets.some((s) => s.r > 0);
+  const d = sets.some((s) => s.d > 0), t = sets.some((s) => s.t > 0);
+  if ((r || w) && (d || t)) return []; // no supported category logs this mixture
+  const category = d ? 'cardio' : t ? 'duration' : w ? 'machine' : 'reps';
+  return CATEGORIES.filter((c) => canMergeExercises({ id: null, category }, { id: c.id, category: c.id })).map((c) => c.id);
+}
+const workoutKey = (at, name) => Math.floor(at / 1000) + '|' + name;
+
+/** Validation also runs at import, so bypassing a disabled button cannot save guesses. */
+export function strongImportProblems(preview, choices, exercises) {
+  const all = [...(exercises instanceof Map ? exercises.values() : exercises)];
+  const names = new Set(all.map((e) => strongNameKey(e.name)));
+  const problems = [];
+  for (const row of preview.review) {
+    const choice = choices[row.name];
+    let problem;
+    if (!row.categories.length) problem = 'These sets combine fields no exercise can log. Check the CSV.';
+    else if (choice?.kind === 'existing') {
+      const target = all.find((e) => e.id === choice.exerciseId);
+      if (!target || !row.categories.includes(target.category) || !canMergeExercises({ id: null, category: row.category }, target)) problem = 'Choose an exercise that logs the same fields';
+    } else if (choice?.kind === 'new') {
+      if (!choice.name?.trim()) problem = 'Give the exercise a name';
+      else if (names.has(strongNameKey(choice.name))) problem = 'An exercise with this name already exists';
+      else if (!row.categories.includes(choice.category)) problem = 'Choose what this exercise logs';
+      else if (!BODY_PARTS.some((b) => b.id === choice.bodyPart)) problem = 'Choose a body part';
+      names.add(strongNameKey(choice.name || ''));
+    } else problem = 'Choose an exercise or create a new one';
+    if (problem) problems.push({ name: row.name, problem });
+  }
+  return problems;
+}
+
+/** Turn a fully decided review into records to save together. Never mutates the preview or stored data.
+ * @param {any} preview
+ * @param {any} choices
+ * @param {any} opts
+ */
+export function resolveStrongImport(preview, choices, opts = {}) {
+  const { exercises = [], workouts: known = [], aliases = {} } = opts;
+  const problems = strongImportProblems(preview, choices, exercises);
+  if (problems.length) throw new Error(problems[0].problem);
+  const all = [...(exercises instanceof Map ? exercises.values() : exercises)];
+  const ids = new Set(all.map((e) => e.id));
+  const byName = new Map(Object.entries(preview.matches).map(([name, id]) => [strongNameKey(name), id]));
+  if ([...byName.values()].some((id) => !ids.has(id))) throw new Error('The exercise library changed. Pick the file again.');
+  const newExercises = [], remembered = new Map(Object.entries({ ...STRONG_EXERCISE_ALIASES, ...aliases }));
+  for (const row of preview.review) {
+    const choice = choices[row.name];
+    let id = choice.exerciseId;
+    if (choice.kind === 'new') {
+      id = 'c-' + slug(choice.name);
+      if (!slug(choice.name) || ids.has(id)) id = 'c-' + uid();
+      ids.add(id);
+      const family = strongExerciseFamily(choice.name, all);
+      newExercises.push({ id, name: choice.name.trim(), category: choice.category, bodyPart: choice.bodyPart,
+        ...(family ? { family } : {}), imported: true, createdAt: Date.now() });
+    }
+    byName.set(strongNameKey(row.name), id);
+    remembered.set(row.name, id);
   }
 
   // build workouts, skip ones already present. CSV times have whole seconds while
   // workouts logged in Setlog keep milliseconds, so compare by the second.
-  const keyOf = (at, name) => Math.floor(at / 1000) + '|' + name;
+  const keyOf = workoutKey;
   const existing = new Map(known.map((w) => [keyOf(w.startedAt, w.name), w]));
   const existingKeys = new Set(existing.keys());
   const workouts = [];
   const noteUpdates = [];
   let duplicates = 0;
   let setCount = 0;
-  for (const g of groups.values()) {
+  for (const g of preview.groups) {
     const entries = g.entries.filter((e) => e.sets.length).map((e) => {
-      const entry = { id: uid(), exerciseId: byName.get(e.name), sets: e.sets };
+      const entry = { id: uid(), exerciseId: byName.get(strongNameKey(e.name)), sets: e.sets };
       if (e.notes) entry.notes = e.notes;
       if (e.restSec) entry.restSec = e.restSec;
       return entry;
@@ -333,26 +433,21 @@ export function parseStrongCSV(text, opts = {}) {
       source: 'strong',
     });
   }
-  // only create exercises that are actually used by imported workouts
-  const used = new Set(workouts.flatMap((w) => w.exercises.map((e) => e.exerciseId)));
-  const exercisesToAdd = newExercises.filter((e) => used.has(e.id));
   workouts.sort((a, b) => a.startedAt - b.startedAt);
   return {
     workouts,
-    exercises: exercisesToAdd,
+    exercises: newExercises,
+    aliases: Object.fromEntries(remembered),
     noteUpdates,
     stats: {
+      ...preview.stats,
       workouts: workouts.length,
       notesAdded: noteUpdates.length,
       sets: setCount,
       duplicates,
-      skippedRows,
-      restRows,
-      newExercises: exercisesToAdd.map((e) => e.name),
-      matchedExercises: [...byName.values()].filter((id) => !exercisesToAdd.some((e) => e.id === id)).length,
+      newExercises: newExercises.map((e) => e.name),
       first: workouts[0]?.startedAt || null,
       last: workouts[workouts.length - 1]?.startedAt || null,
-      hasWeightUnitColumn: col.weightUnit >= 0,
     },
   };
 }

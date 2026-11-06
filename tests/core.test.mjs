@@ -739,11 +739,11 @@ const STRONG = `Date,Workout Name,Duration,Exercise Name,Set Order,Weight,Reps,D
 2026-09-01 18:00:00,"Upper",1h 5m,"Mystery Machine",1,40,12,0,0,"","Felt strong",
 2026-09-03 18:00:00,"Run",30m,"Running",1,0,0,5,1800,"","",
 `;
-const builtins = new Map(core.SEED_EXERCISES.map((e) => [e.name.toLowerCase(), e]));
-const findExercise = (n) => builtins.get(n.toLowerCase()) || null;
-
 test('Strong import: set types, rest timer rows, notes, units, new exercises', () => {
-  const r = core.parseStrongCSV(STRONG, { weightUnit: 'lb', distUnit: 'mi', findExercise });
+  const preview = core.parseStrongCSV(STRONG, { weightUnit: 'lb', distUnit: 'mi', exercises: core.SEED_EXERCISES });
+  assert.deepEqual(preview.review.map((r) => [r.name, r.bodyPart]), [['Mystery Machine', '']]);
+  assert.throws(() => core.resolveStrongImport(preview, {}, { exercises: core.SEED_EXERCISES }), /Choose an exercise/);
+  const r = core.resolveStrongImport(preview, { 'Mystery Machine': { kind: 'new', name: 'Mystery Machine', category: 'machine', bodyPart: 'back' } }, { exercises: core.SEED_EXERCISES });
   assert.equal(r.workouts.length, 2);
   const upper = r.workouts[0];
   assert.equal(upper.notes, 'Felt strong');
@@ -764,10 +764,134 @@ test('own CSV export re-imports as duplicates (seconds vs. milliseconds) with St
   const workouts = [{ id: 'a', name: 'Push', startedAt: Date.UTC(2026, 9, 1, 16, 0, 0, 123), endedAt: Date.UTC(2026, 9, 1, 17, 5, 0), exercises: [E(ex.id, [S('normal', 80, 8)])] }];
   const csv = core.exportCSV({ workouts, exercises: new Map([[ex.id, ex]]) });
   assert.match(csv, /,1h 5m,/);
-  const again = core.parseStrongCSV(csv, { weightUnit: 'kg', findExercise, workouts });
+  const preview = core.parseStrongCSV(csv, { weightUnit: 'kg', exercises: [ex], workouts });
+  const again = core.resolveStrongImport(preview, {}, { exercises: [ex], workouts });
   assert.equal(again.workouts.length, 0);
   assert.equal(again.stats.duplicates, 1);
   assert.deepEqual([core.strongDuration(45 * 60000), core.strongDuration(2 * 3600000)], ['45m', '2h']);
+});
+
+const strongFile = (rows) => 'Date,Workout Name,Duration,Exercise Name,Set Order,Weight,Reps,Distance,Seconds,Notes,Workout Notes\n'
+  + rows.map(([name, w = 20, r = 8, d = 0, t = 0, date = '2026-10-01 12:00:00', notes = '', workoutNotes = '']) =>
+    `${date},Import,30m,"${name}",1,${w},${r},${d},${t},${notes},${workoutNotes}`).join('\n');
+
+test('Strong suggestions: spelling, plurals, punctuation, accents, equipment and shortcuts; never shared words alone', () => {
+  const suggestions = (name, category = 'machine', exercises = core.SEED_EXERCISES) => core.strongExerciseSuggestions(name, category, exercises);
+  for (const name of ['Kenan Flaps', 'Keenan Flaps', 'KÉÉNAN—FLAP (Cable)', 'Keenan Flap']) {
+    const [s] = suggestions(name);
+    assert.equal(s.id, 'x-keenan-flap-cable', name);
+    assert.equal(s.preselect, true, name);
+  }
+  assert.equal(suggestions('Bench Press')[0].id, 'x-bench-press-barbell');
+  assert.equal(suggestions('Bench Press').length, 3);
+  for (const [name, id] of [['DB Bench Press', 'x-bench-press-dumbbell'], ['Bench Press (BB)', 'x-bench-press-barbell'], ['Bicep Curl (EZ)', 'x-bicep-curl-ez-bar']]) {
+    assert.equal(suggestions(name)[0].id, id, name);
+    assert.equal(suggestions(name)[0].preselect, true, name);
+  }
+  assert.equal(suggestions('Bench Press (Barbel)')[0].preselect, true);
+  assert.equal(suggestions('Farmers Walk')[0].id, 'x-farmer-s-walk-dumbbell');
+  assert.equal(suggestions('Pullups', 'reps')[0].id, 'x-pull-up');
+  // short plurals ("ups") and spacing or hyphens that only split or join words, as people type them in Strong
+  for (const [name, id, category] of [
+    ['Pull-Ups', 'x-pull-up', 'reps'], ['Pull Ups', 'x-pull-up', 'reps'], ['Push-ups', 'x-push-up', 'reps'],
+    ['Chin-ups', 'x-chin-up', 'reps'], ['Sit-ups', 'x-sit-up', 'reps'], ['Lat Pull Down', 'x-lat-pulldown-cable', 'machine'],
+    ['Tricep Push Down', 'x-triceps-pushdown-cable', 'machine'], ['Skull Crushers (EZ Bar)', 'x-skullcrusher-ez-bar', 'barbell'],
+  ]) {
+    assert.equal(suggestions(name, category)[0]?.id, id, name);
+    assert.equal(suggestions(name, category)[0].preselect, true, name);
+  }
+  // joined words must then be spelled the same: "Lat Raise" is neither Y-Raise nor Lateral Raise
+  assert.deepEqual(suggestions('Lat Raise', 'dumbbell'), []);
+  for (const name of ['Snatch Pull (Barbell)', 'Clean Pull', 'Unrelated Exercise', 'Front Rack Reverse Lunge With Twist']) assert.deepEqual(suggestions(name), [], name);
+  assert.ok(suggestions('Squat (Cybex Machine)').every((s) => !s.preselect), 'different equipment waits for a choice');
+  assert.deepEqual(suggestions('Kenan Flaps', 'duration'), [], 'timed sets cannot take a weighted suggestion');
+  const custom = { id: 'c-moon', name: 'Moon Lift (Cable)', category: 'machine' };
+  assert.equal(suggestions('Moon Lifts', 'machine', [custom])[0].id, custom.id, 'own exercises participate');
+  const ambiguous = ['Curl Mate', 'Curl Fate'].map((name) => ({ ...custom, id: name, name }));
+  assert.equal(suggestions('Curl Date', 'machine', ambiguous)[0].preselect, false, 'equally close different names need a choice');
+});
+
+test('Strong review counts sessions, requires decisions and body parts, and limits categories to logged fields', () => {
+  const csv = strongFile([
+    ['Bench Press (Barbell)'], ['Kenan Flaps'], ['Moon Lift'], ['kenan  flaps'],
+    ['Kenan Flaps', 20, 8, 0, 0, '2026-10-02 12:00:00'], ['Bench Press', 0, 0, 0, 45],
+    ['Mystery Reps', 0, 12], ['Mystery Route', 0, 0, 5, 900],
+  ]);
+  const before = JSON.stringify(core.SEED_EXERCISES);
+  const preview = core.parseStrongCSV(csv, { exercises: core.SEED_EXERCISES });
+  assert.equal(preview.stats.matchedExercises, 1);
+  assert.equal(preview.review.find((r) => r.name === 'Kenan Flaps').sessions, 2);
+  assert.equal(preview.review.length, 5, 'case/whitespace variants share one review row');
+  assert.equal(preview.review.find((r) => r.name === 'Moon Lift').bodyPart, '');
+  const timed = preview.review.find((r) => r.name === 'Bench Press');
+  assert.deepEqual(timed.suggestions, []);
+  assert.deepEqual(timed.categories, ['duration']);
+  assert.deepEqual(core.strongImportCategories([{ w: 0, r: 8 }]), ['reps']);
+  assert.deepEqual(core.strongImportCategories([{ d: 1, t: 50 }]), ['cardio']);
+  assert.deepEqual(core.strongImportCategories([{ t: 60 }]), ['duration']);
+  assert.deepEqual(core.strongImportCategories([{ w: -10, r: 8 }]), ['barbell', 'dumbbell', 'machine', 'weighted_bw', 'assisted_bw']);
+  assert.deepEqual(core.strongImportCategories([{ w: 20, t: 60 }]), [], 'cannot discard fields from mixed sets');
+  const choices = Object.fromEntries(preview.review.map((r) => [r.name, { kind: 'new', name: r.name, category: r.category, bodyPart: r.bodyPart || 'other' }]));
+  choices['Kenan Flaps'] = { kind: 'existing', exerciseId: 'x-keenan-flap-cable' };
+  choices['Moon Lift'].bodyPart = '';
+  assert.throws(() => core.resolveStrongImport(preview, choices, { exercises: core.SEED_EXERCISES }), /Choose a body part/);
+  choices['Moon Lift'].bodyPart = 'back';
+  choices['Bench Press'] = { kind: 'existing', exerciseId: 'x-bench-press-barbell' };
+  assert.throws(() => core.resolveStrongImport(preview, choices, { exercises: core.SEED_EXERCISES }), /same fields/);
+  choices['Bench Press'] = { kind: 'new', name: 'Timed Bench Hold', category: 'duration', bodyPart: 'chest' };
+  const r = core.resolveStrongImport(preview, choices, { exercises: core.SEED_EXERCISES });
+  assert.equal(r.workouts.length, 2);
+  assert.equal(r.exercises.length, 4);
+  assert.equal(r.workouts[0].exercises[1].exerciseId, 'x-keenan-flap-cable');
+  assert.equal(r.workouts[0].exercises[3].exerciseId, 'x-keenan-flap-cable', 'the case variant uses the same decision');
+  assert.equal(r.workouts[0].exercises[1].sets[0].w, 20);
+  assert.equal(JSON.stringify(core.SEED_EXERCISES), before, 'review and resolution do not mutate stored records');
+  choices['Moon Lift'].name = 'Bench Press (Barbell)';
+  assert.throws(() => core.resolveStrongImport(preview, choices, { exercises: core.SEED_EXERCISES }), /already exists/);
+  choices['Moon Lift'].name = 'Timed Bench Hold';
+  assert.throws(() => core.resolveStrongImport(preview, choices, { exercises: core.SEED_EXERCISES }), /already exists/, 'new rows cannot duplicate each other');
+});
+
+test('Strong choices survive a backup, silently match newer exports, skip duplicates and fill missing notes', () => {
+  const csv = strongFile([['Kenan Flaps', 20, 8, 0, 0, '2026-10-01 12:00:00', 'Cues', 'Good day'], ['Moon Lift']]);
+  const preview = core.parseStrongCSV(csv, { exercises: core.SEED_EXERCISES });
+  const choices = { 'Kenan Flaps': { kind: 'existing', exerciseId: 'x-keenan-flap-cable' }, 'Moon Lift': { kind: 'new', name: 'Moon Machine', category: 'machine', bodyPart: 'back' } };
+  const r = core.resolveStrongImport(preview, choices, { exercises: core.SEED_EXERCISES });
+  const data = { exercises: [...core.SEED_EXERCISES, ...r.exercises], workouts: r.workouts, templates: [], measurements: [], kv: { strongAliases: r.aliases } };
+  const restored = core.parseBackup(core.makeBackup(data, 'test'), core.SEED_EXERCISES).data;
+  assert.deepEqual(restored.kv.strongAliases, r.aliases);
+  const opts = { exercises: restored.exercises, workouts: restored.workouts, aliases: restored.kv.strongAliases };
+  const again = core.parseStrongCSV(csv, opts);
+  assert.deepEqual(again.review, []);
+  assert.equal(again.stats.matchedExercises, 2);
+  assert.equal(core.resolveStrongImport(again, {}, opts).workouts.length, 0);
+  const newer = core.parseStrongCSV(csv.replaceAll('2026-10-01', '2026-10-02'), opts);
+  assert.deepEqual(newer.review, []);
+  assert.equal(core.resolveStrongImport(newer, {}, opts).workouts[0].exercises[1].exerciseId, r.exercises[0].id);
+  const oldWorkouts = structuredClone(r.workouts);
+  delete oldWorkouts[0].notes; delete oldWorkouts[0].exercises[0].notes;
+  const filled = core.resolveStrongImport(again, {}, { ...opts, workouts: oldWorkouts });
+  assert.deepEqual(filled.noteUpdates, [{ id: oldWorkouts[0].id, notes: 'Good day', entries: [[0, 'Cues']] }]);
+  for (const exercises of [restored.exercises.filter((e) => e.id !== r.exercises[0].id), restored.exercises.map((e) => e.id === r.exercises[0].id ? { ...e, category: 'duration' } : e)]) {
+    assert.equal(core.parseStrongCSV(csv, { ...opts, exercises }).review[0].name, 'Moon Lift', 'deleted or incompatible remembered targets return to review');
+  }
+});
+
+test('Strong shipped spellings resolve to existing identities, and new family membership is exact', () => {
+  const names = Object.keys(core.STRONG_EXERCISE_ALIASES);
+  const preview = core.parseStrongCSV(strongFile(names.map((name) => [name])), { exercises: core.SEED_EXERCISES });
+  assert.deepEqual(preview.review, []);
+  assert.deepEqual(preview.matches, core.STRONG_EXERCISE_ALIASES);
+  assert.deepEqual(core.parseStrongCSV(strongFile(names.map((name) => [name.toLowerCase()])), { exercises: core.SEED_EXERCISES }).review, []);
+  const custom = { id: 'c-cross', name: 'Cable Crossover', category: 'machine', bodyPart: 'chest' };
+  assert.equal(core.parseStrongCSV(strongFile([[custom.name]]), { exercises: [...core.SEED_EXERCISES, custom] }).matches[custom.name], custom.id, 'exact custom names win over aliases');
+  const csv = strongFile([['Squat (Cybex Machine)'], ['Squats (Custom)'], ['Kenan Flaps']]);
+  const p = core.parseStrongCSV(csv, { exercises: core.SEED_EXERCISES });
+  const choices = Object.fromEntries(p.review.map((r) => [r.name, { kind: 'new', name: r.name, category: 'machine', bodyPart: 'legs' }]));
+  const r = core.resolveStrongImport(p, choices, { exercises: core.SEED_EXERCISES });
+  assert.deepEqual(r.exercises.map((e) => e.family), ['f-squat', undefined, undefined]);
+  assert.equal(core.strongExerciseFamily('Squat (Cybex Machine)', core.SEED_EXERCISES), 'f-squat');
+  assert.equal(core.strongExerciseFamily('Squat Jump (Machine)', core.SEED_EXERCISES), undefined);
 });
 
 // ---------- backup ----------

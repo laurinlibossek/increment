@@ -202,6 +202,7 @@ export interface Kv {
   profile?: Partial<Profile>;
   meta?: Meta;
   active?: ActiveWorkout | null;
+  strongAliases?: Record<string, string>;
 }
 
 /** Everything that is stored; also the `data` part of a backup file. */

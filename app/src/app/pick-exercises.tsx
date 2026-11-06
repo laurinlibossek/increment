@@ -35,8 +35,8 @@ export default function PickExercises() {
   useEffect(() => () => { if (currentPick() === pick) finishPick(null); }, [pick]);
 
   const list = useMemo(() => [...exercises.values()]
-    .filter((e) => !e.hidden && (part === 'all' || e.bodyPart === part) && matchExercise(e, q))
-    .sort((a, b) => f.exName(a).localeCompare(f.exName(b))), [exercises, q, part, f]);
+    .filter((e) => !e.hidden && (!pick?.accepts || pick.accepts(e)) && (part === 'all' || e.bodyPart === part) && matchExercise(e, q))
+    .sort((a, b) => f.exName(a).localeCompare(f.exName(b))), [exercises, q, part, f, pick]);
   const parts = [{ id: 'all', label: tr('All') }, ...(BODY_PARTS as { id: string; label: string }[]).map((b) => ({ id: b.id, label: tr(b.label) }))];
   const partLabel = (id: string) => tr((BODY_PARTS as { id: string; label: string }[]).find((b) => b.id === id)?.label || 'Other');
 
@@ -73,11 +73,11 @@ export default function PickExercises() {
       <View style={{ paddingHorizontal: SPACE.s5, gap: SPACE.s3, paddingBottom: SPACE.s3 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACE.s2 }}>
           <View style={{ flex: 1 }}><SearchField value={q} onChange={setQ} placeholder={tr('Search')} testID="pick-search" /></View>
-          <Pressable onPress={create} hitSlop={SPACE.s2} accessibilityRole="button" accessibilityLabel={tr('New exercise')} testID="pick-new"
+          {pick?.allowCreate !== false && <Pressable onPress={create} hitSlop={SPACE.s2} accessibilityRole="button" accessibilityLabel={tr('New exercise')} testID="pick-new"
             style={({ pressed }) => ({ height: CONTROL.hitMin, borderRadius: RADIUS.capsule, paddingHorizontal: SPACE.s3, flexDirection: 'row', alignItems: 'center', gap: SPACE.s1, backgroundColor: pressed ? c.surface3 : c.accentSoft })}>
             <Icon name="plus" size={15} color={c.accentText} />
             <Text style={[TYPE.subhead, { color: c.accentText }]}>{tr('New')}</Text>
-          </Pressable>
+          </Pressable>}
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: SPACE.s2 }} keyboardShouldPersistTaps="handled">
           {parts.map((p) => {
@@ -99,8 +99,8 @@ export default function PickExercises() {
         contentContainerStyle={{ paddingHorizontal: SPACE.s5, paddingBottom: insets.bottom + SPACE.s6 }}
         initialNumToRender={20}
         ListEmptyComponent={(
-          <Empty title={q.trim() ? tr('No match for “{q}”', { q: q.trim() }) : tr('Nothing found')} text={tr('Create it as your own exercise.')}>
-            <Button kind="tinted" icon="plus" title={tr('Create “{name}”', { name: q.trim() || tr('new exercise') })} onPress={create} testID="pick-create" />
+          <Empty title={q.trim() ? tr('No match for “{q}”', { q: q.trim() }) : tr('Nothing found')} text={pick?.allowCreate === false ? undefined : tr('Create it as your own exercise.')}>
+            {pick?.allowCreate !== false && <Button kind="tinted" icon="plus" title={tr('Create “{name}”', { name: q.trim() || tr('new exercise') })} onPress={create} testID="pick-create" />}
           </Empty>
         )}
         renderItem={({ item, index }) => {
