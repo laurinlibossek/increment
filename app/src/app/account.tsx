@@ -11,7 +11,7 @@ import {
 } from '@increment/core';
 
 import {
-  deleteAllData, readBackup, readStrong, restoreBackup, setProfile, setSetting, useAppState,
+  deleteAllData, readBackup, readStrong, restoreBackup, setProfile, setSetting, strongNothingNew, useAppState,
 } from '@/data/store';
 import type { LanguageSetting, Settings, ThemeSetting } from '@/data/types';
 import { appVersion, backupNow } from '@/lib/backup';
@@ -99,6 +99,10 @@ export default function AccountSheet() {
     try { r = readStrong(file.text, strongUnits, tr('Workout')); } catch (e) { notice(tr('Import from Strong'), tr((e as Error).message)); return; }
     if (!r.groups.length) {
       notice(tr('Import from Strong'), tr('No workouts found in this file'));
+      return;
+    }
+    if (strongNothingNew(r)) {
+      notice(tr('Import from Strong'), tr('All {n} are already imported', { n: f.plural(r.stats.duplicates, 'workout') }));
       return;
     }
     reviewStrongImport(r);

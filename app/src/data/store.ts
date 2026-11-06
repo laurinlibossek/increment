@@ -246,6 +246,17 @@ export function readStrong(text: string, units: { weightUnit: 'kg' | 'lb'; distU
   });
 }
 
+/** All of the file's workouts are here already, every exercise matches and no notes are missing: nothing to review. */
+export function strongNothingNew(preview: StrongReview): boolean {
+  if (preview.review.length || preview.stats.workouts) return false;
+  try {
+    const r = resolveStrongImport(preview, {}, {
+      exercises: state.exercises, workouts: state.workouts, aliases: state.strongAliases,
+    }) as { stats: { notesAdded: number } };
+    return !r.stats.notesAdded;
+  } catch { return false; }
+}
+
 export async function saveStrongImport(preview: StrongReview, choices: StrongChoices) {
   const r = resolveStrongImport(preview, choices, {
     exercises: state.exercises, workouts: state.workouts, aliases: state.strongAliases,

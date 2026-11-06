@@ -791,6 +791,17 @@ test('Strong suggestions: spelling, plurals, punctuation, accents, equipment and
   assert.equal(suggestions('Bench Press (Barbel)')[0].preselect, true);
   assert.equal(suggestions('Farmers Walk')[0].id, 'x-farmer-s-walk-dumbbell');
   assert.equal(suggestions('Pullups', 'reps')[0].id, 'x-pull-up');
+  // short plurals ("ups") and spacing or hyphens that only split or join words, as people type them in Strong
+  for (const [name, id, category] of [
+    ['Pull-Ups', 'x-pull-up', 'reps'], ['Pull Ups', 'x-pull-up', 'reps'], ['Push-ups', 'x-push-up', 'reps'],
+    ['Chin-ups', 'x-chin-up', 'reps'], ['Sit-ups', 'x-sit-up', 'reps'], ['Lat Pull Down', 'x-lat-pulldown-cable', 'machine'],
+    ['Tricep Push Down', 'x-triceps-pushdown-cable', 'machine'], ['Skull Crushers (EZ Bar)', 'x-skullcrusher-ez-bar', 'barbell'],
+  ]) {
+    assert.equal(suggestions(name, category)[0]?.id, id, name);
+    assert.equal(suggestions(name, category)[0].preselect, true, name);
+  }
+  // joined words must then be spelled the same: "Lat Raise" is neither Y-Raise nor Lateral Raise
+  assert.deepEqual(suggestions('Lat Raise', 'dumbbell'), []);
   for (const name of ['Snatch Pull (Barbell)', 'Clean Pull', 'Unrelated Exercise', 'Front Rack Reverse Lunge With Twist']) assert.deepEqual(suggestions(name), [], name);
   assert.ok(suggestions('Squat (Cybex Machine)').every((s) => !s.preselect), 'different equipment waits for a choice');
   assert.deepEqual(suggestions('Kenan Flaps', 'duration'), [], 'timed sets cannot take a weighted suggestion');

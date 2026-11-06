@@ -20,7 +20,7 @@ export const STRONG_EXERCISE_ALIASES = Object.freeze({
 const words = (s) => String(s).toLowerCase().normalize('NFD').replace(/\p{M}/gu, '')
   .replace(/['’]/g, '')
   .replace(/[^\p{L}\p{N}]+/gu, ' ').trim().split(/\s+/).filter(Boolean)
-  .map((w) => w.length > 3 && !/ss$/.test(w) ? w.replace(/ies$/, 'y').replace(/s$/, '') : w)
+  .map((w) => w.length > 2 && !/ss$/.test(w) ? w.replace(/ies$/, 'y').replace(/s$/, '') : w)
   .flatMap((w, i, tokens) => ['db', 'bb', 'ez', 'kb', 'pullup', 'pushup', 'chinup', 'situp'].includes(w) && !(w === 'ez' && tokens[i + 1] === 'bar') ? EXERCISE_SEARCH_SHORTCUTS[w].split(' ') : [w]);
 
 function nameParts(name) {
@@ -51,7 +51,9 @@ function distance(a, b) {
 }
 
 function wordDistance(a, b) {
-  if (!a.length || a.length !== b.length) return null;
+  if (!a.length) return null;
+  // "Lat Pull Down", "Pull-Ups", "Skull Crushers": only the spacing differs
+  if (a.length !== b.length) return a.join('') === b.join('') ? 0 : null;
   let score = 0;
   for (let i = 0; i < a.length; i++) {
     const d = distance(a[i], b[i]), len = Math.max(a[i].length, b[i].length);

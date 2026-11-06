@@ -218,12 +218,10 @@ const has = async (page, re) => (typeof re === 'string' ? new RegExp(re.replace(
   await openAccount(page);
   const [again] = await Promise.all([page.waitForEvent('filechooser'), page.getByTestId('strong-import').click()]);
   await again.setFiles(STRONG);
-  await page.getByTestId('strong-review').waitFor();
-  assert.equal(await page.locator('[data-testid^="strong-row-"]').count(), 0);
-  assert.match(await page.getByTestId('strong-matched').innerText(), /22 Übungen zugeordnet/);
-  await page.getByTestId('strong-confirm').click();
-  await page.getByTestId('strong-import').waitFor();
+  // every name is matched or remembered and every workout is here: it says so at once, without the review
+  for (let i = 0; i < 30 && dialogs.length < 2; i++) await page.waitForTimeout(100);
   assert.match(dialogs[1], /Alle 86 Trainings sind schon importiert/);
+  assert.equal(await page.getByTestId('strong-review').count(), 0);
   ok('Strong import: 86 workouts in, a second import finds nothing new');
   assert.deepEqual(errors, []);
   await ctx.close();

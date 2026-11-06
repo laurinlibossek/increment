@@ -117,17 +117,19 @@ for (const language of ['en', 'de']) for (const theme of ['light', 'dark']) {
 
   await page.reload();
   await page.getByTestId('strong-import').waitFor();
-  await pickFile(page);
+  // the same file again: nothing new, so it says so at once instead of opening the review
+  const shown = dialogs.length;
+  const [again] = await Promise.all([page.waitForEvent('filechooser'), page.getByTestId('strong-import').click()]);
+  await again.setFiles({ name: 'review.csv', mimeType: 'text/csv', buffer: Buffer.from(csv) });
+  for (let i = 0; i < 50 && dialogs.length === shown; i++) await page.waitForTimeout(100);
+  assert.match(dialogs.at(-1), /All 2 workouts are already imported/);
+  assert.equal(await page.getByTestId('strong-review').count(), 0, 'no review screen for a file with nothing new');
+  assert.equal((await data(page)).workouts.length, 2);
+  ok('same file after reload matches silently and says at once that its workouts are already imported');
+  await pickFile(page, csv.replaceAll('2026-10-0', '2026-11-0'));
   assert.equal(await page.locator('[data-testid^="strong-row-"]').count(), 0);
   assert.match(await page.getByTestId('strong-matched').innerText(), /5 exercises matched/);
   await page.screenshot({ path: `${OUT}/en-light-remembered.png` });
-  await page.getByTestId('strong-confirm').click();
-  await page.getByTestId('strong-import').waitFor();
-  assert.equal((await data(page)).workouts.length, 2);
-  assert.match(dialogs.at(-1), /All 2 workouts are already imported/);
-  ok('same file after reload matches silently and skips duplicate workouts');
-  await pickFile(page, csv.replaceAll('2026-10-0', '2026-11-0'));
-  assert.equal(await page.locator('[data-testid^="strong-row-"]').count(), 0);
   await page.getByTestId('strong-confirm').click();
   await page.getByTestId('strong-import').waitFor();
   assert.equal((await data(page)).workouts.length, 4);
@@ -141,7 +143,7 @@ for (const language of ['en', 'de']) for (const theme of ['light', 'dark']) {
   const [picker] = await Promise.all([page.waitForEvent('filechooser'), page.getByTestId('restore').click()]);
   await picker.setFiles({ name: 'backup.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(backup)) });
   await page.waitForFunction(() => JSON.parse(localStorage.getItem('increment.data')).kv.meta.lastBackupAt > 0);
-  await pickFile(page);
+  await pickFile(page, csv.replaceAll('2026-10-0', '2026-12-0'));
   assert.equal(await page.locator('[data-testid^="strong-row-"]').count(), 0);
   await page.getByTestId('strong-cancel').click();
   ok('downloaded backup and real restore retain every Strong choice');
