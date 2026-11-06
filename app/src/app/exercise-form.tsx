@@ -15,6 +15,7 @@ import {
   addExercise, allSessions, findExercise, getState, updateExercise,
 } from '@/data/store';
 import type { Category } from '@/data/types';
+import { CONTROL, RADIUS, SPACE, TYPE } from '@/design/tally';
 import { currentForm, finishForm } from '@/lib/exerciseForm';
 import { useFormat } from '@/lib/format';
 import { useColors } from '@/lib/theme';
@@ -66,18 +67,18 @@ export default function ExerciseForm() {
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
-      <View style={[styles.bar, { paddingTop: top + 10 }]}>
-        <Pressable onPress={() => close(null)} hitSlop={8} accessibilityRole="button" testID="exercise-cancel" style={{ flex: 1 }}>
-          <Text style={{ color: c.accentText, fontSize: 17 }}>{tr('Cancel')}</Text>
+      <View style={[styles.bar, { paddingTop: top + SPACE.s3 }]}>
+        <Pressable onPress={() => close(null)} hitSlop={SPACE.s2} accessibilityRole="button" testID="exercise-cancel" style={{ flex: 1 }}>
+          <Text style={[TYPE.body, { color: c.accentText }]}>{tr('Cancel')}</Text>
         </Pressable>
-        <Text style={{ color: c.ink, fontSize: 17, fontWeight: '700' }}>{ex ? tr('Edit exercise') : tr('New exercise')}</Text>
+        <Text style={[TYPE.headline, { color: c.ink }]}>{ex ? tr('Edit exercise') : tr('New exercise')}</Text>
         <View style={{ flex: 1, alignItems: 'flex-end' }}>
-          <Pressable onPress={save} hitSlop={8} accessibilityRole="button" testID="exercise-save">
-            <Text style={{ color: c.accentText, fontSize: 17, fontWeight: '700' }}>{tr('Save')}</Text>
+          <Pressable onPress={save} hitSlop={SPACE.s2} accessibilityRole="button" testID="exercise-save">
+            <Text style={[TYPE.headline, { color: c.accentText }]}>{tr('Save')}</Text>
           </Pressable>
         </View>
       </View>
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 32 }} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={{ paddingHorizontal: SPACE.s5, paddingBottom: insets.bottom + SPACE.s8 }} keyboardShouldPersistTaps="handled">
         <Field label={tr('Name')} value={name} onChange={setName} placeholder={tr('e.g. Incline Row (Dumbbell)')} testID="exercise-name" />
         <SectionTitle>{tr('What you log')}</SectionTitle>
         <Group>
@@ -85,20 +86,20 @@ export default function ExerciseForm() {
             <Cell key={x.id} first={i === 0} title={tr(x.label)} checked={category === x.id} onPress={() => setCategory(x.id)} testID={`cat-${x.id}`} />
           ))}
         </Group>
-        <Txt tone="ink3" style={{ fontSize: 13, marginTop: 8, paddingHorizontal: 4 }}>{tr((CATEGORY_HELP as Record<string, string>)[category])}</Txt>
+        <Txt tone="ink2" style={[TYPE.footnote, { marginTop: SPACE.s2, paddingHorizontal: SPACE.s1 }]} testID="exercise-category-help">{tr((CATEGORY_HELP as Record<string, string>)[category])}</Txt>
         <SectionTitle>{tr('Body part')}</SectionTitle>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.s2 }}>
           {(BODY_PARTS as { id: string; label: string }[]).map((b) => {
             const on = bodyPart === b.id;
             return (
               <Pressable key={b.id} onPress={() => setBodyPart(b.id)} accessibilityRole="radio" accessibilityState={{ checked: on }} testID={`part-${b.id}`}
-                style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, backgroundColor: on ? c.chipOn : c.surface }}>
-                <Text style={{ fontSize: 14, fontWeight: '600', color: on ? c.chipOnInk : c.ink2 }}>{tr(b.label)}</Text>
+                style={{ minHeight: CONTROL.hitMin, justifyContent: 'center', paddingHorizontal: SPACE.s4, paddingVertical: SPACE.s2, borderRadius: RADIUS.capsule, backgroundColor: on ? c.chipOn : c.surface }}>
+                <Text style={[TYPE.subhead, { color: on ? c.chipOnInk : c.ink2 }]}>{tr(b.label)}</Text>
               </Pressable>
             );
           })}
         </View>
-        <View style={{ marginTop: 22 }}>
+        <View style={{ marginTop: SPACE.s6 }}>
           <Field label={tr('Notes')} value={notes} onChange={setNotes} placeholder={tr('Setup, cues, seat height…')} multiline testID="exercise-notes" />
         </View>
       </ScrollView>
@@ -108,5 +109,5 @@ export default function ExerciseForm() {
 }
 
 const styles = StyleSheet.create({
-  bar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 10, gap: 8 },
+  bar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACE.s5, paddingBottom: SPACE.s3, gap: SPACE.s2 },
 });

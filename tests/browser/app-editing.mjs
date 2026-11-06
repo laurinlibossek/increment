@@ -279,7 +279,9 @@ const store = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('inc
   await id(page, 'datetime-dialog').waitFor();
   await id(page, 'time-h').fill('23');
   await id(page, 'time-m').fill('59');
-  await id(page, 'day-next').click();
+  // Moving an hour earlier at midnight puts the saved start on yesterday.
+  if (await id(page, 'day-next').isEnabled()) await id(page, 'day-next').click();
+  assert.equal(await id(page, 'day-next').isDisabled(), true, 'the next day is disabled once it would be in the future');
   await id(page, 'datetime-ok').click();
   await id(page, 'datetime-error').waitFor();
   assert.match(await id(page, 'datetime-error').innerText(), /has to be in the past/);

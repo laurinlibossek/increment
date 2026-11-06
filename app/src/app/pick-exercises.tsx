@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BODY_PARTS, matchExercise } from '@increment/core';
 
 import { allSessions, useAppSelector } from '@/data/store';
+import { CONTROL, RADIUS, SPACE, TYPE } from '@/design/tally';
 import { useFormat } from '@/lib/format';
 import { editExercise } from '@/lib/exerciseForm';
 import { currentPick, finishPick } from '@/lib/picker';
@@ -56,35 +57,35 @@ export default function PickExercises() {
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
-      <View style={[styles.bar, { paddingTop: top + 10 }]}>
-        <Pressable onPress={() => done(null)} hitSlop={8} accessibilityRole="button" testID="pick-cancel" style={styles.side}>
-          <Text style={{ color: c.accentText, fontSize: 17 }}>{tr('Cancel')}</Text>
+      <View style={[styles.bar, { paddingTop: top + SPACE.s3 }]}>
+        <Pressable onPress={() => done(null)} hitSlop={SPACE.s2} accessibilityRole="button" testID="pick-cancel" style={styles.side}>
+          <Text style={[TYPE.body, { color: c.accentText }]}>{tr('Cancel')}</Text>
         </Pressable>
-        <Text style={{ color: c.ink, fontSize: 17, fontWeight: '700' }} numberOfLines={1}>{pick?.title || tr('Add exercises')}</Text>
+        <Text style={[TYPE.headline, styles.title, { color: c.ink }]} testID="pick-title">{pick?.title || tr('Add exercises')}</Text>
         <View style={[styles.side, { alignItems: 'flex-end' }]}>
           {multi && (
-            <Pressable onPress={() => done(chosen)} disabled={!chosen.length} hitSlop={8} accessibilityRole="button" testID="pick-add">
-              <Text style={{ color: chosen.length ? c.accentText : c.ink3, fontSize: 17, fontWeight: '700' }}>{chosen.length ? tr('Add {n}', { n: chosen.length }) : tr('Add')}</Text>
+            <Pressable onPress={() => done(chosen)} disabled={!chosen.length} hitSlop={SPACE.s2} accessibilityRole="button" testID="pick-add">
+              <Text style={[TYPE.headline, { color: chosen.length ? c.accentText : c.ink3 }]}>{chosen.length ? tr('Add {n}', { n: chosen.length }) : tr('Add')}</Text>
             </Pressable>
           )}
         </View>
       </View>
-      <View style={{ paddingHorizontal: 16, gap: 10, paddingBottom: 10 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+      <View style={{ paddingHorizontal: SPACE.s5, gap: SPACE.s3, paddingBottom: SPACE.s3 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACE.s2 }}>
           <View style={{ flex: 1 }}><SearchField value={q} onChange={setQ} placeholder={tr('Search')} testID="pick-search" /></View>
-          <Pressable onPress={create} hitSlop={6} accessibilityRole="button" accessibilityLabel={tr('New exercise')} testID="pick-new"
-            style={({ pressed }) => ({ height: 36, borderRadius: 10, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: pressed ? c.surface3 : c.accentSoft })}>
+          <Pressable onPress={create} hitSlop={SPACE.s2} accessibilityRole="button" accessibilityLabel={tr('New exercise')} testID="pick-new"
+            style={({ pressed }) => ({ height: CONTROL.hitMin, borderRadius: RADIUS.capsule, paddingHorizontal: SPACE.s3, flexDirection: 'row', alignItems: 'center', gap: SPACE.s1, backgroundColor: pressed ? c.surface3 : c.accentSoft })}>
             <Icon name="plus" size={15} color={c.accentText} />
-            <Text style={{ color: c.accentText, fontSize: 15, fontWeight: '600' }}>{tr('New')}</Text>
+            <Text style={[TYPE.subhead, { color: c.accentText }]}>{tr('New')}</Text>
           </Pressable>
         </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }} keyboardShouldPersistTaps="handled">
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: SPACE.s2 }} keyboardShouldPersistTaps="handled">
           {parts.map((p) => {
             const on = p.id === part;
             return (
               <Pressable key={p.id} onPress={() => setPart(p.id)} accessibilityRole="button" accessibilityState={{ selected: on }}
-                style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: on ? c.chipOn : c.surface }}>
-                <Text style={{ fontSize: 14, fontWeight: '600', color: on ? c.chipOnInk : c.ink2 }}>{p.label}</Text>
+                style={{ minHeight: CONTROL.hitMin, justifyContent: 'center', paddingHorizontal: SPACE.s3, paddingVertical: SPACE.s2, borderRadius: RADIUS.capsule, backgroundColor: on ? c.chipOn : c.surface }}>
+                <Text style={[TYPE.subhead, { color: on ? c.chipOnInk : c.ink2 }]}>{p.label}</Text>
               </Pressable>
             );
           })}
@@ -95,7 +96,7 @@ export default function PickExercises() {
         keyExtractor={(e) => e.id}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 24 }}
+        contentContainerStyle={{ paddingHorizontal: SPACE.s5, paddingBottom: insets.bottom + SPACE.s6 }}
         initialNumToRender={20}
         ListEmptyComponent={(
           <Empty title={q.trim() ? tr('No match for “{q}”', { q: q.trim() }) : tr('Nothing found')} text={tr('Create it as your own exercise.')}>
@@ -109,13 +110,13 @@ export default function PickExercises() {
             <Pressable onPress={() => tap(item.id)} accessibilityRole={multi ? 'checkbox' : 'button'} aria-checked={multi ? on : undefined} testID={`pick-${item.id}`}
               style={({ pressed }) => [styles.row, {
                 backgroundColor: on ? c.accentSoft : pressed ? c.surface2 : c.surface,
-                borderTopLeftRadius: index === 0 ? 14 : 0, borderTopRightRadius: index === 0 ? 14 : 0,
-                borderBottomLeftRadius: index === list.length - 1 ? 14 : 0, borderBottomRightRadius: index === list.length - 1 ? 14 : 0,
+                borderTopLeftRadius: index === 0 ? RADIUS.m : 0, borderTopRightRadius: index === 0 ? RADIUS.m : 0,
+                borderBottomLeftRadius: index === list.length - 1 ? RADIUS.m : 0, borderBottomRightRadius: index === list.length - 1 ? RADIUS.m : 0,
               }]}>
               {index > 0 && <View style={[styles.hairline, { backgroundColor: c.line }]} />}
               <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={{ color: c.ink, fontSize: 16 }} numberOfLines={1}>{f.exName(item)}</Text>
-                <Text style={{ color: c.ink3, fontSize: 13, marginTop: 2 }} numberOfLines={1}>{partLabel(item.bodyPart) + (n ? ` · ${f.plural(n, 'time')}` : '')}</Text>
+                <Text style={[TYPE.body, { color: c.ink }]} numberOfLines={1}>{f.exName(item)}</Text>
+                <Text style={[TYPE.footnote, { color: c.ink2, marginTop: SPACE.s1 }]} numberOfLines={1}>{partLabel(item.bodyPart) + (n ? ` · ${f.plural(n, 'time')}` : '')}</Text>
               </View>
               {on && <Icon name="check" size={18} color={c.accentText} />}
             </Pressable>
@@ -127,8 +128,9 @@ export default function PickExercises() {
 }
 
 const styles = StyleSheet.create({
-  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 10, gap: 8 },
-  side: { flex: 1 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, paddingHorizontal: 16, paddingVertical: 9 },
-  hairline: { position: 'absolute', top: 0, left: 16, right: 0, height: StyleSheet.hairlineWidth },
+  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SPACE.s5, paddingBottom: SPACE.s3, gap: SPACE.s2 },
+  side: { flexShrink: 0, minHeight: CONTROL.hitMin, justifyContent: 'center' },
+  title: { flex: 1, minWidth: 0, textAlign: 'center' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: SPACE.s3, minHeight: CONTROL.rowH, paddingHorizontal: SPACE.s4, paddingVertical: SPACE.s2 },
+  hairline: { position: 'absolute', top: 0, left: SPACE.s4, right: 0, height: StyleSheet.hairlineWidth },
 });

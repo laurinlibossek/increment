@@ -17,6 +17,7 @@ import {
 import { SegmentedControl } from '@/ui/tally/SegmentedControl';
 import { LineChart } from '@/ui/Chart';
 import { actionSheet, toast } from '@/ui/overlay';
+import { TYPE } from '@/design/tally';
 
 export default function MeasureDetail() {
   const { type } = useLocalSearchParams<{ type: string }>();
@@ -48,8 +49,8 @@ export default function MeasureDetail() {
     <Page>
       <Stack.Screen options={{ title: tr(d.label), headerRight: () => <IconButton icon="plus" label={tr('Add entry')} onPress={add} testID="measure-add-top" /> }} />
       <Card>
-        <Txt style={{ fontSize: 22, fontWeight: '800' }} >{list[0] ? fmtMeasure(d, list[0].value, st, f) : '—'}</Txt>
-        <Txt tone="ink3" style={{ fontSize: 13, marginTop: 2 }}>
+        <Txt style={[TYPE.numberM, { fontVariant: ['tabular-nums'] }]}>{list[0] ? fmtMeasure(d, list[0].value, st, f) : '—'}</Txt>
+        <Txt tone="ink2" style={[TYPE.footnote, { marginTop: 2 }]} testID="measure-latest">
           {list[0] ? `${tr('Latest')} · ${f.date.short(list[0].at)}` : tr('Log your first entry to start the chart')}
         </Txt>
         <LineChart points={pts} fmtVal={fv} fmtAxis={(v, dec) => f.num(v, dec)} label={tr(d.label)} testID="measure-chart"

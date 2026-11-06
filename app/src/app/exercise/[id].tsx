@@ -178,7 +178,7 @@ export default function ExerciseDetail() {
               subtitle={(
                 <Text style={[{ ...TYPE.footnote, color: t.ink2 }, tnum]} numberOfLines={2}>
                   {x.entry.sets.map((set, j) => (
-                    <Text key={set.id || j} style={set.type === 'warmup' ? { color: t.ink3 } : undefined}>
+                    <Text key={set.id || j} style={set.type === 'warmup' ? { color: t.ink2 } : undefined}>
                       {`${j ? ' · ' : ''}${f.setText(set, category, true)}`}
                     </Text>
                   ))}

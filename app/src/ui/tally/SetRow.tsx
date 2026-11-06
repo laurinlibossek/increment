@@ -128,7 +128,7 @@ export function Times({ children, lower = 0 }: { children: [ReactNode, ReactNode
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
       {children[0]}
-      <Text style={{ ...TYPE.numberM, fontWeight: '400', color: t.ink3, marginHorizontal: 2, marginTop: lower }} importantForAccessibility="no">×</Text>
+      <Text style={{ ...TYPE.numberM, fontWeight: '400', color: t.ink2, marginHorizontal: 2, marginTop: lower }} importantForAccessibility="no">×</Text>
       {children[1]}
     </View>
   );

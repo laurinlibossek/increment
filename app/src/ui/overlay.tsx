@@ -161,20 +161,20 @@ function SheetView({ o }: { o: Extract<Open, { kind: 'sheet' }> }) {
   const { tr } = useLang();
   const insets = useSafeAreaInsets();
   return (
-    <View style={{ gap: 8, paddingHorizontal: 8, paddingBottom: Math.max(insets.bottom, 8), width: '100%', maxWidth: 560 }} accessibilityViewIsModal>
+    <View style={{ gap: SPACE.s2, paddingHorizontal: SPACE.s2, paddingBottom: Math.max(insets.bottom, SPACE.s2), width: '100%', maxWidth: 560 }} accessibilityViewIsModal testID="sheet-dialog">
       <View style={[styles.group, { backgroundColor: c.surface }]}>
         <ScrollView style={{ maxHeight: 520 }} bounces={false}>
           {(!!o.title || !!o.message) && (
             <View style={styles.sheetHead}>
-              {!!o.title && <Text style={{ color: c.ink2, fontSize: 14, fontWeight: '600', textAlign: 'center' }}>{o.title}</Text>}
-              {!!o.message && <Text style={{ color: c.ink3, fontSize: 13, textAlign: 'center', marginTop: 2, lineHeight: 18 }}>{o.message}</Text>}
+              {!!o.title && <Text style={[TYPE.headline, { color: c.ink2, textAlign: 'center' }]} testID="sheet-title">{o.title}</Text>}
+              {!!o.message && <Text style={[TYPE.footnote, { color: c.ink2, textAlign: 'center', marginTop: 2 }]} testID="sheet-message">{o.message}</Text>}
             </View>
           )}
           {o.actions.map((a, i) => (
             <Pressable key={i} onPress={() => close(a.value)} accessibilityRole="button" accessibilityState={a.checked === undefined ? undefined : { selected: a.checked }} testID={a.testID}
               style={({ pressed }) => [styles.action, { borderTopColor: c.line, borderTopWidth: i === 0 && !o.title && !o.message ? 0 : StyleSheet.hairlineWidth, backgroundColor: pressed ? c.surface2 : 'transparent' }]}>
               {a.icon && <Icon name={a.icon} size={19} color={a.destructive ? c.danger : c.accentText} />}
-              <Text style={{ color: a.destructive ? c.danger : c.accentText, fontSize: 18 }} numberOfLines={1}>{a.label}</Text>
+              <Text style={[TYPE.body, { color: a.destructive ? c.danger : c.accentText }]} numberOfLines={1}>{a.label}</Text>
               {a.checked && <Icon name="check" size={17} color={c.accentText} />}
             </Pressable>
           ))}
@@ -182,7 +182,7 @@ function SheetView({ o }: { o: Extract<Open, { kind: 'sheet' }> }) {
       </View>
       <Pressable onPress={() => close(undefined)} accessibilityRole="button" testID="sheet-cancel"
         style={({ pressed }) => [styles.group, styles.action, { backgroundColor: pressed ? c.surface2 : c.surface }]}>
-        <Text style={{ color: c.accentText, fontSize: 18, fontWeight: '600' }}>{tr('Cancel')}</Text>
+        <Text style={[TYPE.headline, { color: c.accentText }]}>{tr('Cancel')}</Text>
       </Pressable>
     </View>
   );
@@ -209,27 +209,28 @@ function DiffLines({ lines }: { lines: DiffLine[] }) {
 function ChoiceView({ o }: { o: Extract<Open, { kind: 'choice' }> }) {
   const c = useColors();
   const { tr } = useLang();
-  const look = (tone: ChoiceOption<unknown>['tone']) => (tone === 'danger' ? { bg: c.dangerSoft, ink: c.danger }
+  const routine = o.lines !== undefined;
+  const look = (tone: ChoiceOption<unknown>['tone']) => (tone === 'danger' ? { bg: routine ? c.dangerSoft : c.surface3, ink: c.danger }
     : tone === 'plain' ? { bg: c.surface3, ink: c.ink } : { bg: c.primary, ink: c.primaryInk });
   return (
-    <View style={[styles.dialog, { backgroundColor: c.surface }]} accessibilityRole="alert" accessibilityViewIsModal>
-      <Text style={{ color: c.ink, fontSize: 18, fontWeight: '700', textAlign: 'center' }}>{o.title}</Text>
+    <View style={[routine ? routineStyles.dialog : styles.dialog, { backgroundColor: c.surface }]} accessibilityRole="alert" accessibilityViewIsModal testID={routine ? 'routine-dialog' : 'choice-dialog'}>
+      <Text style={[routine ? routineStyles.title : TYPE.title3, { color: c.ink, textAlign: 'center' }]} testID="choice-title">{o.title}</Text>
       {!!o.lines?.length && <DiffLines lines={o.lines} />}
-      {!!o.message && <Text style={{ color: c.ink2, fontSize: 15, textAlign: 'center', marginTop: o.lines?.length ? 12 : 6, lineHeight: 21 }}>{o.message}</Text>}
-      <View style={{ gap: 8, marginTop: 16 }}>
+      {!!o.message && <Text style={[routine ? routineStyles.message : TYPE.subhead, { color: c.ink2, textAlign: 'center', marginTop: routine ? (o.lines?.length ? 12 : 6) : SPACE.s2 }]}>{o.message}</Text>}
+      <View style={{ gap: SPACE.s2, marginTop: SPACE.s4 }}>
         {o.options.map((opt, i) => {
           const l = look(opt.tone);
           return (
             <Pressable key={i} onPress={() => close(opt.value)} accessibilityRole="button" testID={opt.testID}
-              style={({ pressed }) => [styles.choice, { backgroundColor: l.bg, opacity: pressed ? 0.8 : 1 }]}>
-              <Text style={{ color: l.ink, fontSize: 16, fontWeight: '600', textAlign: 'center' }}>{opt.label}</Text>
-              {!!opt.sub && <Text style={{ color: l.ink, fontSize: 13, textAlign: 'center', marginTop: 2, opacity: 0.85 }}>{opt.sub}</Text>}
+              style={({ pressed }) => [routine ? routineStyles.choice : styles.choice, { backgroundColor: l.bg, opacity: pressed ? 0.8 : 1 }]}>
+              <Text style={[routine ? routineStyles.label : TYPE.headline, { color: l.ink, textAlign: 'center' }]}>{opt.label}</Text>
+              {!!opt.sub && <Text style={[routine ? routineStyles.sub : TYPE.footnote, { color: l.ink, textAlign: 'center', marginTop: 2 }]}>{opt.sub}</Text>}
             </Pressable>
           );
         })}
         {o.cancel !== false && (
-          <Pressable onPress={() => close(undefined)} accessibilityRole="button" testID="dialog-cancel" style={styles.choice}>
-            <Text style={{ color: c.accentText, fontSize: 16, fontWeight: '600', textAlign: 'center' }}>{o.cancel || tr('Cancel')}</Text>
+          <Pressable onPress={() => close(undefined)} accessibilityRole="button" testID="dialog-cancel" style={routine ? routineStyles.choice : styles.choice}>
+            <Text style={[routine ? routineStyles.label : TYPE.headline, { color: c.accentText, textAlign: 'center' }]}>{o.cancel || tr('Cancel')}</Text>
           </Pressable>
         )}
       </View>
@@ -242,18 +243,18 @@ function PromptView({ o }: { o: Extract<Open, { kind: 'prompt' }> }) {
   const { tr } = useLang();
   const [v, setV] = useState(o.value);
   return (
-    <View style={[styles.dialog, { backgroundColor: c.surface, marginBottom: 160 }]} accessibilityViewIsModal>
-      <Text style={{ color: c.ink, fontSize: 18, fontWeight: '700', textAlign: 'center' }}>{o.title}</Text>
-      {!!o.message && <Text style={{ color: c.ink2, fontSize: 14, textAlign: 'center', marginTop: 4 }}>{o.message}</Text>}
+    <View style={[styles.dialog, { backgroundColor: c.surface, marginBottom: SPACE.s8 * 5 }]} accessibilityViewIsModal testID="prompt-dialog">
+      <Text style={[TYPE.title3, { color: c.ink, textAlign: 'center' }]} testID="prompt-title">{o.title}</Text>
+      {!!o.message && <Text style={[TYPE.subhead, { color: c.ink2, textAlign: 'center', marginTop: SPACE.s1 }]}>{o.message}</Text>}
       <TextInput value={v} onChangeText={setV} autoFocus multiline={o.multiline} placeholder={o.placeholder} placeholderTextColor={c.ink3}
         onSubmitEditing={o.multiline ? undefined : () => close(v)} returnKeyType={o.multiline ? 'default' : 'done'} testID="prompt-input"
         style={[styles.promptInput, { color: c.ink, backgroundColor: c.surface2, borderColor: c.line, minHeight: o.multiline ? 84 : 44 }]} />
-      <View style={{ flexDirection: 'row', gap: 8, marginTop: 14 }}>
+      <View style={{ flexDirection: 'row', gap: SPACE.s2, marginTop: SPACE.s4 }}>
         <Pressable onPress={() => close(undefined)} accessibilityRole="button" testID="prompt-cancel" style={[styles.choice, { flex: 1, backgroundColor: c.surface3 }]}>
-          <Text style={{ color: c.ink, fontSize: 16, fontWeight: '600', textAlign: 'center' }}>{tr('Cancel')}</Text>
+          <Text style={[TYPE.headline, { color: c.ink, textAlign: 'center' }]}>{tr('Cancel')}</Text>
         </Pressable>
         <Pressable onPress={() => close(v)} accessibilityRole="button" testID="prompt-ok" style={[styles.choice, { flex: 1, backgroundColor: c.primary }]}>
-          <Text style={{ color: c.primaryInk, fontSize: 16, fontWeight: '600', textAlign: 'center' }}>{o.ok || tr('Save')}</Text>
+          <Text style={[TYPE.headline, { color: c.primaryInk, textAlign: 'center' }]}>{o.ok || tr('Save')}</Text>
         </Pressable>
       </View>
     </View>
@@ -294,20 +295,20 @@ function DayTime({ value, onChange, max }: { value: number; onChange: (t: number
       style={[styles.timeInput, { color: c.ink, backgroundColor: c.surface2 }]} />
   );
   return (
-    <View style={{ gap: 10, marginTop: 14 }}>
+    <View style={{ gap: SPACE.s3, marginTop: SPACE.s4 }}>
       <View style={[styles.dayRow, { backgroundColor: c.surface2 }]}>
         <Pressable onPress={() => shift(-1)} hitSlop={8} accessibilityRole="button" accessibilityLabel={tr('Day before')} testID="day-prev" style={styles.dayBtn}>
-          <Text style={{ color: c.accentText, fontSize: 22, fontWeight: '600' }}>‹</Text>
+          <Text style={[TYPE.numberM, { color: c.accentText }]}>‹</Text>
         </Pressable>
-        <Text style={{ color: c.ink, fontSize: 16, fontWeight: '600', flex: 1, textAlign: 'center' }} testID="day-label">{label}</Text>
-        <Pressable onPress={() => canNext && shift(1)} hitSlop={8} accessibilityRole="button" accessibilityLabel={tr('Day after')} testID="day-next"
+        <Text style={[TYPE.headline, { color: c.ink, flex: 1, textAlign: 'center' }]} testID="day-label">{label}</Text>
+        <Pressable onPress={() => canNext && shift(1)} disabled={!canNext} accessibilityState={{ disabled: !canNext }} hitSlop={8} accessibilityRole="button" accessibilityLabel={tr('Day after')} testID="day-next"
           style={[styles.dayBtn, { opacity: canNext ? 1 : 0.3 }]}>
-          <Text style={{ color: c.accentText, fontSize: 22, fontWeight: '600' }}>›</Text>
+          <Text style={[TYPE.numberM, { color: c.accentText }]}>›</Text>
         </Pressable>
       </View>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACE.s2 }}>
         {field(hh, setHh, 'h', tr('Hour'))}
-        <Text style={{ color: c.ink, fontSize: 26, fontWeight: '700' }}>:</Text>
+        <Text style={[TYPE.title1, { color: c.ink }]}>:</Text>
         {field(mm, setMm, 'm', tr('Minute'))}
       </View>
     </View>
@@ -318,12 +319,12 @@ function DialogButtons({ onOk, ok, okID }: { onOk: () => void; ok?: string; okID
   const c = useColors();
   const { tr } = useLang();
   return (
-    <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
+    <View style={{ flexDirection: 'row', gap: SPACE.s2, marginTop: SPACE.s4 }}>
       <Pressable onPress={() => close(undefined)} accessibilityRole="button" testID="dialog-cancel" style={[styles.choice, { flex: 1, backgroundColor: c.surface3 }]}>
-        <Text style={{ color: c.ink, fontSize: 16, fontWeight: '600', textAlign: 'center' }}>{tr('Cancel')}</Text>
+        <Text style={[TYPE.headline, { color: c.ink, textAlign: 'center' }]}>{tr('Cancel')}</Text>
       </Pressable>
       <Pressable onPress={onOk} accessibilityRole="button" testID={okID} style={[styles.choice, { flex: 1, backgroundColor: c.primary }]}>
-        <Text style={{ color: c.primaryInk, fontSize: 16, fontWeight: '600', textAlign: 'center' }}>{ok || tr('Save')}</Text>
+        <Text style={[TYPE.headline, { color: c.primaryInk, textAlign: 'center' }]}>{ok || tr('Save')}</Text>
       </Pressable>
     </View>
   );
@@ -338,11 +339,11 @@ function DateTimeView({ o }: { o: Extract<Open, { kind: 'datetime' }> }) {
     close(t);
   };
   return (
-    <View style={[styles.dialog, { backgroundColor: c.surface, marginBottom: 160 }]} accessibilityViewIsModal testID="datetime-dialog">
-      <Text style={{ color: c.ink, fontSize: 18, fontWeight: '700', textAlign: 'center' }}>{o.title}</Text>
-      {!!o.message && <Text style={{ color: c.ink2, fontSize: 14, textAlign: 'center', marginTop: 4 }}>{o.message}</Text>}
+    <View style={[styles.dialog, { backgroundColor: c.surface, marginBottom: SPACE.s8 * 5 }]} accessibilityViewIsModal testID="datetime-dialog">
+      <Text style={[TYPE.title3, { color: c.ink, textAlign: 'center' }]} testID="datetime-title">{o.title}</Text>
+      {!!o.message && <Text style={[TYPE.subhead, { color: c.ink2, textAlign: 'center', marginTop: SPACE.s1 }]}>{o.message}</Text>}
       <DayTime value={t} max={o.max} onChange={(x) => { setT(x); setErr(''); }} />
-      {!!err && <Text style={{ color: c.danger, fontSize: 14, textAlign: 'center', marginTop: 10 }} testID="datetime-error">{err}</Text>}
+      {!!err && <Text style={[TYPE.subhead, { color: c.danger, textAlign: 'center', marginTop: SPACE.s3 }]} testID="datetime-error">{err}</Text>}
       <DialogButtons onOk={ok} ok={o.ok} okID="datetime-ok" />
     </View>
   );
@@ -353,15 +354,15 @@ function NumberView({ o }: { o: Extract<Open, { kind: 'number' }> }) {
   const [v, setV] = useState('');
   const [t, setT] = useState(o.at);
   return (
-    <View style={[styles.dialog, { backgroundColor: c.surface, marginBottom: 120 }]} accessibilityViewIsModal testID="number-dialog">
-      <Text style={{ color: c.ink, fontSize: 18, fontWeight: '700', textAlign: 'center' }}>{o.title}</Text>
-      {!!o.message && <Text style={{ color: c.ink2, fontSize: 14, textAlign: 'center', marginTop: 4 }}>{o.message}</Text>}
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 14 }}>
+    <View style={[styles.dialog, { backgroundColor: c.surface, marginBottom: SPACE.s12 * 2 + SPACE.s6 }]} accessibilityViewIsModal testID="number-dialog">
+      <Text style={[TYPE.title3, { color: c.ink, textAlign: 'center' }]} testID="number-title">{o.title}</Text>
+      {!!o.message && <Text style={[TYPE.subhead, { color: c.ink2, textAlign: 'center', marginTop: SPACE.s1 }]}>{o.message}</Text>}
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACE.s2, marginTop: SPACE.s4 }}>
         <TextInput value={v} onChangeText={(x) => setV(x.replace(/[^\d.,]/g, '').slice(0, 8))} autoFocus selectTextOnFocus
           keyboardType={o.integer ? 'number-pad' : 'decimal-pad'} placeholder={o.placeholder} placeholderTextColor={c.ink3} testID="number-input"
           onSubmitEditing={() => close({ text: v, at: t })} returnKeyType="done"
           style={[styles.numInput, { color: c.ink, backgroundColor: c.surface2 }]} />
-        <Text style={{ color: c.ink2, fontSize: 18, fontWeight: '600' }}>{o.unit}</Text>
+        <Text style={[TYPE.title3, { color: c.ink2 }]}>{o.unit}</Text>
       </View>
       <DayTime value={t} max={Date.now() + 60000} onChange={setT} />
       <DialogButtons onOk={() => close({ text: v, at: t })} ok={o.ok} okID="number-ok" />
@@ -373,12 +374,12 @@ function ToastView({ t }: { t: Toast }) {
   const c = useColors();
   const insets = useSafeAreaInsets();
   return (
-    <View pointerEvents="box-none" style={[StyleSheet.absoluteFill, { justifyContent: 'flex-end', alignItems: 'center', paddingBottom: insets.bottom + 70, paddingHorizontal: 16 }]}>
+    <View pointerEvents="box-none" style={[StyleSheet.absoluteFill, { justifyContent: 'flex-end', alignItems: 'center', paddingBottom: insets.bottom + SPACE.s12 + SPACE.s6, paddingHorizontal: SPACE.s4 }]}>
       <View style={[styles.toast, { backgroundColor: c.ink }]} accessibilityLiveRegion="polite" testID="toast">
-        <Text style={{ color: c.bg, fontSize: 15, fontWeight: '500', flexShrink: 1 }}>{t.text}</Text>
+        <Text style={[TYPE.subhead, { color: c.bg, flexShrink: 1 }]}>{t.text}</Text>
         {t.action && (
           <Pressable onPress={() => { hideToast(); t.action!.fn(); }} accessibilityRole="button" hitSlop={8} testID="toast-action">
-            <Text style={{ color: c.bg, fontSize: 15, fontWeight: '700', textDecorationLine: 'underline' }}>{t.action.label}</Text>
+            <Text style={[TYPE.headline, { color: c.bg, textDecorationLine: 'underline' }]}>{t.action.label}</Text>
           </Pressable>
         )}
       </View>
@@ -388,16 +389,27 @@ function ToastView({ t }: { t: Toast }) {
 
 const styles = StyleSheet.create({
   wrap: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'flex-end', alignItems: 'center' },
-  middle: { justifyContent: 'center', padding: 24 },
-  group: { borderRadius: 14, overflow: 'hidden' },
-  sheetHead: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10 },
-  action: { minHeight: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingHorizontal: 16 },
-  dialog: { width: '100%', maxWidth: 380, borderRadius: 18, padding: 20 },
-  choice: { borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14, minHeight: 48, justifyContent: 'center' },
-  dayRow: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, height: 46, paddingHorizontal: 6 },
+  middle: { justifyContent: 'center', padding: SPACE.s6 },
+  group: { borderRadius: RADIUS.l, overflow: 'hidden' },
+  sheetHead: { paddingHorizontal: SPACE.s4, paddingTop: SPACE.s4, paddingBottom: SPACE.s3 },
+  action: { minHeight: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACE.s3, paddingHorizontal: SPACE.s4 },
+  dialog: { width: '100%', maxWidth: 380, borderRadius: RADIUS.l, padding: SPACE.s5 },
+  choice: { borderRadius: RADIUS.capsule, paddingVertical: SPACE.s3, paddingHorizontal: SPACE.s4, minHeight: 48, justifyContent: 'center' },
+  dayRow: { flexDirection: 'row', alignItems: 'center', borderRadius: RADIUS.m, height: 48, paddingHorizontal: SPACE.s2 },
   dayBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  timeInput: { width: 64, height: 52, borderRadius: 10, textAlign: 'center', fontSize: 26, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  numInput: { minWidth: 140, height: 56, borderRadius: 12, textAlign: 'center', fontSize: 28, fontWeight: '700', fontVariant: ['tabular-nums'], paddingHorizontal: 12 },
-  promptInput: { marginTop: 14, borderRadius: 10, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16, textAlignVertical: 'top' },
-  toast: { flexDirection: 'row', alignItems: 'center', gap: 14, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, maxWidth: 520, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
+  timeInput: { ...TYPE.title1, width: 64, height: 52, borderRadius: RADIUS.m, textAlign: 'center', fontVariant: ['tabular-nums'] },
+  numInput: { ...TYPE.numberL, minWidth: 140, height: 56, borderRadius: RADIUS.m, textAlign: 'center', fontVariant: ['tabular-nums'], paddingHorizontal: SPACE.s3 },
+  promptInput: { ...TYPE.body, marginTop: SPACE.s4, borderRadius: RADIUS.m, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: SPACE.s3, paddingVertical: SPACE.s3, textAlignVertical: 'top' },
+  toast: { flexDirection: 'row', alignItems: 'center', gap: SPACE.s4, borderRadius: RADIUS.l, paddingHorizontal: SPACE.s4, paddingVertical: SPACE.s3, maxWidth: 520, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
+});
+
+// Laurin approved the routine diff popup separately. Keep that surface's exact
+// typography, spacing and corners while the generic overlays use Tally's scale.
+const routineStyles = StyleSheet.create({
+  dialog: { width: '100%', maxWidth: 380, borderRadius: 18, padding: 20 },
+  title: { fontSize: 18, fontWeight: '700', textAlign: 'center' },
+  message: { fontSize: 15, textAlign: 'center', lineHeight: 21 },
+  choice: { borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14, minHeight: 48, justifyContent: 'center' },
+  label: { fontSize: 16, fontWeight: '600', textAlign: 'center' },
+  sub: { fontSize: 13, textAlign: 'center', marginTop: 2, opacity: 0.85 },
 });

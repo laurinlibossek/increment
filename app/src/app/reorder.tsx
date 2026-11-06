@@ -94,7 +94,7 @@ export default function Reorder() {
               lifted={drag?.from === i} shift={shift(i)} dy={dy} api={apiRef} first={i === 0} moveLabel={tr('Move {name}', { name: f.exName(exercises.get(e.exerciseId)) || '' })} />
           ))}
         </View>
-        <Text style={{ color: c.ink3, fontSize: 13, marginTop: 10, paddingHorizontal: 4 }}>{tr('Drag ≡ to move an exercise, or press and hold it.')}</Text>
+        <Text style={{ color: c.ink2, fontSize: 13, marginTop: 10, paddingHorizontal: 4 }} testID="reorder-hint">{tr('Drag ≡ to move an exercise, or press and hold it.')}</Text>
       </ScrollView>
     </View>
   );
@@ -135,7 +135,7 @@ function Row({
       <Pressable onLongPress={() => api.current.begin(idx.current)} delayLongPress={320} onPressOut={() => { if (api.current.dragging(idx.current)) api.current.end(); }}
         style={{ flex: 1, minWidth: 0, justifyContent: 'center', height: '100%' }}>
         <Text style={{ color: c.ink, fontSize: 16 }} numberOfLines={1}>{name}</Text>
-        <Text style={{ color: c.ink3, fontSize: 13, marginTop: 2 }} numberOfLines={1}>{sub}</Text>
+        <Text style={{ color: c.ink2, fontSize: 13, marginTop: 2 }} numberOfLines={1}>{sub}</Text>
       </Pressable>
       <View {...handle.panHandlers} accessible accessibilityRole="adjustable" accessibilityLabel={moveLabel} testID={`grip-${entry.exerciseId}`}
         accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}

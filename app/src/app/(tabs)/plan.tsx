@@ -92,7 +92,7 @@ export default function PlanTab() {
         <View style={{ transform: [{ rotate: closed[key] ? '-90deg' : '0deg' }] }}><SymbolIcon name="chevron.down" size={13} color={t.ink2} /></View>
         <Text style={[TYPE.headline, { color: t.ink2 }]} numberOfLines={1}>
           {key === '__archived' ? tr('Archived') : key || tr('My routines')}
-          <Text style={[TYPE.footnote, { color: t.ink3 }]}>{` ${count}`}</Text>
+          <Text style={[TYPE.footnote, { color: t.ink2 }]}>{` ${count}`}</Text>
         </Text>
       </Pressable>
       {key && key !== '__archived' && (

@@ -9,7 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 
 import { useSearchFocus } from '@/ui/useSearchFocus';
-import { CONTROL, RADIUS, TYPE } from '@/design/tally';
+import { CONTROL, RADIUS, SPACE, TYPE } from '@/design/tally';
 import { useColors, type Colors } from '@/lib/theme';
 
 // ---------- icons ----------
@@ -72,7 +72,7 @@ type TxtProps = { children: ReactNode; style?: StyleProp<TextStyle>; numberOfLin
 export function Txt({ children, style, numberOfLines, tone = 'ink', testID }: TxtProps) {
   const c = useColors();
   const color = { ink: c.ink, ink2: c.ink2, ink3: c.ink3, accent: c.accentText, danger: c.danger, gold: c.gold }[tone];
-  return <Text style={[{ color, fontSize: 16 }, style]} numberOfLines={numberOfLines} testID={testID}>{children}</Text>;
+  return <Text style={[TYPE.body, { color }, style]} numberOfLines={numberOfLines} testID={testID}>{children}</Text>;
 }
 
 // ---------- screens ----------
@@ -85,7 +85,7 @@ export function Screen({ title, right, children, scroll = true }: { title: strin
     return <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top }}>{head}{children}</View>;
   }
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: c.bg }} contentContainerStyle={{ paddingTop: insets.top, paddingBottom: 32 }}>
+    <ScrollView style={{ flex: 1, backgroundColor: c.bg }} contentContainerStyle={{ paddingTop: insets.top, paddingBottom: SPACE.s8 }}>
       {head}
       <View style={styles.page}>{children}</View>
     </ScrollView>
@@ -106,7 +106,7 @@ export function LargeTitle({ title, right }: { title: string; right?: ReactNode 
 export function Page({ children }: { children: ReactNode }) {
   const c = useColors();
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: c.bg }} contentContainerStyle={[styles.page, { paddingTop: 12, paddingBottom: 40 }]} contentInsetAdjustmentBehavior="automatic">
+    <ScrollView style={{ flex: 1, backgroundColor: c.bg }} contentContainerStyle={[styles.page, { paddingTop: SPACE.s3, paddingBottom: SPACE.s8 + SPACE.s2 }]} contentInsetAdjustmentBehavior="automatic">
       {children}
     </ScrollView>
   );
@@ -152,16 +152,16 @@ export function Cell({ title, sub, value, icon, onPress, first, danger, right, c
   const c = useColors();
   const body = (pressed: boolean) => (
     <View style={[styles.cell, { backgroundColor: pressed ? c.surface2 : 'transparent' }]}>
-      {!first && <View style={[styles.hairline, { backgroundColor: c.line, left: icon ? 52 : 16 }]} />}
+      {!first && <View style={[styles.hairline, { backgroundColor: c.line, left: icon ? CONTROL.rowH : SPACE.s5 }]} />}
       {icon && <View style={[styles.cellIcon, { backgroundColor: c.accentSoft }]}><Icon name={icon} size={17} color={c.accentText} /></View>}
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={{ color: danger ? c.danger : c.ink, fontSize: 16 }}>{title}</Text>
-        {!!sub && <Text style={{ color: c.ink3, fontSize: 13, marginTop: 2 }} numberOfLines={2}>{sub}</Text>}
+        <Text style={[TYPE.body, { color: danger ? c.danger : c.ink }]}>{title}</Text>
+        {!!sub && <Text style={[TYPE.footnote, { color: c.ink2, marginTop: 2 }]} numberOfLines={2}>{sub}</Text>}
       </View>
-      {!!value && <Text style={{ color: c.ink3, fontSize: 15, marginLeft: 8, flexShrink: 1, maxWidth: '45%' }} numberOfLines={1}>{value}</Text>}
+      {!!value && <Text style={[TYPE.subhead, { color: c.ink2, marginLeft: SPACE.s2, flexShrink: 1, maxWidth: '45%' }]} numberOfLines={1}>{value}</Text>}
       {right}
       {checked && <Icon name="check" size={17} color={c.accentText} />}
-      {onPress && chevron && checked === undefined && <View style={{ marginLeft: 4 }}><Icon name="chevron" size={13} color={c.ink3} /></View>}
+      {onPress && chevron && checked === undefined && <View style={{ marginLeft: SPACE.s1 }}><Icon name="chevron" size={13} color={c.ink2} /></View>}
     </View>
   );
   if (!onPress) return body(false);
@@ -188,14 +188,14 @@ export function Button({ title, onPress, kind = 'primary', icon, large, disabled
     <Pressable onPress={onPress} disabled={disabled} accessibilityRole="button" testID={testID}
       style={({ pressed }) => [styles.btn, large && styles.btnLarge, { backgroundColor: look.bg, opacity: disabled ? 0.45 : pressed ? 0.8 : 1 }]}>
       {icon && <Icon name={icon} size={large ? 18 : 16} color={look.ink} />}
-      <Text style={{ color: look.ink, fontSize: large ? 17 : 16, fontWeight: '600' }} numberOfLines={1}>{title}</Text>
+      <Text style={[TYPE.headline, { color: look.ink }]} numberOfLines={1}>{title}</Text>
     </Pressable>
   );
 }
 function buttonLook(c: Colors, kind: ButtonProps['kind']) {
   if (kind === 'tinted') return { bg: c.accentSoft, ink: c.accentText };
   if (kind === 'plain') return { bg: c.surface, ink: c.accentText };
-  if (kind === 'danger') return { bg: c.dangerSoft, ink: c.danger };
+  if (kind === 'danger') return { bg: c.surface3, ink: c.danger };
   return { bg: c.primary, ink: c.primaryInk };
 }
 
@@ -213,8 +213,8 @@ export function IconButton({ icon, onPress, label, testID }: { icon: IconName; o
 export function HeaderButton({ title, onPress, strong, testID }: { title: string; onPress: () => void; strong?: boolean; testID?: string }) {
   const c = useColors();
   return (
-    <Pressable onPress={onPress} hitSlop={10} accessibilityRole="button" testID={testID} style={{ paddingHorizontal: 6, paddingVertical: 4 }}>
-      <Text style={{ color: c.accentText, fontSize: 17, fontWeight: strong ? '700' : '400' }}>{title}</Text>
+    <Pressable onPress={onPress} hitSlop={SPACE.s3} accessibilityRole="button" testID={testID} style={{ paddingHorizontal: SPACE.s2, paddingVertical: SPACE.s1 }}>
+      <Text style={[strong ? TYPE.headline : TYPE.body, { color: c.accentText }]}>{title}</Text>
     </Pressable>
   );
 }
@@ -228,11 +228,11 @@ export function Field({
 }) {
   const c = useColors();
   return (
-    <View style={{ gap: 6 }}>
-      {!!label && <Text style={{ color: c.ink2, fontSize: 13, fontWeight: '600', paddingHorizontal: 4 }}>{label}</Text>}
+    <View style={{ gap: SPACE.s2 }}>
+      {!!label && <Text style={[TYPE.footnote, { color: c.ink2, paddingHorizontal: SPACE.s1 }]}>{label}</Text>}
       <TextInput value={value} onChangeText={onChange} placeholder={placeholder} placeholderTextColor={c.ink3} multiline={multiline}
         keyboardType={keyboardType} testID={testID} accessibilityLabel={label || placeholder}
-        style={[styles.field, { color: c.ink, backgroundColor: c.surface }, multiline && { minHeight: 64, textAlignVertical: 'top' }, big && { fontSize: 22, fontWeight: '800' }]} />
+        style={[styles.field, { color: c.ink, backgroundColor: c.surface }, multiline && { minHeight: 64, textAlignVertical: 'top' }, big && TYPE.numberM]} />
     </View>
   );
 }
@@ -240,10 +240,10 @@ export function Field({
 export function Empty({ title, text, children }: { title: string; text?: string; children?: ReactNode }) {
   const c = useColors();
   return (
-    <View style={{ alignItems: 'center', paddingVertical: 40, paddingHorizontal: 16, gap: 8 }}>
-      <Text style={{ color: c.ink, fontSize: 19, fontWeight: '700', textAlign: 'center' }}>{title}</Text>
-      {!!text && <Text style={{ color: c.ink2, fontSize: 15, textAlign: 'center', lineHeight: 21 }}>{text}</Text>}
-      {children && <View style={{ marginTop: 12, alignSelf: 'stretch' }}>{children}</View>}
+    <View style={{ alignItems: 'center', paddingVertical: SPACE.s8 + SPACE.s2, paddingHorizontal: SPACE.s5, gap: SPACE.s2 }}>
+      <Text style={[TYPE.title3, { color: c.ink, textAlign: 'center' }]}>{title}</Text>
+      {!!text && <Text style={[TYPE.subhead, { color: c.ink2, textAlign: 'center' }]}>{text}</Text>}
+      {children && <View style={{ marginTop: SPACE.s3, alignSelf: 'stretch' }}>{children}</View>}
     </View>
   );
 }
@@ -255,25 +255,25 @@ export function SearchField({ value, onChange, placeholder, testID }: { value: s
     <View style={[styles.search, { backgroundColor: c.surface3 }, focus.containerStyle]}>
       <Icon name="search" size={16} color={c.ink3} />
       <TextInput value={value} onChangeText={onChange} placeholder={placeholder} placeholderTextColor={c.ink3} testID={testID}
-        onFocus={focus.onFocus} onBlur={focus.onBlur} autoCorrect={false} autoCapitalize="none" clearButtonMode="while-editing" style={[{ flex: 1, minWidth: 0, color: c.ink, fontSize: 16, paddingVertical: 8 }, focus.inputStyle]} />
+        onFocus={focus.onFocus} onBlur={focus.onBlur} autoCorrect={false} autoCapitalize="none" clearButtonMode="while-editing" style={[TYPE.body, { flex: 1, minWidth: 0, color: c.ink, paddingVertical: SPACE.s2 }, focus.inputStyle]} />
     </View>
   );
 }
 
 export const styles = StyleSheet.create({
-  page: { paddingHorizontal: 16 },
-  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 10, paddingBottom: 8, gap: 8 },
-  largeTitle: { fontSize: TYPE.largeTitle.fontSize, lineHeight: TYPE.largeTitle.lineHeight, fontWeight: '700', letterSpacing: TYPE.largeTitle.letterSpacing, flexShrink: 1 },
-  sectionRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 28, marginBottom: 8, paddingHorizontal: 4 },
-  sectionTitle: { fontSize: TYPE.title2.fontSize, lineHeight: TYPE.title2.lineHeight, fontWeight: '700' },
+  page: { paddingHorizontal: SPACE.s5 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SPACE.s5, paddingTop: SPACE.s3, paddingBottom: SPACE.s2, gap: SPACE.s2 },
+  largeTitle: { ...TYPE.largeTitle, flexShrink: 1 },
+  sectionRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: SPACE.s8, marginBottom: SPACE.s2, paddingHorizontal: SPACE.s1 },
+  sectionTitle: TYPE.title2,
   group: { borderRadius: RADIUS.l, overflow: 'hidden' },
-  cell: { flexDirection: 'row', alignItems: 'center', minHeight: 50, paddingHorizontal: 16, paddingVertical: 10, gap: 12 },
+  cell: { flexDirection: 'row', alignItems: 'center', minHeight: CONTROL.rowH, paddingHorizontal: SPACE.s5, paddingVertical: SPACE.s3, gap: SPACE.s3 },
   hairline: { position: 'absolute', top: 0, right: 0, height: StyleSheet.hairlineWidth },
-  cellIcon: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  card: { borderRadius: RADIUS.l, padding: 16 },
-  btn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: CONTROL.hitMin, borderRadius: RADIUS.capsule, paddingHorizontal: 20 },
+  cellIcon: { width: 28, height: 28, borderRadius: RADIUS.s, alignItems: 'center', justifyContent: 'center' },
+  card: { borderRadius: RADIUS.l, padding: SPACE.s4 },
+  btn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACE.s2, minHeight: CONTROL.hitMin, borderRadius: RADIUS.capsule, paddingHorizontal: SPACE.s5 },
   btnLarge: { minHeight: CONTROL.buttonH, borderRadius: RADIUS.capsule },
   iconBtn: { width: CONTROL.hitMin, height: CONTROL.hitMin, borderRadius: RADIUS.capsule, alignItems: 'center', justifyContent: 'center' },
-  search: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: RADIUS.capsule, paddingHorizontal: 14 },
-  field: { borderRadius: RADIUS.m, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16 },
+  search: { flexDirection: 'row', alignItems: 'center', gap: SPACE.s2, borderRadius: RADIUS.capsule, paddingHorizontal: SPACE.s4 },
+  field: { borderRadius: RADIUS.m, paddingHorizontal: SPACE.s4, paddingVertical: SPACE.s3, ...TYPE.body },
 });
