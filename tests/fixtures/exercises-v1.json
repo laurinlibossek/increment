@@ -1,0 +1,1884 @@
+{
+  "exercises": [
+    {
+      "id": "x-bench-press-barbell",
+      "name": "Bench Press (Barbell)",
+      "category": "barbell",
+      "bodyPart": "chest",
+      "builtin": true
+    },
+    {
+      "id": "x-bench-press-dumbbell",
+      "name": "Bench Press (Dumbbell)",
+      "category": "dumbbell",
+      "bodyPart": "chest",
+      "builtin": true
+    },
+    {
+      "id": "x-bench-press-smith-machine",
+      "name": "Bench Press (Smith Machine)",
+      "category": "machine",
+      "bodyPart": "chest",
+      "builtin": true
+    },
+    {
+      "id": "x-incline-bench-press-barbell",
+      "name": "Incline Bench Press (Barbell)",
+      "category": "barbell",
+      "bodyPart": "chest",
+      "builtin": true
+    },
+    {
+      "id": "x-incline-bench-press-dumbbell",
+      "name": "Incline Bench Press (Dumbbell)",
+      "category": "dumbbell",
+      "bodyPart": "chest",
+      "builtin": true
+    },
+    {
+      "id": "x-incline-bench-press-smith-machine",
+      "name": "Incline Bench Press (Smith Machine)",
+      "category": "machine",
+      "bodyPart": "chest",
+      "builtin": true
+    },
+    {
+      "id": "x-decline-bench-press-barbell",
+      "name": "Decline Bench Press (Barbell)",
+      "category": "barbell",
+      "bodyPart": "chest",
+      "builtin": true
+    },
+    {
+      "id": "x-decline-bench-press-dumbbell",
+      "name": "Decline Bench Press (Dumbbell)",
+      "category": "dumbbell",
+      "bodyPart": "chest",
+      "builtin": true
+    },
+    {
+      "id": "x-floor-press-barbell",
+      "name": "Floor Press (Barbell)",
+      "category": "barbell",
+      "bodyPart": "chest",
+      "builtin": true
+    },
+    {
+      "id": "x-chest-press-machine",
+      "name": "Chest Press (Machine)",
+      "category": "machine",
+      "bodyPart": "chest",
+      "builtin": true
+    },
+    {
+      "id": "x-incline-chest-press-machine",
+      "name": "Incline Chest Press (Machine)",
+      "category": "machine",
+      "bodyPart": "chest",
+      "builtin": true
+    },
+    {
+      "id": "x-chest-fly-dumbbell",
+      "name": "Chest Fly (Dumbbell)",
+      "category": "dumbbell",
+      "bodyPart": "chest",
+      "builtin": true
+    },
+    {
+      "id": "x-incline-chest-fly-dumbbell",
+      "name": "Incline Chest Fly (Dumbbell)",
+      "category": "dumbbell",
+      "bodyPart": "chest",
+      "builtin": true
+    },
+    {
+      "id": "x-chest-fly-machine",
+      "name": "Chest Fly (Machine)",
+      "category": "machine",
+      "bodyPart": "chest",
+      "builtin": true
+    },
+    {
+      "id": "x-cable-crossover-cable",
+      "name": "Cable Crossover (Cable)",
+      "category": "machine",
+      "bodyPart": "chest",
+      "builtin": true
+    },
+    {
+      "id": "x-low-cable-fly-cable",
+      "name": "Low Cable Fly (Cable)",
+      "category": "machine",
+      "bodyPart": "chest",
+      "builtin": true
+    },
+    {
+      "id": "x-pullover-dumbbell",
+      "name": "Pullover (Dumbbell)",
+      "category": "dumbbell",
+      "bodyPart": "chest",
+      "builtin": true
+    },
+    {
+      "id": "x-push-up",
+      "name": "Push Up",
+      "category": "reps",
+      "bodyPart": "chest",
+      "builtin": true
+    },
+    {
+      "id": "x-incline-push-up",
+      "name": "Incline Push Up",
+      "category": "reps",
+      "bodyPart": "chest",
+      "builtin": true
+    },
+    {
+      "id": "x-decline-push-up",
+      "name": "Decline Push Up",
+      "category": "reps",
+      "bodyPart": "chest",
+      "builtin": true
+    },
+    {
+      "id": "x-push-up-weighted",
+      "name": "Push Up (Weighted)",
+      "category": "weighted_bw",
+      "bodyPart": "chest",
+      "builtin": true
+    },
+    {
+      "id": "x-chest-dip",
+      "name": "Chest Dip",
+      "category": "reps",
+      "bodyPart": "chest",
+      "builtin": true
+    },
+    {
+      "id": "x-chest-dip-weighted",
+      "name": "Chest Dip (Weighted)",
+      "category": "weighted_bw",
+      "bodyPart": "chest",
+      "builtin": true
+    },
+    {
+      "id": "x-chest-dip-assisted",
+      "name": "Chest Dip (Assisted)",
+      "category": "assisted_bw",
+      "bodyPart": "chest",
+      "builtin": true
+    },
+    {
+      "id": "x-deadlift-barbell",
+      "name": "Deadlift (Barbell)",
+      "category": "barbell",
+      "bodyPart": "back",
+      "builtin": true
+    },
+    {
+      "id": "x-sumo-deadlift-barbell",
+      "name": "Sumo Deadlift (Barbell)",
+      "category": "barbell",
+      "bodyPart": "back",
+      "builtin": true
+    },
+    {
+      "id": "x-deadlift-trap-bar",
+      "name": "Deadlift (Trap Bar)",
+      "category": "barbell",
+      "bodyPart": "back",
+      "builtin": true
+    },
+    {
+      "id": "x-deadlift-dumbbell",
+      "name": "Deadlift (Dumbbell)",
+      "category": "dumbbell",
+      "bodyPart": "back",
+      "builtin": true
+    },
+    {
+      "id": "x-rack-pull-barbell",
+      "name": "Rack Pull (Barbell)",
+      "category": "barbell",
+      "bodyPart": "back",
+      "builtin": true
+    },
+    {
+      "id": "x-bent-over-row-barbell",
+      "name": "Bent Over Row (Barbell)",
+      "category": "barbell",
+      "bodyPart": "back",
+      "builtin": true
+    },
+    {
+      "id": "x-pendlay-row-barbell",
+      "name": "Pendlay Row (Barbell)",
+      "category": "barbell",
+      "bodyPart": "back",
+      "builtin": true
+    },
+    {
+      "id": "x-bent-over-one-arm-row-dumbbell",
+      "name": "Bent Over One Arm Row (Dumbbell)",
+      "category": "dumbbell",
+      "bodyPart": "back",
+      "builtin": true
+    },
+    {
+      "id": "x-chest-supported-row-dumbbell",
+      "name": "Chest Supported Row (Dumbbell)",
+      "category": "dumbbell",
+      "bodyPart": "back",
+      "builtin": true
+    },
+    {
+      "id": "x-t-bar-row",
+      "name": "T Bar Row",
+      "category": "machine",
+      "bodyPart": "back",
+      "builtin": true
+    },
+    {
+      "id": "x-seated-row-cable",
+      "name": "Seated Row (Cable)",
+      "category": "machine",
+      "bodyPart": "back",
+      "builtin": true
+    },
+    {
+      "id": "x-seated-row-machine",
+      "name": "Seated Row (Machine)",
+      "category": "machine",
+      "bodyPart": "back",
+      "builtin": true
+    },
+    {
+      "id": "x-lat-pulldown-cable",
+      "name": "Lat Pulldown (Cable)",
+      "category": "machine",
+      "bodyPart": "back",
+      "builtin": true
+    },
+    {
+      "id": "x-lat-pulldown-close-grip-cable",
+      "name": "Lat Pulldown - Close Grip (Cable)",
+      "category": "machine",
+      "bodyPart": "back",
+      "builtin": true
+    },
+    {
+      "id": "x-lat-pulldown-machine",
+      "name": "Lat Pulldown (Machine)",
+      "category": "machine",
+      "bodyPart": "back",
+      "builtin": true
+    },
+    {
+      "id": "x-straight-arm-pulldown-cable",
+      "name": "Straight Arm Pulldown (Cable)",
+      "category": "machine",
+      "bodyPart": "back",
+      "builtin": true
+    },
+    {
+      "id": "x-pull-up",
+      "name": "Pull Up",
+      "category": "reps",
+      "bodyPart": "back",
+      "builtin": true
+    },
+    {
+      "id": "x-pull-up-weighted",
+      "name": "Pull Up (Weighted)",
+      "category": "weighted_bw",
+      "bodyPart": "back",
+      "builtin": true
+    },
+    {
+      "id": "x-pull-up-assisted",
+      "name": "Pull Up (Assisted)",
+      "category": "assisted_bw",
+      "bodyPart": "back",
+      "builtin": true
+    },
+    {
+      "id": "x-chin-up",
+      "name": "Chin Up",
+      "category": "reps",
+      "bodyPart": "back",
+      "builtin": true
+    },
+    {
+      "id": "x-chin-up-weighted",
+      "name": "Chin Up (Weighted)",
+      "category": "weighted_bw",
+      "bodyPart": "back",
+      "builtin": true
+    },
+    {
+      "id": "x-chin-up-assisted",
+      "name": "Chin Up (Assisted)",
+      "category": "assisted_bw",
+      "bodyPart": "back",
+      "builtin": true
+    },
+    {
+      "id": "x-inverted-row",
+      "name": "Inverted Row",
+      "category": "reps",
+      "bodyPart": "back",
+      "builtin": true
+    },
+    {
+      "id": "x-back-extension",
+      "name": "Back Extension",
+      "category": "reps",
+      "bodyPart": "back",
+      "builtin": true
+    },
+    {
+      "id": "x-back-extension-weighted",
+      "name": "Back Extension (Weighted)",
+      "category": "weighted_bw",
+      "bodyPart": "back",
+      "builtin": true
+    },
+    {
+      "id": "x-back-extension-machine",
+      "name": "Back Extension (Machine)",
+      "category": "machine",
+      "bodyPart": "back",
+      "builtin": true
+    },
+    {
+      "id": "x-shrug-barbell",
+      "name": "Shrug (Barbell)",
+      "category": "barbell",
+      "bodyPart": "back",
+      "builtin": true
+    },
+    {
+      "id": "x-shrug-dumbbell",
+      "name": "Shrug (Dumbbell)",
+      "category": "dumbbell",
+      "bodyPart": "back",
+      "builtin": true
+    },
+    {
+      "id": "x-overhead-press-barbell",
+      "name": "Overhead Press (Barbell)",
+      "category": "barbell",
+      "bodyPart": "shoulders",
+      "builtin": true
+    },
+    {
+      "id": "x-overhead-press-dumbbell",
+      "name": "Overhead Press (Dumbbell)",
+      "category": "dumbbell",
+      "bodyPart": "shoulders",
+      "builtin": true
+    },
+    {
+      "id": "x-seated-overhead-press-dumbbell",
+      "name": "Seated Overhead Press (Dumbbell)",
+      "category": "dumbbell",
+      "bodyPart": "shoulders",
+      "builtin": true
+    },
+    {
+      "id": "x-seated-overhead-press-barbell",
+      "name": "Seated Overhead Press (Barbell)",
+      "category": "barbell",
+      "bodyPart": "shoulders",
+      "builtin": true
+    },
+    {
+      "id": "x-shoulder-press-machine",
+      "name": "Shoulder Press (Machine)",
+      "category": "machine",
+      "bodyPart": "shoulders",
+      "builtin": true
+    },
+    {
+      "id": "x-shoulder-press-smith-machine",
+      "name": "Shoulder Press (Smith Machine)",
+      "category": "machine",
+      "bodyPart": "shoulders",
+      "builtin": true
+    },
+    {
+      "id": "x-arnold-press-dumbbell",
+      "name": "Arnold Press (Dumbbell)",
+      "category": "dumbbell",
+      "bodyPart": "shoulders",
+      "builtin": true
+    },
+    {
+      "id": "x-push-press-barbell",
+      "name": "Push Press (Barbell)",
+      "category": "barbell",
+      "bodyPart": "shoulders",
+      "builtin": true
+    },
+    {
+      "id": "x-landmine-press-barbell",
+      "name": "Landmine Press (Barbell)",
+      "category": "barbell",
+      "bodyPart": "shoulders",
+      "builtin": true
+    },
+    {
+      "id": "x-lateral-raise-dumbbell",
+      "name": "Lateral Raise (Dumbbell)",
+      "category": "dumbbell",
+      "bodyPart": "shoulders",
+      "builtin": true
+    },
+    {
+      "id": "x-lateral-raise-cable",
+      "name": "Lateral Raise (Cable)",
+      "category": "machine",
+      "bodyPart": "shoulders",
+      "builtin": true
+    },
+    {
+      "id": "x-lateral-raise-machine",
+      "name": "Lateral Raise (Machine)",
+      "category": "machine",
+      "bodyPart": "shoulders",
+      "builtin": true
+    },
+    {
+      "id": "x-front-raise-dumbbell",
+      "name": "Front Raise (Dumbbell)",
+      "category": "dumbbell",
+      "bodyPart": "shoulders",
+      "builtin": true
+    },
+    {
+      "id": "x-front-raise-cable",
+      "name": "Front Raise (Cable)",
+      "category": "machine",
+      "bodyPart": "shoulders",
+      "builtin": true
+    },
+    {
+      "id": "x-upright-row-barbell",
+      "name": "Upright Row (Barbell)",
+      "category": "barbell",
+      "bodyPart": "shoulders",
+      "builtin": true
+    },
+    {
+      "id": "x-upright-row-cable",
+      "name": "Upright Row (Cable)",
+      "category": "machine",
+      "bodyPart": "shoulders",
+      "builtin": true
+    },
+    {
+      "id": "x-face-pull-cable",
+      "name": "Face Pull (Cable)",
+      "category": "machine",
+      "bodyPart": "shoulders",
+      "builtin": true
+    },
+    {
+      "id": "x-reverse-fly-dumbbell",
+      "name": "Reverse Fly (Dumbbell)",
+      "category": "dumbbell",
+      "bodyPart": "shoulders",
+      "builtin": true
+    },
+    {
+      "id": "x-reverse-fly-machine",
+      "name": "Reverse Fly (Machine)",
+      "category": "machine",
+      "bodyPart": "shoulders",
+      "builtin": true
+    },
+    {
+      "id": "x-reverse-fly-cable",
+      "name": "Reverse Fly (Cable)",
+      "category": "machine",
+      "bodyPart": "shoulders",
+      "builtin": true
+    },
+    {
+      "id": "x-handstand-push-up",
+      "name": "Handstand Push Up",
+      "category": "reps",
+      "bodyPart": "shoulders",
+      "builtin": true
+    },
+    {
+      "id": "x-bicep-curl-barbell",
+      "name": "Bicep Curl (Barbell)",
+      "category": "barbell",
+      "bodyPart": "arms",
+      "builtin": true
+    },
+    {
+      "id": "x-bicep-curl-ez-bar",
+      "name": "Bicep Curl (EZ Bar)",
+      "category": "barbell",
+      "bodyPart": "arms",
+      "builtin": true
+    },
+    {
+      "id": "x-bicep-curl-dumbbell",
+      "name": "Bicep Curl (Dumbbell)",
+      "category": "dumbbell",
+      "bodyPart": "arms",
+      "builtin": true
+    },
+    {
+      "id": "x-bicep-curl-cable",
+      "name": "Bicep Curl (Cable)",
+      "category": "machine",
+      "bodyPart": "arms",
+      "builtin": true
+    },
+    {
+      "id": "x-bicep-curl-machine",
+      "name": "Bicep Curl (Machine)",
+      "category": "machine",
+      "bodyPart": "arms",
+      "builtin": true
+    },
+    {
+      "id": "x-hammer-curl-dumbbell",
+      "name": "Hammer Curl (Dumbbell)",
+      "category": "dumbbell",
+      "bodyPart": "arms",
+      "builtin": true
+    },
+    {
+      "id": "x-hammer-curl-cable",
+      "name": "Hammer Curl (Cable)",
+      "category": "machine",
+      "bodyPart": "arms",
+      "builtin": true
+    },
+    {
+      "id": "x-incline-curl-dumbbell",
+      "name": "Incline Curl (Dumbbell)",
+      "category": "dumbbell",
+      "bodyPart": "arms",
+      "builtin": true
+    },
+    {
+      "id": "x-concentration-curl-dumbbell",
+      "name": "Concentration Curl (Dumbbell)",
+      "category": "dumbbell",
+      "bodyPart": "arms",
+      "builtin": true
+    },
+    {
+      "id": "x-preacher-curl-barbell",
+      "name": "Preacher Curl (Barbell)",
+      "category": "barbell",
+      "bodyPart": "arms",
+      "builtin": true
+    },
+    {
+      "id": "x-preacher-curl-dumbbell",
+      "name": "Preacher Curl (Dumbbell)",
+      "category": "dumbbell",
+      "bodyPart": "arms",
+      "builtin": true
+    },
+    {
+      "id": "x-preacher-curl-machine",
+      "name": "Preacher Curl (Machine)",
+      "category": "machine",
+      "bodyPart": "arms",
+      "builtin": true
+    },
+    {
+      "id": "x-reverse-curl-barbell",
+      "name": "Reverse Curl (Barbell)",
+      "category": "barbell",
+      "bodyPart": "arms",
+      "builtin": true
+    },
+    {
+      "id": "x-triceps-pushdown-cable",
+      "name": "Triceps Pushdown (Cable)",
+      "category": "machine",
+      "bodyPart": "arms",
+      "builtin": true
+    },
+    {
+      "id": "x-triceps-pushdown-rope-cable",
+      "name": "Triceps Pushdown - Rope (Cable)",
+      "category": "machine",
+      "bodyPart": "arms",
+      "builtin": true
+    },
+    {
+      "id": "x-overhead-triceps-extension-cable",
+      "name": "Overhead Triceps Extension (Cable)",
+      "category": "machine",
+      "bodyPart": "arms",
+      "builtin": true
+    },
+    {
+      "id": "x-overhead-triceps-extension-dumbbell",
+      "name": "Overhead Triceps Extension (Dumbbell)",
+      "category": "dumbbell",
+      "bodyPart": "arms",
+      "builtin": true
+    },
+    {
+      "id": "x-triceps-extension-machine",
+      "name": "Triceps Extension (Machine)",
+      "category": "machine",
+      "bodyPart": "arms",
+      "builtin": true
+    },
+    {
+      "id": "x-skullcrusher-barbell",
+      "name": "Skullcrusher (Barbell)",
+      "category": "barbell",
+      "bodyPart": "arms",
+      "builtin": true
+    },
+    {
+      "id": "x-skullcrusher-dumbbell",
+      "name": "Skullcrusher (Dumbbell)",
+      "category": "dumbbell",
+      "bodyPart": "arms",
+      "builtin": true
+    },
+    {
+      "id": "x-close-grip-bench-press-barbell",
+      "name": "Close Grip Bench Press (Barbell)",
+      "category": "barbell",
+      "bodyPart": "arms",
+      "builtin": true
+    },
+    {
+      "id": "x-triceps-kickback-dumbbell",
+      "name": "Triceps Kickback (Dumbbell)",
+      "category": "dumbbell",
+      "bodyPart": "arms",
+      "builtin": true
+    },
+    {
+      "id": "x-triceps-dip",
+      "name": "Triceps Dip",
+      "category": "reps",
+      "bodyPart": "arms",
+      "builtin": true
+    },
+    {
+      "id": "x-triceps-dip-weighted",
+      "name": "Triceps Dip (Weighted)",
+      "category": "weighted_bw",
+      "bodyPart": "arms",
+      "builtin": true
+    },
+    {
+      "id": "x-triceps-dip-assisted",
+      "name": "Triceps Dip (Assisted)",
+      "category": "assisted_bw",
+      "bodyPart": "arms",
+      "builtin": true
+    },
+    {
+      "id": "x-bench-dip",
+      "name": "Bench Dip",
+      "category": "reps",
+      "bodyPart": "arms",
+      "builtin": true
+    },
+    {
+      "id": "x-wrist-curl-dumbbell",
+      "name": "Wrist Curl (Dumbbell)",
+      "category": "dumbbell",
+      "bodyPart": "arms",
+      "builtin": true
+    },
+    {
+      "id": "x-wrist-curl-barbell",
+      "name": "Wrist Curl (Barbell)",
+      "category": "barbell",
+      "bodyPart": "arms",
+      "builtin": true
+    },
+    {
+      "id": "x-reverse-wrist-curl-dumbbell",
+      "name": "Reverse Wrist Curl (Dumbbell)",
+      "category": "dumbbell",
+      "bodyPart": "arms",
+      "builtin": true
+    },
+    {
+      "id": "x-squat-barbell",
+      "name": "Squat (Barbell)",
+      "category": "barbell",
+      "bodyPart": "legs",
+      "builtin": true
+    },
+    {
+      "id": "x-front-squat-barbell",
+      "name": "Front Squat (Barbell)",
+      "category": "barbell",
+      "bodyPart": "legs",
+      "builtin": true
+    },
+    {
+      "id": "x-squat-smith-machine",
+      "name": "Squat (Smith Machine)",
+      "category": "machine",
+      "bodyPart": "legs",
+      "builtin": true
+    },
+    {
+      "id": "x-hack-squat-machine",
+      "name": "Hack Squat (Machine)",
+      "category": "machine",
+      "bodyPart": "legs",
+      "builtin": true
+    },
+    {
+      "id": "x-pendulum-squat-machine",
+      "name": "Pendulum Squat (Machine)",
+      "category": "machine",
+      "bodyPart": "legs",
+      "builtin": true
+    },
+    {
+      "id": "x-leg-press-machine",
+      "name": "Leg Press (Machine)",
+      "category": "machine",
+      "bodyPart": "legs",
+      "builtin": true
+    },
+    {
+      "id": "x-goblet-squat-dumbbell",
+      "name": "Goblet Squat (Dumbbell)",
+      "category": "dumbbell",
+      "bodyPart": "legs",
+      "builtin": true
+    },
+    {
+      "id": "x-goblet-squat-kettlebell",
+      "name": "Goblet Squat (Kettlebell)",
+      "category": "machine",
+      "bodyPart": "legs",
+      "builtin": true
+    },
+    {
+      "id": "x-squat-bodyweight",
+      "name": "Squat (Bodyweight)",
+      "category": "reps",
+      "bodyPart": "legs",
+      "builtin": true
+    },
+    {
+      "id": "x-pistol-squat",
+      "name": "Pistol Squat",
+      "category": "reps",
+      "bodyPart": "legs",
+      "builtin": true
+    },
+    {
+      "id": "x-bulgarian-split-squat-dumbbell",
+      "name": "Bulgarian Split Squat (Dumbbell)",
+      "category": "dumbbell",
+      "bodyPart": "legs",
+      "builtin": true
+    },
+    {
+      "id": "x-bulgarian-split-squat-barbell",
+      "name": "Bulgarian Split Squat (Barbell)",
+      "category": "barbell",
+      "bodyPart": "legs",
+      "builtin": true
+    },
+    {
+      "id": "x-lunge-dumbbell",
+      "name": "Lunge (Dumbbell)",
+      "category": "dumbbell",
+      "bodyPart": "legs",
+      "builtin": true
+    },
+    {
+      "id": "x-lunge-barbell",
+      "name": "Lunge (Barbell)",
+      "category": "barbell",
+      "bodyPart": "legs",
+      "builtin": true
+    },
+    {
+      "id": "x-walking-lunge-dumbbell",
+      "name": "Walking Lunge (Dumbbell)",
+      "category": "dumbbell",
+      "bodyPart": "legs",
+      "builtin": true
+    },
+    {
+      "id": "x-lunge",
+      "name": "Lunge",
+      "category": "reps",
+      "bodyPart": "legs",
+      "builtin": true
+    },
+    {
+      "id": "x-step-up-dumbbell",
+      "name": "Step Up (Dumbbell)",
+      "category": "dumbbell",
+      "bodyPart": "legs",
+      "builtin": true
+    },
+    {
+      "id": "x-romanian-deadlift-barbell",
+      "name": "Romanian Deadlift (Barbell)",
+      "category": "barbell",
+      "bodyPart": "legs",
+      "builtin": true
+    },
+    {
+      "id": "x-romanian-deadlift-dumbbell",
+      "name": "Romanian Deadlift (Dumbbell)",
+      "category": "dumbbell",
+      "bodyPart": "legs",
+      "builtin": true
+    },
+    {
+      "id": "x-stiff-leg-deadlift-barbell",
+      "name": "Stiff Leg Deadlift (Barbell)",
+      "category": "barbell",
+      "bodyPart": "legs",
+      "builtin": true
+    },
+    {
+      "id": "x-good-morning-barbell",
+      "name": "Good Morning (Barbell)",
+      "category": "barbell",
+      "bodyPart": "legs",
+      "builtin": true
+    },
+    {
+      "id": "x-leg-extension-machine",
+      "name": "Leg Extension (Machine)",
+      "category": "machine",
+      "bodyPart": "legs",
+      "builtin": true
+    },
+    {
+      "id": "x-lying-leg-curl-machine",
+      "name": "Lying Leg Curl (Machine)",
+      "category": "machine",
+      "bodyPart": "legs",
+      "builtin": true
+    },
+    {
+      "id": "x-seated-leg-curl-machine",
+      "name": "Seated Leg Curl (Machine)",
+      "category": "machine",
+      "bodyPart": "legs",
+      "builtin": true
+    },
+    {
+      "id": "x-nordic-hamstring-curl",
+      "name": "Nordic Hamstring Curl",
+      "category": "reps",
+      "bodyPart": "legs",
+      "builtin": true
+    },
+    {
+      "id": "x-hip-thrust-barbell",
+      "name": "Hip Thrust (Barbell)",
+      "category": "barbell",
+      "bodyPart": "legs",
+      "builtin": true
+    },
+    {
+      "id": "x-hip-thrust-machine",
+      "name": "Hip Thrust (Machine)",
+      "category": "machine",
+      "bodyPart": "legs",
+      "builtin": true
+    },
+    {
+      "id": "x-glute-bridge",
+      "name": "Glute Bridge",
+      "category": "reps",
+      "bodyPart": "legs",
+      "builtin": true
+    },
+    {
+      "id": "x-glute-kickback-cable",
+      "name": "Glute Kickback (Cable)",
+      "category": "machine",
+      "bodyPart": "legs",
+      "builtin": true
+    },
+    {
+      "id": "x-glute-kickback-machine",
+      "name": "Glute Kickback (Machine)",
+      "category": "machine",
+      "bodyPart": "legs",
+      "builtin": true
+    },
+    {
+      "id": "x-hip-abduction-machine",
+      "name": "Hip Abduction (Machine)",
+      "category": "machine",
+      "bodyPart": "legs",
+      "builtin": true
+    },
+    {
+      "id": "x-hip-adduction-machine",
+      "name": "Hip Adduction (Machine)",
+      "category": "machine",
+      "bodyPart": "legs",
+      "builtin": true
+    },
+    {
+      "id": "x-standing-calf-raise-machine",
+      "name": "Standing Calf Raise (Machine)",
+      "category": "machine",
+      "bodyPart": "legs",
+      "builtin": true
+    },
+    {
+      "id": "x-seated-calf-raise-machine",
+      "name": "Seated Calf Raise (Machine)",
+      "category": "machine",
+      "bodyPart": "legs",
+      "builtin": true
+    },
+    {
+      "id": "x-calf-press-on-leg-press-machine",
+      "name": "Calf Press on Leg Press (Machine)",
+      "category": "machine",
+      "bodyPart": "legs",
+      "builtin": true
+    },
+    {
+      "id": "x-calf-raise-dumbbell",
+      "name": "Calf Raise (Dumbbell)",
+      "category": "dumbbell",
+      "bodyPart": "legs",
+      "builtin": true
+    },
+    {
+      "id": "x-box-jump",
+      "name": "Box Jump",
+      "category": "reps",
+      "bodyPart": "legs",
+      "builtin": true
+    },
+    {
+      "id": "x-crunch",
+      "name": "Crunch",
+      "category": "reps",
+      "bodyPart": "core",
+      "builtin": true
+    },
+    {
+      "id": "x-crunch-machine",
+      "name": "Crunch (Machine)",
+      "category": "machine",
+      "bodyPart": "core",
+      "builtin": true
+    },
+    {
+      "id": "x-cable-crunch-cable",
+      "name": "Cable Crunch (Cable)",
+      "category": "machine",
+      "bodyPart": "core",
+      "builtin": true
+    },
+    {
+      "id": "x-decline-crunch",
+      "name": "Decline Crunch",
+      "category": "reps",
+      "bodyPart": "core",
+      "builtin": true
+    },
+    {
+      "id": "x-sit-up",
+      "name": "Sit Up",
+      "category": "reps",
+      "bodyPart": "core",
+      "builtin": true
+    },
+    {
+      "id": "x-bicycle-crunch",
+      "name": "Bicycle Crunch",
+      "category": "reps",
+      "bodyPart": "core",
+      "builtin": true
+    },
+    {
+      "id": "x-hanging-leg-raise",
+      "name": "Hanging Leg Raise",
+      "category": "reps",
+      "bodyPart": "core",
+      "builtin": true
+    },
+    {
+      "id": "x-hanging-knee-raise",
+      "name": "Hanging Knee Raise",
+      "category": "reps",
+      "bodyPart": "core",
+      "builtin": true
+    },
+    {
+      "id": "x-lying-leg-raise",
+      "name": "Lying Leg Raise",
+      "category": "reps",
+      "bodyPart": "core",
+      "builtin": true
+    },
+    {
+      "id": "x-toes-to-bar",
+      "name": "Toes to Bar",
+      "category": "reps",
+      "bodyPart": "core",
+      "builtin": true
+    },
+    {
+      "id": "x-ab-wheel",
+      "name": "Ab Wheel",
+      "category": "reps",
+      "bodyPart": "core",
+      "builtin": true
+    },
+    {
+      "id": "x-russian-twist",
+      "name": "Russian Twist",
+      "category": "reps",
+      "bodyPart": "core",
+      "builtin": true
+    },
+    {
+      "id": "x-russian-twist-weighted",
+      "name": "Russian Twist (Weighted)",
+      "category": "weighted_bw",
+      "bodyPart": "core",
+      "builtin": true
+    },
+    {
+      "id": "x-mountain-climber",
+      "name": "Mountain Climber",
+      "category": "reps",
+      "bodyPart": "core",
+      "builtin": true
+    },
+    {
+      "id": "x-dead-bug",
+      "name": "Dead Bug",
+      "category": "reps",
+      "bodyPart": "core",
+      "builtin": true
+    },
+    {
+      "id": "x-pallof-press-cable",
+      "name": "Pallof Press (Cable)",
+      "category": "machine",
+      "bodyPart": "core",
+      "builtin": true
+    },
+    {
+      "id": "x-wood-chop-cable",
+      "name": "Wood Chop (Cable)",
+      "category": "machine",
+      "bodyPart": "core",
+      "builtin": true
+    },
+    {
+      "id": "x-plank",
+      "name": "Plank",
+      "category": "duration",
+      "bodyPart": "core",
+      "builtin": true
+    },
+    {
+      "id": "x-side-plank",
+      "name": "Side Plank",
+      "category": "duration",
+      "bodyPart": "core",
+      "builtin": true
+    },
+    {
+      "id": "x-hollow-hold",
+      "name": "Hollow Hold",
+      "category": "duration",
+      "bodyPart": "core",
+      "builtin": true
+    },
+    {
+      "id": "x-l-sit",
+      "name": "L-Sit",
+      "category": "duration",
+      "bodyPart": "core",
+      "builtin": true
+    },
+    {
+      "id": "x-clean-barbell",
+      "name": "Clean (Barbell)",
+      "category": "barbell",
+      "bodyPart": "full",
+      "builtin": true
+    },
+    {
+      "id": "x-power-clean-barbell",
+      "name": "Power Clean (Barbell)",
+      "category": "barbell",
+      "bodyPart": "full",
+      "builtin": true
+    },
+    {
+      "id": "x-hang-clean-barbell",
+      "name": "Hang Clean (Barbell)",
+      "category": "barbell",
+      "bodyPart": "full",
+      "builtin": true
+    },
+    {
+      "id": "x-clean-and-jerk-barbell",
+      "name": "Clean and Jerk (Barbell)",
+      "category": "barbell",
+      "bodyPart": "full",
+      "builtin": true
+    },
+    {
+      "id": "x-snatch-barbell",
+      "name": "Snatch (Barbell)",
+      "category": "barbell",
+      "bodyPart": "full",
+      "builtin": true
+    },
+    {
+      "id": "x-power-snatch-barbell",
+      "name": "Power Snatch (Barbell)",
+      "category": "barbell",
+      "bodyPart": "full",
+      "builtin": true
+    },
+    {
+      "id": "x-thruster-barbell",
+      "name": "Thruster (Barbell)",
+      "category": "barbell",
+      "bodyPart": "full",
+      "builtin": true
+    },
+    {
+      "id": "x-kettlebell-swing",
+      "name": "Kettlebell Swing",
+      "category": "machine",
+      "bodyPart": "full",
+      "builtin": true
+    },
+    {
+      "id": "x-turkish-get-up-kettlebell",
+      "name": "Turkish Get Up (Kettlebell)",
+      "category": "machine",
+      "bodyPart": "full",
+      "builtin": true
+    },
+    {
+      "id": "x-farmer-s-walk-dumbbell",
+      "name": "Farmer's Walk (Dumbbell)",
+      "category": "dumbbell",
+      "bodyPart": "full",
+      "builtin": true
+    },
+    {
+      "id": "x-burpee",
+      "name": "Burpee",
+      "category": "reps",
+      "bodyPart": "full",
+      "builtin": true
+    },
+    {
+      "id": "x-battle-ropes",
+      "name": "Battle Ropes",
+      "category": "duration",
+      "bodyPart": "full",
+      "builtin": true
+    },
+    {
+      "id": "x-sled-push",
+      "name": "Sled Push",
+      "category": "machine",
+      "bodyPart": "full",
+      "builtin": true
+    },
+    {
+      "id": "x-running",
+      "name": "Running",
+      "category": "cardio",
+      "bodyPart": "cardio",
+      "builtin": true
+    },
+    {
+      "id": "x-running-treadmill",
+      "name": "Running (Treadmill)",
+      "category": "cardio",
+      "bodyPart": "cardio",
+      "builtin": true
+    },
+    {
+      "id": "x-walking",
+      "name": "Walking",
+      "category": "cardio",
+      "bodyPart": "cardio",
+      "builtin": true
+    },
+    {
+      "id": "x-incline-walk-treadmill",
+      "name": "Incline Walk (Treadmill)",
+      "category": "cardio",
+      "bodyPart": "cardio",
+      "builtin": true
+    },
+    {
+      "id": "x-cycling",
+      "name": "Cycling",
+      "category": "cardio",
+      "bodyPart": "cardio",
+      "builtin": true
+    },
+    {
+      "id": "x-cycling-indoor",
+      "name": "Cycling (Indoor)",
+      "category": "cardio",
+      "bodyPart": "cardio",
+      "builtin": true
+    },
+    {
+      "id": "x-rowing-machine",
+      "name": "Rowing (Machine)",
+      "category": "cardio",
+      "bodyPart": "cardio",
+      "builtin": true
+    },
+    {
+      "id": "x-elliptical-trainer",
+      "name": "Elliptical Trainer",
+      "category": "cardio",
+      "bodyPart": "cardio",
+      "builtin": true
+    },
+    {
+      "id": "x-stair-climber",
+      "name": "Stair Climber",
+      "category": "duration",
+      "bodyPart": "cardio",
+      "builtin": true
+    },
+    {
+      "id": "x-ski-erg",
+      "name": "Ski Erg",
+      "category": "cardio",
+      "bodyPart": "cardio",
+      "builtin": true
+    },
+    {
+      "id": "x-air-bike",
+      "name": "Air Bike",
+      "category": "cardio",
+      "bodyPart": "cardio",
+      "builtin": true
+    },
+    {
+      "id": "x-swimming",
+      "name": "Swimming",
+      "category": "cardio",
+      "bodyPart": "cardio",
+      "builtin": true
+    },
+    {
+      "id": "x-hiking",
+      "name": "Hiking",
+      "category": "cardio",
+      "bodyPart": "cardio",
+      "builtin": true
+    },
+    {
+      "id": "x-jump-rope",
+      "name": "Jump Rope",
+      "category": "duration",
+      "bodyPart": "cardio",
+      "builtin": true
+    },
+    {
+      "id": "x-stretching",
+      "name": "Stretching",
+      "category": "duration",
+      "bodyPart": "other",
+      "builtin": true
+    },
+    {
+      "id": "x-yoga",
+      "name": "Yoga",
+      "category": "duration",
+      "bodyPart": "other",
+      "builtin": true
+    },
+    {
+      "id": "x-warm-up",
+      "name": "Warm Up",
+      "category": "duration",
+      "bodyPart": "other",
+      "builtin": true
+    }
+  ],
+  "examples": [
+    {
+      "id": "example-push",
+      "name": "Push",
+      "folder": "Push / Pull / Legs",
+      "example": true,
+      "exercises": [
+        {
+          "exerciseId": "x-bench-press-barbell",
+          "restSec": 150,
+          "sets": [
+            {
+              "type": "normal",
+              "r": 8
+            },
+            {
+              "type": "normal",
+              "r": 8
+            },
+            {
+              "type": "normal",
+              "r": 8
+            }
+          ]
+        },
+        {
+          "exerciseId": "x-incline-bench-press-dumbbell",
+          "restSec": 120,
+          "sets": [
+            {
+              "type": "normal",
+              "r": 10
+            },
+            {
+              "type": "normal",
+              "r": 10
+            },
+            {
+              "type": "normal",
+              "r": 10
+            }
+          ]
+        },
+        {
+          "exerciseId": "x-seated-overhead-press-dumbbell",
+          "restSec": 120,
+          "sets": [
+            {
+              "type": "normal",
+              "r": 10
+            },
+            {
+              "type": "normal",
+              "r": 10
+            },
+            {
+              "type": "normal",
+              "r": 10
+            }
+          ]
+        },
+        {
+          "exerciseId": "x-lateral-raise-dumbbell",
+          "restSec": 60,
+          "sets": [
+            {
+              "type": "normal",
+              "r": 15
+            },
+            {
+              "type": "normal",
+              "r": 15
+            },
+            {
+              "type": "normal",
+              "r": 15
+            }
+          ]
+        },
+        {
+          "exerciseId": "x-triceps-pushdown-rope-cable",
+          "restSec": 60,
+          "sets": [
+            {
+              "type": "normal",
+              "r": 12
+            },
+            {
+              "type": "normal",
+              "r": 12
+            },
+            {
+              "type": "normal",
+              "r": 12
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "example-pull",
+      "name": "Pull",
+      "folder": "Push / Pull / Legs",
+      "example": true,
+      "exercises": [
+        {
+          "exerciseId": "x-deadlift-barbell",
+          "restSec": 180,
+          "sets": [
+            {
+              "type": "normal",
+              "r": 5
+            },
+            {
+              "type": "normal",
+              "r": 5
+            },
+            {
+              "type": "normal",
+              "r": 5
+            }
+          ]
+        },
+        {
+          "exerciseId": "x-lat-pulldown-cable",
+          "restSec": 120,
+          "sets": [
+            {
+              "type": "normal",
+              "r": 10
+            },
+            {
+              "type": "normal",
+              "r": 10
+            },
+            {
+              "type": "normal",
+              "r": 10
+            }
+          ]
+        },
+        {
+          "exerciseId": "x-seated-row-cable",
+          "restSec": 120,
+          "sets": [
+            {
+              "type": "normal",
+              "r": 10
+            },
+            {
+              "type": "normal",
+              "r": 10
+            },
+            {
+              "type": "normal",
+              "r": 10
+            }
+          ]
+        },
+        {
+          "exerciseId": "x-face-pull-cable",
+          "restSec": 60,
+          "sets": [
+            {
+              "type": "normal",
+              "r": 15
+            },
+            {
+              "type": "normal",
+              "r": 15
+            },
+            {
+              "type": "normal",
+              "r": 15
+            }
+          ]
+        },
+        {
+          "exerciseId": "x-bicep-curl-dumbbell",
+          "restSec": 60,
+          "sets": [
+            {
+              "type": "normal",
+              "r": 12
+            },
+            {
+              "type": "normal",
+              "r": 12
+            },
+            {
+              "type": "normal",
+              "r": 12
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "example-legs",
+      "name": "Legs",
+      "folder": "Push / Pull / Legs",
+      "example": true,
+      "exercises": [
+        {
+          "exerciseId": "x-squat-barbell",
+          "restSec": 180,
+          "sets": [
+            {
+              "type": "normal",
+              "r": 6
+            },
+            {
+              "type": "normal",
+              "r": 6
+            },
+            {
+              "type": "normal",
+              "r": 6
+            }
+          ]
+        },
+        {
+          "exerciseId": "x-romanian-deadlift-barbell",
+          "restSec": 150,
+          "sets": [
+            {
+              "type": "normal",
+              "r": 8
+            },
+            {
+              "type": "normal",
+              "r": 8
+            },
+            {
+              "type": "normal",
+              "r": 8
+            }
+          ]
+        },
+        {
+          "exerciseId": "x-leg-press-machine",
+          "restSec": 120,
+          "sets": [
+            {
+              "type": "normal",
+              "r": 10
+            },
+            {
+              "type": "normal",
+              "r": 10
+            },
+            {
+              "type": "normal",
+              "r": 10
+            }
+          ]
+        },
+        {
+          "exerciseId": "x-lying-leg-curl-machine",
+          "restSec": 90,
+          "sets": [
+            {
+              "type": "normal",
+              "r": 12
+            },
+            {
+              "type": "normal",
+              "r": 12
+            },
+            {
+              "type": "normal",
+              "r": 12
+            }
+          ]
+        },
+        {
+          "exerciseId": "x-standing-calf-raise-machine",
+          "restSec": 60,
+          "sets": [
+            {
+              "type": "normal",
+              "r": 12
+            },
+            {
+              "type": "normal",
+              "r": 12
+            },
+            {
+              "type": "normal",
+              "r": 12
+            },
+            {
+              "type": "normal",
+              "r": 12
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "example-5x5-a",
+      "name": "Strength A",
+      "folder": "Strength 5×5",
+      "example": true,
+      "exercises": [
+        {
+          "exerciseId": "x-squat-barbell",
+          "restSec": 180,
+          "sets": [
+            {
+              "type": "normal",
+              "r": 5
+            },
+            {
+              "type": "normal",
+              "r": 5
+            },
+            {
+              "type": "normal",
+              "r": 5
+            },
+            {
+              "type": "normal",
+              "r": 5
+            },
+            {
+              "type": "normal",
+              "r": 5
+            }
+          ]
+        },
+        {
+          "exerciseId": "x-bench-press-barbell",
+          "restSec": 180,
+          "sets": [
+            {
+              "type": "normal",
+              "r": 5
+            },
+            {
+              "type": "normal",
+              "r": 5
+            },
+            {
+              "type": "normal",
+              "r": 5
+            },
+            {
+              "type": "normal",
+              "r": 5
+            },
+            {
+              "type": "normal",
+              "r": 5
+            }
+          ]
+        },
+        {
+          "exerciseId": "x-bent-over-row-barbell",
+          "restSec": 180,
+          "sets": [
+            {
+              "type": "normal",
+              "r": 5
+            },
+            {
+              "type": "normal",
+              "r": 5
+            },
+            {
+              "type": "normal",
+              "r": 5
+            },
+            {
+              "type": "normal",
+              "r": 5
+            },
+            {
+              "type": "normal",
+              "r": 5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "example-5x5-b",
+      "name": "Strength B",
+      "folder": "Strength 5×5",
+      "example": true,
+      "exercises": [
+        {
+          "exerciseId": "x-squat-barbell",
+          "restSec": 180,
+          "sets": [
+            {
+              "type": "normal",
+              "r": 5
+            },
+            {
+              "type": "normal",
+              "r": 5
+            },
+            {
+              "type": "normal",
+              "r": 5
+            },
+            {
+              "type": "normal",
+              "r": 5
+            },
+            {
+              "type": "normal",
+              "r": 5
+            }
+          ]
+        },
+        {
+          "exerciseId": "x-overhead-press-barbell",
+          "restSec": 180,
+          "sets": [
+            {
+              "type": "normal",
+              "r": 5
+            },
+            {
+              "type": "normal",
+              "r": 5
+            },
+            {
+              "type": "normal",
+              "r": 5
+            },
+            {
+              "type": "normal",
+              "r": 5
+            },
+            {
+              "type": "normal",
+              "r": 5
+            }
+          ]
+        },
+        {
+          "exerciseId": "x-deadlift-barbell",
+          "restSec": 180,
+          "sets": [
+            {
+              "type": "normal",
+              "r": 5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "example-full",
+      "name": "Full Body",
+      "folder": "Full body",
+      "example": true,
+      "exercises": [
+        {
+          "exerciseId": "x-goblet-squat-dumbbell",
+          "restSec": 90,
+          "sets": [
+            {
+              "type": "normal",
+              "r": 10
+            },
+            {
+              "type": "normal",
+              "r": 10
+            },
+            {
+              "type": "normal",
+              "r": 10
+            }
+          ]
+        },
+        {
+          "exerciseId": "x-bench-press-dumbbell",
+          "restSec": 90,
+          "sets": [
+            {
+              "type": "normal",
+              "r": 10
+            },
+            {
+              "type": "normal",
+              "r": 10
+            },
+            {
+              "type": "normal",
+              "r": 10
+            }
+          ]
+        },
+        {
+          "exerciseId": "x-bent-over-one-arm-row-dumbbell",
+          "restSec": 90,
+          "sets": [
+            {
+              "type": "normal",
+              "r": 10
+            },
+            {
+              "type": "normal",
+              "r": 10
+            },
+            {
+              "type": "normal",
+              "r": 10
+            }
+          ]
+        },
+        {
+          "exerciseId": "x-hip-thrust-barbell",
+          "restSec": 90,
+          "sets": [
+            {
+              "type": "normal",
+              "r": 10
+            },
+            {
+              "type": "normal",
+              "r": 10
+            },
+            {
+              "type": "normal",
+              "r": 10
+            }
+          ]
+        },
+        {
+          "exerciseId": "x-plank",
+          "restSec": 60,
+          "sets": [
+            {
+              "type": "normal",
+              "t": 45
+            },
+            {
+              "type": "normal",
+              "t": 45
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

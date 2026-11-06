@@ -290,11 +290,11 @@ const store = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('inc
 
   // a new exercise from the picker
   await id(page, 'add-exercises').click();
-  await id(page, 'pick-search').fill('Zercher Squat');
+  await id(page, 'pick-search').fill('My Zercher Squat');
   await wait(page, 200);
   await id(page, 'pick-create').click();
   await id(page, 'exercise-name').waitFor();
-  assert.equal(await id(page, 'exercise-name').inputValue(), 'Zercher Squat');
+  assert.equal(await id(page, 'exercise-name').inputValue(), 'My Zercher Squat');
   await id(page, 'cat-barbell').click();
   await id(page, 'part-legs').click();
   await page.screenshot({ path: `${OUT}/06-new-exercise.png` });
@@ -304,15 +304,15 @@ const store = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('inc
   await id(page, 'pick-add').click();
   await wait(page, 500);
   // it waits under Up next; tapping its row brings it up
-  await id(page, 'jump-c-zercher-squat').click();
+  await id(page, 'jump-c-my-zercher-squat').click();
   await wait(page, 300);
-  assert.equal(await block(page, 'c-zercher-squat').count(), 1);
-  ok('the picker creates “Zercher Squat” (barbell, legs) and adds it to the workout');
+  assert.equal(await block(page, 'c-my-zercher-squat').count(), 1);
+  ok('the picker creates “My Zercher Squat” (barbell, legs) and adds it to the workout');
 
-  // finish (Squat and Zercher get a set each), then the exercise page
-  await inputs(page, 'c-zercher-squat', 'w').first().fill('60');
-  await inputs(page, 'c-zercher-squat', 'r').first().fill('8');
-  await checks(page, 'c-zercher-squat').first().click();
+  // finish (Squat and My Zercher get a set each), then the exercise page
+  await inputs(page, 'c-my-zercher-squat', 'w').first().fill('60');
+  await inputs(page, 'c-my-zercher-squat', 'r').first().fill('8');
+  await checks(page, 'c-my-zercher-squat').first().click();
   await id(page, 'workout-menu').click();
   await id(page, 'menu-finish').click();
   await id(page, 'drop-pending').click();
@@ -320,7 +320,7 @@ const store = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('inc
   await wait(page, 500);
   await id(page, 'tab-search').click();
   await id(page, 'exercise-search').fill('zercher');
-  await id(page, 'exercise-c-zercher-squat').click();
+  await id(page, 'exercise-c-my-zercher-squat').click();
   await id(page, 'exercise-options').waitFor();
   await id(page, 'exercise-options').click();
   await id(page, 'ex-delete').click();
