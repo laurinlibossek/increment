@@ -3,7 +3,7 @@
 import { router } from 'expo-router';
 import type { Exercise } from '@/data/types';
 
-type Options = { multi?: boolean; title?: string; accepts?: (exercise: Exercise) => boolean; allowCreate?: boolean };
+type Options = { multi?: boolean; title?: string; accepts?: (exercise: Exercise) => boolean; allowCreate?: boolean; currentExerciseId?: string };
 type Pick = Options & { resolve: (ids: string[] | null) => void };
 let pending: Pick | null = null;
 

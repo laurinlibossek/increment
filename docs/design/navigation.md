@@ -21,7 +21,7 @@ The running workout is a full-height sheet, like Now Playing in a music app.
 
 - **Minimized**, it becomes the Now Lifting accessory above the tab bar (`NativeTabs.BottomAccessory`): the session's tally, the exercise and set, the rest countdown, and Skip. It shrinks to the inline layout when the tab bar minimizes. Tapping it opens the sheet again.
 - **Header**: Minimize (`chevron.down`), ⋯ (rename, change start time, notes, discard), the workout name in `t-title-1`, elapsed time in `t-number-m` `ink-2`, and the hero tally of every set in the session with "4 of 22 sets · 1 record" under it.
-- **Current exercise**: name in `t-title-3`, "Barbell · last time 80 × 8, 8, 7" in `t-footnote`, at most one inline coach note, then the set rows. The next pending set's fields are filled with last time's numbers (or the coach's target) as ghost values.
+- **Current exercise**: base name in `t-title-3`, equipment · body part ("Smith Machine · Legs") and last time in `t-footnote`, at most one inline coach note, then the set rows. The next pending set's fields are filled with last time's numbers (or the coach's target) as ghost values.
 - **Up next**: the remaining exercises as list rows, each with its own small tally. Drag to reorder; tap to jump.
 - **Action bar**, bottom, three states:
   1. *Logging*: one primary button, "Log 82.5 × 8". Tapping it logs the set, turns its stroke into a stem with a light haptic, and starts the rest.
@@ -31,7 +31,7 @@ The running workout is a full-height sheet, like Now Playing in a music app.
 ## Screen templates
 
 - **Tab root**: `t-eyebrow` (Today only) → `t-large-title` with one trailing control → content sections `space-8` apart, each with a `t-title-2` header. Floating tab bar.
-- **Detail** (exercise, workout, routine): back and ⋯ in the bar → `t-title-1` with a `t-footnote` line → the hero number if there is one → chart → Stat strip → lists. One scrolling page; no inner tabs.
+- **Detail** (exercise, workout, routine): back and ⋯ in the bar → `t-title-1` with a `t-footnote` line → the hero number if there is one → chart → Stat strip → lists. One scrolling page; no inner tabs. On an exercise page, movement/equipment chips switch to a sibling exercise with `setParams`, replacing the selected id without another history entry. They do not split the page into sections; every number and history row still belongs to that selected exercise.
 - **Summary**: Done at the top right → date eyebrow → workout name → Stat strip (Time, Volume, Sets) → hero tally → Records (highlighted) → Notes → Routine (a switch: "Save changes to Push A" with one line of what changes). The routine question is a row, not a dialog.
 - **Sheets**: system sheets with detents for choices and short forms. The keypad is a sheet drawn by the app at `paper-2`.
 

@@ -4,7 +4,7 @@ import path from 'node:path';
 import { launch, devices, grantWakeLock, APP, shots } from './env.mjs';
 import { demoData } from './store-demo.mjs';
 import {
-  DAY, PR_LABEL, buildStats, exerciseDisplayName, kgTo, kmTo, roundW, translator, workoutVolume,
+  DAY, PR_LABEL, buildStats, exerciseDisplayName, exerciseBaseName, kgTo, kmTo, roundW, translator, workoutVolume,
 } from '../../core/index.js';
 
 const before = process.env.REVIEW_BEFORE === '1';
@@ -152,7 +152,7 @@ try {
       await recordsMatch(id, data, lang, 6);
       await id('record-0').click();
       await id('exercise-title').waitFor();
-      assert.equal(await id('exercise-title').innerText(), exerciseDisplayName(recordRows(data)[0].exercise, lang));
+      assert.equal(await id('exercise-title').innerText(), exerciseBaseName(recordRows(data)[0].exercise, lang));
       ok(`${lang} ${theme}: Records name their headline value, count the others, omit the current year and fit at 375 px; rows still open the exercise`);
     }
 

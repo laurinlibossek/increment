@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 import { launch, devices, grantWakeLock, APP, shots } from './env.mjs';
 import { demoData } from './store-demo.mjs';
-import { buildStats, workoutVolume, exerciseBaseName, startOfMonth, startOfDay, calendarMonth } from '../../core/index.js';
+import { buildStats, workoutVolume, exerciseDisplayName, startOfMonth, startOfDay, calendarMonth } from '../../core/index.js';
 
 const before = process.env.REVIEW_BEFORE === '1';
 const checksOnly = process.env.WORKOUTS_CHECKS_ONLY === '1';
@@ -73,12 +73,13 @@ try {
       const signal = marks.filter(({ rgb: [r, g, b] }) => r > 100 && g > 80 && b < Math.min(r, g) * 0.6);
       assert.equal(signal.length, records, 'only the record sets have signal strokes');
       const exercises = id(`history-exercises-${newest.id}`);
-      // display names without the equipment in brackets, each once ("Squat, Romanian Deadlift, …")
-      const names = [...new Set(newest.exercises.map(entry => exerciseBaseName(lib.get(entry.exerciseId), lang)))];
+      // Full variation names, each once, wrapping so equipment stays readable.
+      const names = [...new Set(newest.exercises.map(entry => exerciseDisplayName(lib.get(entry.exerciseId), lang)))];
       assert.equal(normal(await exercises.innerText()), names.join(', '));
-      assert.doesNotMatch(await exercises.innerText(), /[()]/, 'no brackets in the exercise line');
+      assert.match(await exercises.innerText(), /\([^()]+\)/, 'history includes the equipment');
       const line = await exercises.evaluate(e => { const s = getComputedStyle(e); return { height: e.getBoundingClientRect().height, lineHeight: parseFloat(s.lineHeight), clamp: s.webkitLineClamp, whiteSpace: s.whiteSpace }; });
-      assert.ok(line.clamp === '1' || line.whiteSpace === 'nowrap' || line.height <= line.lineHeight + 1, JSON.stringify(line));
+      assert.ok(line.clamp !== '1' && line.whiteSpace !== 'nowrap', 'full names can wrap');
+      assert.ok(line.height >= line.lineHeight, JSON.stringify(line));
       const card = await row.evaluate(e => [...e.querySelectorAll('div')].some(child => {
         const s = getComputedStyle(child), r = child.getBoundingClientRect();
         return parseFloat(s.borderRadius) > 0 && r.width > e.getBoundingClientRect().width * 0.8 && r.height > 50 && !['transparent', 'rgba(0, 0, 0, 0)'].includes(s.backgroundColor);

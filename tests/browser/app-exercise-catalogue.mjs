@@ -1,5 +1,5 @@
 // Catalogue upgrades through the real store: first start, v1 data, reload,
-// backup restore, custom-name collisions, and the unchanged Search screen.
+// backup restore, custom-name collisions, and individual Search query results.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { launch, devices, grantWakeLock, APP, shots } from './env.mjs';
@@ -62,10 +62,11 @@ try {
     await page.getByTestId('exercise-x-squat-smith-machine').waitFor();
     assert.ok(await page.getByTestId('exercise-x-front-squat-barbell').count());
     await page.screenshot({ path: `${OUT}/search-variations.png` });
-    ok('Search finds the new names and keeps separate variation rows for PR 1');
+    ok('Search queries find catalogue variations as separate exercise IDs');
     await search.fill('bayesian');
     await page.getByTestId('exercise-x-bayesian-curl-cable').click();
-    assert.match(await page.locator('body').innerText(), /Bayesian Curl \(Cable\)/);
+    assert.equal(await page.getByTestId('exercise-title').innerText(), 'Bayesian Curl');
+    assert.equal(await page.getByTestId('exercise-equipment').innerText(), 'Cable · Arms');
     ok('a new catalogue entry opens its own exercise page');
     assert.deepEqual(errors, []);
     await ctx.close();

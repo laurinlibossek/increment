@@ -855,4 +855,11 @@ export default {
   "The exercise library changed. Pick the file again.": "Die Übungsbibliothek hat sich geändert. Wähle die Datei erneut aus.",
   "Couldn’t save the import. Your data has not changed.": "Der Import konnte nicht gespeichert werden. Deine Daten sind unverändert.",
   "Pick a Strong export in Account to review its exercises": "Wähle im Account einen Strong-Export aus, um die Übungen zu prüfen",
+
+  // Exercise families
+  "{n} variations": "{n} Varianten",
+  "Current exercise": "Aktuelle Übung",
+  "Equipment": "Ausstattung",
+  "Bodyweight": "Körpergewicht",
+  "Unspecified": "Nicht angegeben",
 };
