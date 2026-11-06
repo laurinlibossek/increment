@@ -13,6 +13,9 @@ const ALIASES = {
   bis: 'bicep', lat: 'lat', pulldown: 'pulldown', pullup: 'pull up', pushup: 'push up', chinup: 'chin up',
   situp: 'sit up', hamstring: 'leg curl', quad: 'leg extension', delt: 'raise', abs: 'crunch',
   kh: 'kurzhantel', lh: 'langhantel',
+  sldl: 'stiff leg deadlift', ssb: 'safety bar squat', bss: 'bulgarian split squat',
+  jm: 'jm press', yraise: 'y raise', lu: 'lu raise', cuff: 'cuffed',
+  ffess: 'front foot elevated split squat', ghr: 'glute ham raise', sz: 'sz stange',
 };
 
 const fold = (s) => String(s).toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');

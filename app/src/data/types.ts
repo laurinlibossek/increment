@@ -59,6 +59,8 @@ export interface Template {
 export interface Exercise {
   id: string;
   name: string;
+  /** Explicit family id for custom exercises; built-ins resolve by catalogue id. */
+  family?: string | null;
   category: Category;
   bodyPart: string;
   builtin?: boolean;

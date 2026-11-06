@@ -950,3 +950,164 @@ test('privacy pages: one per language, and the contact email written in one plac
 });
 
 // ---------- offline ----------
+
+// ---------- exercise families and catalogue upgrades ----------
+const seedV1 = JSON.parse(read(path.join(ROOT, 'tests/fixtures/exercises-v1.json')));
+const byName = (name) => core.SEED_EXERCISES.find((e) => e.name === name);
+
+test('catalogue preserves all v1 ids, English names, categories, body parts and example routines', () => {
+  assert.equal(seedV1.exercises.length, 190);
+  const current = new Map(core.SEED_EXERCISES.map((e) => [e.id, e]));
+  for (const old of seedV1.exercises) assert.deepEqual(current.get(old.id), old);
+  assert.deepEqual(core.EXAMPLE_TEMPLATES, seedV1.examples);
+  assert.ok(core.SEED_VERSION > 1);
+  assert.ok(core.SEED_EXERCISES.length >= 360, 'a substantial, curated expansion');
+});
+
+test('catalogue has unique stable ids, valid logging types, and exactly one family per built-in', () => {
+  const seeds = core.SEED_EXERCISES;
+  assert.equal(new Set(seeds.map((e) => e.id)).size, seeds.length);
+  assert.equal(new Set(seeds.map((e) => e.name)).size, seeds.length);
+  assert.equal(new Set(core.EXERCISE_FAMILIES.map((f) => f.id)).size, core.EXERCISE_FAMILIES.length);
+  const ids = core.EXERCISE_FAMILIES.flatMap((f) => f.members);
+  assert.equal(ids.length, seeds.length);
+  assert.equal(new Set(ids).size, seeds.length);
+  for (const f of core.EXERCISE_FAMILIES) {
+    assert.equal(f.id, 'f-' + core.slug(f.name));
+    assert.ok(f.nameDe && f.members.length);
+    for (const id of f.members) assert.equal(core.familyOf(seeds.find((e) => e.id === id)), f.id);
+  }
+  for (const e of seeds) {
+    assert.equal(e.id, 'x-' + core.slug(e.name));
+    assert.ok(core.CATEGORY_LABEL[e.category], e.name);
+    assert.ok(core.BODY_PART_LABEL[e.bodyPart], e.name);
+    assert.equal(Object.hasOwn(e, 'family'), false, 'membership is resolved, not stored');
+  }
+});
+
+test('families use catalogue ids after rename/hide, and explicit custom assignments win', () => {
+  const squat = byName('Squat (Barbell)');
+  assert.equal(core.familyOf(squat), 'f-squat');
+  assert.equal(core.familyOf({ ...squat, name: 'My squat', hidden: true }), 'f-squat');
+  assert.equal(core.familyOf({ ...squat, family: 'f-my-lifts' }), 'f-my-lifts');
+  assert.equal(core.familyOf({ ...squat, family: null }), null);
+  assert.equal(core.familyOf({ id: 'c-front', name: 'My front squat', family: 'f-squat' }), 'f-squat');
+  assert.equal(core.familyOf({ id: 'c-squat', name: squat.name }), undefined, 'names do not silently group customs');
+  assert.equal(core.familyOf(undefined), undefined);
+  assert.equal(core.familyOf({ id: 'unknown' }), undefined);
+  assert.equal(core.familyOf(byName('Leg Press (Machine)')), 'f-leg-press');
+  assert.equal(core.familyOf(byName('Chest Press (Machine)')), 'f-chest-press');
+  assert.equal(core.familyOf(byName('Pullover (Machine)')), 'f-pullover');
+  for (const name of ['Front Squat (Barbell)', 'Hack Squat (Machine)', 'Goblet Squat (Dumbbell)', 'Safety Bar Squat (Barbell)', 'Zercher Squat (Barbell)', 'Pendulum Squat (Machine)']) {
+    assert.equal(core.familyOf(byName(name)), 'f-squat', name);
+  }
+  for (const name of ['Close Grip Bench Press (Barbell)', 'Floor Press (Dumbbell)', 'Spoto Press (Barbell)', 'Larsen Press (Barbell)', 'Decline Bench Press (Barbell)']) {
+    assert.equal(core.familyOf(byName(name)), 'f-bench-press', name);
+  }
+  assert.equal(core.familyOf(byName('Cuffed Single Arm Lat Pullover (Cable)')), 'f-keenan-flap');
+});
+
+test('family members keep main-first catalogue order, actual stored records and custom members', () => {
+  const main = byName('Squat (Barbell)');
+  const front = byName('Front Squat (Barbell)');
+  const smith = { ...byName('Squat (Smith Machine)'), hidden: true };
+  const custom = { id: 'c-my-squat', name: 'My squat', family: 'f-squat', category: 'reps' };
+  const library = [custom, smith, front, main, byName('Leg Press (Machine)')];
+  const original = structuredClone(library);
+  assert.deepEqual(core.familyMembers('f-squat', library), [main, front, custom]);
+  assert.equal(core.familyMembers('f-squat', library)[0], main);
+  assert.deepEqual(core.familyMembers('f-squat', new Map(library.map((e) => [e.id, e]))), [main, front, custom]);
+  assert.deepEqual(core.familyMembers('f-squat', library, { includeHidden: true }), [main, front, smith, custom]);
+  assert.deepEqual(core.familyMembers(undefined, library), []);
+  assert.deepEqual(core.familyMembers('f-no-such-family', library), []);
+  assert.deepEqual(library, original);
+  const own = { id: 'c-1', name: 'Own', family: 'f-own' };
+  assert.deepEqual(core.familyMembers('f-own', [own]), [own]);
+});
+
+test('family groups keep exercises then equipment, including different logged fields', () => {
+  const groups = core.familyMemberGroups('f-pull-up');
+  const pull = groups.find((g) => g.name === 'Pull Up');
+  assert.deepEqual(pull.members.map((m) => m.equipment), ['', 'Weighted', 'Assisted', 'Band']);
+  assert.deepEqual(pull.members.map((m) => m.exercise.category), ['reps', 'weighted_bw', 'assisted_bw', 'reps']);
+  assert.equal(new Set(pull.members.map((m) => m.exercise.id)).size, 4);
+  const squat = core.familyMemberGroups('f-squat');
+  assert.equal(squat[0].name, 'Squat');
+  assert.deepEqual(squat[0].members.map((m) => m.equipment), ['Barbell', 'Smith Machine', 'Bodyweight', 'Dumbbell']);
+  assert.ok(squat.some((g) => g.name === 'Front Squat'));
+  assert.deepEqual(core.familyMemberGroups('f-unknown'), []);
+  assert.equal(core.exerciseEquipment({ name: 'Row (Cable) (wide grip)' }), 'wide grip');
+  assert.equal(core.exerciseEquipment({ name: 'Pull Up' }), '');
+});
+
+test('seeding upgrades v1, is repeatable, and never overwrites renamed or hidden built-ins', () => {
+  const old = seedV1.exercises.map((e) => ({ ...e }));
+  old[0] = { ...old[0], name: 'My bench', hidden: true, restSec: 123, notes: 'mine' };
+  const snapshot = structuredClone(old);
+  const upgraded = core.withSeedExercises(old);
+  assert.equal(upgraded.length, core.SEED_EXERCISES.length);
+  assert.equal(upgraded.find((e) => e.id === old[0].id), old[0]);
+  assert.deepEqual(core.seedExerciseChanges(upgraded), []);
+  assert.deepEqual(core.seedExerciseChanges(new Map(upgraded.map((e) => [e.id, e]))), []);
+  assert.deepEqual(old, snapshot);
+});
+
+test('new built-in name collisions keep custom ids, logging fields, settings and history, and join the family', () => {
+  const custom = { id: 'c-kelso', name: '  Kelso Shrug (Dumbbell) ', category: 'machine', bodyPart: 'other', hidden: true, restSec: 55, notes: 'mine' };
+  const ownFamily = { id: 'c-katana', name: 'Katana Triceps Extension (Cable)', category: 'reps', family: 'f-my-arms' };
+  const optOut = { id: 'c-bayesian', name: 'Bayesian Curl (Cable)', category: 'machine', family: null };
+  const library = [...seedV1.exercises, custom, ownFamily, optOut];
+  const before = structuredClone(library);
+  const upgraded = core.withSeedExercises(library);
+  assert.deepEqual(upgraded.find((e) => e.id === custom.id), { ...custom, family: 'f-shrug' });
+  for (const name of ['Kelso Shrug (Dumbbell)', ownFamily.name, optOut.name]) assert.ok(!upgraded.some((e) => e.id === byName(name).id));
+  assert.equal(upgraded.find((e) => e.id === ownFamily.id), ownFamily);
+  assert.equal(upgraded.find((e) => e.id === optOut.id), optOut);
+  assert.deepEqual(core.seedExerciseChanges(upgraded), []);
+  assert.deepEqual(library, before);
+  // Same path when restoring an old backup: references and metrics stay on the custom id.
+  const data = { exercises: library, workouts: [{ id: 'w', startedAt: 1, exercises: [{ id: 'entry', exerciseId: custom.id, sets: [{ id: 's', type: 'normal', w: 20, r: 10 }] }] }], templates: [{ id: 't', exercises: [{ exerciseId: custom.id, sets: [{ w: 15, r: 10 }] }] }], kv: { meta: { seedVersion: 1 } } };
+  const restored = core.parseBackup(core.makeBackup(data, '1'), core.SEED_EXERCISES).data;
+  assert.deepEqual(restored.exercises, upgraded);
+  assert.deepEqual(restored.workouts, data.workouts);
+  assert.deepEqual(restored.templates, data.templates);
+  assert.equal(core.familyOf(restored.exercises.find((e) => e.id === custom.id)), 'f-shrug');
+});
+
+test('name collisions never reassign a renamed built-in, even to a newly added exercise', () => {
+  const renamed = { ...byName('Shrug (Barbell)'), name: 'Kelso Shrug (Machine)', hidden: true };
+  const upgraded = core.withSeedExercises([renamed]);
+  assert.equal(upgraded.find((e) => e.id === renamed.id), renamed);
+  assert.equal(core.familyOf(renamed), 'f-shrug');
+  assert.ok(!upgraded.some((e) => e.id === byName(renamed.name).id));
+});
+
+test('duplicate custom names all join the family without merging; existing built-in id wins over name collisions', () => {
+  const a = { id: 'c-a', name: 'Keenan Flap (Cable)', category: 'machine' };
+  const b = { ...a, id: 'c-b', name: 'keenan flap   (cable)' };
+  const changes = core.seedExerciseChanges([a, b], [byName(a.name)]);
+  assert.deepEqual(changes, [{ ...a, family: 'f-keenan-flap' }, { ...b, family: 'f-keenan-flap' }]);
+  const builtin = { ...byName(a.name), name: 'Renamed flap', hidden: true };
+  assert.deepEqual(core.seedExerciseChanges([a, b, builtin], [byName(a.name)]), []);
+});
+
+test('family metadata never combines records, last-time sets or routine progression across variations', () => {
+  const bar = byName('Squat (Barbell)'), smith = byName('Squat (Smith Machine)');
+  const entry = (e, w) => ({ id: e.id, exerciseId: e.id, sets: [{ id: e.id + '-s', type: 'normal', w, r: 5 }] });
+  const workouts = [{ id: 'w', startedAt: 1000, exercises: [entry(bar, 100), entry(smith, 150)] }];
+  const sessions = core.sessionsByExercise(workouts);
+  assert.equal(core.previousSetsFrom(sessions.get(bar.id))[0].w, 100);
+  assert.equal(core.previousSetsFrom(sessions.get(smith.id))[0].w, 150);
+  const stats = core.buildStats(workouts, new Map([[bar.id, bar], [smith.id, smith]]));
+  assert.equal(stats.bests.get(bar.id).weight, 100);
+  assert.equal(stats.bests.get(smith.id).weight, 150);
+  const routine = { exercises: [{ exerciseId: bar.id, sets: [{ w: 90, r: 5 }] }] };
+  const result = core.progressTemplate(routine.exercises, { exercises: [entry(smith, 200)] }, (id) => id === bar.id ? bar.category : smith.category);
+  assert.equal(result.exercises[0].sets[0].w, 90);
+});
+
+test('new search shortcuts find actual named movements and equipment', () => {
+  for (const [query, name] of [['ssb', 'Safety Bar Squat (Barbell)'], ['bss', 'Bulgarian Split Squat (Dumbbell)'], ['jm', 'JM Press (Barbell)'], ['yraise', 'Y-Raise (Cable)'], ['cuff', 'Cuffed Lateral Raise (Cable)'], ['sz', 'Preacher Curl (EZ Bar)'], ['ffess', 'Front Foot Elevated Split Squat (Dumbbell)'], ['ghr', 'Glute Ham Raise']]) {
+    assert.ok(core.matchExercise(byName(name), query), query);
+  }
+});

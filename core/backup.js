@@ -1,4 +1,5 @@
 // Backup files: everything in the app as one JSON file, and reading it back.
+import { withSeedExercises } from './seed-sync.js';
 
 // The file says app 'setlog' on purpose: Increment reads and writes the same
 // backups as the Setlog web app it grew out of, so data moves between them.
@@ -31,9 +32,7 @@ export function parseBackup(text, seedExercises = []) {
   const madeAt = Date.parse(obj.exportedAt || '');
   if (Number.isFinite(madeAt)) kv.meta = { ...(kv.meta || {}), lastBackupAt: Math.max(kv.meta?.lastBackupAt || 0, madeAt) };
   // keep the built-in library even if the backup predates it
-  const exercises = d.exercises || [];
-  const ids = new Set(exercises.map((e) => e.id));
-  for (const e of seedExercises) if (!ids.has(e.id)) exercises.push({ ...e });
+  const exercises = withSeedExercises(d.exercises || [], seedExercises);
   return {
     exportedAt: obj.exportedAt,
     data: {

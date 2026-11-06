@@ -1,6 +1,6 @@
 # Status and backlog
 
-Last updated 5 Nov 2026 (Increment moved into this repository). Keep this file current: when a pull request finishes an item, move it to "Done" in the same PR and note any decision Laurin made.
+Last updated 6 Nov 2026 (exercise families, catalogue/core PR). Keep this file current: when a pull request finishes an item, move it to "Done" in the same PR and note any decision Laurin made.
 
 ## Where things are
 
@@ -22,6 +22,7 @@ Last updated 5 Nov 2026 (Increment moved into this repository). Keep this file c
 - Not answered yet: "Account" in German (kept as "Account"); the body part under the exercise name in the session; added exercises wait under Up next; the just-logged exercise stays on screen during its rest; the routine editor keeps RPE as a target.
 - Unknowns that need Laurin's input: where Strong puts exercise notes in a real export (sticky notes are probably not exported at all), and what Strong's exercise ⋯ → Preferences contains.
 - **Exercise naming convention** (Laurin, 5 Nov 2026: later, its own pull request). The design rule is a display name ("Bench Press") with equipment and muscle on the line below ("Barbell · Chest"), but the stored names follow Strong ("Bench Press (Barbell)") and most screens show them whole, so the exercise page reads "Overhead Press (Barbell)" over "Barbell · Shoulders". Only the Workouts rows' exercise line drops the brackets so far (`exerciseBaseName`). Decide how names are shown everywhere (titles, lists, search, the session, custom names with their own brackets, German names), keeping the stored English names for Strong import and export.
+- **Exercise families, PRs 2 and 3:** PR 2: one family row in Search/picker, exercise/equipment tabs on the exercise page, Replace starts with its family, exact variation names everywhere (including the open naming-convention item above). PR 3: “Add to Squat?”, a “Variation of” form row, custom families and Strong import grouping. The catalogue/core is in place; these screens and import changes are still open.
 - The dictionary (`core/i18n-de.js`) still holds keys only the Setlog web app used; they do no harm, but could be pruned.
 
 ## How finishing a workout from a routine works
@@ -39,6 +40,8 @@ Reference for anyone touching the summary or routines.
 
 
 ## Done
+
+- **Exercise families, catalogue/core (PR 1 of 3, 6 Nov 2026):** 406 built-ins in 97 bilingual families, including long-length options, cable/machine work, cuffed variations and specialist named movements. `familyOf` resolves built-ins by catalogue id, with explicit custom overrides; ordered member/group helpers keep every exercise and logging type separate. Seed version 2 upgrades installations and restored backups without changing original ids, names, categories, body parts, examples, hidden/renamed built-ins or custom history; matching custom names join the family instead of receiving a duplicate. Core and browser upgrade/restore tests cover it. Rules in `docs/design/exercises.md`, specialist movement checks in `docs/dev/exercise-sources.md`. Search keeps its variation rows until PR 2.
 
 - **Design todo, group 9: older screens on the Tally scale** (5 Nov 2026, `design/group-9-tally-scale`): shared dialogs, prompts, sheets, toasts, kit components, Tools and the older exercise/routine forms use Tally spacing, radii and type. The exercise picker keeps its side actions visible and lets the title wrap between them, including German at 375 px. The routine popup keeps its approved look. Generic destructive buttons use a neutral Tally surface so red text reaches 4.5:1. The 1RM result uses the large number style; both calculators have short hints and field placeholders. An empty plate target previews the plates for its ghost weight (100 kg / 225 lb), typed input takes over, and clearing restores the preview. Readable captions, labels, chart axes, warm-up values and separators use secondary ink; the calendar draws only the month's own days (the faded days of the months around it are gone, so the grid matches its totals). Ghosts, placeholders, pending strokes and disabled text retain their roles. Text that sets a smaller size takes the whole Tally style, so it doesn't inherit Body's 22 px line height. Browser suite `app-tally-scale` covers contrast against the actual background in light/dark, line heights, calculator hints/placeholders in English/German and ghost plate behaviour; review captures cover the affected screens and overlay states.
 

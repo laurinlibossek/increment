@@ -6,7 +6,7 @@ import { AppState } from 'react-native';
 import {
   SEED_EXERCISES, SEED_VERSION, withDefaults, buildStats, sessionsByExercise, configureCalc, bodyweightFrom,
   parseBackup, parseStrongCSV, suggestTemplate, previousSetsFrom, newActiveWorkout, finishWorkout, prsForNewWorkout,
-  workoutVolume, makeBackup, uid,
+  workoutVolume, makeBackup, uid, seedExerciseChanges,
   templateFromDraft, workoutFromEditDraft, copyTemplateRecord, folderNames, findExerciseByName, newExerciseRecord,
   exerciseInDraft, patchDraftExercise, changeSetting, convertDraftUnits, mergeExercisePatch, moveExerciseEntries,
 } from '@increment/core';
@@ -84,12 +84,12 @@ function fromData(data: Data): Partial<State> {
 /** Add built-in exercises the data doesn't have yet (first start, older backups). */
 async function ensureSeed() {
   if ((state.meta.seedVersion || 0) >= SEED_VERSION && state.exercises.size) return;
-  const added = (SEED_EXERCISES as Exercise[]).filter((e) => !state.exercises.has(e.id));
-  if (added.length) await db.putMany('exercises', added);
+  const changed = seedExerciseChanges(state.exercises) as Exercise[];
+  if (changed.length) await db.putMany('exercises', changed);
   const meta = { ...state.meta, seedVersion: SEED_VERSION, createdAt: state.meta.createdAt || Date.now() };
   await db.kvSet('meta', meta);
   const exercises = new Map(state.exercises);
-  for (const e of added) exercises.set(e.id, { ...e });
+  for (const e of changed) exercises.set(e.id, e);
   setState({ exercises, meta });
 }
 
