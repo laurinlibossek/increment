@@ -89,9 +89,9 @@ function expoRoute(dist, pathname) {
   return match(dist, segs);
 }
 
-function sh(cmd, argv, cwd) {
-  console.log(`$ (${path.relative(ROOT, cwd) || '.'}) ${cmd} ${argv.join(' ')}`);
-  const r = spawnSync(cmd, argv, { cwd, stdio: 'inherit', env: { ...process.env, CI: '1' } });
+function sh(cmd, argv, cwd, env = {}) {
+  console.log(`$ (${path.relative(ROOT, cwd) || '.'}) ${Object.entries(env).map(([k, v]) => `${k}=${v} `).join('')}${cmd} ${argv.join(' ')}`);
+  const r = spawnSync(cmd, argv, { cwd, stdio: 'inherit', env: { ...process.env, CI: '1', ...env } });
   if (r.status !== 0) throw new Error(`failed: ${cmd} ${argv.join(' ')}`);
 }
 
@@ -101,16 +101,9 @@ async function serveApp(german = false) {
   if (!fs.existsSync(path.join(appDir, 'node_modules'))) sh('npm', ['ci'], appDir);
   // `npm run bundle` writes the iOS/Android export into the same dist/, so build web unless told not to
   if (!noBuild || !isFile(path.join(dist, 'index.html'))) {
-    const languageFile = path.join(appDir, 'src/lib/i18n.ts');
-    const source = fs.readFileSync(languageFile, 'utf8');
-    const enabled = source.replace('export const ENABLE_GERMAN = false;', 'export const ENABLE_GERMAN = true;');
-    if (german && !enabled.includes('export const ENABLE_GERMAN = true;')) throw new Error('ENABLE_GERMAN code switch not found');
-    try {
-      if (german) fs.writeFileSync(languageFile, enabled);
-      sh('npx', ['expo', 'export', '--platform', 'web', '--output-dir', dist], appDir);
-    } finally {
-      if (german) fs.writeFileSync(languageFile, source);
-    }
+    // German is a build setting (app/src/lib/i18n.ts), so no source file is touched. --clear keeps
+    // Metro from reusing the other build's transforms, which have the setting inlined.
+    sh('npx', ['expo', 'export', '--platform', 'web', '--output-dir', dist, '--clear'], appDir, { EXPO_PUBLIC_ENABLE_GERMAN: german ? '1' : '0' });
   }
   const port = new URL(APP).port || '8790';
   const already = await get(APP);

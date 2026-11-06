@@ -1,5 +1,7 @@
 // The shipped app stays English even on a non-English phone or after restoring
-// Setlog's German language setting. The runner uses the default code switch here.
+// Setlog's German language setting, with dates and numbers in the phone's region
+// (English words: "Friday, 6 November", "82,4 kg" on a German phone). Built without
+// EXPO_PUBLIC_ENABLE_GERMAN, like the store and web apps.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { launch, devices, grantWakeLock, APP, BACKUP, shots } from './env.mjs';
@@ -34,9 +36,11 @@ try {
     await page.goto(APP);
     await id('start-empty').waitFor();
     assert.match(await id('up-next').innerText(), /Up next[\s\S]*Empty workout[\s\S]*Start an empty workout/);
-    const today = await page.evaluate(() => new Intl.DateTimeFormat('en-US', { weekday: 'long', day: 'numeric', month: 'long' }).format(Date.now()));
+    const region = `en-${locale.split('-')[1]}`;
+    const today = await page.evaluate((l) => new Intl.DateTimeFormat(l, { weekday: 'long', day: 'numeric', month: 'long' }).format(Date.now()), region);
+    assert.match(today, /^[A-Z][a-z]+day, \d{1,2} [A-Z][a-z]+$/, 'English words, day before month');
     await page.getByText(today, { exact: true }).waitFor();
-    ok(`${locale}: first start and the date are English`);
+    ok(`${locale}: first start is English, the date in the phone's region (${today})`);
 
     await id('open-account').click();
     await id('restore').waitFor();
@@ -71,10 +75,10 @@ try {
     await page.goto(APP);
     await id('tab-progress').click();
     assert.match(await id('progress-workouts').innerText(), /Workouts/);
-    assert.match(await id('progress-body').innerText(), /82\.4 kg/);
+    assert.match(await id('progress-body').innerText(), /82,4 kg/);
     await id('progress-body').click();
-    assert.match(await id('measure-bodyweight').innerText(), /Body weight[\s\S]*82\.4 kg/);
-    ok(`${locale}: persisted German settings reload in English with English decimal formatting`);
+    assert.match(await id('measure-bodyweight').innerText(), /Body weight[\s\S]*82,4 kg/);
+    ok(`${locale}: persisted German settings reload in English, numbers in the phone's region (82,4 kg)`);
 
     await page.goBack();
     await id('tab-search').click();

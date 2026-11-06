@@ -11,9 +11,9 @@ node tests/browser/run.mjs --no-build         # reuse both language exports
 
 The runner serves the app on :8790 itself, runs `npm ci` in `app/` if needed, downloads the sample Strong export into `data/` and builds a fresh backup from it before the suites. Screenshots land in `.out/<suite>/`. `data/` and `.out/` are git-ignored.
 
-`app-english-only` tests the shipped build in `app/dist`: English UI and date/number formatting regardless of the browser locale or saved/restored language, with Language hidden in Account. The existing suites run against a separate export in `.out/german-app`, with `ENABLE_GERMAN` from `app/src/lib/i18n.ts` set to `true` during that export. The runner restores the source in `finally` immediately after exporting, including on build failure, and leaves `app/dist` alone. This keeps German, its language choices and the existing bilingual checks working in the normal CI command, without a runtime override or a workflow change.
+`app-english-only` tests the shipped build in `app/dist`: English UI regardless of the browser locale or saved/restored language, dates and numbers in the phone's region ("Friday, 6 November", "82,4 kg" for de-DE), and Language hidden in Account. The existing suites run against a separate export in `.out/german-app`, built with `EXPO_PUBLIC_ENABLE_GERMAN=1` (the setting behind `ENABLE_GERMAN` in `app/src/lib/i18n.ts`). No source file is edited, so an interrupted run can't leave German switched on. Both exports use `--clear`, because Metro would otherwise reuse transforms with the other value inlined.
 
-`--no-build` reuses each export separately (and builds a missing one). `--serve` only serves the normal `app/dist` build using the source switch as checked out, for review screenshots. Stop a server already running on :8790 before running tests, so they cannot accidentally use the wrong language build.
+`--no-build` reuses each export separately (and builds a missing one). `--serve` only serves the normal English `app/dist` build, for review screenshots. Stop a server already running on :8790 before running tests, so they cannot accidentally use the wrong language build.
 
 ## Setup
 

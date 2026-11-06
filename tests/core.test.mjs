@@ -949,6 +949,16 @@ test('translator fills placeholders and falls back to English', () => {
   assert.equal(core.pickLanguage(['de-AT', 'en']), 'de');
 });
 
+test('English dates and numbers follow the phone region', () => {
+  const cases = [['de-DE', 'en-DE'], ['de_AT', 'en-AT'], ['en-GB', 'en-GB'], ['en-US', 'en-US'], ['fr-FR', 'en-FR'],
+    ['zh-Hans-CN', 'en-CN'], ['es-419', 'en-419'], ['de-DE-u-hc-h23', 'en-DE'], ['de-u-ca-gregory', 'en-US'], ['de', 'en-US'], ['', 'en-US'], [undefined, 'en-US']];
+  for (const [phone, locale] of cases) assert.equal(core.englishFormatLocale(phone), locale, String(phone));
+  // English words with the region's formats
+  const d = new Date(2026, 10, 6, 19, 15);
+  assert.equal(new Intl.DateTimeFormat(core.englishFormatLocale('de-DE'), { weekday: 'long', day: 'numeric', month: 'long' }).format(d), 'Friday, 6 November');
+  assert.equal(new Intl.NumberFormat(core.englishFormatLocale('de-DE')).format(1630.5), '1.630,5');
+});
+
 test('every label in core has German', () => {
   const keep = new Set(['Push', 'Pull', 'Legs', 'Push / Pull / Legs', 'Epley', 'Brzycki', 'Lombardi', 'Mayhew', 'O’Conner', 'Wathen', 'Lander']);
   const labels = [

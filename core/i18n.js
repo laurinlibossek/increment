@@ -20,3 +20,16 @@ export function pickLanguage(preferred = []) {
   const first = preferred.find(Boolean) || 'en';
   return /^de\b/i.test(first) ? 'de' : 'en';
 }
+
+/**
+ * The locale for English dates and numbers: English words in the phone's region
+ * (Laurin, 6 Nov 2026). "de-DE" → "en-DE" (Friday, 6 November · 19:15 · 1.630,5),
+ * "en-GB" → "en-GB", "zh-Hans-CN" → "en-CN"; without a region, "en-US".
+ */
+export function englishFormatLocale(locale) {
+  const all = String(locale || '').split(/[-_]/).slice(1);
+  const end = all.findIndex((t) => t.length === 1); // extensions (-u-…, -x-…) come after the region
+  const tags = end < 0 ? all : all.slice(0, end);
+  const region = tags.find((t) => /^[A-Za-z]{2}$/.test(t) || /^\d{3}$/.test(t));
+  return region ? `en-${region.toUpperCase()}` : 'en-US';
+}
