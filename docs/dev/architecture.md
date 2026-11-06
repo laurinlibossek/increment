@@ -17,7 +17,7 @@ Background for working on the code: the decisions behind it, where things live, 
 
 ### Open core
 
-Increment is open core. This repository (GPL-3.0) is the whole app: iPhone, Android and the web. The store version is built from a private repository, `increment-prod`, which is this repository plus what stays private: TrueTrain (the coaching engine behind Increment Pro), Pro itself, the store setup and the native extras that need a development build. `increment-prod` pulls this repository in regularly; nothing flows back. So everything that isn't Pro is built here, and the app must work fully without the private parts (an empty coach in open builds; see `docs/design/phases.md`, phase 7).
+Increment is open core. This repository (GPL-3.0) is the whole app: iPhone, Android and the web. The store version is built from a private repository, `increment-prod`, which is this repository plus what stays private: TrueTrain (the membership in the store apps and its coaching engine), the store setup and the native extras that need a development build. `increment-prod` pulls this repository in regularly; nothing flows back. So everything else is built here, and the app must work fully without the private parts: open builds leave the store version's slots empty and show the TrueTrain tab's public page (`docs/design/phases.md`, phase 7). How TrueTrain works (its rules, notes, the data it reads, the membership and its price) is documented only in `increment-prod` (Laurin, 6 Nov 2026).
 
 ### Why it's built this way
 

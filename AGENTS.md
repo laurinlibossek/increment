@@ -4,7 +4,7 @@ Increment is a free, open-source workout tracker built around progressive overlo
 
 - **App** (`app/`): Expo / React Native (SDK 58, Expo Router, TypeScript), one codebase for iPhone, Android and the web. The web build is the open web app. Not released yet; Laurin runs it in Expo Go, which only runs the latest SDK: when Expo Go updates on his phone, the app has to follow.
 - **Core** (`core/`): the training logic without DOM, storage or UI framework, imported as `@increment/core`.
-- **Open core:** the store version is built from the private repository `laurinlibossek/increment-prod`: this repository plus TrueTrain (the coaching engine behind Increment Pro), Pro and the store setup. It pulls this repository in; nothing flows back. Build everything that isn't Pro here, and never put TrueTrain, Pro or store-only material into this repository. See `docs/dev/architecture.md` → "Open core".
+- **Open core:** the store version is built from the private repository `laurinlibossek/increment-prod`: this repository plus TrueTrain (the membership and its coaching engine) and the store setup. It pulls this repository in; nothing flows back. Build everything else here, and never put TrueTrain's workings (its rules, notes, data, membership or pricing) or store-only material into this repository; here it is only the TrueTrain tab's public page and empty slots. See `docs/dev/architecture.md` → "Open core".
 - Increment grew out of Setlog (`laurinlibossek/setlog`, a Preact web app). Backups keep Setlog's format, so Setlog backups restore here.
 
 Read next, in this order:

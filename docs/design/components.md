@@ -38,18 +38,6 @@ Capsule buttons in ink: `primary` (ink fill, paper label) for the one action the
 
 **Native**: on iOS 26 prefer the system glass button style for toolbar buttons and `.borderedProminent` tinted `ink` for the primary.
 
-## CoachNote
-
-One finding from the coach (TrueTrain), with its evidence grade and a Why link to the source. See the Coaching notes section for where notes may appear.
-
-**You provide** the tip from the engine: text and variables (translated like any string), the rule ID, the grade A–D and the placement.
-
-**Rules**
-- Grade mark first: A filled `ink`, B outlined `ink`, C outlined `ink-2`. Findings graded D stay in the knowledge base and never become notes.
-- Text `t-subhead` in `ink`; "Why" in `ink-2` opens the source sheet (finding, grade, rule ID, reference).
-- Block variant in lists, inline variant under an exercise name.
-- No cards, colours, icons or "AI" labels. Never modal.
-
 ## EffortPicker
 
 Three options to rate the set just done by reps left in reserve: 0 · 1 · 2+. 1 sits in the middle: it's the target. 0 is a set to failure, 2+ a lighter set. Nothing above 2 on purpose: no one should have more than 2 left in the tank (Laurin, 4 Nov 2026).
@@ -62,7 +50,6 @@ Three options to rate the set just done by reps left in reserve: 0 · 1 · 2+. 1
 - One tap, no confirmation, changeable until the next set is logged.
 - 0 is failure: rating a working set 0 makes it a failure set, and choosing Failure as the set type sets 0 left, so the two never disagree. Rating a failure set 1 or 2+ makes it a working set again. The set menu offers the same three.
 - The chosen option is `ink` with a `paper` label; the others `paper-3`.
-- The coach uses it (effort rules E1–E4); without it the coach falls back to weight and reps.
 
 ## Highlight
 
@@ -115,13 +102,13 @@ A full-width row: optional leading symbol, a title with an optional second line,
 
 ## MuscleVolume
 
-Working sets per muscle over the last 7 days, as tallies, with hairlines up to the weekly floor when the coach is on.
+Working sets per muscle over the last 7 days, as tallies.
 
-**You provide** sets per muscle (counted from the log; an exercise's secondary muscles count half) and, with Pro, the person's floor and ceiling for each muscle.
+**You provide** sets per muscle (counted from the log; an exercise's secondary muscles count half). The store version may pass a target range per muscle; the open app passes none.
 
 **Rules**
-- Stems are sets done; hairlines are the sets still missing to reach the floor. Without Pro there are no hairlines and no targets.
-- The count on the right in `t-headline`. Above the ceiling, the count turns `ink-2` and the coach explains in a note; it never turns red.
+- Stems are sets done; with a target range, hairlines show the sets still missing to its lower end.
+- The count on the right in `t-headline`. Above the range, the count turns `ink-2`; it never turns red.
 - Muscles in a fixed order (chest, back, shoulders, arms, legs, then the finer split once the exercise library has it).
 
 ## NowLifting
@@ -183,7 +170,7 @@ Two to five mutually exclusive options, such as a chart's range.
 
 One set: its stroke, weight × reps (or the exercise's own fields: reps only, time, distance and time), and small chips for the set type and effort.
 
-**You provide** the set (stored kg, reps, seconds, km; type; reps left), the exercise's category, last time's or the coach's target values for the ghost text, and whether it is the set being logged.
+**You provide** the set (stored kg, reps, seconds, km; type; reps left), the exercise's category, last time's values (or a target the store version supplies) for the ghost text, and whether it is the set being logged.
 
 **Rules**
 - The leading stroke logs and un-logs the set. There is no checkmark column and no "Previous" column.
@@ -286,7 +273,7 @@ export interface SetRowProps {
   /** The stored set: w (kg), r, d (km), t (s), type, rir (reps left). */
   set: { id: string; type?: 'normal' | 'warmup' | 'drop' | 'failure'; w?: number; r?: number; d?: number; t?: number; rir?: number; done?: boolean };
   category: 'barbell' | 'dumbbell' | 'machine' | 'weighted_bw' | 'assisted_bw' | 'reps' | 'cardio' | 'duration';
-  /** Last time's numbers or the coach's target, shown as ghost values. */
+  /** Last time's numbers (or a target from the store version), shown as ghost values. */
   target?: { w?: number; r?: number; d?: number; t?: number };
   /** The set being logged: fields instead of text. */
   live?: boolean;
@@ -353,15 +340,6 @@ export interface RoutineCardProps {
   sets: number;
   minutes: number;
   onStart?: () => void;
-}
-
-/** A tip from TrueTrain: { text, vars, rule, grade, shown }. */
-export interface CoachNoteProps {
-  text: string;
-  grade: 'A' | 'B' | 'C';
-  rule: string;
-  variant?: 'block' | 'inline';
-  onWhy: () => void;
 }
 
 export interface WeekStripProps { weekStart: 0 | 1; days: { done: number; planned: boolean }[]; today: number; goal: number }

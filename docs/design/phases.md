@@ -20,7 +20,7 @@ Owns: `src/app/(tabs)/`, `src/app/_layout.tsx`, a new Account sheet.
 Built as planned, with these choices: the web build keeps JS tabs (`(tabs)/_layout.web.tsx`), drawn like the native bar, because native tabs on the web are a pill at the top without test ids or an accessory. The bottom accessory exists only on iOS 26 and later, so Android and older iPhones get the same Now Lifting bar floating above the tab bar inside each tab. Lifts lists the exercises you've done; the whole library is under Search. The week strip's planned days come from the weekdays usually trained until there are blocks (phase 5).
 
 - Native tabs (`NativeTabs` from `expo-router/native-tabs` since SDK 58, `unstable-native-tabs` in SDK 57; works in Expo Go): Today, Plan, Progress, and Search with `role="search"`. SF Symbols as in `README.md` → Iconography. `minimizeBehavior="onScrollDown"`. Check the SDK 57 docs before writing it (`app/AGENTS.md`). If the web build can't give the tests stable tab ids, keep JS tabs for web only and say so.
-- Today (`index`): eyebrow date, large title, avatar (opens Account), the Up next card (`suggestTemplate`; Start), at most one coach note slot (empty until phase 7), This week (week strip from the weekly goal and workouts), Sets per muscle for the last 7 days by body part (counts only; no targets without Pro).
+- Today (`index`): eyebrow date, large title, avatar (opens Account), the Up next card (`suggestTemplate`; Start), an empty slot under Up next that the store version can fill, This week (week strip from the weekly goal and workouts), Sets per muscle for the last 7 days by body part (counts only; no targets without Pro).
 - Plan: the templates list and folders that are on the Workout tab today, plus "Empty workout" in its + menu.
 - Progress: a hub with Last 30 days (workouts, volume, records), rows to Workouts (History), Lifts (the exercise list), Records and Body (Measure), and the Profile charts. History, Exercises and Measure become pushed screens.
 - Search: the exercise search, focused on open.
@@ -65,13 +65,12 @@ Needs Laurin's Apple Developer account.
 
 - EAS development build; the app icon and splash on the phone.
 - Live Activity and Dynamic Island for the running workout and rest (`expo-widgets`), countdown drawn by the system.
-- TestFlight.
+- Automatic backup of the app's data to iCloud on iPhone and to Google Drive on Android (Android Auto Backup), free for everyone. The web app keeps backup files.
+- TestFlight, then the App Store and Google Play.
 
 ## 7. TrueTrain
 
-Private engine, public contract. The plan is in Laurin's Claude doc "Increment: research, architecture and TrueTrain".
+The membership in the store apps. Its engine, the membership and everything specific to the store apps are built in the private repository; this repository only gets what every build shows (Laurin, 6 Nov 2026):
 
-- `core/coach.js`: the coach contract, the empty coach and the snapshot builder (last 12 weeks, all-time bests, body weight, profile, block).
-- The note surfaces from `coaching.md`.
-- Pro through an in-app purchase checked on the phone.
-- Muscles per exercise (primary and secondary) for the built-ins, and a training profile.
+- The TrueTrain tab (`navigation.md`). On the web and in open builds: what TrueTrain is (training tuned by rules from training research, with tips where you train) and that it's in the App Store and Google Play apps, with links. It appears once those apps are live.
+- Empty slots the store version can fill (under Up next on Today, in the session, on the summary and the exercise page). Open builds leave them empty and work fully without the private parts.

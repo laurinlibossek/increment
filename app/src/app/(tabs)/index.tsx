@@ -1,5 +1,5 @@
 // Today: what to do now. The date, the routine that is up next (or the
-// workout that's running) with its one Start button, at most one coach note,
+// workout that's running) with its one Start button, a slot the store version can fill,
 // this week's sessions and the sets per muscle of the last 7 days. The avatar
 // opens Account. docs/design/navigation.md, phases.md → 2.
 import { useMemo } from 'react';
@@ -96,7 +96,7 @@ export default function TodayTab() {
     <TabRoot title={tr('Today')} eyebrow={date} right={avatar}>
       <View style={{ paddingHorizontal: SPACE.s5 }}>{card}</View>
 
-      {/* The coach note slot: at most one note here once TrueTrain arrives (docs/design/coaching.md, phase 7). */}
+      {/* An empty slot the store version can fill (docs/design/phases.md, phase 7). */}
 
       <SectionHeader title={tr('This week')} scope={scope} testID="week-head" />
       <WeekStrip testID="week-strip" today={week.today} label={`${tr('This week')}: ${scope}`}
