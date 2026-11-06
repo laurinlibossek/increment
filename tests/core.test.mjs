@@ -1057,7 +1057,7 @@ test('family members keep main-first catalogue order, actual stored records and 
 test('family groups keep exercises then equipment, including different logged fields', () => {
   const groups = core.familyMemberGroups('f-pull-up');
   const pull = groups.find((g) => g.name === 'Pull Up');
-  assert.deepEqual(pull.members.map((m) => m.equipment), ['Band', '', 'Weighted', 'Assisted']);
+  assert.deepEqual(pull.members.map((m) => m.equipment), ['', 'Band', 'Weighted', 'Assisted'], 'plain Pull Up leads');
   assert.deepEqual(pull.members.map((m) => m.exercise.category), ['reps', 'reps', 'weighted_bw', 'assisted_bw']);
   assert.equal(new Set(pull.members.map((m) => m.exercise.id)).size, 4);
   const squat = core.familyMemberGroups('f-squat');
@@ -1077,15 +1077,17 @@ test('every family keeps related movements contiguous and equipment in the share
     let previousBase, previousRank = -1;
     for (const e of f.members) {
       const base = core.exerciseBaseName(e, 'en');
-      if (base !== previousBase) {
-        assert.ok(!seen.has(base), `${f.name}: ${base} equipment is separated by another movement`);
-        seen.add(base);
-        previousRank = -1;
-      }
       const label = core.exerciseEquipment(e) || (['reps', 'duration'].includes(e.category) ? 'Bodyweight' : '');
       const rank = equipmentOrder.includes(label) ? equipmentOrder.indexOf(label) : equipmentOrder.length;
+      if (base !== previousBase) {
+        // a movement's first entry is its usual version; the rest follow the equipment order
+        assert.ok(!seen.has(base), `${f.name}: ${base} equipment is separated by another movement`);
+        seen.add(base);
+        previousBase = base;
+        previousRank = -1;
+        continue;
+      }
       assert.ok(rank >= previousRank, `${f.name}: ${e.name} breaks equipment order`);
-      previousBase = base;
       previousRank = rank;
     }
     assert.deepEqual(core.familyMemberGroups(f.id).flatMap(g => g.members.map(m => m.exercise.id)), f.members.map(e => e.id));
@@ -1095,6 +1097,29 @@ test('every family keeps related movements contiguous and equipment in the share
   assert.deepEqual(groups('f-split-squat'), ['Split Squat', 'Bulgarian Split Squat', 'Front Foot Elevated Split Squat']);
   assert.deepEqual(groups('f-romanian-deadlift'), ['Romanian Deadlift', 'Stiff Leg Deadlift', 'Single Leg Romanian Deadlift', 'B Stance Romanian Deadlift']);
   assert.deepEqual(groups('f-hip-thrust'), ['Hip Thrust', 'Glute Bridge', 'Single Leg Hip Thrust', 'Single Leg Glute Bridge']);
+});
+
+test('each movement starts with its usual version, not the first in the equipment order', () => {
+  const first = (familyId) => core.EXERCISE_FAMILIES.find((f) => f.id === familyId).members[0];
+  assert.equal(first('f-push-up'), 'x-push-up');
+  assert.equal(first('f-pull-up'), 'x-pull-up');
+  assert.equal(first('f-lat-pulldown'), 'x-lat-pulldown-cable');
+  assert.equal(first('f-back-extension'), 'x-back-extension');
+  assert.equal(first('f-crunch'), 'x-crunch');
+  assert.equal(first('f-calf-raise'), 'x-standing-calf-raise-machine');
+  assert.equal(first('f-nordic-hamstring-curl'), 'x-nordic-hamstring-curl');
+  const lead = (familyId, name) => core.familyMemberGroups(familyId).find((g) => g.name === name).members.map((m) => m.exercise.name);
+  assert.deepEqual(lead('f-push-up', 'Push Up'), ['Push Up', 'Push Up (Band)', 'Push Up (Weighted)']);
+  assert.deepEqual(lead('f-lat-pulldown', 'Lat Pulldown'), ['Lat Pulldown (Cable)', 'Lat Pulldown (Machine)', 'Lat Pulldown (Single Arm)']);
+  assert.deepEqual(lead('f-row', 'Seated Row'), ['Seated Row (Cable)', 'Seated Row (Machine)']);
+  assert.deepEqual(lead('f-squat', 'Hack Squat'), ['Hack Squat (Machine)', 'Hack Squat (Barbell)']);
+  assert.deepEqual(lead('f-split-squat', 'Bulgarian Split Squat'), ['Bulgarian Split Squat (Dumbbell)', 'Bulgarian Split Squat (Barbell)', 'Bulgarian Split Squat (Smith Machine)', 'Bulgarian Split Squat']);
+  // a custom version joins after the usual one; a hidden usual version hands the lead to the next built-in
+  const library = [...core.SEED_EXERCISES, { id: 'c-lat-band', name: 'Lat Pulldown (Band)', family: 'f-lat-pulldown', category: 'reps' }];
+  const names = (lib) => core.familyMemberGroups('f-lat-pulldown', lib).find((g) => g.name === 'Lat Pulldown').members.map((m) => m.exercise.name);
+  assert.deepEqual(names(library), ['Lat Pulldown (Cable)', 'Lat Pulldown (Machine)', 'Lat Pulldown (Band)', 'Lat Pulldown (Single Arm)']);
+  const hidden = library.map((e) => (e.id === 'x-lat-pulldown-cable' ? { ...e, hidden: true } : e));
+  assert.deepEqual(names(hidden), ['Lat Pulldown (Machine)', 'Lat Pulldown (Band)', 'Lat Pulldown (Single Arm)']);
 });
 
 test('equipment ordering also applies to custom groups without changing stored records', () => {

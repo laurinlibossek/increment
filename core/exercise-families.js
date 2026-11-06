@@ -40,7 +40,9 @@ export function familyMembers(familyId, exercises = SEED_EXERCISES, { includeHid
  * Family → exercise base name → equipment entries. Names here stay English;
  * screens translate each actual exercise when rendering. Weighted/assisted
  * versions share a base group but retain their own id and logging category.
- * Equipment uses the common order, including custom members in a base group.
+ * A group starts with its usual version (the first built-in the catalogue lists
+ * for it: Push Up before Push Up (Band), Lat Pulldown (Cable) before (Machine));
+ * the others, custom members included, follow the common equipment order.
  */
 export function familyMemberGroups(familyId, exercises = SEED_EXERCISES, options = {}) {
   const groups = new Map();
@@ -49,7 +51,11 @@ export function familyMemberGroups(familyId, exercises = SEED_EXERCISES, options
     if (!groups.has(name)) groups.set(name, { name, members: [] });
     groups.get(name).members.push({ equipment: exerciseEquipment(exercise), exercise });
   }
-  return [...groups.values()].map((group) => ({
-    ...group, members: group.members.sort((a, b) => compareExerciseEquipment(a.exercise, b.exercise)),
-  }));
+  return [...groups.values()].map((group) => {
+    // familyMembers puts built-ins first in catalogue order, so a group's usual version leads it
+    const [first, ...rest] = group.members;
+    const lead = memberOrder.has(first.exercise.id) ? [first] : [];
+    const others = (lead.length ? rest : group.members).sort((a, b) => compareExerciseEquipment(a.exercise, b.exercise));
+    return { ...group, members: [...lead, ...others] };
+  });
 }
