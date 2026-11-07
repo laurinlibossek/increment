@@ -1,4 +1,5 @@
-// Families expand inline; only actual exercise ids are selected or returned.
+// Ordinary picks expand families inline and return exercise ids. The exercise
+// form's family selection also accepts a family row directly, or None.
 import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
@@ -11,7 +12,7 @@ import { CONTROL, SPACE, TYPE } from '@/design/tally';
 import { exerciseBrowserRows, type ExerciseBrowseRow } from '@/lib/exerciseBrowser';
 import { useFormat } from '@/lib/format';
 import { editExercise } from '@/lib/exerciseForm';
-import { currentPick, finishPick } from '@/lib/picker';
+import { currentPick, finishPick, PICK_NONE } from '@/lib/picker';
 import { useTally } from '@/lib/theme';
 import { Button, Empty, SearchField } from '@/ui/kit';
 import { ChoiceChips } from '@/ui/tally/ChoiceChips';
@@ -20,11 +21,13 @@ import { ListRow, SymbolIcon } from '@/ui/tally/ListRow';
 export default function PickExercises() {
   const exercises = useAppSelector((s) => s.exercises);
   const workouts = useAppSelector((s) => s.workouts);
+  const customFamilies = useAppSelector((s) => s.customFamilies);
   const f = useFormat(), { tr } = f;
   const { colors: t } = useTally();
   const insets = useSafeAreaInsets();
   const [pick] = useState(currentPick);
-  const multi = !!pick?.multi;
+  const familySelection = !!pick?.familySelection;
+  const multi = !familySelection && !!pick?.multi;
   const [q, setQ] = useState('');
   const [part, setPart] = useState('all');
   const [chosen, setChosen] = useState<string[]>([]);
@@ -32,18 +35,18 @@ export default function PickExercises() {
   const currentFamily = familyOf(current);
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(currentFamily ? [currentFamily] : []));
   const sessions = useMemo(() => allSessions(), [workouts]);
-  useEffect(() => () => { if (currentPick() === pick) finishPick(null); }, [pick]);
+  useEffect(() => () => { finishPick(null, pick); }, [pick]);
 
   const list = useMemo(() => {
-    const rows = exerciseBrowserRows(exercises, sessions, f, { query: q, part, accepts: pick?.accepts });
+    const rows = exerciseBrowserRows(exercises, sessions, f, { query: q, part, accepts: pick?.accepts, customFamilies });
     if (!q.trim() && current) {
       const at = rows.findIndex((r) => r.id === currentFamily || r.id === current.id);
       if (at > 0) rows.unshift(...rows.splice(at, 1));
     }
     return rows;
-  }, [exercises, sessions, f, q, part, pick, current, currentFamily]);
+  }, [exercises, sessions, f, q, part, pick, current, currentFamily, customFamilies]);
   const parts = [{ value: 'all', label: tr('All') }, ...BODY_PARTS.map((b) => ({ value: b.id, label: tr(b.label) }))];
-  const done = (ids: string[] | null) => { finishPick(ids); router.back(); };
+  const done = (ids: string[] | null) => { finishPick(ids, pick); router.back(); };
   const tap = (id: string) => {
     if (!multi) { done([id]); return; }
     setChosen((cur) => cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]);
@@ -74,7 +77,10 @@ export default function PickExercises() {
     </Pressable>;
   };
   const renderRow = (row: ExerciseBrowseRow, index: number) => {
-    if (!row.family || row.members.length === 1) return version(row.members[0], index === 0, false, row.title, row.subtitle);
+    if (familySelection && row.family) return <ListRow title={<Text style={[TYPE.body, { color: t.ink }]}>{row.title}</Text>}
+      subtitle={<Text style={[TYPE.footnote, { color: t.ink2 }]}>{row.subtitle}</Text>}
+      onPress={() => done([row.id])} testID={`pick-family-${row.id}`} chevron />;
+    if (!row.family || row.members.length === 1) return version(row.members[0], index === 0 && !familySelection, false, row.title, row.subtitle);
     const open = expanded.has(row.id);
     return <View>
       <ListRow first={index === 0} title={<Text style={[TYPE.body, { color: t.ink }]}>{row.title}</Text>}
@@ -106,6 +112,7 @@ export default function PickExercises() {
     <FlatList data={list} keyExtractor={(r) => r.id} renderItem={({ item, index }) => renderRow(item, index)}
       keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" initialNumToRender={20}
       contentContainerStyle={{ paddingBottom: insets.bottom + SPACE.s6 }}
+      ListHeaderComponent={familySelection ? <ListRow title={tr('None')} first onPress={() => done([PICK_NONE])} testID="pick-none" /> : undefined}
       ListEmptyComponent={<Empty title={q.trim() ? tr('No match for “{q}”', { q: q.trim() }) : tr('Nothing found')} text={pick?.allowCreate === false ? undefined : tr('Create it as your own exercise.')}>
         {pick?.allowCreate !== false && <Button kind="tinted" icon="plus" title={tr('Create “{name}”', { name: q.trim() || tr('new exercise') })} onPress={create} testID="pick-create" />}
       </Empty>} />

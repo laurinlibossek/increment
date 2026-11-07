@@ -10,13 +10,13 @@ export type ExerciseBrowseRow = {
 };
 
 export function exerciseBrowserRows(exercises: Map<string, Exercise>, sessions: Sessions, f: Format,
-  { query, part, accepts }: { query: string; part: string; accepts?: (ex: Exercise) => boolean }): ExerciseBrowseRow[] {
+  { query, part, accepts, customFamilies = {} }: { query: string; part: string; accepts?: (ex: Exercise) => boolean; customFamilies?: Record<string, string> }): ExerciseBrowseRow[] {
   const partLabel = (id: string) => f.tr(BODY_PART_LABEL[id as keyof typeof BODY_PART_LABEL] || 'Other');
   if (query.trim()) return [...exercises.values()]
     .filter((e) => !e.hidden && (!accepts || accepts(e)) && (part === 'all' || e.bodyPart === part) && matchExercise(e, query))
     .map((e) => ({ id: e.id, title: f.exName(e), subtitle: [partLabel(e.bodyPart), sessions.get(e.id)?.length ? f.plural(sessions.get(e.id)!.length, 'time') : '', sessions.get(e.id)?.[0]?.startedAt ? f.relDayLower(sessions.get(e.id)![0].startedAt) : ''].filter(Boolean).join(' · '), family: false, members: [e], exercise: e }))
     .sort((a, b) => a.title.localeCompare(b.title));
-  return exerciseBrowseRows(exercises, sessions, { accepts })
+  return exerciseBrowseRows(exercises, sessions, { accepts, customFamilies })
     .filter((row) => part === 'all' || row.bodyPart === part)
     .map((row) => ({ id: row.id, title: row.family ? f.lang === 'de' ? row.family.nameDe : row.family.name : f.exName(row.exercise),
       subtitle: [partLabel(row.bodyPart), row.members.length > 1 ? f.tr('{n} variations', { n: row.members.length }) : '', row.lastAt ? f.relDayLower(row.lastAt) : ''].filter(Boolean).join(' · '),

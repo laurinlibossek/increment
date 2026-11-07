@@ -1,8 +1,8 @@
 // Conservative Strong-name matching. Search can match fragments; import
 // suggestions must account for every word of the movement's name.
 import { canMergeExercises } from './editing.js';
-import { EXERCISE_SEARCH_SHORTCUTS, exerciseBaseName } from './search.js';
-import { familyOf } from './exercise-families.js';
+import { EXERCISE_SEARCH_SHORTCUTS } from './search.js';
+import { familyOf, exerciseFamilyBaseKey } from './exercise-families.js';
 import { EXERCISE_EQUIPMENT_ORDER } from './exercise-equipment.js';
 
 /** Exact import identity ignores case and whitespace, as before. */
@@ -88,11 +88,11 @@ export function strongExerciseSuggestions(name, category, exercises) {
 
 /** Only an exact base name joins a family. No spelling, plural or word guesses. */
 export function strongExerciseFamily(name, exercises) {
-  const base = strongNameKey(exerciseBaseName({ name }, 'en'));
+  const base = exerciseFamilyBaseKey(name);
   const families = new Set();
   for (const ex of exercises instanceof Map ? exercises.values() : exercises) {
     const family = familyOf(ex);
-    if (family && strongNameKey(exerciseBaseName(ex, 'en')) === base) families.add(family);
+    if (family && exerciseFamilyBaseKey(ex.name) === base) families.add(family);
   }
   return families.size === 1 ? [...families][0] : undefined;
 }

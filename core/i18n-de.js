@@ -189,6 +189,14 @@ export default {
 
   // exercise picker & form
   'New exercise': 'Neue Übung',
+  'Variation of': 'Variante von',
+  'Add to {name}?': 'Zu {name} hinzufügen?',
+  'Add to {name}': 'Zu {name} hinzufügen',
+  'Group with {name}?': 'Mit {name} gruppieren?',
+  'Group with {name}': 'Mit {name} gruppieren',
+  'Keep separate': 'Getrennt lassen',
+  '{name} joins the other squats. Its records and history stay its own.': '{name} kommt zu den anderen Kniebeugen. Rekorde und Verlauf bleiben getrennt.',
+  '{name} joins the other exercises in {family}. Its records and history stay its own.': '{name} kommt zu den anderen Übungen in {family}. Rekorde und Verlauf bleiben getrennt.',
   'Search exercises': 'Übungen suchen',
   'Clear search': 'Suche löschen',
   'No match for “{q}”': 'Nichts gefunden für „{q}“',

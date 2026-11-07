@@ -203,6 +203,8 @@ export interface Kv {
   meta?: Meta;
   active?: ActiveWorkout | null;
   strongAliases?: Record<string, string>;
+  /** Names of this person’s custom exercise families, keyed by fc- id. */
+  customFamilies?: Record<string, string>;
 }
 
 /** Everything that is stored; also the `data` part of a backup file. */

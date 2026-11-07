@@ -9,6 +9,7 @@ import {
   workoutVolume, makeBackup, uid, seedExerciseChanges,
   templateFromDraft, workoutFromEditDraft, copyTemplateRecord, folderNames, findExerciseByName, newExerciseRecord,
   exerciseInDraft, patchDraftExercise, changeSetting, convertDraftUnits, mergeExercisePatch, moveExerciseEntries,
+  changeExerciseFamily, cleanCustomFamilies,
 } from '@increment/core';
 
 import * as db from './storage';
@@ -30,6 +31,7 @@ export interface State {
   profile: Profile;
   meta: Meta;
   strongAliases: Record<string, string>;
+  customFamilies: Record<string, string>;
   /** the running workout, or null */
   active: ActiveWorkout | null;
   /** the template or finished workout being edited, or null (not stored) */
@@ -47,6 +49,7 @@ let state: State = {
   profile: { name: '' },
   meta: {},
   strongAliases: { ...STRONG_EXERCISE_ALIASES },
+  customFamilies: {},
   active: null,
   edit: null,
 };
@@ -80,6 +83,7 @@ function fromData(data: Data): Partial<State> {
     profile: { name: '', ...(data.kv.profile || {}) },
     meta: { ...(data.kv.meta || {}) },
     strongAliases: { ...STRONG_EXERCISE_ALIASES, ...(data.kv.strongAliases || {}) },
+    customFamilies: cleanCustomFamilies(data.kv.customFamilies || {}, data.exercises),
     active: data.kv.active || null,
   };
 }
@@ -224,7 +228,7 @@ export function backupText(appVersion: string) {
   const s = state;
   return makeBackup({
     exercises: [...s.exercises.values()], workouts: s.workouts, templates: s.templates, measurements: s.measurements,
-    kv: { settings: s.settings, profile: s.profile, meta: s.meta, strongAliases: s.strongAliases },
+    kv: { settings: s.settings, profile: s.profile, meta: s.meta, strongAliases: s.strongAliases, customFamilies: s.customFamilies },
   }, appVersion) as string;
 }
 
@@ -282,26 +286,44 @@ export async function saveStrongImport(preview: StrongReview, choices: StrongCho
 }
 
 // ---------- exercises ----------
-export async function updateExercise(id: string, patch: Partial<Exercise>) {
-  const ex = state.exercises.get(id);
-  if (!ex) return;
-  const next = { ...ex, ...patch };
-  const exercises = new Map(state.exercises);
-  exercises.set(id, next);
-  setState({ exercises });
-  await db.put('exercises', next);
+// Exercise writes publish state after storage succeeds. Queue them so a second
+// fire-and-forget patch derives from the first save, including sibling changes.
+let exerciseWrite: Promise<void> = Promise.resolve();
+function mutateExercises<T>(operation: () => Promise<T>): Promise<T> {
+  const result = exerciseWrite.then(operation);
+  exerciseWrite = result.then(() => {}, () => {});
+  return result;
+}
+
+/** Save the exercise and any sibling assignment together, before notifying screens. */
+async function saveExerciseFamily(ex: Exercise, selection?: string | null): Promise<Exercise> {
+  const result = changeExerciseFamily(ex, selection, state.exercises, state.customFamilies) as {
+    exercises: Exercise[]; customFamilies: Record<string, string>;
+  };
+  const changed = result.exercises.filter((e) => state.exercises.get(e.id) !== e);
+  await db.commitExerciseFamilies(changed, result.customFamilies);
+  const exercises = new Map(result.exercises.map((e) => [e.id, e]));
+  setState({ exercises, customFamilies: result.customFamilies });
+  return exercises.get(ex.id)!;
+}
+
+export async function updateExercise(id: string, patch: Partial<Exercise>, familySelection?: string | null) {
+  return mutateExercises(async () => {
+    const ex = state.exercises.get(id);
+    if (!ex) return;
+    await saveExerciseFamily({ ...ex, ...patch }, familySelection);
+  });
 }
 
 export const findExercise = (name: string): Exercise | null => findExerciseByName(state.exercises, name) as Exercise | null;
 
-/** Create a custom exercise. */
-export async function addExercise(o: { name: string; category: Exercise['category']; bodyPart: string; notes?: string }): Promise<Exercise> {
-  const ex = newExerciseRecord(o, { hasId: (id: string) => state.exercises.has(id) }) as Exercise;
-  const exercises = new Map(state.exercises);
-  exercises.set(ex.id, ex);
-  setState({ exercises });
-  await db.put('exercises', ex);
-  return ex;
+/** Create a custom exercise. Family choices stay in the form until this save. */
+export async function addExercise(o: { name: string; category: Exercise['category']; bodyPart: string; notes?: string; family?: string | null }, familySelection?: string | null): Promise<Exercise> {
+  return mutateExercises(async () => {
+    const ex = newExerciseRecord(o, { hasId: (id: string) => state.exercises.has(id) }) as Exercise;
+    if (o.family !== undefined) ex.family = o.family;
+    return saveExerciseFamily(ex, familySelection);
+  });
 }
 
 /** Where an exercise is used: workouts, templates, the running workout. */
@@ -315,18 +337,20 @@ export function exerciseUsage(id: string) {
 
 /** Delete an exercise nobody has logged; it leaves the templates too. */
 export async function deleteExercise(id: string) {
-  const exercises = new Map(state.exercises);
-  exercises.delete(id);
-  const changed: Template[] = [];
-  const templates = state.templates.map((t) => {
-    if (!t.exercises.some((e) => e.exerciseId === id)) return t;
-    const next = { ...t, exercises: t.exercises.filter((e) => e.exerciseId !== id) };
-    changed.push(next);
-    return next;
+  return mutateExercises(async () => {
+    const exercises = new Map(state.exercises);
+    exercises.delete(id);
+    const changed: Template[] = [];
+    const templates = state.templates.map((t) => {
+      if (!t.exercises.some((e) => e.exerciseId === id)) return t;
+      const next = { ...t, exercises: t.exercises.filter((e) => e.exerciseId !== id) };
+      changed.push(next);
+      return next;
+    });
+    const customFamilies = cleanCustomFamilies(state.customFamilies, exercises);
+    await db.commitExerciseFamilies([], customFamilies, [id], { templates: changed });
+    setState({ exercises, templates, customFamilies });
   });
-  setState({ exercises, templates });
-  await db.remove('exercises', id);
-  await db.putMany('templates', changed);
 }
 
 /**
@@ -336,36 +360,42 @@ export async function deleteExercise(id: string) {
  * source. The caller checks canMergeExercises first.
  */
 export async function mergeExercise(fromId: string, intoId: string) {
-  const from = state.exercises.get(fromId);
-  const into = state.exercises.get(intoId);
-  if (!from || !into || fromId === intoId) return;
-  const target = { ...into, ...mergeExercisePatch(from, into) } as Exercise;
-  const exercises = new Map(state.exercises);
-  exercises.delete(fromId);
-  exercises.set(intoId, target);
-  const movedWorkouts = moveExerciseEntries(state.workouts, fromId, intoId) as Workout[];
-  const movedTemplates = moveExerciseEntries(state.templates, fromId, intoId) as Template[];
-  const swap = <T extends { id: string }>(list: T[], changed: T[]) => {
-    if (!changed.length) return list;
-    const byId = new Map(changed.map((x) => [x.id, x]));
-    return list.map((x) => byId.get(x.id) || x);
-  };
-  const patch: Partial<State> = { exercises, workouts: swap(state.workouts, movedWorkouts), templates: swap(state.templates, movedTemplates) };
-  const [active] = state.active ? moveExerciseEntries([state.active], fromId, intoId) as ActiveWorkout[] : [];
-  if (active) patch.active = active;
-  const [edit] = state.edit ? moveExerciseEntries([state.edit], fromId, intoId) as EditDraft[] : [];
-  if (edit) patch.edit = edit;
-  if (state.edit?.exPatches?.[fromId]) {
-    const d = (patch.edit || state.edit) as EditDraft;
-    const { [fromId]: _drop, ...rest } = d.exPatches || {};
-    patch.edit = { ...d, exPatches: rest } as EditDraft;
-  }
-  setState(patch);
-  if (active) persistActive(true);
-  await db.put('exercises', target);
-  await db.putMany('workouts', movedWorkouts);
-  await db.putMany('templates', movedTemplates);
-  await db.remove('exercises', fromId);
+  return mutateExercises(async () => {
+    const from = state.exercises.get(fromId);
+    const into = state.exercises.get(intoId);
+    if (!from || !into || fromId === intoId) return;
+    const target = { ...into, ...mergeExercisePatch(from, into) } as Exercise;
+    const exercises = new Map(state.exercises);
+    exercises.delete(fromId);
+    exercises.set(intoId, target);
+    const movedWorkouts = moveExerciseEntries(state.workouts, fromId, intoId) as Workout[];
+    const movedTemplates = moveExerciseEntries(state.templates, fromId, intoId) as Template[];
+    const swap = <T extends { id: string }>(list: T[], changed: T[]) => {
+      if (!changed.length) return list;
+      const byId = new Map(changed.map((x) => [x.id, x]));
+      return list.map((x) => byId.get(x.id) || x);
+    };
+    const customFamilies = cleanCustomFamilies(state.customFamilies, exercises);
+    const patch: Partial<State> = { exercises, customFamilies, workouts: swap(state.workouts, movedWorkouts), templates: swap(state.templates, movedTemplates) };
+    const [active] = state.active ? moveExerciseEntries([state.active], fromId, intoId) as ActiveWorkout[] : [];
+    if (active) patch.active = active;
+    const [edit] = state.edit ? moveExerciseEntries([state.edit], fromId, intoId) as EditDraft[] : [];
+    if (edit) patch.edit = edit;
+    if (state.edit?.exPatches?.[fromId]) {
+      const d = (patch.edit || state.edit) as EditDraft;
+      const { [fromId]: _drop, ...rest } = d.exPatches || {};
+      patch.edit = { ...d, exPatches: rest } as EditDraft;
+    }
+    // A delayed draft write must not put the old source id back after this transaction.
+    if (active && activeTimer) { clearTimeout(activeTimer); activeTimer = null; }
+    try {
+      await db.commitExerciseFamilies([target], customFamilies, [fromId], { workouts: movedWorkouts, templates: movedTemplates, active });
+    } catch (error) {
+      if (active) persistActive();
+      throw error;
+    }
+    setState(patch);
+  });
 }
 
 // ---------- workouts ----------

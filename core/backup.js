@@ -1,5 +1,6 @@
 // Backup files: everything in the app as one JSON file, and reading it back.
 import { withSeedExercises } from './seed-sync.js';
+import { cleanCustomFamilies } from './exercise-families.js';
 
 // The file says app 'setlog' on purpose: Increment reads and writes the same
 // backups as the Setlog web app it grew out of, so data moves between them.
@@ -33,6 +34,7 @@ export function parseBackup(text, seedExercises = []) {
   if (Number.isFinite(madeAt)) kv.meta = { ...(kv.meta || {}), lastBackupAt: Math.max(kv.meta?.lastBackupAt || 0, madeAt) };
   // keep the built-in library even if the backup predates it
   const exercises = withSeedExercises(d.exercises || [], seedExercises);
+  kv.customFamilies = cleanCustomFamilies(kv.customFamilies, exercises);
   return {
     exportedAt: obj.exportedAt,
     data: {

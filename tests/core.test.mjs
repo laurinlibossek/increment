@@ -1182,6 +1182,136 @@ test('family names are unique in English and German', () => {
   assert.equal(core.FAMILY_BY_ID['f-rowing'].nameDe, 'Rudergerät');
 });
 
+test('creating exercises suggests exact built-in and custom families before ungrouped exercises', () => {
+  const squat = core.SEED_EXERCISES.find((e) => e.name === 'Squat (Barbell)');
+  const ungrouped = { id: 'c-squat', name: 'Squat (Own Machine)', family: null };
+  const custom = { id: 'c-moon', name: 'Moon Lift (Cable)', family: 'fc-moon-lift' };
+  const registry = { 'fc-moon-lift': 'Moon Lift' };
+  const library = [ungrouped, squat, custom];
+  const before = JSON.stringify({ library, registry });
+  const suggestion = core.suggestExerciseFamily('  s Q u A t (Cybex Machine)', library, registry);
+  assert.equal(suggestion.family.id, 'f-squat', 'existing family takes priority over an ungrouped own exercise');
+  assert.equal(suggestion.exercise, squat);
+  assert.equal(suggestion.name, 'Squat');
+  assert.deepEqual(core.suggestExerciseFamily('MoonLift (Machine)', new Map(library.map((e) => [e.id, e])), registry), {
+    family: { id: 'fc-moon-lift', name: 'Moon Lift', nameDe: 'Moon Lift', members: [] }, exercise: custom, name: 'Moon Lift',
+  });
+  for (const name of ['Squats (Machine)', 'Squat Jump', 'Squa (Machine)', 'Moon Lift Extra']) {
+    assert.equal(core.suggestExerciseFamily(name, library, registry), undefined, name);
+  }
+  const kelso = { id: 'c-kelso', name: 'Kelso Shrug (Cable)', family: null };
+  assert.deepEqual(core.suggestExerciseFamily('Kelso Shrug (Dumbbell)', [kelso]), { family: null, exercise: kelso, name: 'Kelso Shrug' });
+  assert.equal(core.suggestExerciseFamily('Squat (New)', [...library, { ...custom, name: 'Squat (Other)' }], registry), undefined, 'conflicting exact families need a manual choice');
+  assert.equal(core.suggestExerciseFamily('', library, registry), undefined);
+  const bracketed = { id: 'c-bracketed', name: 'Moon Lift (Upper) (Cable)' };
+  assert.equal(core.suggestExerciseFamily('Moon Lift (Upper) (Machine)', [bracketed]).name, 'Moon Lift (Upper)', 'only the last bracket is removed');
+  assert.equal(core.suggestExerciseFamily('Moon Lift (Machine)', [bracketed]), undefined);
+  assert.equal(JSON.stringify({ library, registry }), before, 'suggesting saves nothing');
+});
+
+test('family choices save with the exercise, create custom groups only on save, and keep independent records', () => {
+  const first = { id: 'c-kelso-cable', name: 'Kelso Shrug (Cable)', category: 'machine', notes: 'Seat 3', restSec: 60 };
+  const next = { id: 'c-kelso-db', name: 'Kelso Shrug (Dumbbell)', category: 'dumbbell', notes: '', restSec: 90 };
+  const before = JSON.stringify([first, next]);
+  const grouped = core.changeExerciseFamily(next, first.id, [first]);
+  assert.deepEqual(grouped.customFamilies, { 'fc-kelso-shrug': 'Kelso Shrug' });
+  assert.deepEqual(grouped.exercises, [{ ...first, family: 'fc-kelso-shrug' }, { ...next, family: 'fc-kelso-shrug' }]);
+  assert.equal(JSON.stringify([first, next]), before, 'saving does not mutate form or stored input');
+  const third = { ...next, id: 'c-kelso-machine', name: 'Kelso Shrug (Machine)' };
+  for (const choice of ['fc-kelso-shrug', first.id]) {
+    const joinedCustom = core.changeExerciseFamily(third, choice, grouped.exercises, grouped.customFamilies);
+    assert.equal(joinedCustom.exercises[2].family, 'fc-kelso-shrug', 'picking a family row or its member joins that existing custom family');
+    assert.deepEqual(joinedCustom.customFamilies, grouped.customFamilies);
+  }
+  const squat = core.SEED_EXERCISES.find((e) => e.name === 'Squat (Barbell)');
+  const moved = core.changeExerciseFamily(grouped.exercises[1], squat.id, [...grouped.exercises, squat], grouped.customFamilies);
+  assert.equal(moved.exercises.find((e) => e.id === next.id).family, 'f-squat');
+  assert.deepEqual(moved.customFamilies, grouped.customFamilies, 'one remaining member keeps its custom family');
+  const removed = core.changeExerciseFamily(moved.exercises[0], null, moved.exercises, moved.customFamilies);
+  assert.deepEqual(removed.customFamilies, {}, 'moving the final member out deletes its registry entry');
+  assert.equal(removed.exercises[0].family, null);
+  const kept = core.changeExerciseFamily(next, undefined, [first]);
+  assert.deepEqual(kept.exercises, [first, next], 'an untouched form never silently groups by name');
+  const joined = core.changeExerciseFamily({ ...next, name: 'Renamed' }, 'f-squat', [squat]);
+  assert.deepEqual(joined.exercises[1], { ...next, name: 'Renamed', family: 'f-squat' });
+  assert.deepEqual(core.changeExerciseFamily(squat, null, [squat]).exercises, [squat], 'built-ins retain catalogue membership');
+  const collision = core.changeExerciseFamily(next, first.id, [first, { ...next, id: 'c-other', family: 'fc-kelso-shrug' }], grouped.customFamilies);
+  assert.match(collision.exercises.find((e) => e.id === next.id).family, /^fc-/);
+  assert.notEqual(collision.exercises.find((e) => e.id === next.id).family, 'fc-kelso-shrug', 'same-named unrelated groups get separate ids');
+});
+
+test('custom registry families browse and filter like catalogue families, and keep hidden members during cleanup', () => {
+  const registry = { 'fc-moon-lift': 'Moon Lift', 'fc-empty': 'Empty' };
+  const cable = { id: 'c-cable', name: 'Moon Lift (Cable)', family: 'fc-moon-lift', bodyPart: 'back', hidden: true };
+  const db = { id: 'c-db', name: 'Moon Lift (Dumbbell)', family: 'fc-moon-lift', bodyPart: 'arms' };
+  const machine = { id: 'c-machine', name: 'Moon Lift (Machine)', family: 'fc-moon-lift', bodyPart: 'chest' };
+  const library = [cable, db, machine];
+  const sessions = new Map([[machine.id, [{ startedAt: 50 }]]]);
+  const [row] = core.exerciseBrowseRows(library, sessions, { customFamilies: registry });
+  assert.equal(row.id, 'fc-moon-lift');
+  assert.equal(row.family.name, 'Moon Lift');
+  assert.equal(row.bodyPart, 'back', 'usual member controls filtering even when hidden');
+  assert.deepEqual(row.members, [db, machine]);
+  assert.equal(row.exercise, machine);
+  const [filtered] = core.exerciseBrowseRows(library, sessions, { customFamilies: registry, accepts: (e) => e.id === db.id });
+  assert.deepEqual(filtered.members, [db]);
+  assert.equal(filtered.exercise, db);
+  assert.deepEqual(core.cleanCustomFamilies(registry, [cable]), { 'fc-moon-lift': 'Moon Lift' });
+  assert.deepEqual(core.cleanCustomFamilies(registry, []), {});
+  assert.equal(core.exerciseFamily('fc-unknown', registry), undefined);
+});
+
+test('custom family backups round-trip, old backups restore, and empty registry entries are removed', () => {
+  const ex = { id: 'c-moon', name: 'Moon Lift (Cable)', family: 'fc-moon-lift' };
+  const data = { exercises: [ex], workouts: [{ id: 'w', exercises: [{ exerciseId: ex.id }] }], templates: [], measurements: [],
+    kv: { customFamilies: { 'fc-moon-lift': 'Moon Lift', 'fc-empty': 'Empty' } } };
+  const restored = core.parseBackup(core.makeBackup(data, 'test')).data;
+  assert.deepEqual(restored.exercises, data.exercises);
+  assert.deepEqual(restored.workouts, data.workouts);
+  assert.deepEqual(restored.kv.customFamilies, { 'fc-moon-lift': 'Moon Lift' });
+  assert.deepEqual(core.parseBackup(core.makeBackup({ ...data, kv: {} }, 'old')).data.kv.customFamilies, {});
+});
+
+test('merges retain the target family and remove empty source-family registry entries', () => {
+  const from = { id: 'c-from', name: 'Moon Lift', category: 'machine', family: 'fc-moon', notes: 'Slow' };
+  const into = { id: 'c-into', name: 'Squat (Custom)', category: 'machine', family: 'f-squat' };
+  const target = { ...into, ...core.mergeExercisePatch(from, into) };
+  assert.equal(target.family, 'f-squat');
+  assert.equal(target.notes, from.notes);
+  assert.deepEqual(core.cleanCustomFamilies({ 'fc-moon': 'Moon' }, [target]), {});
+  assert.equal(core.familyOf({ ...into, family: null, ...core.mergeExercisePatch(from, { ...into, family: null }) }), null, 'an ungrouped target stays ungrouped');
+});
+
+test('Strong exact-base creation joins custom families without sharing their history', () => {
+  const ex = { id: 'c-moon', name: 'Moon Lift (Cable)', family: 'fc-moon-lift', category: 'machine', bodyPart: 'back' };
+  assert.equal(core.strongExerciseFamily('MOONLIFT (Machine)', [ex]), ex.family);
+  assert.equal(core.strongExerciseFamily('Moon Lifts (Machine)', [ex]), undefined);
+  const csv = strongFile([['Moon Lift (Machine)']]);
+  const preview = core.parseStrongCSV(csv, { exercises: [ex] });
+  const result = core.resolveStrongImport(preview, { 'Moon Lift (Machine)': { kind: 'new', name: 'Moon Lift (Machine)', category: 'machine', bodyPart: 'back' } }, { exercises: [ex] });
+  assert.equal(result.exercises[0].family, ex.family);
+  assert.notEqual(result.exercises[0].id, ex.id);
+  assert.equal(result.workouts[0].exercises[0].exerciseId, result.exercises[0].id);
+});
+
+test('routine links carry custom exercises in catalogue families, but never share custom families', () => {
+  const builtin = { id: 'c-squat', name: 'Squat (Cybex Machine)', family: 'f-squat', category: 'machine', bodyPart: 'legs' };
+  const custom = { ...builtin, id: 'c-moon', name: 'Moon Lift (Cable)', family: 'fc-moon-lift' };
+  const separate = { ...builtin, id: 'c-alone', name: 'Squat (Alone)', family: null };
+  const exercises = [builtin, custom, separate];
+  const code = core.encodeTemplate({ name: 'Legs', exercises: exercises.map((ex) => ({ exerciseId: ex.id, sets: [{ type: 'normal', r: 10 }] })) }, new Map(exercises.map((ex) => [ex.id, ex])));
+  const decoded = core.decodeTemplate('#template=' + code);
+  assert.equal(decoded.exercises[0].family, 'f-squat');
+  assert.equal(decoded.exercises[1].family, undefined);
+  assert.equal(decoded.exercises[2].family, undefined);
+  const raw = JSON.parse(Buffer.from(code, 'base64url').toString());
+  assert.equal(raw.e[1].f, undefined, 'the custom family id never leaves this library');
+  for (const family of ['fc-injected', 'toString', '__proto__']) {
+    raw.e[0].f = family;
+    assert.equal(core.decodeTemplate('#template=' + Buffer.from(JSON.stringify(raw)).toString('base64url')).exercises[0].family, undefined, 'only real catalogue ids are accepted');
+  }
+});
+
 test('families group variations by their program slot', () => {
   for (const e of core.SEED_EXERCISES) {
     if (e.name.includes('Split Squat')) assert.equal(core.familyOf(e), 'f-split-squat', e.name);

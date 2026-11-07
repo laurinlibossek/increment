@@ -3,7 +3,7 @@
 // between them is a backup file and nothing else.
 import * as SQLite from 'expo-sqlite';
 
-import { STORES, type Data, type Exercise, type Workout, type Kv, type StoreName } from './types';
+import { STORES, type Data, type Exercise, type Workout, type Template, type ActiveWorkout, type Kv, type StoreName } from './types';
 
 type Row = { id: string; data: string };
 type KvRow = { key: string; value: string };
@@ -74,6 +74,20 @@ export async function commitStrongImport(exercises: Exercise[], workouts: Workou
       for (const o of records) await tx.runAsync('INSERT OR REPLACE INTO docs (store, id, data) VALUES (?, ?, ?)', store, o.id, JSON.stringify(o));
     }
     await tx.runAsync('INSERT OR REPLACE INTO kv (key, value) VALUES (?, ?)', 'strongAliases', JSON.stringify(aliases));
+  });
+}
+
+/** An exercise, its grouped sibling and the registry change in one transaction. */
+export async function commitExerciseFamilies(exercises: Exercise[], customFamilies: Record<string, string>, removed: string[] = [],
+  related: { workouts?: Workout[]; templates?: Template[]; active?: ActiveWorkout } = {}): Promise<void> {
+  const d = await db();
+  await d.withExclusiveTransactionAsync(async (tx) => {
+    for (const [store, records] of [['exercises', exercises], ['workouts', related.workouts || []], ['templates', related.templates || []]] as const) {
+      for (const record of records) await tx.runAsync('INSERT OR REPLACE INTO docs (store, id, data) VALUES (?, ?, ?)', store, record.id, JSON.stringify(record));
+    }
+    for (const id of removed) await tx.runAsync('DELETE FROM docs WHERE store = ? AND id = ?', 'exercises', id);
+    await tx.runAsync('INSERT OR REPLACE INTO kv (key, value) VALUES (?, ?)', 'customFamilies', JSON.stringify(customFamilies));
+    if (related.active) await tx.runAsync('INSERT OR REPLACE INTO kv (key, value) VALUES (?, ?)', 'active', JSON.stringify(related.active));
   });
 }
 
