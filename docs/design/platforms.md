@@ -6,7 +6,7 @@
 
 ## iPhone (Expo, `app/`)
 
-- Tabs: `NativeTabs` from `expo-router/native-tabs` (stable and in Expo Go since SDK 58). `NativeTabs.BottomAccessory` holds Now Lifting; `usePlacement()` switches it between the regular and inline layouts. `role="search"` gives the system Search tab. `minimizeBehavior="onScrollDown"`.
+- Tabs: `NativeTabs` from `expo-router/native-tabs` (stable and in Expo Go since SDK 58). `NativeTabs.BottomAccessory` holds Now Lifting; `usePlacement()` switches it between the regular and inline layouts. Search is pushed from the magnifying glass in each tab root’s large title. `minimizeBehavior="onScrollDown"`.
 - Symbols: the app already draws SF Symbols and Material Symbols through `expo-symbols` (`Icon` in `src/ui/kit.tsx`); add the names Tally uses there.
 - Sheets and menus: native where they exist (form sheets with detents, context menus). The keypad and the effort picker are drawn by the app.
 - Live Activity and Dynamic Island for the session and rest: `expo-widgets` (needs a development build, not Expo Go). The countdown is drawn by the system.
@@ -14,7 +14,7 @@
 
 ## Android
 
-- The same `NativeTabs` give the Material bottom bar; keep three tabs plus Search.
+- The same `NativeTabs` give the Material bottom bar; keep Today, Plan and Progress, with Search in each root’s title. TrueTrain joins once the store apps are live.
 - Material Symbols through `expo-symbols`. Roboto through the system.
 - Rest: the scheduled notification with a countdown chronometer (no Live Activity).
 - Predictive back and edge-to-edge are on; the Action bar respects the gesture inset.

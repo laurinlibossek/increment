@@ -47,6 +47,7 @@ export default function RootLayout() {
         <Column background={palette.colors.bg} overlay={<OverlayHost root />}>
           <Stack screenOptions={{ headerTintColor: palette.colors.accentText, headerBackButtonDisplayMode: 'minimal', headerShadowVisible: false, headerStyle: { backgroundColor: palette.colors.bg } }}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false, title: '' }} />
+            <Stack.Screen name="search" options={{ title: '' }} />
             {/* Progress → Workouts, Lifts, Records, Body */}
             <Stack.Screen name="history" options={{ title: tr('Workouts') }} />
             <Stack.Screen name="exercises" options={{ title: tr('Lifts') }} />

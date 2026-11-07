@@ -1,7 +1,7 @@
 // Families browse siblings; every selected id retains its own history/records.
 // REVIEW_BEFORE=1 captures the matching main screens, before family UI existed.
 import assert from 'node:assert/strict';
-import { launch, devices, grantWakeLock, APP, shots } from './env.mjs';
+import { openSearch, launch, devices, grantWakeLock, APP, shots } from './env.mjs';
 import { familiesData, SQ, SMITH, DB, FRONT, FRONT_SMITH, CABLE, CURL_DB } from './families-data.mjs';
 import { SEED_EXERCISES } from '../../core/index.js';
 const before = process.env.REVIEW_BEFORE === '1';
@@ -16,7 +16,7 @@ async function open(data) {
   const page = await ctx.newPage(), errors = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   page.on('console', (m) => { if (m.type() === 'error' && !/favicon|DevTools/.test(m.text())) errors.push(m.text()); });
-  await page.goto(APP); await page.getByTestId('tab-search').waitFor();
+  await page.goto(APP); await page.getByTestId('open-search-index').waitFor();
   return { ctx, page, errors };
 }
 const shot = async (page, theme, name) => { await page.getByText('Hidden from lists', { exact: true }).waitFor({ state: 'hidden' }); await page.waitForTimeout(220); await page.screenshot({ path: `${OUT}/${theme}-${name}.png` }); };
@@ -33,7 +33,7 @@ async function replace(page, id) {
 for (const theme of ['light', 'dark']) {
   const data = familiesData(theme);
   const { ctx, page, errors } = await open(data);
-  await page.getByTestId('tab-search').click();
+  await openSearch(page);
   const search = page.getByTestId('exercise-search');
   if (!before) {
     assert.match(await page.getByTestId('family-f-squat').innerText(), /Squat[\s\S]*Legs · 19 variations/);
@@ -119,6 +119,7 @@ for (const theme of ['light', 'dark']) {
     await page.getByTestId('exercise-options').click(); await page.getByTestId('ex-hide').click();
     await page.goBack(); await search.fill('');
   }
+  await page.goBack(); // Search → the tab root
   await page.getByTestId('tab-plan').click();
   await page.getByTestId('plan-add').click(); await page.getByTestId('sheet-dialog').getByTestId('start-empty').click();
   await page.getByTestId('add-exercises').click();
@@ -176,7 +177,7 @@ for (const theme of ['light', 'dark']) {
 if (!before) {
   const data = familiesData(); data.exercises = SEED_EXERCISES;
   const { ctx, page, errors } = await open(data);
-  await page.getByTestId('tab-search').click();
+  await openSearch(page);
   assert.match(await page.getByTestId('exercise-search').getAttribute('placeholder'), /Search 400 exercises/);
   assert.deepEqual(errors, []); await ctx.close();
   ok('the search placeholder counts exercises, not families');

@@ -4,7 +4,7 @@
 // EXPO_PUBLIC_ENABLE_GERMAN, like the store and web apps.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { launch, devices, grantWakeLock, APP, BACKUP, shots } from './env.mjs';
+import { openSearch, launch, devices, grantWakeLock, APP, BACKUP, shots } from './env.mjs';
 
 const OUT = shots('app-english-only');
 const backup = JSON.parse(fs.readFileSync(BACKUP, 'utf8'));
@@ -81,7 +81,7 @@ try {
     ok(`${locale}: persisted German settings reload in English, numbers in the phone's region (82,4 kg)`);
 
     await page.goBack();
-    await id('tab-search').click();
+    await openSearch(page);
     await id('exercise-search').fill('bench bb');
     await id('exercise-x-bench-press-barbell').waitFor();
     assert.match(await id('exercise-x-bench-press-barbell').innerText(), /Bench Press \(Barbell\)[\s\S]*Chest/);

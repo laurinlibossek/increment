@@ -18,6 +18,7 @@ import { BarChart } from '@/ui/Chart';
 import { ListRow } from '@/ui/tally/ListRow';
 import { SectionHeader } from '@/ui/tally/SectionHeader';
 import { StatStrip } from '@/ui/tally/StatStrip';
+import { SearchButton } from '@/ui/tally/SearchButton';
 import { TabRoot } from '@/ui/tally/TabRoot';
 
 export default function ProgressTab() {
@@ -52,7 +53,7 @@ export default function ProgressTab() {
     && (!s.meta.backupSnoozedAt || Date.now() - (s.meta.backupSnoozedAt as number) > 7 * DAY);
 
   return (
-    <TabRoot title={tr('Progress')}>
+    <TabRoot title={tr('Progress')} right={<SearchButton tab="progress" />}>
       {needsBackup && (
         <View testID="backup-banner" style={{ paddingHorizontal: SPACE.s5, marginBottom: SPACE.s6, gap: SPACE.s2 }}>
           <Text style={[TYPE.subhead, { color: t.ink }]}>

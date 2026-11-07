@@ -18,6 +18,7 @@ import { SymbolIcon } from '@/ui/tally/ListRow';
 import { MuscleVolume } from '@/ui/tally/MuscleVolume';
 import { RoutineCard } from '@/ui/tally/RoutineCard';
 import { SectionHeader } from '@/ui/tally/SectionHeader';
+import { SearchButton } from '@/ui/tally/SearchButton';
 import { TabRoot } from '@/ui/tally/TabRoot';
 import type { StrokeState } from '@/ui/tally/Tally';
 import { WeekStrip } from '@/ui/tally/WeekStrip';
@@ -93,7 +94,7 @@ export default function TodayTab() {
 
   const scope = tr('{done} of {goal} sessions', { done: week.done, goal });
   return (
-    <TabRoot title={tr('Today')} eyebrow={date} right={avatar}>
+    <TabRoot title={tr('Today')} eyebrow={date} right={<><SearchButton tab="index" />{avatar}</>}>
       <View style={{ paddingHorizontal: SPACE.s5 }}>{card}</View>
 
       {/* An empty slot the store version can fill (docs/design/phases.md, phase 7). */}

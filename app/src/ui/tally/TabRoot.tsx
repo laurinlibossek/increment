@@ -1,5 +1,5 @@
 // The frame of a tab's first screen (docs/design/navigation.md → Tab root):
-// an eyebrow (Today only), the large title with one trailing control, then
+// an eyebrow (Today only), the large title with trailing controls, then
 // the content, scrolling under the tab bar.
 //
 // Insets: on iPhone the scroll view adjusts itself (the native tab bar and the
@@ -33,7 +33,7 @@ export function TabTitle({ title, eyebrow, right }: { title: string; eyebrow?: s
       {!!eyebrow && <Text style={[TYPE.eyebrow, { color: t.ink2, textTransform: 'uppercase' }]} numberOfLines={1}>{eyebrow}</Text>}
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: SPACE.s3, minHeight: 44 }}>
         <Text style={[TYPE.largeTitle, { color: t.ink, flexShrink: 1 }]} accessibilityRole="header" numberOfLines={1}>{title}</Text>
-        {right}
+        {!!right && <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACE.s2 }}>{right}</View>}
       </View>
     </View>
   );

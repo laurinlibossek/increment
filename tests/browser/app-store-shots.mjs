@@ -16,7 +16,7 @@
 // app: see "Store screenshots" in README.md for what differs.
 import fs from 'node:fs';
 import path from 'node:path';
-import { launch, grantWakeLock, APP as BASE, HERE, ROOT } from './env.mjs';
+import { openSearch, launch, grantWakeLock, APP as BASE, HERE, ROOT } from './env.mjs';
 import * as core from '../../core/index.js';
 import { demoData } from './store-demo.mjs';
 import { CAPTIONS } from './store-captions.mjs';
@@ -72,14 +72,14 @@ async function screens(store, lang) {
   await shot(6, 'progress');
 
   // 3. an exercise's chart: estimated 1RM over the 16 weeks
-  await id('tab-search').click();
+  await openSearch(page);
   await id('exercise-search').fill('squat bb');
   await id('exercise-x-squat-barbell').click();
   await id('exercise-chart').waitFor();
   await shot(3, 'exercise-chart');
   await page.goBack();
   await wait(300);
-  await id('exercise-search').fill('');
+  await page.goBack(); // Search → Progress
 
   // 4. the History calendar (Progress → Workouts), last month
   await id('tab-progress').click();
