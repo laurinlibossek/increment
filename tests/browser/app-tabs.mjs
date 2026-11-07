@@ -4,7 +4,7 @@
 // Lifting with the rest and Skip; Plan's + menu; the Progress hub and its
 // pages; Search focused on open; the Account sheet; German and dark; routines,
 // not templates, in English and German; a wide window (the centred column);
-// dark segmented controls and switches. 13 checks.
+// dark segmented controls and switches. 14 checks.
 import assert from 'node:assert/strict';
 import { openSearch, devices, launch, grantWakeLock, APP as BASE, shots } from './env.mjs';
 import * as core from '../../core/index.js';
@@ -203,6 +203,16 @@ async function discard(page) {
   await page.getByRole('link', { name: 'Go back', exact: true }).click();
   await id(page, 'open-search-progress').waitFor();
   ok('Search keeps + and the empty-state Create flow, opens the saved exercise, and preserves the route back to Progress');
+
+  // A reload or a link straight to Search keeps the tabs underneath: Back leads to Today.
+  await page.goto(BASE + '/search');
+  await id(page, 'exercise-search').waitFor();
+  assert.equal(await page.getByRole('tablist').count(), 0);
+  await page.getByRole('link', { name: 'Go back', exact: true }).click();
+  await id(page, 'open-search-index').waitFor();
+  assert.equal(new URL(page.url()).pathname, '/');
+  assert.equal(await page.getByRole('tablist').count(), 1);
+  ok('a reload on Search still has Back, which leads to Today and the tab bar');
 
   // Account: from the avatar, Done closes it
   await id(page, 'tab-index').click();
