@@ -61,14 +61,14 @@ export default function RootLayout() {
             {/* Done closes Account; the web header also needs an empty headerLeft to hide Back. */}
             <Stack.Screen name="account" options={{ presentation: 'modal', title: tr('Account'), headerBackVisible: false, headerLeft: () => null }} />
             <Stack.Screen name="warmup" options={{ title: tr('Warm-up sets') }} />
-            <Stack.Screen name="strong-import" options={{ title: '', gestureEnabled: false }} />
+            <Stack.Screen name="strong-import" options={{ title: '' }} />
             <Stack.Screen name="workout/[id]" options={{ title: '' }} />
             <Stack.Screen name="template/[id]" options={{ title: '' }} />
             <Stack.Screen name="exercise/[id]" options={{ title: '' }} />
             <Stack.Screen name="measure/[type]" options={{ title: '' }} />
-            {/* editors: Cancel / Save in the bar, no swipe-back past unsaved changes */}
-            <Stack.Screen name="template-edit" options={{ title: '', gestureEnabled: false }} />
-            <Stack.Screen name="workout-edit/[id]" options={{ title: '', gestureEnabled: false }} />
+            {/* editors: Cancel / Save in the bar; leaving with unsaved changes asks (useDiscardChanges) */}
+            <Stack.Screen name="template-edit" options={{ title: '' }} />
+            <Stack.Screen name="workout-edit/[id]" options={{ title: '' }} />
             {/* the running workout and what opens from it slide up over the app */}
             <Stack.Screen name="active" options={{ presentation: 'modal', headerShown: false, title: tr('Current workout') }} />
             <Stack.Screen name="pick-exercises" options={{ presentation: 'modal', headerShown: false, title: tr('Add exercises') }} />
