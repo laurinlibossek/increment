@@ -2,7 +2,7 @@
 
 ## Where the tokens live
 
-`docs/design/tokens.json` is the source. `npm run tally` writes `app/src/design/tally.ts` from it (colours per theme, spacing, radii, stroke and control sizes, type styles), and `npm test` fails when the two differ. The app reads colours through `src/lib/theme.ts`: `useTally()` gives the Tally names, `useColors()` still gives the old names (mapped onto Tally) until every screen is rebuilt. The web app keeps `setlog/css/app.css` and `core/themes.js` until it adopts Tally; then its CSS gets the same tokens.
+`docs/design/tokens.json` is the source. `npm run tally` writes `app/src/design/tally.ts` from it (colours per theme, spacing, radii, stroke and control sizes, type styles), and `npm test` fails when the two differ. The app reads colours through `src/lib/theme.ts`: `useTally()` gives the Tally names, `useColors()` still gives the old names (mapped onto Tally) until every screen is rebuilt. The website's own pages (the privacy pages) use `web/css/tally.css`, which `npm run tally` writes from the same tokens: light and dark follow the device.
 
 ## iPhone (Expo, `app/`)
 
@@ -25,3 +25,4 @@
 - `glass` with `backdrop-filter` stands in for Liquid Glass; fall back to `paper-2` where it isn't supported.
 - A web app can't run timers with the phone locked, so offer Keep screen on during a workout and a mostly black rest screen in dark themes to save power.
 - On a wide window the app is the phone layout in a centred column, at most 600 px wide, on `paper` (`app/src/app/_layout.tsx`). Tab bar, Now Lifting, the Action bar and the keypad stay inside it; dialogs, sheets and toasts dim and centre on the whole window (one overlay host at the root on the web). The page behind the app is `paper` too (`+html.tsx`).
+- Published at `increment-training.app` (`docs/dev/architecture.md` → "The website"). It installs from the browser (Add to Home Screen on iPhone, Install app in Chrome) with the app's icon, opens standalone, and works offline after the first visit. The browser's bar takes `paper` (white, black in dark).

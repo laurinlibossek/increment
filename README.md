@@ -40,7 +40,7 @@ Over time, every exercise gets its own chart, records and history under **Progre
 
 ## Try it
 
-Increment isn't in the App Store or Google Play yet, and the web app isn't published yet; both are coming. Until then, run it from this repository with Expo Go on your phone (free, no developer account): see [app/README.md](app/README.md).
+The web app is at **[increment-training.app](https://increment-training.app)**. Open it on your phone and add it to your home screen (Safari: Share → Add to Home Screen; Chrome: Install app): it opens like an app and works offline. Increment isn't in the App Store or Google Play yet; until then you can also run it from this repository with Expo Go on your phone (free, no developer account): see [app/README.md](app/README.md).
 
 ## Coming from Strong or Setlog?
 
@@ -54,6 +54,7 @@ Your workouts exist only on your device. Nothing is uploaded, so nobody else has
 ## Known limits
 
 - In a browser, a locked phone pauses web apps, so the rest timer can't alert you with the phone in your pocket. The phone apps send a notification.
+- On iPhone, use the web app from the home screen: Safari can delete a website's data after seven days without a visit, while a home screen app keeps it. Its data is separate from Safari's, so restore a backup there if you tried it in Safari first.
 - There's no sync between devices. Use backup and restore to move your data.
 - There's no Apple Health, Google Fit or smartwatch integration yet.
 
@@ -79,7 +80,8 @@ docs/design/             Tally: tokens, components, navigation, motion, the buil
 docs/dev/                status and backlog, how it's built
 tests/core.test.mjs      unit tests for the core (npm test)
 tests/browser/           end-to-end tests of the web build
-web/                     the privacy policy, published next to the web app
+web/                     the website around the web app: privacy pages, manifest and icons, the offline service worker
+scripts/web-site.mjs     builds the website; CI publishes it to increment-training.app
 ```
 
 ### Run it locally

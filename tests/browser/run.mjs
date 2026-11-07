@@ -7,7 +7,7 @@
 //   --serve       only build and serve the app and keep it running, e.g. for screenshot
 //                 scripts; Ctrl-C stops it
 //
-// It checks the shipped English-only build, then the existing bilingual suites
+// It checks the shipped English-only build (and the website built from it), then the bilingual suites
 // with the same code switch enabled. German's export stays separate from app/dist.
 import { spawn, spawnSync } from 'node:child_process';
 import http from 'node:http';
@@ -15,7 +15,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { HERE, ROOT, APP, STRONG } from './env.mjs';
 
-export const APP_SUITES = ['app-english-only', 'app-families', 'app-family-creation', 'app-strong-review', 'app-exercise-catalogue', 'app-first-start', 'app-logging', 'app-editing', 'app-parity', 'app-tabs', 'app-design-bugs', 'app-number-format', 'app-workouts-list', 'app-list-style', 'app-main-actions', 'app-progress-noise', 'app-tally-scale'];
+export const APP_SUITES = ['app-english-only', 'app-web-site', 'app-families', 'app-family-creation', 'app-strong-review', 'app-exercise-catalogue', 'app-first-start', 'app-logging', 'app-editing', 'app-parity', 'app-tabs', 'app-design-bugs', 'app-number-format', 'app-workouts-list', 'app-list-style', 'app-main-actions', 'app-progress-noise', 'app-tally-scale'];
+// suites for the shipped build (app/dist, English only); the rest run with German switched on.
+// app-web-site builds the published website from app/dist and serves it itself.
+const ENGLISH_ONLY = ['app-english-only', 'app-web-site'];
 const STRONG_URL = 'https://raw.githubusercontent.com/AlexandrosKyriakakis/StrongAppAnalytics/main/Data/strong.csv';
 
 const args = process.argv.slice(2);
@@ -152,7 +155,7 @@ try {
   if (!results[0].ok) throw new Error('make-backup failed');
   results.length = 0;
   for (const german of [false, true]) {
-    const selected = suites.filter((s) => (s !== 'app-english-only') === german);
+    const selected = suites.filter((s) => !ENGLISH_ONLY.includes(s) === german);
     if (!selected.length) continue;
     app = await serveApp(german);
     for (const s of selected) results.push(await runSuite(s));

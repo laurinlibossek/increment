@@ -6,12 +6,13 @@ End-to-end suites that drive the app's web build in an emulated iPhone 13 (Playw
 node tests/browser/run.mjs                    # every suite (runs `expo export` first; a few minutes from a fresh clone)
 node tests/browser/run.mjs app-logging app-tabs   # single suites
 node tests/browser/run.mjs app-english-only    # shipped English-only behavior
+node tests/browser/run.mjs app-web-site        # the published website: offline, installable, deep links
 node tests/browser/run.mjs --no-build         # reuse both language exports
 ```
 
 The runner serves the app on :8790 itself, runs `npm ci` in `app/` if needed, downloads the sample Strong export into `data/` and builds a fresh backup from it before the suites. Screenshots land in `.out/<suite>/`. `data/` and `.out/` are git-ignored.
 
-`app-english-only` tests the shipped build in `app/dist`: English UI regardless of the browser locale or saved/restored language, dates and numbers in the phone's region ("Friday, 6 November", "82,4 kg" for de-DE), and Language hidden in Account. The existing suites run against a separate export in `.out/german-app`, built with `EXPO_PUBLIC_ENABLE_GERMAN=1` (the setting behind `ENABLE_GERMAN` in `app/src/lib/i18n.ts`). No source file is edited, so an interrupted run can't leave German switched on. Both exports use `--clear`, because Metro would otherwise reuse transforms with the other value inlined.
+`app-english-only` tests the shipped build in `app/dist`: English UI regardless of the browser locale or saved/restored language, dates and numbers in the phone's region ("Friday, 6 November", "82,4 kg" for de-DE), and Language hidden in Account. The existing suites run against a separate export in `.out/german-app`, built with `EXPO_PUBLIC_ENABLE_GERMAN=1` (the setting behind `ENABLE_GERMAN` in `app/src/lib/i18n.ts`). No source file is edited, so an interrupted run can't leave German switched on. Both exports use `--clear`, because Metro would otherwise reuse transforms with the other value inlined. `app-web-site` also runs on `app/dist`: it builds the website from it into `.out/site` and serves that itself, with the service worker.
 
 `--no-build` reuses each export separately (and builds a missing one). `--serve` only serves the normal English `app/dist` build, for review screenshots. Stop a server already running on :8790 before running tests, so they cannot accidentally use the wrong language build.
 
@@ -32,6 +33,7 @@ When you update Playwright, change the version in `package.json` here; the suite
 
 | Suite | Checks | What it covers |
 |---|---|---|
+| `app-web-site` | 7 | the published website (`scripts/web-site.mjs`, built from `app/dist`) served like GitHub Pages on :8792: manifest and icons on every page, `/exercise/<id>` and `/measure` with and without the service worker, Chrome's installability check, Today, an exercise and the privacy policy offline with no request reaching the server, a new deploy replacing the cache; the privacy pages in light and dark with the email written in and no Setlog |
 | `app-english-only` | 10 | shipped English UI, exercise names and date/number formatting across browser languages, saved preferences and a real Setlog backup restore; hidden Account language choices and reload persistence |
 | `app-family-creation` | 21 | saving exact-base exercises into built-in/custom families, Keep separate, custom-family counts and chips with isolated histories, Variation of family/exercise choices and None with the current choice ticked, the Strong review naming a custom family, a real backup download/restore and reload, Cancel with no persisted changes, failed-storage retry and a nested session picker; English light/dark review at 390 px |
 | `app-families` | 19 | Search families/counts/body-part filters, exact query results, last logged opening, sibling movement/equipment chips with separate histories and no extra Back entries, hidden members, inline multi-pick, Replace in the session and both editors, exact names, split headers and a 400-exercise placeholder; English light/dark review at 375 px |

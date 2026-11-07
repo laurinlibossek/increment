@@ -7,8 +7,9 @@
 // Writes the SVG of every design to app/assets/icon/ and, for the chosen one,
 // the PNGs app.json points to: icon.png (iOS, 1024, no transparency),
 // android-icon-foreground/-background/-monochrome.png (adaptive icon, the I
-// inside the safe zone), splash-icon.png and favicon.png. Renders with the
-// Playwright Chromium the browser tests use (tests/browser/env.mjs).
+// inside the safe zone), splash-icon.png and favicon.png, and the website's
+// icons in web/icons/ (home screen, install prompt, privacy pages). Renders with
+// the Playwright Chromium the browser tests use (tests/browser/env.mjs).
 import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
@@ -17,6 +18,7 @@ import { launch } from '../../tests/browser/env.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ASSETS = path.join(HERE, '..', 'assets');
+const WEB_ICONS = path.join(HERE, '..', '..', 'web', 'icons');
 const SIZE = 1024;
 
 /** The letter, centred on 0,0 (y down). Every design is 600–640 units tall. */
@@ -107,13 +109,19 @@ async function main() {
     ['images/android-icon-monochrome.png', svg(design, { bg: null, scale: safe }), SIZE, true],
     ['images/splash-icon.png', svg(design, { bg: null }), SIZE, true],
     ['images/favicon.png', svg(design, { size: 48 }), 48, false],
+    // the website: the letter already sits inside a maskable icon's safe circle (40% radius)
+    [path.join(WEB_ICONS, 'icon-192.png'), svg(design, { size: 192 }), 192, false],
+    [path.join(WEB_ICONS, 'icon-512.png'), svg(design, { size: 512 }), 512, false],
+    [path.join(WEB_ICONS, 'apple-touch-icon.png'), svg(design, { size: 180 }), 180, false],
+    [path.join(WEB_ICONS, 'favicon-32.png'), svg(design, { size: 32 }), 32, false],
   ];
+  if (halfDiagonal(DESIGNS[design]) > 0.4 * SIZE) throw new Error(`${design} doesn't fit a maskable icon's safe circle`);
   const browser = await launch();
   const page = await browser.newPage();
   for (const [file, s, n, alpha] of outputs) {
     const png = encodePng(await rasterise(page, s, n), n, n, alpha);
-    fs.writeFileSync(path.join(ASSETS, file), png);
-    console.log(`${file}  ${n}×${n} ${alpha ? 'RGBA' : 'RGB'}  ${Math.round(png.length / 1024)} KB`);
+    fs.writeFileSync(path.resolve(ASSETS, file), png);
+    console.log(`${path.relative(path.join(HERE, '..', '..'), path.resolve(ASSETS, file))}  ${n}×${n} ${alpha ? 'RGBA' : 'RGB'}  ${Math.round(png.length / 1024)} KB`);
   }
   await browser.close();
   console.log(`design: ${design} (Android letter scale ${safe.toFixed(3)})`);

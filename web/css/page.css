@@ -1,23 +1,26 @@
-/* Plain text pages next to the app (privacy policy): the app's colours from
-   app.css, but a page that scrolls like a normal website. */
-html, body.page {
-  height: auto; overflow: auto; overscroll-behavior: auto; touch-action: auto;
+/* The website's text pages (the privacy pages), in Tally: tally.css gives the
+   tokens, this file the layout. One column, at most 600 px like the app on a
+   wide window, on paper; ink for text, ink-2 for secondary text. */
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font: 400 17px/22px var(--font-sans);
 }
-body.page { line-height: 1.5; }
 .doc {
-  max-width: 680px; margin: 0 auto;
-  padding: calc(24px + var(--safe-top)) 20px calc(48px + var(--safe-bottom));
+  max-width: 600px; margin: 0 auto;
+  padding: calc(var(--space-6) + env(safe-area-inset-top)) calc(var(--space-5) + env(safe-area-inset-right))
+    calc(var(--space-12) + env(safe-area-inset-bottom)) calc(var(--space-5) + env(safe-area-inset-left));
 }
-.doc h1 { font-size: 34px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; margin: 8px 0 6px; }
-.doc h2 { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; margin: 32px 0 8px; }
-.doc p, .doc li { color: var(--ink-2); }
-.doc strong { color: var(--ink); font-weight: 650; }
-.doc ul { padding-left: 20px; }
-.doc li + li { margin-top: 6px; }
-.doc a { color: var(--accent-text); }
-.doc .lang { margin: 0; font-size: 15px; text-align: right; }
-.doc .meta { margin: 0 0 20px; font-size: 14px; color: var(--ink-3); }
-.doc .summary {
-  background: var(--surface); border-radius: var(--radius); padding: 14px 16px; margin: 0;
-  color: var(--ink); box-shadow: var(--shadow);
-}
+.doc h1 { margin: var(--space-4) 0 var(--space-2); }
+.doc h2 { margin: var(--space-8) 0 var(--space-2); }
+.doc p, .doc ul { margin: 0 0 var(--space-3); }
+.doc ul { padding-left: var(--space-5); }
+.doc li + li { margin-top: var(--space-2); }
+.doc .meta { color: var(--ink-2); margin-bottom: var(--space-6); }
+.doc .summary { background: var(--paper-2); border-radius: var(--radius-l); padding: var(--space-4) var(--space-5); margin: 0; }
+.doc .lang { margin: 0; text-align: right; }
+/* links: ink, underlined; no accent colour in Tally */
+.doc a { color: var(--ink); text-decoration: underline; text-underline-offset: 0.15em; text-decoration-thickness: 1px; }
+.doc .lang a, .doc .meta a { color: var(--ink-2); }
+.doc a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: var(--radius-s); }
