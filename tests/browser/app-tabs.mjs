@@ -4,9 +4,9 @@
 // Lifting with the rest and Skip; Plan's + menu; the Progress hub and its
 // pages; Search focused on open; the Account sheet; German and dark; routines,
 // not templates, in English and German; a wide window (the centred column);
-// dark segmented controls and switches. 11 checks.
+// dark segmented controls and switches. 14 checks.
 import assert from 'node:assert/strict';
-import { devices, launch, grantWakeLock, APP as BASE, shots } from './env.mjs';
+import { openSearch, devices, launch, grantWakeLock, APP as BASE, shots } from './env.mjs';
 import * as core from '../../core/index.js';
 import { demoData } from './store-demo.mjs';
 
@@ -50,6 +50,12 @@ async function discard(page) {
   const week = core.weekStrip(data.workouts, { weekStart: settings.weekStart, goal: settings.weeklyGoal });
   const muscles = core.setsPerMuscle(data.workouts, lib);
 
+  const tabs = page.getByRole('tab');
+  assert.deepEqual(await tabs.evaluateAll((els) => els.map((el) => el.getAttribute('data-testid'))), ['tab-index', 'tab-plan', 'tab-progress']);
+  assert.deepEqual(await tabs.evaluateAll((els) => els.map((el) => el.getAttribute('aria-label'))), ['Today', 'Plan', 'Progress']);
+  assert.equal(new URL(page.url()).pathname, '/');
+  ok('the bottom bar has Today, Plan and Progress in that order, with Today selected on launch');
+
   const card = await id(page, 'up-next').innerText();
   assert.match(card, new RegExp(`Up next · [^\\n]+\\n${sug.template.name}`));
   assert.ok(card.includes(`${size.exercises} exercises · ${size.sets} sets · about ${size.minutes} min`), card);
@@ -87,14 +93,25 @@ async function discard(page) {
   assert.equal((await store(page)).kv.active.rest, null, 'Skip ends the rest');
   assert.equal(await id(page, 'mini-skip-rest').count(), 0);
   assert.match(await id(page, 'mini-bar').innerText(), new RegExp(`${sug.template.name} · \\d+:\\d\\d`));
-  // it stays on every tab
-  await id(page, 'tab-progress').click();
-  await id(page, 'mini-bar').waitFor();
-  await id(page, 'mini-bar').click();
+  // One accessory on every root; Search sits above the roots and has none.
+  for (const tab of ['index', 'plan', 'progress']) {
+    await id(page, `tab-${tab}`).click();
+    await page.waitForURL(BASE + (tab === 'index' ? '/' : `/${tab}`));
+    await page.locator('[data-testid="mini-bar"]:visible').waitFor();
+    assert.equal(await page.locator('[data-testid="mini-bar"]:visible').count(), 1);
+    await openSearch(page);
+    assert.equal(await page.locator('[data-testid="mini-bar"]:visible').count(), 0, 'Search has no duplicated or covering accessory');
+    assert.equal(await page.getByRole('tablist').count(), 0, 'Search is pushed above the tab bar');
+    await page.getByRole('link', { name: 'Go back', exact: true }).click();
+    await id(page, `open-search-${tab}`).waitFor();
+    assert.equal(new URL(page.url()).pathname, tab === 'index' ? '/' : `/${tab}`);
+    assert.equal(await page.locator('[data-testid="mini-bar"]:visible').count(), 1);
+  }
+  await page.locator('[data-testid="mini-bar"]:visible').click();
   await id(page, 'workout-name').waitFor();
   await discard(page);
   assert.equal(await id(page, 'mini-bar').count(), 0);
-  ok('Now Lifting: the exercise and set, the rest and Skip, on every tab, opens the workout; Today shows it running with Resume');
+  ok('Now Lifting: rest and Skip, exactly one on each tab root, none on pushed Search, restored after Back; opens the workout');
 
   // Plan: the templates as rows, + starts an empty workout
   await id(page, 'tab-plan').click();
@@ -147,11 +164,55 @@ async function discard(page) {
   await page.goBack();
   ok(`Progress: ${recent} workouts in 30 days; Workouts, Lifts and Records navigate without counts; ${lifts} searchable lifts and Body (${bw.value} kg)`);
 
-  // Search is focused when it opens
-  await id(page, 'tab-search').click();
-  await wait(page, 400);
-  assert.equal(await page.evaluate(() => document.activeElement?.getAttribute('data-testid')), 'exercise-search');
-  ok('Search: the field is focused when the tab opens');
+  // Every root has a plain Search control with a full hit area. Back preserves the origin.
+  for (const tab of ['index', 'plan', 'progress']) {
+    await id(page, `tab-${tab}`).click();
+    await page.waitForURL(BASE + (tab === 'index' ? '/' : `/${tab}`));
+    const icon = id(page, `open-search-${tab}`);
+    await icon.waitFor();
+    assert.equal(await icon.getAttribute('role'), 'button');
+    assert.equal(await icon.getAttribute('aria-label'), 'Search');
+    const area = await icon.boundingBox();
+    assert.ok(area.width >= 44 && area.height >= 44, `${tab}: Search hit area ${area.width} × ${area.height}`);
+    await openSearch(page);
+    await wait(page, 400);
+    assert.equal(new URL(page.url()).pathname, '/search');
+    assert.equal(await page.evaluate(() => document.activeElement?.getAttribute('data-testid')), 'exercise-search');
+    assert.equal(await page.getByRole('tablist').count(), 0);
+    await page.getByRole('link', { name: 'Go back', exact: true }).click();
+    await icon.waitFor();
+    assert.equal(new URL(page.url()).pathname, tab === 'index' ? '/' : `/${tab}`);
+  }
+  ok('Search: a labelled 44 pt icon on all three roots, focused on push; Back returns to the originating tab');
+
+  await openSearch(page);
+  await id(page, 'new-exercise').click();
+  await id(page, 'exercise-name').waitFor();
+  assert.equal(await id(page, 'exercise-name').inputValue(), '');
+  await id(page, 'exercise-cancel').click();
+  await id(page, 'exercise-search').fill('Navigation test exercise');
+  await page.getByText('Nothing found', { exact: true }).waitFor();
+  await page.getByRole('button', { name: 'Create “Navigation test exercise”', exact: true }).click();
+  assert.equal(await id(page, 'exercise-name').inputValue(), 'Navigation test exercise');
+  await id(page, 'exercise-save').click();
+  await id(page, 'exercise-title').waitFor();
+  assert.equal(await id(page, 'exercise-title').innerText(), 'Navigation test exercise');
+  await page.goBack();
+  await id(page, 'exercise-search').waitFor();
+  assert.equal(await id(page, 'exercise-search').inputValue(), 'Navigation test exercise');
+  await page.getByRole('link', { name: 'Go back', exact: true }).click();
+  await id(page, 'open-search-progress').waitFor();
+  ok('Search keeps + and the empty-state Create flow, opens the saved exercise, and preserves the route back to Progress');
+
+  // A reload or a link straight to Search keeps the tabs underneath: Back leads to Today.
+  await page.goto(BASE + '/search');
+  await id(page, 'exercise-search').waitFor();
+  assert.equal(await page.getByRole('tablist').count(), 0);
+  await page.getByRole('link', { name: 'Go back', exact: true }).click();
+  await id(page, 'open-search-index').waitFor();
+  assert.equal(new URL(page.url()).pathname, '/');
+  assert.equal(await page.getByRole('tablist').count(), 1);
+  ok('a reload on Search still has Back, which leads to Today and the tab bar');
 
   // Account: from the avatar, Done closes it
   await id(page, 'tab-index').click();
@@ -261,7 +322,7 @@ for (const lang of ['en', 'de']) {
   const inColumn = (b, what) => assert.ok(b.x >= 340 - 1 && b.x + b.width <= 940 + 1, `${what} inside the 600 px column: ${b.x}–${b.x + b.width}`);
   inColumn(await box('start-suggested'), 'Start');
   inColumn(await box('tab-index'), 'the Today tab');
-  inColumn(await box('tab-search'), 'the Search tab');
+  inColumn(await box('open-search-index'), 'the Search icon');
   assert.equal(await page.evaluate(() => getComputedStyle(document.body).backgroundColor), 'rgb(255, 255, 255)', 'the page background is paper');
   await id(page, 'start-suggested').click();
   await id(page, 'workout-name').waitFor();

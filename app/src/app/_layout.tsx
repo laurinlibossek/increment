@@ -14,6 +14,10 @@ import { RestWatcher } from '@/ui/workout/Rest';
 
 export { ErrorBoundary } from 'expo-router';
 
+// A reload or link straight to a pushed screen (/search, /history) still has the tabs
+// underneath, so Back leads to Today instead of a dead end.
+export const unstable_settings = { anchor: '(tabs)' };
+
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 /** On the web, a wide window shows the phone layout as a centred column. */
@@ -47,6 +51,7 @@ export default function RootLayout() {
         <Column background={palette.colors.bg} overlay={<OverlayHost root />}>
           <Stack screenOptions={{ headerTintColor: palette.colors.accentText, headerBackButtonDisplayMode: 'minimal', headerShadowVisible: false, headerStyle: { backgroundColor: palette.colors.bg } }}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false, title: '' }} />
+            <Stack.Screen name="search" options={{ title: '' }} />
             {/* Progress → Workouts, Lifts, Records, Body */}
             <Stack.Screen name="history" options={{ title: tr('Workouts') }} />
             <Stack.Screen name="exercises" options={{ title: tr('Lifts') }} />

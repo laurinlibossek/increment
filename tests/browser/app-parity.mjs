@@ -4,7 +4,7 @@
 // link directly (the web build reads it from the page address, the phone
 // through +native-intent.tsx), and the German exercise names.
 import assert from 'node:assert/strict';
-import { devices, launch, grantWakeLock, APP as BASE, BACKUP, shots } from './env.mjs';
+import { openSearch, devices, launch, grantWakeLock, APP as BASE, BACKUP, shots } from './env.mjs';
 import * as core from '../../core/index.js';
 
 const OUT = shots('app-parity');
@@ -52,7 +52,7 @@ async function openWorkouts(page) {
   await id(page, 'progress-workouts').click();
 }
 async function openExercise(page, exId, q) {
-  await id(page, 'tab-search').click();
+  await openSearch(page);
   await id(page, 'exercise-search').fill(q);
   await id(page, `exercise-${exId}`).click();
   await id(page, 'exercise-options').waitFor();
@@ -140,6 +140,7 @@ function startOfDayOf(t) { const d = new Date(t); d.setHours(0, 0, 0, 0); return
   await wait(page, 300);
 
   // same fields: asks, merges, opens the target
+  await page.goBack(); // Search → the tab root
   await openExercise(page, PULL, 'snatch pull');
   await id(page, 'exercise-options').click();
   await page.screenshot({ path: `${OUT}/03-exercise-menu.png` });
@@ -394,7 +395,7 @@ function startOfDayOf(t) { const d = new Date(t); d.setHours(0, 0, 0, 0); return
   await wait(page, 300);
   await page.goBack();
   await wait(page, 300);
-  await id(page, 'tab-search').click();
+  await openSearch(page);
   const rowName = async (exId) => (await id(page, `exercise-${exId}`).innerText()).split('\n')[0];
   const search = async (q) => { await id(page, 'exercise-search').fill(q); await wait(page, 250); };
   await search('latzug');

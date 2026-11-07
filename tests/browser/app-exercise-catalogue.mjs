@@ -2,7 +2,7 @@
 // backup restore, custom-name collisions, and individual Search query results.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { launch, devices, grantWakeLock, APP, shots } from './env.mjs';
+import { openSearch, launch, devices, grantWakeLock, APP, shots } from './env.mjs';
 import { SEED_EXERCISES, SEED_VERSION, makeBackup, familyOf } from '../../core/index.js';
 
 const v1 = JSON.parse(fs.readFileSync(new URL('../fixtures/exercises-v1.json', import.meta.url), 'utf8'));
@@ -21,7 +21,7 @@ async function open(data) {
   page.on('pageerror', (e) => errors.push(String(e)));
   page.on('console', (m) => { if (m.type() === 'error' && !/favicon|DevTools/.test(m.text())) errors.push(m.text()); });
   await page.goto(APP);
-  await page.getByTestId('tab-search').waitFor();
+  await page.getByTestId('open-search-index').waitFor();
   await page.waitForFunction((version) => JSON.parse(localStorage.getItem('increment.data'))?.kv?.meta?.seedVersion === version, SEED_VERSION);
   return { ctx, page, errors };
 }
@@ -52,7 +52,7 @@ try {
     assert.equal(data.exercises.length, SEED_EXERCISES.length);
     assert.ok(data.exercises.every((e) => familyOf(e)));
     ok('first start seeds the whole catalogue; every exercise resolves to a family without a stored family field');
-    await page.getByTestId('tab-search').click();
+    await openSearch(page);
     const search = page.getByTestId('exercise-search');
     await search.fill('keenan');
     await page.getByTestId('exercise-x-keenan-flap-cable').waitFor();
@@ -77,7 +77,7 @@ try {
     checkUpgrade(await stored(page), before);
     ok('v1 startup preserves renamed/hidden built-ins, custom identity, settings and workout/routine references');
     await page.reload();
-    await page.getByTestId('tab-search').waitFor();
+    await page.getByTestId('open-search-index').waitFor();
     checkUpgrade(await stored(page), before);
     ok('upgrade is persisted and repeatable after reload');
     // Restore the v1 file through the actual file chooser and confirmation flow.
@@ -92,7 +92,7 @@ try {
     checkUpgrade(await stored(page), before);
     ok('restoring a v1 backup adds the catalogue without duplicating a custom exercise or moving its history');
     await page.goto(APP);
-    await page.getByTestId('tab-search').waitFor();
+    await page.getByTestId('open-search-index').waitFor();
     checkUpgrade(await stored(page), before);
     ok('restored family assignment and original custom id survive another reload');
     assert.deepEqual(errors, []);

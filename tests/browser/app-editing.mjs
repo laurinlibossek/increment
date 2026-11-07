@@ -5,7 +5,7 @@
 // exercises, Measure logging, charts, backups and the new settings. 22 checks.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { devices, launch, grantWakeLock, APP as BASE, BACKUP, shots } from './env.mjs';
+import { openSearch, devices, launch, grantWakeLock, APP as BASE, BACKUP, shots } from './env.mjs';
 import * as core from '../../core/index.js';
 
 const OUT = shots('app-editing');
@@ -318,7 +318,7 @@ const store = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('inc
   await id(page, 'drop-pending').click();
   await id(page, 'summary-done').click();
   await wait(page, 500);
-  await id(page, 'tab-search').click();
+  await openSearch(page);
   await id(page, 'exercise-search').fill('zercher');
   await id(page, 'exercise-c-my-zercher-squat').click();
   await id(page, 'exercise-options').waitFor();
@@ -421,7 +421,7 @@ for (const scheme of ['light', 'dark']) {
     await page.goBack();
   }
   // exercise charts
-  await id(page, 'tab-search').click();
+  await openSearch(page);
   await id(page, 'exercise-search').fill('squat bb');
   await id(page, `exercise-${SQUAT}`).click();
   await id(page, 'exercise-chart').waitFor();
@@ -462,7 +462,8 @@ for (const scheme of ['light', 'dark']) {
   ok(`exercise page: est. 1RM with its chart, record dots and a tooltip, range, rep maxes, history, other metrics (${scheme})`);
 
   // Measure: log body weight, chart, delete with undo
-  await page.goBack();
+  await page.goBack(); // Exercise → Search
+  await page.goBack(); // Search → the tab root
   await wait(page, 300);
   await id(page, 'tab-progress').click();
   await id(page, 'progress-body').click();

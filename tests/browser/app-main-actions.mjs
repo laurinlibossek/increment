@@ -87,7 +87,8 @@ async function title(page, name, { wraps = false } = {}) {
   assert.equal(style.size, '28px');
   assert.ok(Number(style.weight) >= 700, JSON.stringify(style));
   assert.ok(style.top >= 50, 'detail title sits under the navigation bar');
-  assert.equal(await page.getByText(name, { exact: true }).count(), 1, 'the navigation bar does not repeat the routine name');
+  // Today stays mounted under a pushed screen (its Up next card may name the routine), so count what is visible.
+  assert.equal(await page.getByText(name, { exact: true }).filter({ visible: true }).count(), 1, 'the navigation bar does not repeat the routine name');
   assert.ok(style.scrollWidth <= style.width && style.clamp !== '1', JSON.stringify(style));
   if (wraps) assert.ok(style.height > style.line * 1.5, JSON.stringify(style));
 }
