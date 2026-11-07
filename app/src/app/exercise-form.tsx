@@ -48,8 +48,9 @@ export default function ExerciseForm() {
   const close = (saved: Parameters<typeof finishForm>[0]) => { finishForm(saved); router.back(); };
   const selectFamily = async () => {
     if (savingRef.current) return;
+    const choice = familySelection === undefined ? familyOf(ex) : familySelection;
     const ids = await pickExercises({
-      title: tr('Variation of'), allowCreate: false, familySelection: true,
+      title: tr('Variation of'), allowCreate: false, familySelection: true, selected: choice || PICK_NONE,
       currentExerciseId: ex?.id, accepts: (candidate) => candidate.id !== ex?.id,
     });
     if (ids) setFamilySelection(ids[0] === PICK_NONE ? null : ids[0]);
@@ -87,11 +88,9 @@ export default function ExerciseForm() {
           const label = suggestion.family ? f.lang === 'de' ? suggestion.family.nameDe : suggestion.family.name : f.exName(suggestion.exercise);
           const join = await ask({
             title: suggestion.family ? tr('Add to {name}?', { name: label }) : tr('Group with {name}?', { name: label }),
-            message: suggestion.family?.id === 'f-squat'
-              ? tr('{name} joins the other squats. Its records and history stay its own.', { name: n })
-              : tr('{name} joins the other exercises in {family}. Its records and history stay its own.', {
-                name: n, family: suggestion.family ? label : suggestion.name,
-              }),
+            message: tr('{name} becomes a variation of {family}. Its records and history stay its own.', {
+              name: n, family: suggestion.family ? label : suggestion.name,
+            }),
             ok: suggestion.family ? tr('Add to {name}', { name: label }) : tr('Group with {name}', { name: label }),
             cancel: tr('Keep separate'), testID: 'confirm-exercise-family',
           });

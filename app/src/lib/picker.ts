@@ -5,7 +5,9 @@ import type { Exercise } from '@/data/types';
 
 /** Only family selection returns this sentinel; ordinary picks return exercise ids. */
 export const PICK_NONE = '__none';
-type Options = { multi?: boolean; title?: string; accepts?: (exercise: Exercise) => boolean; allowCreate?: boolean; currentExerciseId?: string; familySelection?: boolean };
+type Options = { multi?: boolean; title?: string; accepts?: (exercise: Exercise) => boolean; allowCreate?: boolean; currentExerciseId?: string;
+  /** Family selection: the current choice (a family id, an exercise id or PICK_NONE) is ticked. */
+  familySelection?: boolean; selected?: string };
 type Pick = Options & { resolve: (ids: string[] | null) => void };
 // A new exercise can open its own family picker while the calling workout's
 // picker waits beneath it. Each screen finishes only its own request.

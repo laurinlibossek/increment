@@ -60,11 +60,11 @@ export default function PickExercises() {
   };
   const toggle = (id: string) => setExpanded((cur) => { const next = new Set(cur); if (next.has(id)) next.delete(id); else next.add(id); return next; });
   const version = (ex: Exercise, first = false, nested = false, title = f.exName(ex), summary?: string) => {
-    const on = chosen.includes(ex.id), isCurrent = current?.id === ex.id;
+    const on = chosen.includes(ex.id), picked = familySelection && pick?.selected === ex.id, isCurrent = current?.id === ex.id;
     const lastAt = sessions.get(ex.id)?.[0]?.startedAt;
     const facts = summary ?? [tr(BODY_PART_LABEL[ex.bodyPart as keyof typeof BODY_PART_LABEL] || 'Other'), lastAt ? f.relDayLower(lastAt) : ''].filter(Boolean).join(' · ');
     const subtitle = [facts, isCurrent ? tr('Current exercise') : ''].filter(Boolean).join(' · ');
-    return <Pressable key={ex.id} onPress={() => tap(ex.id)} accessibilityRole={multi ? 'checkbox' : 'button'} aria-checked={multi ? on : undefined}
+    return <Pressable key={ex.id} onPress={() => tap(ex.id)} accessibilityRole={multi ? 'checkbox' : familySelection ? 'radio' : 'button'} aria-checked={multi ? on : familySelection ? picked : undefined}
       aria-current={isCurrent || undefined} testID={`pick-${ex.id}`} style={({ pressed }) => ({ backgroundColor: on ? t.paper3 : pressed ? t.paper2 : t.paper })}>
       <View style={{ minHeight: CONTROL.rowH, paddingVertical: SPACE.s3, paddingLeft: nested ? SPACE.s8 : SPACE.s5, paddingRight: SPACE.s5, flexDirection: 'row', alignItems: 'center', gap: SPACE.s3 }}>
         {!first && <View style={{ position: 'absolute', top: 0, left: nested ? SPACE.s8 : SPACE.s5, right: 0, height: StyleSheet.hairlineWidth, backgroundColor: t.line }} />}
@@ -72,14 +72,16 @@ export default function PickExercises() {
           <Text style={[TYPE.body, { color: t.ink }]}>{title}</Text>
           <Text style={[TYPE.footnote, { color: t.ink2 }]}>{subtitle}</Text>
         </View>
-        {on && <SymbolIcon name="checkmark" size={18} color={t.ink} />}
+        {(on || picked) && <SymbolIcon name="checkmark" size={18} color={t.ink} />}
       </View>
     </Pressable>;
   };
+  const tick = (on: boolean) => (on ? <SymbolIcon name="checkmark" size={18} color={t.ink} /> : undefined);
   const renderRow = (row: ExerciseBrowseRow, index: number) => {
+    // Choosing, not opening: the current family is ticked and no row has a chevron.
     if (familySelection && row.family) return <ListRow title={<Text style={[TYPE.body, { color: t.ink }]}>{row.title}</Text>}
-      subtitle={<Text style={[TYPE.footnote, { color: t.ink2 }]}>{row.subtitle}</Text>}
-      onPress={() => done([row.id])} testID={`pick-family-${row.id}`} chevron />;
+      subtitle={<Text style={[TYPE.footnote, { color: t.ink2 }]}>{row.subtitle}</Text>} checked={pick?.selected === row.id} right={tick(pick?.selected === row.id)}
+      onPress={() => done([row.id])} testID={`pick-family-${row.id}`} />;
     if (!row.family || row.members.length === 1) return version(row.members[0], index === 0 && !familySelection, false, row.title, row.subtitle);
     const open = expanded.has(row.id);
     return <View>
@@ -112,7 +114,8 @@ export default function PickExercises() {
     <FlatList data={list} keyExtractor={(r) => r.id} renderItem={({ item, index }) => renderRow(item, index)}
       keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" initialNumToRender={20}
       contentContainerStyle={{ paddingBottom: insets.bottom + SPACE.s6 }}
-      ListHeaderComponent={familySelection ? <ListRow title={tr('None')} first onPress={() => done([PICK_NONE])} testID="pick-none" /> : undefined}
+      ListHeaderComponent={familySelection ? <ListRow title={tr('None')} first checked={pick?.selected === PICK_NONE} right={tick(pick?.selected === PICK_NONE)}
+        onPress={() => done([PICK_NONE])} testID="pick-none" /> : undefined}
       ListEmptyComponent={<Empty title={q.trim() ? tr('No match for “{q}”', { q: q.trim() }) : tr('Nothing found')} text={pick?.allowCreate === false ? undefined : tr('Create it as your own exercise.')}>
         {pick?.allowCreate !== false && <Button kind="tinted" icon="plus" title={tr('Create “{name}”', { name: q.trim() || tr('new exercise') })} onPress={create} testID="pick-create" />}
       </Empty>} />

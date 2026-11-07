@@ -47,7 +47,7 @@ try {
     await page.getByTestId('exercise-save').click();
     await page.getByTestId('confirm-exercise-family').waitFor();
     assert.ok(await page.getByText('Add to Squat?', { exact: true }).count());
-    assert.ok(await page.getByText('Squat (Cybex Machine) joins the other squats. Its records and history stay its own.', { exact: true }).count());
+    assert.ok(await page.getByText('Squat (Cybex Machine) becomes a variation of Squat. Its records and history stay its own.', { exact: true }).count());
     await shot(page, theme, 'question');
     await page.getByTestId('confirm-exercise-family').click();
     await page.getByTestId('exercise-title').waitFor();
@@ -111,6 +111,23 @@ try {
     await searchAgain(page);
     ok(`${theme}: explicitly choosing None on a new exact-base exercise suppresses the question`);
 
+    // A Strong exercise with the same base joins the person's own family, and the review says so.
+    // (Before the restore below, which brings back the catalogue's own Kelso Shrug family.)
+    await page.goto(APP); await page.getByTestId('open-account').click();
+    const strongCsv = 'Date,Workout Name,Duration,Exercise Name,Set Order,Weight,Reps,Distance,Seconds,Notes,Workout Notes\n'
+      + '2026-10-02 12:00:00,Shrugs,20m,Kelso Shrug (Band),1,20,12,0,0,,\n';
+    const [strongFile] = await Promise.all([page.waitForEvent('filechooser'), page.getByTestId('strong-import').click()]);
+    await strongFile.setFiles({ name: 'kelso.csv', mimeType: 'text/csv', buffer: Buffer.from(strongCsv) });
+    await page.getByTestId('strong-review').waitFor();
+    await page.getByTestId('strong-new-0').click();
+    assert.match(await page.getByTestId('strong-family-0').innerText(), /Joins Kelso Shrug/);
+    await page.getByTestId('strong-cancel').click();
+    await page.getByTestId('confirm-discard-changes').click();
+    await page.getByTestId('strong-import').waitFor();
+    assert.equal((await stored(page)).exercises.some((e) => e.name === 'Kelso Shrug (Band)'), false);
+    await page.goto(APP); await openSearch(page);
+    ok(`${theme}: the Strong review says a new exercise joins the person's own family`);
+
     // Download the real backup, remove the family through the form, then restore it.
 
     await page.goto(APP); await page.getByTestId('open-account').click();
@@ -152,6 +169,12 @@ try {
     assert.match(await page.getByTestId('exercise-family').innerText(), /Kelso Shrug/);
     await page.getByTestId('exercise-family').click();
     assert.equal(await page.getByTestId('pick-new').count(), 0);
+    // the current choice is ticked; rows choose instead of opening
+    assert.equal(await page.getByTestId(`pick-family-${familyId}`).getAttribute('aria-checked'), 'true');
+    assert.equal(await page.getByTestId('pick-family-f-squat').getAttribute('aria-checked'), 'false');
+    assert.equal(await page.getByTestId('pick-none').getAttribute('aria-checked'), 'false');
+    await page.waitForTimeout(250);
+    await page.screenshot({ path: `${OUT}/after-en-${theme}-variation-picker.png` });
     await page.getByTestId('pick-family-f-squat').click();
     await page.getByTestId('exercise-name').waitFor();
     assert.match(await page.getByTestId('exercise-family').innerText(), /Squat/);
@@ -159,13 +182,15 @@ try {
     assert.equal(await page.getByTestId('confirm-exercise-family').count(), 0);
     assert.equal((await stored(page)).exercises.find((e) => e.id === machine.id).family, 'f-squat');
     assert.ok(await page.getByTestId('family-exercises-x-squat-barbell').count());
-    await edit(page); await page.getByTestId('exercise-family').click(); await page.getByTestId('pick-none').click();
+    await edit(page); await page.getByTestId('exercise-family').click();
+    assert.equal(await page.getByTestId('pick-family-f-squat').getAttribute('aria-checked'), 'true');
+    await page.getByTestId('pick-none').click();
     await page.getByTestId('exercise-save').click(); await page.getByTestId('exercise-title').waitFor();
     assert.equal((await stored(page)).exercises.find((e) => e.id === machine.id).family, null);
     assert.equal(await page.getByTestId('family-exercises').count(), 0);
     await searchAgain(page);
     assert.ok(await page.getByTestId(`exercise-${machine.id}`).count());
-    ok(`${theme}: Variation of selects a family row with creation disabled, moves chips and Search, and None opts out`);
+    ok(`${theme}: Variation of ticks the current family, selects a family row with creation disabled, moves chips and Search, and None opts out`);
 
     await create(page, 'Kelso Shrug (Lever Machine)');
     await page.getByTestId('exercise-family').click();
