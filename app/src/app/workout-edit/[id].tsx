@@ -53,7 +53,6 @@ export default function WorkoutEditScreen() {
     <Stack.Screen options={{
       title: tr('Edit workout'),
       headerBackVisible: false,
-      gestureEnabled: false,
       headerLeft: () => <HeaderButton title={tr('Cancel')} onPress={() => router.back()} testID="edit-cancel" />,
       headerRight: () => (d ? <HeaderButton title={tr('Save')} strong onPress={save} testID="edit-save" /> : null),
     }} />

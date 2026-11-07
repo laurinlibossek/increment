@@ -83,10 +83,20 @@ for (const language of ['en', 'de']) for (const theme of ['light', 'dark']) {
   await page.screenshot({ path: `${OUT}/${language}-${theme}-family.png` });
   ok(`${language}/${theme}: editable names, required body part, category limits and exact family grouping`);
   assert.deepEqual(await data(page), before, 'review has written nothing');
+  // Choices were made, so leaving asks first.
   await page.getByTestId('strong-cancel').click();
+  await page.getByTestId('confirm-discard-changes').waitFor();
+  await page.getByText(language === 'en' ? 'Discard changes?' : 'Änderungen verwerfen?', { exact: true }).waitFor();
+  await page.waitForTimeout(250);
+  await page.screenshot({ path: `${OUT}/${language}-${theme}-discard.png` });
+  await page.getByTestId('dialog-cancel').click();
+  await page.getByTestId('confirm-discard-changes').waitFor({ state: 'detached' });
+  assert.equal(await page.getByTestId('strong-new-3').getAttribute('aria-checked'), 'true', 'Keep editing keeps every choice');
+  await page.getByTestId('strong-cancel').click();
+  await page.getByTestId('confirm-discard-changes').click();
   await page.getByTestId('strong-import').waitFor();
   assert.deepEqual(await data(page), before, 'Cancel has written nothing');
-  ok(`${language}/${theme}: Cancel leaves workouts, exercises and aliases unchanged`);
+  ok(`${language}/${theme}: Cancel after changes asks first; Keep editing keeps the choices, Discard leaves workouts, exercises and aliases unchanged`);
   assert.deepEqual(errors, []);
   await ctx.close();
 }
@@ -145,8 +155,12 @@ for (const language of ['en', 'de']) for (const theme of ['light', 'dark']) {
   await page.waitForFunction(() => JSON.parse(localStorage.getItem('increment.data')).kv.meta.lastBackupAt > 0);
   await pickFile(page, csv.replaceAll('2026-10-0', '2026-12-0'));
   assert.equal(await page.locator('[data-testid^="strong-row-"]').count(), 0);
-  await page.getByTestId('strong-cancel').click();
   ok('downloaded backup and real restore retain every Strong choice');
+  // Nothing was changed, so Cancel closes at once.
+  await page.getByTestId('strong-cancel').click();
+  await page.getByTestId('strong-import').waitFor();
+  assert.equal(await page.getByTestId('confirm-discard-changes').count(), 0);
+  ok('Cancel without changes closes the review at once');
   assert.deepEqual(errors, []);
   await ctx.close();
 }

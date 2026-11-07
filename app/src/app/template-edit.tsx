@@ -58,7 +58,6 @@ export default function TemplateEditScreen() {
     <Stack.Screen options={{
       title: id ? tr('Edit routine') : tr('New routine'),
       headerBackVisible: false,
-      gestureEnabled: false,
       headerLeft: () => <HeaderButton title={tr('Cancel')} onPress={() => router.back()} testID="tpl-cancel" />,
       headerRight: () => (d ? <HeaderButton title={tr('Save')} strong onPress={save} testID="template-save" /> : null),
     }} />
