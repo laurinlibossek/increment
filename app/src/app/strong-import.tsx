@@ -13,6 +13,7 @@ import { pickExercises } from '@/lib/picker';
 import { useTally } from '@/lib/theme';
 import { Empty, Field, HeaderButton } from '@/ui/kit';
 import { actionSheet, OverlayHost } from '@/ui/overlay';
+import { useDiscardChanges } from '@/ui/useDiscardChanges';
 import { ActionBar } from '@/ui/tally/ActionBar';
 import { SettingRow } from '@/ui/tally/SettingRow';
 
@@ -79,10 +80,13 @@ export default function StrongImportScreen() {
   const { exercises } = useAppState();
   const { colors: t } = useTally();
   const f = useFormat(), { tr } = f;
-  const [choices, setChoices] = useState<StrongChoices>(() => Object.fromEntries((preview?.review || []).flatMap((r) => {
+  const [initial] = useState<StrongChoices>(() => Object.fromEntries((preview?.review || []).flatMap((r) => {
     const suggested = r.suggestions.find((s) => s.preselect);
     return suggested ? [[r.name, { kind: 'existing', exerciseId: suggested.id }]] : [];
   })));
+  const [choices, setChoices] = useState(initial);
+  // Leaving after a change asks first; the preselected suggestions alone are no change.
+  const leave = useDiscardChanges(choices !== initial);
   const [busy, setBusy] = useState(false);
   const saving = useRef(false);
   const [barHeight, setBarHeight] = useState(0);
@@ -96,7 +100,7 @@ export default function StrongImportScreen() {
     try {
       const stats = await saveStrongImport(preview, choices);
       closeStrongImport(preview);
-      router.back();
+      leave();
       notice(tr('Import from Strong'), stats.workouts ? tr('Imported {n}', { n: f.plural(stats.workouts, 'workout') })
         : stats.notesAdded ? tr('Notes added to {n}', { n: f.plural(stats.notesAdded, 'workout') })
           : tr('All {n} are already imported', { n: f.plural(stats.duplicates, 'workout') }));
