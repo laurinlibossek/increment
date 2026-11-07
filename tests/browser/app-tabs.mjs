@@ -96,12 +96,13 @@ async function discard(page) {
   // One accessory on every root; Search sits above the roots and has none.
   for (const tab of ['index', 'plan', 'progress']) {
     await id(page, `tab-${tab}`).click();
+    await page.waitForURL(BASE + (tab === 'index' ? '/' : `/${tab}`));
     await page.locator('[data-testid="mini-bar"]:visible').waitFor();
     assert.equal(await page.locator('[data-testid="mini-bar"]:visible').count(), 1);
     await openSearch(page);
     assert.equal(await page.locator('[data-testid="mini-bar"]:visible').count(), 0, 'Search has no duplicated or covering accessory');
     assert.equal(await page.getByRole('tablist').count(), 0, 'Search is pushed above the tab bar');
-    await page.getByRole('button', { name: /back/i }).click();
+    await page.getByRole('link', { name: 'Go back', exact: true }).click();
     await id(page, `open-search-${tab}`).waitFor();
     assert.equal(new URL(page.url()).pathname, tab === 'index' ? '/' : `/${tab}`);
     assert.equal(await page.locator('[data-testid="mini-bar"]:visible').count(), 1);
@@ -166,6 +167,7 @@ async function discard(page) {
   // Every root has a plain Search control with a full hit area. Back preserves the origin.
   for (const tab of ['index', 'plan', 'progress']) {
     await id(page, `tab-${tab}`).click();
+    await page.waitForURL(BASE + (tab === 'index' ? '/' : `/${tab}`));
     const icon = id(page, `open-search-${tab}`);
     await icon.waitFor();
     assert.equal(await icon.getAttribute('role'), 'button');
@@ -177,7 +179,7 @@ async function discard(page) {
     assert.equal(new URL(page.url()).pathname, '/search');
     assert.equal(await page.evaluate(() => document.activeElement?.getAttribute('data-testid')), 'exercise-search');
     assert.equal(await page.getByRole('tablist').count(), 0);
-    await page.getByRole('button', { name: /back/i }).click();
+    await page.getByRole('link', { name: 'Go back', exact: true }).click();
     await icon.waitFor();
     assert.equal(new URL(page.url()).pathname, tab === 'index' ? '/' : `/${tab}`);
   }
@@ -198,7 +200,7 @@ async function discard(page) {
   await page.goBack();
   await id(page, 'exercise-search').waitFor();
   assert.equal(await id(page, 'exercise-search').inputValue(), 'Navigation test exercise');
-  await page.getByRole('button', { name: /back/i }).click();
+  await page.getByRole('link', { name: 'Go back', exact: true }).click();
   await id(page, 'open-search-progress').waitFor();
   ok('Search keeps + and the empty-state Create flow, opens the saved exercise, and preserves the route back to Progress');
 

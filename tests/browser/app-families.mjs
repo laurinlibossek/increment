@@ -20,6 +20,11 @@ async function open(data) {
   return { ctx, page, errors };
 }
 const shot = async (page, theme, name) => { await page.getByText('Hidden from lists', { exact: true }).waitFor({ state: 'hidden' }); await page.waitForTimeout(220); await page.screenshot({ path: `${OUT}/${theme}-${name}.png` }); };
+async function backToSearch(page) {
+  await page.goBack();
+  await page.waitForURL(APP + '/search');
+  await page.getByTestId('exercise-search').waitFor();
+}
 async function openExercise(page, id, query) {
   await page.getByTestId('exercise-search').fill(query);
   await page.getByTestId(`exercise-${id}`).click();
@@ -91,7 +96,7 @@ for (const theme of ['light', 'dark']) {
     assert.equal(await page.evaluate(() => history.length), historyLength, 'chip switches do not push history entries');
     ok(`${theme}: movement/equipment chips keep per-id history and metrics, use last equipment, and replace in place`);
   }
-  await page.goBack();
+  await backToSearch(page);
   await openExercise(page, 'x-dead-hang', 'dead hang');
   if (!before) {
     assert.equal(await page.getByTestId('family-exercises').count(), 0);
@@ -99,27 +104,29 @@ for (const theme of ['light', 'dark']) {
     assert.equal(await page.getByTestId('exercise-equipment').innerText(), 'Arms', 'no empty equipment separator');
   }
   await shot(page, theme, 'single');
-  await page.goBack();
+  await backToSearch(page);
   if (!before) {
     await openExercise(page, 'c-own-row', 'my row');
     assert.equal(await page.getByTestId('exercise-title').innerText(), 'My Row (Upper)');
     assert.equal(await page.getByTestId('exercise-equipment').innerText(), 'Cybex Machine · Back');
-    await page.goBack();
+    await backToSearch(page);
     await openExercise(page, 'x-safety-bar-squat-barbell', 'safety bar');
     await page.getByTestId('exercise-options').click(); await page.getByTestId('ex-hide').click();
-    await page.goBack(); await search.fill('');
+    await backToSearch(page); await search.fill('');
     assert.match(await page.getByTestId('family-f-squat').innerText(), /18 variations/);
     await page.getByTestId('family-f-squat').click();
+    await page.getByTestId('exercise-title').waitFor();
     assert.equal(await page.getByTestId('family-exercises-x-safety-bar-squat-barbell').count(), 0);
-    await page.goBack();
+    await backToSearch(page);
     ok(`${theme}: single exercises have no chips, custom names split only their last bracket, hidden members leave counts/chips`);
   }
   if (before) {
     await openExercise(page, 'x-safety-bar-squat-barbell', 'safety bar');
     await page.getByTestId('exercise-options').click(); await page.getByTestId('ex-hide').click();
-    await page.goBack(); await search.fill('');
+    await backToSearch(page); await search.fill('');
   }
   await page.goBack(); // Search → the tab root
+  await page.waitForURL(APP + '/');
   await page.getByTestId('tab-plan').click();
   await page.getByTestId('plan-add').click(); await page.getByTestId('sheet-dialog').getByTestId('start-empty').click();
   await page.getByTestId('add-exercises').click();

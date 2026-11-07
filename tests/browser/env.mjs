@@ -89,11 +89,8 @@ export function grantWakeLock() {
   try { Object.defineProperty(navigator, 'wakeLock', { configurable: true, value: { request: async () => lock() } }); } catch { /* ignore */ }
 }
 
-/** Open the pushed Search screen from the current tab route (inactive web roots stay mounted). */
+/** Open Search from the accessible tab root; inactive web roots stay mounted. */
 export async function openSearch(page) {
-  const path = new URL(page.url()).pathname.replace(/\/+$/, '');
-  const tab = path === '' ? 'index' : path.slice(1);
-  if (!['index', 'plan', 'progress'].includes(tab)) throw new Error(`Search must open from a tab root: ${path}`);
-  await page.getByTestId(`open-search-${tab}`).click();
+  await page.getByRole('button').and(page.getByTestId(/^open-search-/)).click();
   await page.getByTestId('exercise-search').waitFor();
 }
