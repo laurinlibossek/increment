@@ -3,6 +3,7 @@ import { EXERCISE_CATALOGUE } from './exercise-catalogue.js';
 import { SEED_EXERCISES } from './seed.js';
 import { exerciseBaseName } from './search.js';
 import { exerciseEquipment, compareExerciseEquipment } from './exercise-equipment.js';
+import { slug, uid } from './units.js';
 
 /** English/German family names and ordered exercise ids; no stored migration. */
 export const EXERCISE_FAMILIES = EXERCISE_CATALOGUE.map(({ members, ...family }) => ({
@@ -21,6 +22,87 @@ export function familyOf(ex) {
   if (!ex) return undefined;
   if (ex.family !== undefined) return ex.family;
   return familyByExerciseId.get(ex.id);
+}
+
+/** Catalogue metadata or the person's own family name, unchanged in either language.
+ * @param {string | null | undefined} id
+ * @param {Record<string, string>} [customFamilies]
+ */
+export function exerciseFamily(id, customFamilies = {}) {
+  if (!id) return undefined;
+  if (Object.hasOwn(FAMILY_BY_ID, id)) return FAMILY_BY_ID[id];
+  const name = customFamilies[id];
+  return /^fc-[a-z0-9-]+$/.test(id) && typeof name === 'string' && name.trim()
+    ? { id, name, nameDe: name, members: [] } : undefined;
+}
+
+/** Exact English base identity: only the last bracket, case and spaces differ. */
+export const exerciseFamilyBaseKey = (name) => exerciseBaseName({ name }, 'en').toLowerCase().replace(/\s+/g, '');
+
+/** Suggest a unique existing family first, otherwise one ungrouped custom exercise.
+ * No spelling, partial-word, punctuation or plural matching. Nothing is changed.
+ * @param {string} name
+ * @param {any[] | Map<string, any>} exercises
+ * @param {Record<string, string>} [customFamilies]
+ */
+export function suggestExerciseFamily(name, exercises, customFamilies = {}) {
+  const base = exerciseFamilyBaseKey(name);
+  if (!base) return undefined;
+  const all = exercises instanceof Map ? [...exercises.values()] : exercises;
+  const matches = all.filter((ex) => exerciseFamilyBaseKey(ex.name) === base);
+  const grouped = matches.filter((ex) => exerciseFamily(familyOf(ex), customFamilies));
+  const families = new Set(grouped.map(familyOf));
+  if (families.size > 1) return undefined;
+  const exercise = grouped[0] || matches.find((ex) => !ex.builtin && !familyOf(ex));
+  if (!exercise) return undefined;
+  return { family: exerciseFamily(familyOf(exercise), customFamilies) || null,
+    exercise, name: exerciseBaseName(exercise, 'en') };
+}
+
+/** Remove empty or damaged custom registry entries. Hidden exercises still belong.
+ * @param {Record<string, string>} customFamilies
+ * @param {any[] | Map<string, any>} exercises
+ * @returns {Record<string, string>}
+ */
+export function cleanCustomFamilies(customFamilies, exercises) {
+  const members = new Set([...(exercises instanceof Map ? exercises.values() : exercises)].map(familyOf));
+  return Object.fromEntries(Object.entries(customFamilies || {})
+    .filter(([id, name]) => /^fc-[a-z0-9-]+$/.test(id) && typeof name === 'string' && name.trim() && members.has(id)));
+}
+
+/** Save an exercise and its staged family choice together, without mutating inputs.
+ * A family/exercise id joins that family; an ungrouped picked exercise creates
+ * a family named after its base. Null leaves it separate; undefined keeps it.
+ * Built-ins retain their catalogue assignment. Other exercise fields stay intact.
+ * @param {any} exercise The inserted or updated exercise record.
+ * @param {string | null | undefined} selection A family id or picked exercise id.
+ * @param {any[] | Map<string, any>} exercises
+ * @param {Record<string, string>} [customFamilies]
+ * @returns {{ exercises: any[], customFamilies: Record<string, string> }}
+ */
+export function changeExerciseFamily(exercise, selection, exercises, customFamilies = {}) {
+  const all = new Map([...(exercises instanceof Map ? exercises.values() : exercises)].map((ex) => [ex.id, ex]));
+  let registry = { ...customFamilies };
+  let next = exercise;
+  if (!exercise.builtin && !familyByExerciseId.has(exercise.id) && selection !== undefined) {
+    let family = selection;
+    if (selection !== null && !exerciseFamily(selection, registry)) {
+      const picked = all.get(selection);
+      if (!picked || picked.id === exercise.id) family = familyOf(exercise);
+      else if (exerciseFamily(familyOf(picked), registry)) family = familyOf(picked);
+      else {
+        const name = exerciseBaseName(picked, 'en');
+        family = 'fc-' + slug(name);
+        if (family === 'fc-' || registry[family]) family = 'fc-' + uid();
+        registry[family] = name;
+        all.set(picked.id, { ...picked, family });
+      }
+    }
+    next = { ...exercise, family };
+  }
+  all.set(next.id, next);
+  const result = [...all.values()];
+  return { exercises: result, customFamilies: cleanCustomFamilies(registry, result) };
 }
 
 /**
@@ -81,16 +163,16 @@ export function lastLoggedExercise(members, sessions) {
 /** Browse rows for Search and the picker. Uses the person's actual library.
  * Hidden and rejected members never count or become the row's opening target.
  * The usual member supplies the body part even when it is hidden or rejected.
- * Unknown custom family ids have no registry yet, so show their exercises alone.
+ * Family ids absent from both the catalogue and registry show exercises alone.
  * @param {any[] | Map<string, any>} exercises
  * @param {Map<string, any[]>} sessions
- * @param {{ accepts?: (exercise: any) => boolean }} [options]
+ * @param {{ accepts?: (exercise: any) => boolean, customFamilies?: Record<string, string> }} [options]
  */
-export function exerciseBrowseRows(exercises, sessions, { accepts = () => true } = {}) {
+export function exerciseBrowseRows(exercises, sessions, { accepts = () => true, customFamilies = {} } = {}) {
   const all = exercises instanceof Map ? [...exercises.values()] : exercises;
   const rows = [], seen = new Set();
   for (const ex of all) {
-    const familyId = familyOf(ex), family = FAMILY_BY_ID[familyId];
+    const familyId = familyOf(ex), family = exerciseFamily(familyId, customFamilies);
     const id = family ? familyId : ex.id;
     if (seen.has(id)) continue;
     seen.add(id);

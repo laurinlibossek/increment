@@ -1,6 +1,8 @@
 // Sharing templates as links: <app url>#template=<base64url JSON>. Built-in
 // exercises go by id, custom ones by name, category and body part, so the
 // receiver gets matching exercises (or new custom ones) without any server.
+import { FAMILY_BY_ID, familyOf } from './exercise-families.js';
+
 const TYPE_CODE = { normal: 'n', warmup: 'w', drop: 'd', failure: 'f' };
 const CODE_TYPE = Object.fromEntries(Object.entries(TYPE_CODE).map(([k, v]) => [v, k]));
 
@@ -22,6 +24,7 @@ export function encodeTemplate(t, exercises) {
     const ex = exercises.get(x.exerciseId);
     const o = { n: ex.name, c: ex.category, b: ex.bodyPart };
     if (ex.builtin) o.i = ex.id;
+    else if (Object.hasOwn(FAMILY_BY_ID, familyOf(ex))) o.f = familyOf(ex);
     o.s = x.sets.map((st) => {
       const row = [TYPE_CODE[st.type || 'normal'] || 'n', st.w ?? null, st.r ?? null, st.d ?? null, st.t ?? null];
       while (row.length > 1 && row[row.length - 1] === null) row.pop();
@@ -72,6 +75,7 @@ export function decodeTemplate(text, { categories = [], bodyParts = [] } = {}) {
     return {
       id: typeof o.i === 'string' && /^x-[a-z0-9-]+$/.test(o.i) ? o.i : null,
       name,
+      ...(typeof o.f === 'string' && Object.hasOwn(FAMILY_BY_ID, o.f) ? { family: o.f } : {}),
       category: cats.has(o.c) ? o.c : 'barbell',
       bodyPart: parts.has(o.b) ? o.b : 'other',
       sets: sets.length ? sets : [{ type: 'normal' }],

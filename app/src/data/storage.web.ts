@@ -1,6 +1,6 @@
 // In a browser (development and tests only): the same interface as
 // storage.ts, kept in localStorage. The phone apps use SQLite.
-import { STORES, type Data, type Exercise, type Workout, type Kv, type StoreName } from './types';
+import { STORES, type Data, type Exercise, type Workout, type Template, type ActiveWorkout, type Kv, type StoreName } from './types';
 
 type Doc = { id: string };
 const KEY = 'increment.data';
@@ -67,6 +67,25 @@ export async function commitStrongImport(exercises: Exercise[], workouts: Workou
     (next[store] as Doc[]) = [...merged.values()];
   }
   next.kv.strongAliases = aliases;
+  globalThis.localStorage.setItem(KEY, JSON.stringify(next));
+  cache = next;
+}
+
+/** Publish an exercise and its family's changes only after one durable write. */
+export async function commitExerciseFamilies(exercises: Exercise[], customFamilies: Record<string, string>, removed: string[] = [],
+  related: { workouts?: Workout[]; templates?: Template[]; active?: ActiveWorkout } = {}): Promise<void> {
+  const next: Data = JSON.parse(JSON.stringify(data()));
+  const members = new Map(next.exercises.map((ex) => [ex.id, ex]));
+  for (const ex of exercises) members.set(ex.id, ex);
+  for (const id of removed) members.delete(id);
+  next.exercises = [...members.values()];
+  for (const [store, records] of [['workouts', related.workouts || []], ['templates', related.templates || []]] as const) {
+    const merged = new Map<string, Doc>(next[store].map((record) => [record.id, record]));
+    for (const record of records) merged.set(record.id, record);
+    (next[store] as Doc[]) = [...merged.values()];
+  }
+  next.kv.customFamilies = customFamilies;
+  if (related.active) next.kv.active = related.active;
   globalThis.localStorage.setItem(KEY, JSON.stringify(next));
   cache = next;
 }

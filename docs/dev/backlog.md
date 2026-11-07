@@ -1,6 +1,6 @@
 # Status and backlog
 
-Last updated 7 Nov 2026 (Search moved to the top right; swipe back on the editors asks “Discard changes?”). Keep this file current: when a pull request finishes an item, move it to "Done" in the same PR and note any decision Laurin made.
+Last updated 7 Nov 2026 (creating exercises into families; swipe back on the editors asks “Discard changes?”). Keep this file current: when a pull request finishes an item, move it to "Done" in the same PR and note any decision Laurin made.
 
 ## Where things are
 
@@ -15,7 +15,7 @@ Laurin's roadmap (6 Nov 2026): most features into the app, launch the web app, u
 
 1. **Before the web launch:**
    - **Laurin's list of bugs and visual glitches** from trying the app on his phone (5 Nov 2026). His feedback comes before new features. The design audit of the same day is a work list of its own: [`design-todo.md`](design-todo.md) (all ten groups are done, one pull request each).
-   - **Creating into families:** “Add to Squat?”, a “Variation of” row in the exercise form, custom families. Existing stored names stay. The catalogue (#12), Strong import review (#13) and family screens (#14) are done.
+   - [x] **Creating into families** — done (7 Nov 2026): exact-base save questions, a staged “Variation of” row for custom exercises, and custom families in Search, the picker and exercise-page chips. Every exercise keeps its history and records. The registry travels in backups and cleans up when empty; Strong imports join exact-base custom families and routine links carry built-in family assignments only. Core and browser coverage plus English light/dark before/after captures accompany the PR for Laurin's review.
    - [x] **Search to the top right** — done (7 Nov 2026): Today, Plan and Progress open a pushed Search screen from their large-title magnifying glass, with the field focused and Back returning to the originating tab; a reload or link straight to Search (or any pushed screen) keeps the tabs underneath, so Back leads to Today ([`navigation.md`](../design/navigation.md)). The bottom bar is Today · Plan · Progress; the TrueTrain tab stays planned for once the store apps are live (step 6).
 2. **Publish the web build as the open web app** at `laurinlibossek.github.io/increment/`: GitHub Pages from this repository (Settings → Pages → GitHub Actions), the Expo web export with the right base path, installable and offline (manifest and service worker), the privacy pages in `web/` next to it (restyled in Tally), and a deploy that refuses to run while `CONTACT_EMAIL` in `core/links.js` is the `[EMAIL]` placeholder (**blocker: Laurin creates the app's email address**). Check which of the web's limits can be fixed without a server (data the browser may clear: `navigator.storage.persist()` and backup reminders; rest alerts with the phone locked need Web Push and a server; no haptics on iPhone).
 3. **Move Laurin's data from Setlog:** Back up now in Setlog, restore in Increment (same backup format). Then archive the `setlog` repository or make it private (on a free GitHub plan a private repository can't serve Pages, so only after the move). Then **a week of Laurin's own use:** every addition, change, idea and bug as a GitHub issue, so the next sessions can pick them up.

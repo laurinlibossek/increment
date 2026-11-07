@@ -189,6 +189,13 @@ export default {
 
   // exercise picker & form
   'New exercise': 'Neue Übung',
+  'Variation of': 'Variante von',
+  'Add to {name}?': 'Zu {name} hinzufügen?',
+  'Add to {name}': 'Zu {name} hinzufügen',
+  'Group with {name}?': 'Mit {name} gruppieren?',
+  'Group with {name}': 'Mit {name} gruppieren',
+  'Keep separate': 'Getrennt lassen',
+  '{name} becomes a variation of {family}. Its records and history stay its own.': '{name} wird eine Variante von {family}. Rekorde und Verlauf bleiben getrennt.',
   'Search exercises': 'Übungen suchen',
   'Clear search': 'Suche löschen',
   'No match for “{q}”': 'Nichts gefunden für „{q}“',

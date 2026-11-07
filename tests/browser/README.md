@@ -33,6 +33,7 @@ When you update Playwright, change the version in `package.json` here; the suite
 | Suite | Checks | What it covers |
 |---|---|---|
 | `app-english-only` | 10 | shipped English UI, exercise names and date/number formatting across browser languages, saved preferences and a real Setlog backup restore; hidden Account language choices and reload persistence |
+| `app-family-creation` | 21 | saving exact-base exercises into built-in/custom families, Keep separate, custom-family counts and chips with isolated histories, Variation of family/exercise choices and None with the current choice ticked, the Strong review naming a custom family, a real backup download/restore and reload, Cancel with no persisted changes, failed-storage retry and a nested session picker; English light/dark review at 390 px |
 | `app-families` | 19 | Search families/counts/body-part filters, exact query results, last logged opening, sibling movement/equipment chips with separate histories and no extra Back entries, hidden members, inline multi-pick, Replace in the session and both editors, exact names, split headers and a 400-exercise placeholder; English light/dark review at 375 px |
 | `app-strong-review` | 22 | exact counts, spelling preselection, session counts, compatible suggestions and manual picker, required body part, editable names, logged-field categories, exact family grouping, Cancel (“Discard changes?” after a change, Keep editing keeps the choices; at once without one), actual import, reload, an already-imported file answered at once without the review, newer exports, backup/restore and retry after a storage failure; English/German light/dark screenshots |
 | `app-exercise-catalogue` | 7 | first start, v1 catalogue upgrades, renamed/hidden built-ins, custom-name collisions with unchanged history/routine references, persisted reloads, real file-chooser backup restore and new entries in the unchanged Search/exercise pages |
@@ -56,6 +57,7 @@ When you update Playwright, change the version in `package.json` here; the suite
 - Every suite imports from `env.mjs` (`launch`, `devices`, `APP`, `shots`, `grantWakeLock`, data paths), counts its checks with `ok(...)` and ends with `console.log(\`\n${passed} checks passed\`)`, which the runner reads. Add a new suite to `APP_SUITES` in `run.mjs`.
 - Each scenario collects `pageerror` and console errors and ends with `assert.deepEqual(errors, [])`.
 - Contexts call `await ctx.addInitScript(grantWakeLock)` (headless Chromium denies the Screen Wake Lock, and expo-keep-awake then logs an error a phone never shows). testIDs become `data-testid`, so use `page.getByTestId(...)`. Hidden tabs stay mounted on web: check rows by testID, not the whole page text, and keep testIDs unique across tabs (Search has `exercise-*`, Lifts `lift-*`). The three tabs are `tab-index` (Today), `tab-plan` and `tab-progress`. Search is a pushed screen: use the shared `openSearch(page)` helper from `env.mjs`, which taps the accessible root's `open-search-index`, `open-search-plan` or `open-search-progress` icon and waits for `exercise-search`. Back returns to that same tab; return from Search before switching tabs. Now Lifting stays on the tab roots and is absent from Search. The web build has JS tabs (`app/src/app/(tabs)/_layout.web.tsx`), the phone native ones. Settings are in Account: `open-account` (the avatar on Today), closed with `page.goBack()` or `account-done`. Progress opens Workouts (`progress-workouts`), Lifts, Records and Body. An empty workout starts from Today (`start-empty`, when nothing is suggested) or from Plan's + (`plan-add`, then `start-empty`). Pushed screens hide the tab bar, so `page.goBack()` before switching tabs. App data is in `localStorage['increment.data']`.
+- Nested picker flows leave the outer picker mounted. Wait for the visible inner title and scope shared picker testIDs with `.filter({ visible: true })`; session drafts reach durable storage after the store’s debounce.
 - Timing: overlays fade in for 180 ms, so wait before screenshots.
 
 ## Screenshots for review
@@ -69,6 +71,8 @@ node tests/browser/run.mjs --serve &                   # yours on :8790
 ```
 
 The worktree needs its own `npm ci` in `app/` (the runner does it).
+
+Family-creation captures use `APP=http://localhost:8791 node tests/browser/review-family-creation.mjs --before` against the main worktree, then `node tests/browser/review-family-creation.mjs` against this branch. Both use the same fixture and steps at 390 CSS px in English, light and dark. The old Save had no question, so its corresponding capture shows the exercise page reached immediately. The picker comparison shows the existing Add exercises picker before and the new Variation of mode after.
 
 ## Store screenshots
 

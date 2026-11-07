@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, Stack } from 'expo-router';
-import { BODY_PARTS, BODY_PART_LABEL, CATEGORIES, CATEGORY_LABEL, FAMILY_BY_ID, canMergeExercises, strongExerciseFamily, strongImportProblems } from '@increment/core';
+import { BODY_PARTS, BODY_PART_LABEL, CATEGORIES, CATEGORY_LABEL, canMergeExercises, exerciseFamily, strongExerciseFamily, strongImportProblems } from '@increment/core';
 
 import { saveStrongImport, useAppState, type StrongChoice, type StrongChoices, type StrongReview } from '@/data/store';
 import { SPACE, TYPE } from '@/design/tally';
@@ -22,12 +22,13 @@ type ReviewRow = StrongReview['review'][number];
 function ExerciseReviewRow({ row, index, choice, change, problem }: {
   row: ReviewRow; index: number; choice?: StrongChoice; change: (choice: StrongChoice) => void; problem?: string;
 }) {
-  const { exercises } = useAppState();
+  const { exercises, customFamilies } = useAppState();
   const { colors: t } = useTally();
   const f = useFormat(), { tr } = f;
   const newChoice = choice?.kind === 'new' ? choice : { kind: 'new' as const, name: row.name, category: row.category, bodyPart: row.bodyPart };
   const familyId = strongExerciseFamily(newChoice.name, exercises);
-  const family = familyId ? FAMILY_BY_ID[familyId] : undefined;
+  // the catalogue's families and the person's own (Kelso Shrug (Band) → Kelso Shrug)
+  const family = exerciseFamily(familyId, customFamilies);
   const picked = choice?.kind === 'existing' && !row.suggestions.some((s) => s.id === choice.exerciseId) ? exercises.get(choice.exerciseId) : undefined;
   const chooseExisting = async () => {
     const ids = await pickExercises({ title: tr('Use an existing exercise'), allowCreate: false,
