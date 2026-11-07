@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { devices, launch, grantWakeLock, APP as BASE, BACKUP, STRONG, DATA, shots } from './env.mjs';
+import { openSearch, devices, launch, grantWakeLock, APP as BASE, BACKUP, STRONG, DATA, shots } from './env.mjs';
 
 const OUT = shots('app-first-start');
 const browser = await launch();
@@ -121,7 +121,7 @@ const has = async (page, re) => (typeof re === 'string' ? new RegExp(re.replace(
   ok('an exercise page shows its numbers and its history on one page');
 
   await page.goBack(); await page.goBack(); await page.goBack();
-  await tab(page, 'search');
+  await openSearch(page);
   await page.getByTestId('exercise-search').fill('bench bb');
   await page.waitForTimeout(300);
   const rows = await page.locator('[data-testid^="exercise-"]:not([data-testid="exercise-search"])').allInnerTexts();
@@ -131,6 +131,7 @@ const has = async (page, re) => (typeof re === 'string' ? new RegExp(re.replace(
   await page.screenshot({ path: `${OUT}/07-exercises.png` });
   ok('Exercises search finds "bench bb" and shows how often it was done');
 
+  await page.goBack(); // Search → Progress
   await tab(page, 'plan');
   await page.waitForTimeout(300);
   const wo = await text(page);

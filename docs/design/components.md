@@ -194,15 +194,16 @@ Three or four facts in a row, label above value, separated by hairlines, like th
 
 ## TabBar
 
-Three tabs and a separate Search button, floating over the content.
+Three tabs, floating over the content. Search opens from the large-title trailing area on each tab root.
 
 **Rules**
-- Exactly Today, Plan, Progress, then Search at the trailing end. Today opens first.
+- Exactly Today, Plan, Progress. Today opens first. TrueTrain becomes the fourth tab once the store apps are live.
+- The magnifying glass is a plain icon button with a `hit-min` area and the accessibility label Search: next to Today’s avatar, next to Plan’s +, on its own on Progress. It pushes Search with Back and the field focused.
 - Selected: `ink` label and fill symbol; others `ink-2`. No badges.
 - Content scrolls under it; it minimizes on scroll down and the Now Lifting accessory moves inline.
 - This preview is a web stand-in. In the app it is the system bar.
 
-**Native**: `NativeTabs` (`expo-router/native-tabs`) with `sf` / `md` icons, `role="search"` on the Search trigger and `minimizeBehavior="onScrollDown"`.
+**Native**: `NativeTabs` (`expo-router/native-tabs`) with `sf` / `md` icons and `minimizeBehavior="onScrollDown"`. There is no Search trigger.
 
 ## Tally
 
@@ -315,7 +316,7 @@ export interface NowLiftingProps {
   onSkipRest?: () => void;
 }
 
-export interface TabBarProps { selected: 'today' | 'plan' | 'progress' | 'search' }
+export interface TabBarProps { selected: 'today' | 'plan' | 'progress' }
 
 export interface SectionHeaderProps { title: string; scope?: string; action?: { title: string; onPress: () => void } }
 

@@ -18,6 +18,7 @@ import { useTally } from '@/lib/theme';
 import { beginWorkout } from '@/lib/workout';
 import { ListRow, SymbolIcon } from '@/ui/tally/ListRow';
 import { SectionHeader } from '@/ui/tally/SectionHeader';
+import { SearchButton } from '@/ui/tally/SearchButton';
 import { TabRoot } from '@/ui/tally/TabRoot';
 import { actionSheet, toast } from '@/ui/overlay';
 
@@ -115,7 +116,7 @@ export default function PlanTab() {
   const live = s.templates.filter((x) => !x.archived);
 
   return (
-    <TabRoot title={tr('Plan')} right={plus}>
+    <TabRoot title={tr('Plan')} right={<><SearchButton tab="plan" />{plus}</>}>
       <SectionHeader first title={tr('Routines')} action={{ symbol: 'ellipsis', label: tr('Routine options'), onPress: () => templatesMenu(f), testID: 'templates-menu' }} />
       {!live.length && !folders.size && note(tr('Save the workouts you repeat as routines: tap + and New routine, or open a finished workout and save it as a routine.'))}
       {order.map((key) => {

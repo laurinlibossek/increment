@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
-import { launch, devices, APP, grantWakeLock } from './env.mjs';
+import { openSearch, launch, devices, APP, grantWakeLock } from './env.mjs';
 import { SEED_EXERCISES } from '../../core/index.js';
 const [stage, output] = process.argv.slice(2);
 if (!['before', 'after'].includes(stage) || !output) throw new Error('Pass before|after and an output folder');
@@ -20,7 +20,7 @@ try {
     const errors = [];
     page.on('pageerror', (e) => errors.push(String(e)));
     await page.goto(APP);
-    await page.getByTestId('tab-search').click();
+    await openSearch(page);
     await page.getByTestId('exercise-x-ab-wheel').waitFor();
     await page.waitForTimeout(300);
     await page.getByTestId('exercise-search').blur();

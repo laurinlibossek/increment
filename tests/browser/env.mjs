@@ -88,3 +88,9 @@ export function grantWakeLock() {
   };
   try { Object.defineProperty(navigator, 'wakeLock', { configurable: true, value: { request: async () => lock() } }); } catch { /* ignore */ }
 }
+
+/** Open Search from the accessible tab root; inactive web roots stay mounted. */
+export async function openSearch(page) {
+  await page.getByRole('button').and(page.getByTestId(/^open-search-/)).click();
+  await page.getByTestId('exercise-search').waitFor();
+}

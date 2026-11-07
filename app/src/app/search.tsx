@@ -6,6 +6,7 @@ import {
   FlatList, Pressable, Text, TextInput, type TextInputInstance, View,
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BODY_PARTS } from '@increment/core';
 
 import { allSessions, useAppState } from '@/data/store';
@@ -18,21 +19,20 @@ import { useSearchFocus } from '@/ui/useSearchFocus';
 import { useTally } from '@/lib/theme';
 import { Button, Empty } from '@/ui/kit';
 import { ListRow, SymbolIcon } from '@/ui/tally/ListRow';
-import { TabTitle, useTabPadding } from '@/ui/tally/TabRoot';
-import { NowLiftingDock } from '@/ui/workout/MiniBar';
+import { TabTitle } from '@/ui/tally/TabRoot';
 
-export default function SearchTab() {
+export default function SearchScreen() {
   const s = useAppState();
   const f = useFormat();
   const { tr } = f;
   const { colors: t } = useTally();
-  const pad = useTabPadding();
+  const insets = useSafeAreaInsets();
   const [q, setQ] = useState('');
   const focus = useSearchFocus();
   const [part, setPart] = useState('all');
   const input = useRef<TextInputInstance>(null);
   const sessions = allSessions(s);
-  // focused on open, like the system's search tab
+  // Focus on every arrival, including Back from an exercise.
   useFocusEffect(useCallback(() => {
     const timer = setTimeout(() => input.current?.focus(), 100);
     return () => clearTimeout(timer);
@@ -71,7 +71,7 @@ export default function SearchTab() {
     <View style={{ flex: 1, backgroundColor: t.paper }}>
       <FlatList
         style={{ flex: 1 }}
-        contentContainerStyle={pad}
+        contentContainerStyle={{ paddingBottom: SPACE.s8 + insets.bottom }}
         contentInsetAdjustmentBehavior="automatic"
         data={list}
         keyExtractor={(e) => e.id}
@@ -93,7 +93,6 @@ export default function SearchTab() {
         )}
         initialNumToRender={20}
       />
-      <NowLiftingDock />
     </View>
   );
 }

@@ -1,7 +1,7 @@
 // Design todo group 1. REVIEW_BEFORE=1 captures the same screens on the review baseline.
 import assert from 'node:assert/strict';
 import path from 'node:path';
-import { launch, devices, grantWakeLock, APP, shots } from './env.mjs';
+import { openSearch, launch, devices, grantWakeLock, APP, shots } from './env.mjs';
 import { chartDemoData } from './chart-demo.mjs';
 import { dateTicks } from '../../core/index.js';
 
@@ -25,7 +25,7 @@ try {
     const shot = async name => { await page.waitForTimeout(300); await page.screenshot({ path: path.join(OUT, `${lang}-${theme}-${name}.png`) }); };
     const go = async route => { await page.goto(APP + route); await page.waitForTimeout(500); };
     const focus = async field => {
-      // Reach the input with a hardware keyboard, including the auto-focused Search tab.
+      // Reach the input with a hardware keyboard, including the auto-focused Search screen.
       await page.waitForTimeout(300);
       await field.focus();
       await page.keyboard.press('Shift+Tab');
@@ -40,7 +40,7 @@ try {
       }
     };
     await go('/');
-    await id('tab-search').click();
+    await openSearch(page);
     await focus(id('exercise-search'));
     await shot('search');
     await id('exercise-search').fill('squat bb');

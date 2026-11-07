@@ -36,8 +36,9 @@ Android works the same with Expo Go from the Play Store. `npx expo start --web` 
 
 ```
 src/app/              screens (Expo Router: every file is a route)
-  (tabs)/             Today, Plan, Progress, Search: native tabs on the phone (_layout.tsx),
+  (tabs)/             Today, Plan, Progress: native tabs on the phone (_layout.tsx),
                       JS tabs in the web build the tests use (_layout.web.tsx)
+  search.tsx          Search from each tab root’s magnifying glass, focused on open, with Back
   account.tsx         the Account sheet from Today's avatar: name and settings
   history.tsx         Progress → Workouts: by month or as a calendar
   exercises.tsx       Progress → Lifts: the exercises you've done
