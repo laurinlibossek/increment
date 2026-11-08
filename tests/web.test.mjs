@@ -14,7 +14,7 @@ import { CONTACT_EMAIL } from '../core/links.js';
 const PAGES = ['index.html', '+not-found.html', '_sitemap.html', 'plan.html', 'progress.html', 'search.html',
   '(tabs)/index.html', '(tabs)/plan.html', 'measure.html', 'measure/[type].html', 'measure/index.html',
   'workout/[id].html', 'workout-edit/[id].html', 'exercise/[id].html', 'template/[id].html', 'summary/[id].html',
-  'privacy.html', '404.html'];
+  'privacy.html', 'get-started.html', '404.html'];
 
 test('pageFor: the export\'s page for an address', () => {
   const page = (p) => pageFor(PAGES, p);
@@ -29,6 +29,7 @@ test('pageFor: the export\'s page for an address', () => {
   assert.equal(page('/exercise/x-bench-press-barbell'), 'exercise/[id].html');
   assert.equal(page('/exercise/Bench%20Press'), 'exercise/[id].html', 'escaped ids');
   assert.equal(page('/privacy.html'), 'privacy.html');
+  assert.equal(page('/get-started'), 'get-started.html');
   assert.equal(page('/workout'), null, 'no list page');
   assert.equal(page('/workout/a/b'), null);
   assert.equal(page('/nothing'), null);
@@ -69,11 +70,16 @@ test('buildSite: the app\'s pages, the website\'s files and the service worker',
     assert.match(read('404.html'), /__EXPO_ROUTER_HYDRATE__=false;/, '404.html draws the screen instead of hydrating');
     assert.match(read('+not-found.html'), /__EXPO_ROUTER_HYDRATE__=true;/);
     assert.ok(!fs.existsSync(path.join(out, '_expo/.routes.json')), 'no hidden files');
-    // the contact email, written into the privacy pages
-    for (const f of ['privacy.html', 'datenschutz.html']) {
-      assert.equal(read(f).split(`<a href="mailto:${CONTACT_EMAIL}">${CONTACT_EMAIL}</a>`).length - 1, 3, f);
+    // the contact email, written into the privacy pages and get started
+    for (const [f, n] of [['privacy.html', 3], ['datenschutz.html', 3], ['get-started.html', 1]]) {
+      assert.equal(read(f).split(`<a href="mailto:${CONTACT_EMAIL}">${CONTACT_EMAIL}</a>`).length - 1, n, f);
       assert.ok(!read(f).includes('data-contact'), f);
     }
+    // get started is part of the installable app: installing from it installs the app
+    assert.match(read('get-started.html'), /<link rel="manifest" href="\/manifest.webmanifest"\/>.*navigator\.serviceWorker\.register\("\/sw\.js"\).*<\/head>/s);
+    assert.equal(read('get-started.html').match(/name="description"/g).length, 1, 'its own description only');
+    assert.doesNotMatch(read('privacy.html'), /rel="manifest"/);
+    assert.match(read('getstarted.html'), /location\.replace\('\/get-started'/);
     // the service worker: this build's files, its pages, and the routing from web/routes.mjs
     const build = swBuild(out);
     assert.equal(build.version, site.version);
@@ -88,6 +94,9 @@ test('buildSite: the app\'s pages, the website\'s files and the service worker',
     assert.equal(buildSite({ from, out }).version, site.version);
     fs.appendFileSync(path.join(from, '_expo/static/js/web/entry-abc.js'), '\n');
     assert.notEqual(buildSite({ from, out }).version, site.version);
+    // an app screen with a website page's name would replace it without a word: the build stops
+    fs.writeFileSync(path.join(from, 'get-started.html'), '<html><head></head><body></body></html>');
+    assert.throws(() => buildSite({ from, out }), /already has get-started\.html/);
   } finally {
     fs.rmSync(from, { recursive: true, force: true });
     fs.rmSync(out, { recursive: true, force: true });

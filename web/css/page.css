@@ -1,4 +1,4 @@
-/* The website's text pages (the privacy pages), in Tally: tally.css gives the
+/* The website's own pages (privacy, get started), in Tally: tally.css gives the
    tokens, this file the layout. One column, at most 600 px like the app on a
    wide window, on paper; ink for text, ink-2 for secondary text. */
 * { box-sizing: border-box; }
@@ -24,3 +24,32 @@ body {
 .doc a { color: var(--ink); text-decoration: underline; text-underline-offset: 0.15em; text-decoration-thickness: 1px; }
 .doc .lang a, .doc .meta a { color: var(--ink-2); }
 .doc a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: var(--radius-s); }
+
+/* The get-started page: the icon, a lead, buttons (Tally capsules, 52 px), the
+   install steps per device as disclosure cards on paper-2. */
+.start .hero { margin-bottom: var(--space-6); }
+.start .app-icon { display: block; width: 88px; height: 88px; border-radius: 20px; margin-top: var(--space-4); box-shadow: 0 0 0 1px var(--line); }
+.start h1 { margin: var(--space-4) 0 var(--space-2); }
+.start .lead { color: var(--ink-2); }
+.start .actions { display: flex; flex-direction: column; gap: var(--space-3); margin: var(--space-6) 0 var(--space-4); }
+.start .button {
+  display: flex; align-items: center; justify-content: center; min-height: var(--button-h); padding: 0 var(--space-6);
+  border: 0; border-radius: var(--radius-capsule); text-decoration: none; cursor: pointer; font-family: var(--font-sans);
+}
+.start .button[hidden] { display: none; }
+.start .button.primary { background: var(--ink); color: var(--paper); }
+.start .button.secondary { background: var(--paper-3); color: var(--ink); }
+.start .button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.start .facts { color: var(--ink-2); text-align: center; margin: 0; }
+.start .steps { display: flex; flex-direction: column; gap: var(--space-3); margin: var(--space-4) 0; }
+.start details { background: var(--paper-2); border-radius: var(--radius-l); padding: 0 var(--space-5); }
+.start summary { min-height: var(--row-h); display: flex; align-items: center; cursor: pointer; list-style: none; }
+.start summary::-webkit-details-marker { display: none; }
+.start summary::after { content: '+'; margin-left: auto; color: var(--ink-2); font-weight: 400; font-size: 22px; }
+.start details[open] summary::after { content: '−'; }
+.start summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: var(--radius-m); }
+.start ol { margin: 0 0 var(--space-3); padding-left: var(--space-5); }
+.start ol li + li { margin-top: var(--space-2); }
+.start .note { color: var(--ink-2); padding-bottom: var(--space-4); margin: 0; }
+.start .footer { color: var(--ink-2); margin-top: var(--space-12); padding-top: var(--space-4); border-top: 1px solid var(--line); }
+.doc .footer a { color: var(--ink-2); white-space: nowrap; }

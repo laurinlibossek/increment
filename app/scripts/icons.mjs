@@ -55,6 +55,13 @@ export function svg(design, { scale = 1, bg = '#000000', fg = '#ffffff', size = 
     + `<path transform="translate(${size / 2} ${size / 2}) scale(${k})" fill="${fg}" d="${d}"/></svg>`;
 }
 
+/** The letter centred on a black w × h banner, half as tall as the banner. */
+function banner(design, w, h) {
+  const k = (h * 0.5) / 640;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="${w}" height="${h}" fill="#000000"/>`
+    + `<path transform="translate(${w / 2} ${h / 2}) scale(${k})" fill="#ffffff" d="${DESIGNS[design]}"/></svg>`;
+}
+
 // ---------- PNG encoding (RGB or RGBA, so the iOS icon has no alpha channel) ----------
 const CRC = new Int32Array(256).map((_, n) => { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; return c; });
 const crc32 = (buf) => { let c = -1; for (const b of buf) c = CRC[(c ^ b) & 0xff] ^ (c >>> 8); return (c ^ -1) >>> 0; };
@@ -78,18 +85,19 @@ export function encodePng(rgba, w, h, alpha) {
 
 /** Rasterise an SVG string to RGBA pixels in Chromium. */
 export async function rasterise(page, svgText, size) {
-  const b64 = await page.evaluate(async ({ s, n }) => {
+  const [w, h] = Array.isArray(size) ? size : [size, size];
+  const b64 = await page.evaluate(async ({ s, w, h }) => {
     const img = new Image();
     img.src = `data:image/svg+xml;base64,${btoa(s)}`;
     await img.decode();
-    const cv = Object.assign(document.createElement('canvas'), { width: n, height: n });
+    const cv = Object.assign(document.createElement('canvas'), { width: w, height: h });
     const g = cv.getContext('2d');
-    g.drawImage(img, 0, 0, n, n);
-    const px = g.getImageData(0, 0, n, n).data;
+    g.drawImage(img, 0, 0, w, h);
+    const px = g.getImageData(0, 0, w, h).data;
     let bin = '';
     for (let i = 0; i < px.length; i += 0x8000) bin += String.fromCharCode.apply(null, px.subarray(i, i + 0x8000));
     return btoa(bin);
-  }, { s: svgText, n: size });
+  }, { s: svgText, w, h });
   return Buffer.from(b64, 'base64');
 }
 
@@ -114,14 +122,17 @@ async function main() {
     [path.join(WEB_ICONS, 'icon-512.png'), svg(design, { size: 512 }), 512, false],
     [path.join(WEB_ICONS, 'apple-touch-icon.png'), svg(design, { size: 180 }), 180, false],
     [path.join(WEB_ICONS, 'favicon-32.png'), svg(design, { size: 32 }), 32, false],
+    // the link preview (Open Graph) of /get-started: the letter on black, as tall as on the icon
+    [path.join(WEB_ICONS, 'og-image.png'), banner(design, 1200, 630), [1200, 630], false],
   ];
   if (halfDiagonal(DESIGNS[design]) > 0.4 * SIZE) throw new Error(`${design} doesn't fit a maskable icon's safe circle`);
   const browser = await launch();
   const page = await browser.newPage();
-  for (const [file, s, n, alpha] of outputs) {
-    const png = encodePng(await rasterise(page, s, n), n, n, alpha);
+  for (const [file, s, size, alpha] of outputs) {
+    const [w, h] = Array.isArray(size) ? size : [size, size];
+    const png = encodePng(await rasterise(page, s, [w, h]), w, h, alpha);
     fs.writeFileSync(path.resolve(ASSETS, file), png);
-    console.log(`${path.relative(path.join(HERE, '..', '..'), path.resolve(ASSETS, file))}  ${n}×${n} ${alpha ? 'RGBA' : 'RGB'}  ${Math.round(png.length / 1024)} KB`);
+    console.log(`${path.relative(path.join(HERE, '..', '..'), path.resolve(ASSETS, file))}  ${w}×${h} ${alpha ? 'RGBA' : 'RGB'}  ${Math.round(png.length / 1024)} KB`);
   }
   await browser.close();
   console.log(`design: ${design} (Android letter scale ${safe.toFixed(3)})`);

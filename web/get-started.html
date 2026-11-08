@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <!-- added to the home screen from here: open the app, not this page -->
+  <script>try { if (matchMedia('(display-mode: standalone)').matches || navigator.standalone) location.replace('/'); } catch (e) {}</script>
+  <title>Get started · Increment</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Increment is a free workout log built around progressive overload. No account, no ads, and it works offline. Here's how to add it to your home screen.">
+  <link rel="canonical" href="https://increment-training.app/get-started">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Increment">
+  <meta property="og:title" content="Increment: a free workout log">
+  <meta property="og:description" content="Built around progressive overload. No account, no ads, and it works offline.">
+  <meta property="og:url" content="https://increment-training.app/get-started">
+  <meta property="og:image" content="https://increment-training.app/icons/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="The Increment icon: a white Roman numeral I on black">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+  <link rel="stylesheet" href="css/tally.css">
+  <link rel="stylesheet" href="css/page.css">
+</head>
+<body>
+<main class="doc start">
+  <header class="hero">
+    <img class="app-icon" src="icons/icon-192.png" width="88" height="88" alt="">
+    <h1 class="t-large-title">Increment</h1>
+    <p class="lead">A free workout log built around progressive overload. Log your sets, see what you lifted last time, and watch your numbers go up.</p>
+    <div class="actions">
+      <button class="button primary t-headline" id="install" type="button" hidden>Install Increment</button>
+      <a class="button primary t-headline" id="open" href="/">Open Increment</a>
+    </div>
+    <p class="facts t-subhead">Free · No account · No ads · Works offline</p>
+  </header>
+
+  <h2 class="t-title-2">Add it to your home screen</h2>
+  <p>Increment runs in your browser, but it's best on your home screen: it opens like an app, works without a signal and keeps your data safe.</p>
+
+  <div class="steps" id="steps">
+    <details id="steps-ios" open>
+      <summary class="t-headline">iPhone and iPad</summary>
+      <ol>
+        <li>In Safari, tap <strong>Share</strong> (the square with the arrow; in newer Safari it's under <strong>⋯</strong>).</li>
+        <li>Tap <strong>Add to Home Screen</strong>, then <strong>Add</strong>. If you see <strong>Open as Web App</strong>, leave it on.</li>
+        <li>Open Increment from your home screen from now on.</li>
+      </ol>
+      <p class="note t-subhead">Chrome on iPhone works the same way: Share → Add to Home Screen. Safari can delete a website's data after seven days without a visit; the home screen app keeps it.</p>
+    </details>
+    <details id="steps-android" open>
+      <summary class="t-headline">Android</summary>
+      <ol>
+        <li>In Chrome, tap <strong>Install Increment</strong> above, or <strong>⋮</strong> (top right) → <strong>Add to home screen</strong> → <strong>Install</strong>.</li>
+        <li>Open Increment from your home screen or app drawer.</li>
+      </ol>
+      <p class="note t-subhead">Samsung Internet and Firefox have Add to home screen in their menus too.</p>
+    </details>
+    <details id="steps-computer" open>
+      <summary class="t-headline">Computer</summary>
+      <ol>
+        <li>In Chrome or Edge, click <strong>Install Increment</strong> above, or the install icon at the right end of the address bar.</li>
+        <li>In Safari on a Mac: <strong>File → Add to Dock</strong>.</li>
+      </ol>
+      <p class="note t-subhead">Or simply use it in a browser tab.</p>
+    </details>
+  </div>
+
+  <h2 class="t-title-2">Your data</h2>
+  <p>Everything you log stays on your device. There's no account and no server, so nobody else has a copy. Every so often, and before you switch phones, tap the avatar on Today → <strong>Back up now</strong>.</p>
+  <p>Coming from Strong? In Strong, Settings → Export Workouts. Then in Increment, the avatar on Today → <strong>Import from Strong</strong>.</p>
+
+  <footer class="footer t-footnote">
+    <a href="privacy.html">Privacy policy</a> · <a href="https://github.com/laurinlibossek/increment">Source code on GitHub</a> · <a data-contact></a>
+  </footer>
+</main>
+<script>
+  // the steps for this device first and open, the others closed
+  (function () {
+    var ua = navigator.userAgent;
+    var ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    var device = ios ? 'ios' : /Android/.test(ua) ? 'android' : 'computer';
+    var steps = document.getElementById('steps');
+    var mine = document.getElementById('steps-' + device);
+    steps.insertBefore(mine, steps.firstChild);
+    steps.querySelectorAll('details').forEach(function (d) { d.open = d === mine; });
+  })();
+  // Chrome, Edge and Android offer to install: then Install is the main button
+  (function () {
+    var install = document.getElementById('install'), open = document.getElementById('open'), offer = null;
+    addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault();
+      offer = e;
+      install.hidden = false;
+      open.classList.replace('primary', 'secondary');
+    });
+    install.addEventListener('click', function () {
+      if (!offer) return;
+      // the browser offers it once: afterwards its own menu still has Install
+      offer.prompt();
+      offer = null;
+      install.hidden = true;
+      open.classList.replace('secondary', 'primary');
+    });
+  })();
+</script>
+</body>
+</html>

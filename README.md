@@ -40,7 +40,7 @@ Over time, every exercise gets its own chart, records and history under **Progre
 
 ## Try it
 
-The web app is at **[increment-training.app](https://increment-training.app)**. Open it on your phone and add it to your home screen (Safari: Share → Add to Home Screen; Chrome: Install app): it opens like an app and works offline. Increment isn't in the App Store or Google Play yet; until then you can also run it from this repository with Expo Go on your phone (free, no developer account): see [app/README.md](app/README.md).
+**[increment-training.app/get-started](https://increment-training.app/get-started)**: the web app, and what to tap to add it to your home screen on iPhone, Android or a computer. From there it opens like an app and works offline. Increment isn't in the App Store or Google Play yet; until then you can also run it from this repository with Expo Go on your phone (free, no developer account): see [app/README.md](app/README.md).
 
 ## Coming from Strong or Setlog?
 
@@ -80,7 +80,7 @@ docs/design/             Tally: tokens, components, navigation, motion, the buil
 docs/dev/                status and backlog, how it's built
 tests/core.test.mjs      unit tests for the core (npm test)
 tests/browser/           end-to-end tests of the web build
-web/                     the website around the web app: privacy pages, manifest and icons, the offline service worker
+web/                     the website around the web app: get started, privacy pages, manifest and icons, the offline service worker
 scripts/web-site.mjs     builds the website; CI publishes it to increment-training.app
 ```
 
