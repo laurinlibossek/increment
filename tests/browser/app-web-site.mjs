@@ -3,7 +3,7 @@
 // everything else, kept by browsers for 10 minutes. Checks that the app opens,
 // that addresses without a file of their own show the right screen, that it can
 // be installed (manifest, icons, service worker), opens offline and picks up a
-// new deploy, and the privacy pages. Uses the English-only export in app/dist,
+// new deploy, the get-started page and the privacy pages. Uses the English-only export in app/dist,
 // like the published site.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -11,7 +11,7 @@ import http from 'node:http';
 import path from 'node:path';
 import { launch, devices, grantWakeLock, HERE, ROOT, shots } from './env.mjs';
 import { buildSite } from '../../scripts/web-site.mjs';
-import { CONTACT_EMAIL } from '../../core/links.js';
+import { CONTACT_EMAIL, WEB_APP_URL } from '../../core/links.js';
 
 const OUT = shots('app-web-site');
 const SITE = path.join(HERE, '.out', 'site');
@@ -73,7 +73,7 @@ try {
   }
   assert.ok(manifest.icons.some((i) => i.purpose === 'maskable'));
   assert.deepEqual(pngSize(path.join(SITE, 'icons/apple-touch-icon.png')), [180, 180]);
-  for (const page of ['index.html', 'workout/[id].html', '404.html', 'measure/index.html']) {
+  for (const page of ['index.html', 'workout/[id].html', '404.html', 'measure/index.html', 'get-started.html']) {
     const html = fs.readFileSync(path.join(SITE, page), 'utf8');
     assert.match(html, /<link rel="manifest" href="\/manifest.webmanifest"\/>/, page);
     assert.match(html, /serviceWorker\.register\("\/sw\.js"\)/, page);
@@ -128,11 +128,13 @@ try {
   await page.getByTestId('exercise-title').waitFor();
   await page.goto(`${URL_}/privacy.html`);
   await page.getByRole('heading', { name: 'Privacy policy' }).waitFor();
+  await page.goto(`${URL_}/get-started`);
+  await page.getByRole('heading', { name: 'Add it to your home screen' }).waitFor();
   await page.goto(URL_);
   await page.getByTestId('start-empty').waitFor();
   await page.screenshot({ path: `${OUT}/offline-today.png` });
   assert.deepEqual(requests, [], 'nothing reached the server');
-  ok('offline: Today, an exercise page and the privacy policy open from the cache');
+  ok('offline: Today, an exercise page, the privacy policy and get started open from the cache');
 
   // a deploy: new files; online again, the next open shows them and the old cache goes
   await ctx.setOffline(false);
@@ -148,6 +150,73 @@ try {
   ok('after a deploy: the next open shows the new page, the new service worker replaces the old cache');
   assert.deepEqual(errors, []);
   await ctx.close();
+
+  // ---------- /get-started, the page to link people to ----------
+  {
+    const html = fs.readFileSync(path.join(SITE, 'get-started.html'), 'utf8');
+    const meta = (attr, name) => html.match(new RegExp(`<meta ${attr}="${name}" content="([^"]+)">`))?.[1];
+    assert.equal(meta('property', 'og:url'), `${WEB_APP_URL}get-started`);
+    assert.equal(meta('property', 'og:image'), `${WEB_APP_URL}icons/og-image.png`);
+    assert.equal(meta('name', 'twitter:card'), 'summary_large_image');
+    assert.ok(meta('property', 'og:title') && meta('property', 'og:description'));
+    assert.deepEqual(pngSize(path.join(SITE, 'icons/og-image.png')), [1200, 630]);
+    const devicesToTry = [['iphone', {}, 'ios', ['light', 'dark']], ['android', devices['Pixel 7'], 'android', ['light']],
+      ['computer', devices['Desktop Chrome'], 'computer', ['light']]];
+    for (const [label, device, first, schemes] of devicesToTry) {
+      for (const colorScheme of schemes) {
+        const { ctx: c, page: p, errors: e } = await open({ ...device, colorScheme, serviceWorkers: 'block' });
+        await p.goto(`${URL_}/get-started`);
+        await p.getByRole('heading', { name: 'Increment', level: 1 }).waitFor();
+        const steps = await p.evaluate(() => [...document.querySelectorAll('#steps details')].map((d) => [d.id, d.open]));
+        assert.deepEqual(steps[0], [`steps-${first}`, true], `${label}: its own steps first and open`);
+        assert.ok(steps.slice(1).every(([, open]) => !open), `${label}: the others closed`);
+        assert.equal(await p.locator('#open').getAttribute('href'), '/');
+        assert.equal(await p.locator('#install').isVisible(), false, 'no Install until the browser offers it');
+        assert.equal(await p.locator(`a[href="mailto:${CONTACT_EMAIL}"]`).count(), 1);
+        assert.ok(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${label}: no sideways scrolling`);
+        const bg = await p.evaluate(() => getComputedStyle(document.body).backgroundColor);
+        assert.equal(bg, colorScheme === 'light' ? 'rgb(255, 255, 255)' : 'rgb(0, 0, 0)');
+        await p.screenshot({ path: `${OUT}/get-started-${label}-${colorScheme}.png`, fullPage: true });
+        if (label === 'computer') {
+          // the browser offers to install (Chrome, Edge): Install becomes the main button, once
+          await p.evaluate(() => {
+            const offer = new Event('beforeinstallprompt', { cancelable: true });
+            window.prompted = 0;
+            offer.prompt = () => { window.prompted++; return Promise.resolve(); };
+            offer.userChoice = Promise.resolve({ outcome: 'dismissed' });
+            dispatchEvent(offer);
+          });
+          await p.locator('#install').waitFor();
+          assert.match(await p.locator('#open').getAttribute('class'), /secondary/);
+          await p.screenshot({ path: `${OUT}/get-started-computer-install.png` });
+          await p.locator('#install').click();
+          assert.equal(await p.evaluate(() => window.prompted), 1);
+          assert.equal(await p.locator('#install').isVisible(), false);
+          assert.match(await p.locator('#open').getAttribute('class'), /primary/);
+          await p.locator('#open').click();
+          await p.getByTestId('start-empty').waitFor();
+        }
+        assert.deepEqual(e, []);
+        await c.close();
+      }
+    }
+    // added to the home screen from this page: it opens the app
+    const { ctx: c, page: p, errors: e } = await open({ serviceWorkers: 'block' });
+    await c.addInitScript(() => Object.defineProperty(navigator, 'standalone', { value: true }));
+    await p.goto(`${URL_}/get-started`);
+    await p.getByTestId('start-empty').waitFor();
+    assert.equal(new URL(p.url()).pathname, '/');
+    assert.deepEqual(e, []);
+    await c.close();
+    // /getstarted, as people type it
+    const { ctx: c2, page: p2, errors: e2 } = await open({ serviceWorkers: 'block' });
+    await p2.goto(`${URL_}/getstarted#x`);
+    await p2.waitForURL(`${URL_}/get-started#x`);
+    await p2.getByRole('heading', { name: 'Add it to your home screen' }).waitFor();
+    assert.deepEqual(e2, []);
+    await c2.close();
+    ok('get started: each device sees its own steps first, Install appears when the browser offers it, the link preview, /getstarted forwards, and from the home screen it opens the app');
+  }
 
   // ---------- the privacy pages ----------
   for (const scheme of ['light', 'dark']) {

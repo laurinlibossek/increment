@@ -1,5 +1,7 @@
 // Builds the website https://increment-training.app: the app's web export plus
 // what the website adds around it, from web/:
+// - /get-started, the page to link people to: what Increment is and how to add
+//   it to the home screen (/getstarted forwards to it);
 // - the privacy pages, with the contact email from core/links.js written in;
 // - the manifest and icons, so the app can be added to the home screen;
 // - sw.js, the service worker that keeps the app offline (web/sw.js and
@@ -27,16 +29,19 @@ const WEB = path.join(ROOT, 'web');
 const APP = path.join(ROOT, 'app');
 
 /** The files the website adds from web/, as they're published. */
-export const SITE_FILES = ['privacy.html', 'datenschutz.html', 'manifest.webmanifest', 'css/tally.css', 'css/page.css',
-  'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png', 'icons/favicon-32.png'];
+export const SITE_FILES = ['get-started.html', 'getstarted.html', 'privacy.html', 'datenschutz.html', 'manifest.webmanifest',
+  'css/tally.css', 'css/page.css', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png',
+  'icons/favicon-32.png', 'icons/og-image.png'];
+/** Pages of the website that belong to the app: they link the manifest and start the service worker too. */
+const INSTALL_PAGES = ['get-started.html'];
 
 const walk = (dir, base = dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
   const f = path.join(dir, e.name);
   return e.isDirectory() ? walk(f, base) : [path.relative(base, f).split(path.sep).join('/')];
 });
 
-/** What goes into the <head> of every page of the app. */
-function appHead() {
+/** What makes a page part of the installable app: manifest, icon, theme colours, the service worker. */
+function installHead() {
   const { light, dark } = tallyFromTokens(JSON.parse(fs.readFileSync(TOKENS_FILE, 'utf8'))).themes;
   return [
     '<link rel="manifest" href="/manifest.webmanifest"/>',
@@ -44,7 +49,6 @@ function appHead() {
     `<meta name="theme-color" content="${light.colors.paper}" media="(prefers-color-scheme: light)"/>`,
     `<meta name="theme-color" content="${dark.colors.paper}" media="(prefers-color-scheme: dark)"/>`,
     '<meta name="apple-mobile-web-app-title" content="Increment"/>',
-    '<meta name="description" content="A free workout log built around progressive overload. Your training stays on your device."/>',
     // the service worker; and once the app is on the home screen, ask the browser to keep
     // its storage under storage pressure (asked only there: Firefox would show a prompt)
     '<script>if("serviceWorker" in navigator)addEventListener("load",function(){navigator.serviceWorker.register("/sw.js").catch(function(){})});'
@@ -72,7 +76,7 @@ export function buildSite({ from = null, out = path.join(APP, 'web-build') } = {
 
   // the app's pages: the head tags, and /measure/ as well as /measure (GitHub Pages
   // sends /measure to /measure/ once a folder measure/ exists)
-  const head = appHead();
+  const head = installHead() + '<meta name="description" content="A free workout log built around progressive overload. Your training stays on your device."/>';
   for (const page of walk(out).filter((f) => f.endsWith('.html'))) {
     const file = path.join(out, page);
     const html = fs.readFileSync(file, 'utf8');
@@ -90,14 +94,17 @@ export function buildSite({ from = null, out = path.join(APP, 'web-build') } = {
   if (!notFound.includes(hydrate)) throw new Error(`+not-found.html no longer sets ${hydrate} (Expo changed its export)`);
   fs.writeFileSync(path.join(out, '404.html'), notFound.replace(hydrate, 'globalThis.__EXPO_ROUTER_HYDRATE__=false;'));
 
-  // the website's own files, the contact email written into the privacy pages
+  // the website's own files, the contact email written in. A route of the app with the same
+  // name (an app screen called get-started) would be replaced without a word, so that stops the build
+  const taken = SITE_FILES.filter((f) => fs.existsSync(path.join(out, f)));
+  if (taken.length) throw new Error(`the app's export already has ${taken.join(', ')}: rename the page in web/ or the route`);
   for (const f of SITE_FILES) {
     fs.mkdirSync(path.dirname(path.join(out, f)), { recursive: true });
     if (!f.endsWith('.html')) { fs.copyFileSync(path.join(WEB, f), path.join(out, f)); continue; }
-    let n = 0;
-    const html = fs.readFileSync(path.join(WEB, f), 'utf8')
-      .replace(/<a data-contact><\/a>/g, () => { n++; return `<a href="mailto:${CONTACT_EMAIL}">${CONTACT_EMAIL}</a>`; });
-    if (!n || html.includes('data-contact')) throw new Error(`${f}: the contact links are <a data-contact></a>`);
+    let html = fs.readFileSync(path.join(WEB, f), 'utf8')
+      .replace(/<a data-contact><\/a>/g, `<a href="mailto:${CONTACT_EMAIL}">${CONTACT_EMAIL}</a>`);
+    if (html.includes('data-contact')) throw new Error(`${f}: the contact links are <a data-contact></a>`);
+    if (INSTALL_PAGES.includes(f)) html = html.replace('</head>', `${installHead()}</head>`);
     fs.writeFileSync(path.join(out, f), html);
   }
 

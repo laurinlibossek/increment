@@ -1,13 +1,13 @@
 # Status and backlog
 
-Last updated 7 Nov 2026 (the web app published at increment-training.app). Keep this file current: when a pull request finishes an item, move it to "Done" in the same PR and note any decision Laurin made.
+Last updated 8 Nov 2026 (the get-started page at increment-training.app/get-started). Keep this file current: when a pull request finishes an item, move it to "Done" in the same PR and note any decision Laurin made.
 
 ## Where things are
 
 - **This repository** (`laurinlibossek/increment`, public, GPL-3.0) started on 5 Nov 2026 from the Setlog repository's `expo-app` branch at `06986db`: the app (`app/`, Expo SDK 58), the shared core (`core/`, was `setlog/js/core/`), the Tally design docs, the tests and these notes. The Setlog web app (Preact) didn't come along; its history stays in `laurinlibossek/setlog`.
 - **Open core:** the store version is built from the private `laurinlibossek/increment-prod`, which is this repository plus TrueTrain (the membership and its coaching engine) and the store setup, and pulls this repository in (see `docs/dev/architecture.md` → "Open core"). Everything else is built here. How TrueTrain works (its rules, notes, data and pricing) is documented only there.
 - **The app:** the Tally redesign's phases 1 to 4 are done (tabs Today · Plan · Progress with Search at the top right, the session, summary and exercise pages), with Laurin's follow-ups (routines, progressive overload, reps left 0 · 1 · 2+). Not released; Laurin runs it in Expo Go on his iPhone. It ships in English only for now; German stays maintained behind a code switch.
-- **The web app** is at `https://increment-training.app` (Laurin's domain, 7 Nov 2026): every push to `main` that passes CI publishes it (GitHub Pages). It installs to the home screen and works offline. The contact email is `hello@increment-training.app` (Cloudflare Email Routing to Laurin's Gmail).
+- **The web app** is at `https://increment-training.app` (Laurin's domain, 7 Nov 2026): every push to `main` that passes CI publishes it (GitHub Pages). It installs to the home screen and works offline. The link to give people is `https://increment-training.app/get-started` (Laurin, 8 Nov 2026). The contact email is `hello@increment-training.app` (Cloudflare Email Routing to Laurin's Gmail).
 - **Setlog** (`laurinlibossek.github.io/setlog`, web 1.6.0) is still what Laurin logs with, until his data has moved over (step 3).
 
 ## Next, in order
@@ -30,7 +30,7 @@ Laurin's roadmap (6 Nov 2026): most features into the app, launch the web app, u
 - Unknowns that need Laurin's input: where Strong puts exercise notes in a real export (sticky notes are probably not exported at all), and what Strong's exercise ⋯ → Preferences contains.
 - **Load with distance/time:** a later PR needs a logging category and history policy for loaded carries and sled work. Farmer’s Walk (Dumbbell) and Sled Push keep their current fields in PR #12; new loaded carries, sled pulls and weighted planks remain deferred.
 - The dictionary (`core/i18n-de.js`) still holds keys only the Setlog web app used; they do no harm, but could be pruned.
-- **Web app on iPhone, in Safari:** Safari can delete a website's storage after seven days without a visit; a home screen app keeps it (README → Known limits). The web app could say so once, in Safari on iPhone only (not when installed), and point to Share → Add to Home Screen. Needs Laurin's OK on the wording and where it shows.
+- **Web app on iPhone, in Safari:** Safari can delete a website's storage after seven days without a visit; a home screen app keeps it (README → Known limits; `/get-started` says so too). The app itself could say so once, in Safari on iPhone only (not when installed), and link to `/get-started`. Needs Laurin's OK on the wording and where it shows.
 - **Web app, not-found screen:** an unknown address shows Expo Router's default "Unmatched Route" screen; a Tally one with a way to Today would fit better (rare: only a mistyped address).
 
 ## How finishing a workout from a routine works
@@ -48,6 +48,8 @@ Reference for anyone touching the summary or routines.
 
 
 ## Done
+
+- **Get started page** (8 Nov 2026, `claude/get-started`, Laurin's idea): `https://increment-training.app/get-started` is the link for the README and the GitHub page. What Increment is, Open Increment, and how to add it to the home screen, with the device's own steps first and open (iPhone and iPad, Android, computer); Install becomes the main button when Chrome, Edge or Android offer it. Installing from it installs the app, and opened from the home screen it goes straight to the app. A link preview (Open Graph, a 1200 × 630 image from `app/scripts/icons.mjs`), `/getstarted` forwards to it, and the build stops if an app route ever takes its name. Suite `app-web-site`: 8 checks; unit tests in `tests/web.test.mjs`.
 
 - **The web app published** (7 Nov 2026, `claude/web-publish`): `https://increment-training.app` serves the web build from the root. `WEB_APP_URL` and `CONTACT_EMAIL` (`hello@increment-training.app`) in `core/links.js`; the privacy pages say how the web app and email work (GitHub Pages logs IP addresses; emails go through Cloudflare to Gmail), name Increment's web app instead of Setlog, routines instead of templates and Account instead of Settings, and use Tally (`web/css/tally.css`, generated by `npm run tally`; Setlog's `app.css` is gone). `scripts/web-site.mjs` builds the website: the English-only export plus manifest, icons (`app/scripts/icons.mjs` renders 192, 512, 180 and 32 px), privacy pages with the email written in, `404.html` for addresses without a file and the service worker (`web/sw.js`: the whole build cached per version, pages from the network within 3 s, else from the cache). Installed web apps ask for persistent storage. CI's `deploy` job publishes after `core`, `app` and `browser` pass on `main`. Unit tests in `tests/web.test.mjs`; browser suite `app-web-site` serves the site like GitHub Pages (deep links with and without the service worker, Chrome's installability check, offline, a new deploy, the privacy pages in light and dark). Not possible without a server: rest alerts with the phone locked (Web Push) and haptics on iPhone; they stay with the phone apps.
 
