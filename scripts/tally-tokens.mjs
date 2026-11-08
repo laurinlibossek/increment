@@ -1,7 +1,8 @@
 // Writes app/src/design/tally.ts from docs/design/tokens.json, the Tally design
-// tokens (colours per theme, spacing, radii, stroke and control sizes, type).
-// tokens.json is the source: run `npm run tally` after changing it (the tests
-// fail until you do).
+// tokens (colours per theme, spacing, radii, stroke and control sizes, type), and
+// web/css/tally.css, the same tokens for the website's own pages (the privacy
+// pages). tokens.json is the source: run `npm run tally` after changing it (the
+// tests fail until you do).
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const TOKENS_FILE = path.join(root, 'docs/design/tokens.json');
 export const OUT_FILE = path.join(root, 'app/src/design/tally.ts');
+export const CSS_FILE = path.join(root, 'web/css/tally.css');
 
 const camel = (name) => name.replace(/-(\w)/g, (_, c) => c.toUpperCase());
 const px = (v) => (typeof v === 'number' ? v : Number(String(v).replace(/px$/, '')));
@@ -77,9 +79,40 @@ export const TYPE: Record<string, { fontSize: number; lineHeight: number; fontWe
 `;
 }
 
+/** The stylesheet for the website's pages: light and dark follow the device; named themes stay in the app. */
+export function renderCss(tokens) {
+  const t = tallyFromTokens(tokens);
+  const names = tokens.color.tokens.map((c) => c.name);
+  const colors = (theme) => names.map((n) => `  --${n}: ${t.themes[theme].colors[camel(n)]};`).join('\n');
+  const sizes = (key) => tokens[key].tokens.map((s) => `  --${s.name}: ${s.value};`).join('\n');
+  const families = Object.entries(tokens.type.families).map(([k, v]) => `  --font-${k}: ${v};`).join('\n');
+  const styles = tokens.type.groups.flatMap((g) => g.styles.map((s) => `.${s.name} { font: ${s.fontWeight} ${s.fontSize}/${s.lineHeight} var(--font-${g.family || 'sans'});${s.letterSpacing ? ` letter-spacing: ${s.letterSpacing};` : ''} }`));
+  return `/* The Tally design tokens for the website's own pages (the privacy pages),
+   generated from docs/design/tokens.json by scripts/tally-tokens.mjs. Don't edit
+   by hand: change tokens.json, then run \`npm run tally\`. Light and dark follow
+   the device. */
+:root {
+  color-scheme: light dark;
+${colors('light')}
+${families}
+${sizes('spacing')}
+${sizes('radius')}
+${sizes('control')}
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+${colors('dark').replace(/^/gm, '  ')}
+  }
+}
+${styles.join('\n')}
+`;
+}
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const out = render(tallyFromTokens(JSON.parse(fs.readFileSync(TOKENS_FILE, 'utf8'))));
-  fs.mkdirSync(path.dirname(OUT_FILE), { recursive: true });
-  fs.writeFileSync(OUT_FILE, out);
-  console.log(`wrote ${path.relative(root, OUT_FILE)}`);
+  const tokens = JSON.parse(fs.readFileSync(TOKENS_FILE, 'utf8'));
+  for (const [file, out] of [[OUT_FILE, render(tallyFromTokens(tokens))], [CSS_FILE, renderCss(tokens)]]) {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, out);
+    console.log(`wrote ${path.relative(root, file)}`);
+  }
 }

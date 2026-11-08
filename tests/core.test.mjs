@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as core from '../core/index.js';
-import { tallyFromTokens, render as renderTally } from '../scripts/tally-tokens.mjs';
+import { tallyFromTokens, render as renderTally, renderCss } from '../scripts/tally-tokens.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CORE = path.join(ROOT, 'core');
@@ -1014,9 +1014,11 @@ test('weekStreak counts each week in one pass, the same as filtering per week', 
 });
 
 // ---------- Tally design tokens ----------
-test('app/src/design/tally.ts matches docs/design/tokens.json (run `npm run tally` after changing it)', () => {
-  const tally = tallyFromTokens(JSON.parse(read(path.join(ROOT, 'docs/design/tokens.json'))));
+test('app/src/design/tally.ts and web/css/tally.css match docs/design/tokens.json (run `npm run tally` after changing it)', () => {
+  const tokens = JSON.parse(read(path.join(ROOT, 'docs/design/tokens.json')));
+  const tally = tallyFromTokens(tokens);
   assert.equal(read(path.join(ROOT, 'app/src/design/tally.ts')), renderTally(tally));
+  assert.equal(read(path.join(WEB, 'css/tally.css')), renderCss(tokens));
   assert.deepEqual(Object.keys(tally.themes), ['light', 'dark', 'strawberry-matcha', 'intense-red']);
   assert.equal(tally.themes.dark.colors.paper, '#000000', 'dark themes are true black');
   assert.equal(tally.themes.light.colors.strokeDone, tally.themes.light.colors.ink, 'aliases resolve');
@@ -1059,28 +1061,26 @@ test('German exercise names: every built-in has one, shown only in German and on
 });
 
 // ---------- links and the privacy pages ----------
-test('privacy pages: one per language, and the contact email written in one place only', () => {
+test('links: the web app at its domain, and the contact email written in one place only', () => {
   assert.equal(core.privacyPage('de'), 'datenschutz.html');
   assert.equal(core.privacyPage('en'), 'privacy.html');
   assert.equal(core.privacyPage(undefined), 'privacy.html');
-  assert.ok(core.WEB_APP_URL.endsWith('/'));
+  assert.equal(core.WEB_APP_URL, 'https://increment-training.app/');
+  assert.match(core.CONTACT_EMAIL, /^[a-z]+@increment-training\.app$/);
   for (const page of ['privacy.html', 'datenschutz.html']) {
-    const html = read(path.join(WEB, page));
-    assert.match(html, /from '\.\/js\/core\/links\.js'/, `${page} reads the address from core/links.js`);
-    assert.match(html, /data-contact/);
+    assert.match(read(path.join(WEB, page)), /<a data-contact><\/a>/, `${page}: scripts/web-site.mjs writes the email in`);
   }
-  // the deploy must refuse "[EMAIL]", so it may only be the constant itself
+  // so it changes in one place: core/links.js (the website build writes it into the pages)
   const hits = [];
   const walk = (dir) => {
     for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
       const f = path.join(dir, e.name);
-      if (e.isDirectory()) walk(f);
-      else if (/\.(js|html)$/.test(e.name) && read(f).includes('[EMAIL]')) hits.push(path.relative(ROOT, f));
+      if (e.isDirectory()) { if (e.name !== 'node_modules' && e.name !== 'dist' && e.name !== 'web-build') walk(f); }
+      else if (/\.(m?js|tsx?|html|json|webmanifest)$/.test(e.name) && read(f).includes(core.CONTACT_EMAIL)) hits.push(path.relative(ROOT, f));
     }
   };
-  walk(WEB);
-  walk(CORE);
-  assert.deepEqual(hits.filter((f) => f !== path.join('core', 'links.js')), []);
+  for (const dir of [WEB, CORE, path.join(ROOT, 'app/src'), path.join(ROOT, 'scripts')]) walk(dir);
+  assert.deepEqual(hits, [path.join('core', 'links.js')]);
 });
 
 // ---------- offline ----------

@@ -2,76 +2,66 @@
 <html lang="de">
 <head>
   <meta charset="utf-8">
-  <title>Datenschutzerklärung · Increment und Setlog</title>
+  <title>Datenschutzerklärung · Increment</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="description" content="Increment und Setlog erheben nichts über dich: kein Konto, kein Server, kein Tracking. Dein Trainingslog bleibt auf deinem Handy.">
-  <meta name="theme-color" content="#f1f3f6" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#0b0d11" media="(prefers-color-scheme: dark)">
+  <meta name="description" content="Increment erhebt nichts über dich: kein Konto, kein Server, kein Tracking. Dein Trainingstagebuch bleibt auf deinem Gerät.">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="alternate" hreflang="en" href="privacy.html">
-  <script>try {
-    var t = localStorage.getItem('setlog-theme'), c = localStorage.getItem('setlog-theme-color');
-    if (t && t !== 'system') {
-      document.documentElement.setAttribute('data-theme', t);
-      if (c) document.querySelectorAll('meta[name="theme-color"]').forEach(function (m) { m.setAttribute('content', c); m.removeAttribute('media'); });
-    }
-  } catch (e) {}</script>
-  <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/tally.css">
   <link rel="stylesheet" href="css/page.css">
 </head>
-<body class="page">
+<body>
 <main class="doc">
-  <p class="lang"><a href="privacy.html" hreflang="en" lang="en">English</a></p>
-  <h1>Datenschutzerklärung</h1>
-  <p class="meta"><strong>Increment</strong>, das Trainingstagebuch für iPhone und Android, und <strong>Setlog</strong>, dieselbe App im Web. Stand: 3. November 2026.</p>
+  <p class="lang t-subhead"><a href="privacy.html" hreflang="en" lang="en">English</a></p>
+  <h1 class="t-title-1">Datenschutzerklärung</h1>
+  <p class="meta t-subhead"><strong>Increment</strong>, das Trainingstagebuch für iPhone, Android und das Web (<a href="/">increment-training.app</a>). Stand: 7. November 2026.</p>
 
-  <p class="summary"><strong>Kurz gesagt:</strong> Increment erhebt nichts über dich. Es gibt kein Konto, keinen Server, keine Analyse, keine Werbung und kein Tracking. Was du einträgst, bleibt auf deinem Handy, und der Entwickler sieht es nie.</p>
+  <p class="summary"><strong>Kurz gesagt:</strong> Increment erhebt nichts über dich. Es gibt kein Konto, keinen Server, keine Analyse, keine Werbung und kein Tracking. Was du einträgst, bleibt auf deinem Gerät, und der Entwickler sieht es nie.</p>
 
-  <h2>Verantwortlich</h2>
-  <p>Laurin Libossek<br><a data-contact href="https://github.com/laurinlibossek/setlog/issues">github.com/laurinlibossek/setlog/issues</a></p>
+  <h2 class="t-title-2">Verantwortlich</h2>
+  <p>Laurin Libossek<br><a data-contact></a></p>
 
-  <h2>Was die App speichert, und wo</h2>
-  <p>Alles, was du einträgst: Trainings, Vorlagen, Übungen, Notizen, Körpergewicht und Körpermaße, deine Einstellungen und den Namen, den du in den Einstellungen angeben kannst. Alles wird im eigenen Speicher der App auf deinem Handy gesichert. Die App schickt nichts davon irgendwohin; es gibt keinen Server, an den es gehen könnte.</p>
-  <p>Körpergewicht und Körpermaße sind Gesundheitsdaten. Sie bleiben wie alles andere auf deinem Handy.</p>
+  <h2 class="t-title-2">Was die App speichert, und wo</h2>
+  <p>Alles, was du einträgst: Trainings, Routinen, Übungen, Notizen, Körpergewicht und Körpermaße, deine Einstellungen und den Namen, den du unter Account angeben kannst. Die Apps fürs Handy speichern es in ihrem eigenen Speicher auf deinem Handy, die Web-App im Speicher deines Browsers auf deinem Gerät. Keine von beiden schickt etwas davon irgendwohin; es gibt keinen Server, an den es gehen könnte.</p>
+  <p>Körpergewicht und Körpermaße sind Gesundheitsdaten. Sie bleiben wie alles andere auf deinem Gerät.</p>
   <p>Wenn das Backup deines Handys eingeschaltet ist (iCloud-Backup auf dem iPhone, Google-Backup auf Android), kann es die Daten der App enthalten. Apple oder Google speichern sie dann nach ihren eigenen Datenschutzbestimmungen.</p>
-  <p>Um alles zu löschen: Einstellungen → Alle Daten löschen, oder die App löschen.</p>
+  <p>Um alles zu löschen: Account → Alle Daten löschen, oder die App löschen. Bei der Web-App bewirkt das Löschen der Website-Daten in deinem Browser dasselbe.</p>
 
-  <h2>Internet</h2>
-  <p>Die App sendet nichts über das Internet und funktioniert komplett offline.</p>
+  <h2 class="t-title-2">Internet</h2>
+  <p>Die App sendet nichts über das Internet und funktioniert komplett offline. Die Web-App wird aus dem Internet geladen (siehe „Die Web-App“ unten), aber auch dort bleibt, was du einträgst, auf deinem Gerät.</p>
 
-  <h2>Was du selbst verschickst</h2>
+  <h2 class="t-title-2">Was du selbst verschickst</h2>
   <ul>
-    <li><strong>Backups und CSV-Exporte</strong> entstehen nur, wenn du auf „Jetzt sichern“ oder „Als CSV exportieren“ tippst. Das Teilen-Menü deines Handys öffnet sich, und du entscheidest, wohin die Datei geht (Dateien, iCloud Drive, Google Drive, AirDrop, E-Mail). Ab da ist der Dienst zuständig, den du gewählt hast.</li>
-    <li><strong>Geteilte Vorlagen:</strong> „Teilen“ bei einer Vorlage erzeugt einen Link mit Name, Notizen, Übungen und Sätzen dieser Vorlage, sonst nichts. Du entscheidest, wer ihn bekommt. Die Vorlage steht im Teil des Links nach dem „#“, den Browser an keinen Server schicken. Wer den Link im Browser öffnet, lädt die Web-App Setlog von GitHub Pages (siehe „Die Web-App Setlog“ unten).</li>
+    <li><strong>Backups und CSV-Exporte</strong> entstehen nur, wenn du auf „Jetzt sichern“ oder „Als CSV exportieren“ tippst. Auf dem Handy öffnet sich das Teilen-Menü, und du entscheidest, wohin die Datei geht (Dateien, iCloud Drive, Google Drive, AirDrop, E-Mail); die Web-App lädt die Datei herunter. Ab da ist der Ort oder Dienst zuständig, den du gewählt hast.</li>
+    <li><strong>Geteilte Routinen:</strong> „Teilen“ bei einer Routine erzeugt einen Link mit Name, Notizen, Übungen und Sätzen dieser Routine, sonst nichts. Du entscheidest, wer ihn bekommt. Die Routine steht im Teil des Links nach dem „#“, den Browser an keinen Server schicken. Wer den Link im Browser öffnet, lädt die Web-App (siehe „Die Web-App“ unten).</li>
     <li><strong>Importe:</strong> Die App liest nur Dateien, die du selbst auswählst: einen CSV-Export aus einer anderen Trainings-App oder ein Backup zum Wiederherstellen.</li>
   </ul>
 
-  <h2>Berechtigungen</h2>
+  <h2 class="t-title-2">Berechtigungen</h2>
   <ul>
-    <li><strong>Mitteilungen,</strong> nur für den Pausentimer: Ist eine Pause vorbei und die App nicht offen, kommt eine Mitteilung. Das Handy plant sie selbst ein; kein Push-Dienst ist beteiligt. Die App fragt beim ersten Pausentimer. Ausschalten kannst du sie unter Einstellungen → Pausen-Benachrichtigung oder in den Einstellungen deines Handys.</li>
+    <li><strong>Mitteilungen,</strong> nur in den Apps fürs Handy und nur für den Pausentimer: Ist eine Pause vorbei und die App nicht offen, kommt eine Mitteilung. Das Handy plant sie selbst ein; kein Push-Dienst ist beteiligt. Die App fragt beim ersten Pausentimer. Ausschalten kannst du sie unter Account → Pausen-Benachrichtigung oder in den Einstellungen deines Handys. Die Web-App schickt keine Mitteilungen.</li>
     <li>Die App nutzt weder Kamera noch Mikrofon, Standort, Kontakte, Fotos, Apple Health oder Health Connect.</li>
   </ul>
 
-  <h2>Apple und Google</h2>
-  <p>Du lädst die App aus dem App Store oder von Google Play. Apple und Google verarbeiten Daten dazu, etwa dein Konto und den Download, nach ihren eigenen Datenschutzbestimmungen. Wenn du es in den Einstellungen deines Handys erlaubt hast (auf dem iPhone: Datenschutz &amp; Sicherheit → Analyse &amp; Verbesserungen → Mit App-Entwicklern teilen), zeigen sie dem Entwickler anonyme Statistiken wie die Zahl der Installationen und Absturzberichte. Deine Trainings oder sonst etwas, das du in der App eingetragen hast, sind nicht dabei.</p>
+  <h2 class="t-title-2">Die Web-App</h2>
+  <p>Die Web-App unter increment-training.app ist dieselbe App im Browser, und diese Seite liegt auf derselben Website. Beide liegen auf GitHub Pages. Wenn dein Browser sie lädt, erhält GitHub deine IP-Adresse und die üblichen Anfragedaten, wie bei jeder Website (<a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement">Datenschutzerklärung von GitHub</a>). Die Website setzt keine Cookies und lädt nichts von anderen.</p>
+  <p>Einmal geöffnet, behält dein Browser eine Kopie der App auf deinem Gerät, sodass sie auch ohne Verbindung startet. Mit Verbindung fragt der Browser bei GitHub nach, ob es eine neue Version gibt.</p>
 
-  <h2>Die Web-App Setlog</h2>
-  <p>Setlog unter laurinlibossek.github.io/setlog ist dieselbe App im Browser. Sie speichert alles auf die gleiche Weise im Speicher deines Browsers auf deinem Gerät: kein Konto, nichts wird hochgeladen.</p>
-  <p>Sie liegt auf GitHub Pages, genau wie diese Seite. Wenn dein Browser sie lädt, erhält GitHub deine IP-Adresse und die üblichen Anfragedaten, wie bei jeder Website (<a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement">Datenschutzerklärung von GitHub</a>). Einmal installiert, lädt die Web-App von deinem Gerät, und der Browser fragt bei GitHub nur nach, ob es eine neue Version gibt.</p>
+  <h2 class="t-title-2">Wenn du dem Entwickler schreibst</h2>
+  <p>E-Mails an <a data-contact></a> leitet Cloudflare an das Gmail-Postfach des Entwicklers weiter, Cloudflare und Google verarbeiten sie also nach ihren Datenschutzbestimmungen (<a href="https://www.cloudflare.com/de-de/privacypolicy/">Cloudflare</a>, <a href="https://policies.google.com/privacy?hl=de">Google</a>). Deine E-Mail wird nur genutzt, um dir zu antworten. Du kannst auch ein Issue auf <a href="https://github.com/laurinlibossek/increment/issues">GitHub</a> eröffnen; Issues dort sind öffentlich.</p>
 
-  <h2>Deine Rechte</h2>
-  <p>Nach der DSGVO hast du das Recht auf Auskunft, Berichtigung und Löschung, auf Einschränkung der Verarbeitung, auf Datenübertragbarkeit und auf Widerspruch, und du kannst dich bei einer Datenschutz-Aufsichtsbehörde beschweren. Der Entwickler hat keine Daten über dich, also gibt es bei ihm nichts herauszugeben oder zu löschen. Deine Daten sind auf deinem Handy, wo du sie jederzeit exportieren („Jetzt sichern“, „Als CSV exportieren“) und löschen („Alle Daten löschen“) kannst.</p>
-  <p>Fragen: <a data-contact href="https://github.com/laurinlibossek/setlog/issues">github.com/laurinlibossek/setlog/issues</a></p>
+  <h2 class="t-title-2">Apple und Google</h2>
+  <p>Die Apps fürs Handy lädst du aus dem App Store oder von Google Play. Apple und Google verarbeiten Daten dazu, etwa dein Konto und den Download, nach ihren eigenen Datenschutzbestimmungen. Wenn du es in den Einstellungen deines Handys erlaubt hast (auf dem iPhone: Datenschutz &amp; Sicherheit → Analyse &amp; Verbesserungen → Mit App-Entwicklern teilen), zeigen sie dem Entwickler anonyme Statistiken wie die Zahl der Installationen und Absturzberichte. Deine Trainings oder sonst etwas, das du in der App eingetragen hast, sind nicht dabei.</p>
 
-  <h2>Änderungen</h2>
+  <h2 class="t-title-2">Deine Rechte</h2>
+  <p>Nach der DSGVO hast du das Recht auf Auskunft, Berichtigung und Löschung, auf Einschränkung der Verarbeitung, auf Datenübertragbarkeit und auf Widerspruch, und du kannst dich bei einer Datenschutz-Aufsichtsbehörde beschweren. Der Entwickler hat keine Daten über dich, außer E-Mails, die du schickst, also gibt es bei ihm sonst nichts herauszugeben oder zu löschen. Deine Daten sind auf deinem Gerät, wo du sie jederzeit exportieren („Jetzt sichern“, „Als CSV exportieren“) und löschen („Alle Daten löschen“) kannst.</p>
+  <p>Fragen: <a data-contact></a></p>
+
+  <h2 class="t-title-2">Änderungen</h2>
   <p>Falls die App jemals anders mit Daten umgeht, wird diese Seite vor dieser Version aktualisiert, mit neuem Datum oben.</p>
 </main>
-<script type="module">
-  // die Kontaktadresse steht an einer Stelle: js/core/links.js
-  import { CONTACT_EMAIL } from './js/core/links.js';
-  if (!CONTACT_EMAIL.startsWith('[')) {
-    for (const a of document.querySelectorAll('a[data-contact]')) { a.href = `mailto:${CONTACT_EMAIL}`; a.textContent = CONTACT_EMAIL; }
-  }
-</script>
 </body>
 </html>
