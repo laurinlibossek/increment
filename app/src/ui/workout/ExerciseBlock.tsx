@@ -229,7 +229,7 @@ export const ExerciseBlock = memo(function ExerciseBlock({
   };
 
   // ---------- focus metric ----------
-  // The number to push for this exercise (Strong's "focus metric"), from the
+  // The number to push for this exercise (its "focus metric"), from the
   // sets as they stand (typed, else the ghost values), against last time.
   const focusOpts = focusOptions(cat) as FocusKey[];
   const focus = focusOpts.includes(entry.focus as FocusKey) ? (entry.focus as FocusKey) : null;

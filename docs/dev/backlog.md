@@ -1,6 +1,6 @@
 # Status and backlog
 
-Last updated 9 Nov 2026 (swipe between tab roots). Keep this file current: when a pull request finishes an item, move it to "Done" in the same PR and note any decision Laurin made.
+Last updated 9 Nov 2026 (bugs and requests as GitHub issues; wording pass). Keep this file current: when a pull request finishes an item, move it to "Done" in the same PR and note any decision Laurin made.
 
 ## Where things are
 
@@ -27,7 +27,7 @@ Laurin's roadmap (6 Nov 2026): most features into the app, launch the web app, u
 ## Open items, any order
 
 - Not answered yet: "Account" in German (kept as "Account"); the body part under the exercise name in the session; added exercises wait under Up next; the just-logged exercise stays on screen during its rest; the routine editor keeps RPE as a target.
-- Unknowns that need Laurin's input: where Strong puts exercise notes in a real export (sticky notes are probably not exported at all), and what Strong's exercise ⋯ → Preferences contains.
+- Unknowns that need Laurin's input: where Strong puts exercise notes in a real export (sticky notes are probably not exported at all).
 - **Load with distance/time:** a later PR needs a logging category and history policy for loaded carries and sled work. Farmer’s Walk (Dumbbell) and Sled Push keep their current fields in PR #12; new loaded carries, sled pulls and weighted planks remain deferred.
 - The dictionary (`core/i18n-de.js`) still holds keys only the Setlog web app used; they do no harm, but could be pruned.
 - **Web app on iPhone, in Safari:** Safari can delete a website's storage after seven days without a visit; a home screen app keeps it (README → Known limits; `/get-started` says so too). The app itself could say so once, in Safari on iPhone only (not when installed), and link to `/get-started`. Needs Laurin's OK on the wording and where it shows.
@@ -48,6 +48,8 @@ Reference for anyone touching the summary or routines.
 
 
 ## Done
+
+- **Bugs and requests as GitHub issues; wording pass** (9 Nov 2026, Laurin's decision): bugs and ideas go in as GitHub issues (label `bug` or `enhancement`), written as what a person needs. Other apps are named only where import and export compatibility needs it (the CSV, the import screen, exercise spellings), never as the source of an idea or a design; screenshots and exports from other apps stay out of the repository and issues. Comments and docs that framed the app against another one were reworded.
 
 - **Swipe between Today, Plan and Progress** (9 Nov 2026, Laurin's decision): deliberate horizontal content swipes select the neighbouring tab in bar order, with no wrapping, slide, drag-follow or haptic. NativeTabs (Liquid Glass, scroll minimization and workout accessory) and the web bar keep their look. The shared wrapper excludes vertical/short/diagonal drags, Progress chart scrubs and web edge starts; pushed screens, sheets, the running workout and editors have no shortcut. SDK 58's Expo Go-compatible Gesture Handler 3.3, core decision tests and a light/dark touch browser suite accompany light/dark swipe frame pairs. Laurin still checks the physical iPhone and Android gestures in Expo Go before merge.
 
@@ -112,7 +114,7 @@ Reference for anyone touching the summary or routines.
 - **Tally foundation** (3 Nov 2026, `claude/tally-foundation`): the design language in `docs/design/` (Laurin: "I want that on the app"); `npm run tally` generates `app/src/design/tally.ts` from `docs/design/tokens.json` and `npm test` checks it; the app's colours come from Tally (`useTally()`, with `useColors()` mapping the old names), so every screen is ink on paper, true black in dark mode, records in the signal colour; the set's stroke replaces the check button; capsule buttons and controls, Title 2 section headers; the one-pass `weekStreak` in the core (80 → 1.4 ms on a 5-year log; a unit test compares it with the old count). Suites: the background colours in `app-first-start` follow the new palettes.
 
 - **1.0.0** (22 Sep 2026): logging with the "previous" column, set types, RPE, supersets, rest timer, templates with folders, history with calendar and editing, exercise charts and records, Measure, Strong CSV import and export, JSON backup, offline service worker, dark mode, kg/lb and km/mi.
-- **1.1.0:** the Strong-style "Update template" question and the setting to turn it off.
+- **1.1.0:** the "Update template" question and the setting to turn it off.
 - **1.2.0:** ⋯ on every template card (edit, rename, duplicate, move, archive, share, delete), archive, folders and sorting, template links, exercise notes from Strong imports.
 - **1.3.0:** suggested workout on the start screen, focus metric per exercise, seven 1RM formulas and their average, volume options (dumbbells twice, body weight on weighted and assisted exercises), "Start history from", "Previous values" from any workout or the same template, warm-up scheme, separate units for body weight and measurements.
 - **1.4.0:** German, following the phone or set in Settings.

@@ -421,7 +421,7 @@ export function isLiveRecord(set, cat, bests, settings, now = Date.now()) {
 }
 
 // ---------- focus metric ----------
-// One number per exercise the user wants to push (Strong's "focus metric"),
+// One number per exercise the user wants to push (the "focus metric"),
 // from the sets as they stand (typed values, else the grey placeholders),
 // compared with the previous session.
 export const FOCUS_LABEL = {

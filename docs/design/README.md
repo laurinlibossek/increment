@@ -2,7 +2,7 @@
 
 Increment is a workout log for people who lift. It records sets, shows what you did last time and says plainly when a number went up. Its design language is called **Tally**: every set is a stroke, the screen is ink on paper, and the one colour is earned.
 
-Build every screen of the app (Expo, `app/`: iPhone, Android and the web build) from this system. Where it disagrees with the existing screens, this system wins; the old look was a copy of Strong and is being replaced phase by phase (`phases.md`).
+Build every screen of the app (Expo, `app/`: iPhone, Android and the web build) from this system. Where it disagrees with the existing screens, this system wins; the old look is being replaced phase by phase (`phases.md`).
 
 Files here: `tokens.json` (the source of every value; `npm run tally` turns it into `app/src/design/tally.ts`), `components.md` (every component, its props and rules), `navigation.md`, `motion.md`, `platforms.md`, `phases.md` (the build plan) and `screens.html` (eight screens drawn with the system; open it in a browser). The same system is browsable as a Claude design system for Laurin: https://claude.ai/artifact/RYFLoWSo8sDSVFmgGRxP2W
 
@@ -16,7 +16,7 @@ Files here: `tokens.json` (the source of every value; `npm run tally` turns it i
 
 ## The tally
 
-The tally is the one shape only Increment has. It replaces Strong's checkmark column and green rows.
+The tally is the one shape only Increment has. It replaces the checkmark column and green rows.
 
 - One stroke per set. A pending set is a hairline (`stroke-hair` wide, `ink-3`). A logged set is a stem (`stroke-slot` wide, `stroke-done`). Every stroke sits in a slot of `stroke-slot` with `stroke-gap` between slots, so logging a set never moves anything.
 - Logging a set means tapping its stroke, or the primary button that logs the current set. There is no separate checkmark.
