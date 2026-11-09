@@ -89,6 +89,13 @@ export function grantWakeLock() {
   try { Object.defineProperty(navigator, 'wakeLock', { configurable: true, value: { request: async () => lock() } }); } catch { /* ignore */ }
 }
 
+/** Tap the bar and wait for the settled tab before using its mounted content. */
+export async function selectTab(page, name) {
+  await page.getByTestId(`tab-${name}`).click();
+  await page.waitForURL(APP + (name === 'index' ? '/' : `/${name}`));
+  await page.getByTestId(`tab-${name}`).and(page.getByRole('tab', { selected: true })).waitFor();
+}
+
 /** Open Search from the accessible tab root; inactive web roots stay mounted. */
 export async function openSearch(page) {
   await page.getByRole('button').and(page.getByTestId(/^open-search-/)).click();

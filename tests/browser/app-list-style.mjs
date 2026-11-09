@@ -1,7 +1,7 @@
 // Design todo group 4. REVIEW_BEFORE=1 captures the matching review baseline.
 import assert from 'node:assert/strict';
 import path from 'node:path';
-import { launch, devices, grantWakeLock, APP, shots } from './env.mjs';
+import { selectTab, launch, devices, grantWakeLock, APP, shots } from './env.mjs';
 import { demoData } from './store-demo.mjs';
 import { DEFAULT_SETTINGS, MEASUREMENTS, exerciseDisplayName, translator } from '../../core/index.js';
 
@@ -165,7 +165,7 @@ try {
     }
 
     await go('/');
-    await id('tab-plan').click();
+    await selectTab(page, 'plan');
     const row = id(`template-${routine.id}`), menu = id(`template-menu-${routine.id}`);
     await row.waitFor();
     await shot('plan');

@@ -88,7 +88,7 @@ export function BarChart({
   const pick = (px: number) => setSel(Math.max(0, Math.min(lastI, Math.floor((px - padL) / band))));
   const sb = sel !== null ? bars[sel] : null;
   return (
-    <View onLayout={onLayout} style={{ marginTop: SPACE.s3 }} testID={testID}
+    <View onLayout={onLayout} style={{ marginTop: SPACE.s3, ...(Platform.OS === 'web' ? { touchAction: 'pan-y' } : {}) }} testID={testID}
       accessible accessibilityRole="image" accessibilityLabel={`${label}: ${bars.length ? fmtVal(bars[lastI].value) : ''}`}
       onStartShouldSetResponder={() => true} onResponderGrant={(e) => pick(e.nativeEvent.locationX)} onResponderMove={(e) => pick(e.nativeEvent.locationX)}
       onResponderRelease={() => setTimeout(() => setSel(null), 1600)} onResponderTerminationRequest={() => true}>

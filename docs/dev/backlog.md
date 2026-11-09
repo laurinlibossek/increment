@@ -1,6 +1,6 @@
 # Status and backlog
 
-Last updated 9 Nov 2026 (swipe between tab roots). Keep this file current: when a pull request finishes an item, move it to "Done" in the same PR and note any decision Laurin made.
+Last updated 9 Nov 2026 (browser scroll-snap tab pager). Keep this file current: when a pull request finishes an item, move it to "Done" in the same PR and note any decision Laurin made.
 
 ## Where things are
 
@@ -26,6 +26,7 @@ Laurin's roadmap (6 Nov 2026): most features into the app, launch the web app, u
 
 ## Open items, any order
 
+- Before the store release, decide native tab swipe: a pager that follows the finger needs non-native tabs (losing the Liquid Glass bar, its minimizing and the workout accessory), or no swipe.
 - Not answered yet: "Account" in German (kept as "Account"); the body part under the exercise name in the session; added exercises wait under Up next; the just-logged exercise stays on screen during its rest; the routine editor keeps RPE as a target.
 - Unknowns that need Laurin's input: where Strong puts exercise notes in a real export (sticky notes are probably not exported at all), and what Strong's exercise ⋯ → Preferences contains.
 - **Load with distance/time:** a later PR needs a logging category and history policy for loaded carries and sled work. Farmer’s Walk (Dumbbell) and Sled Push keep their current fields in PR #12; new loaded carries, sled pulls and weighted planks remain deferred.
@@ -49,7 +50,7 @@ Reference for anyone touching the summary or routines.
 
 ## Done
 
-- **Swipe between Today, Plan and Progress** (9 Nov 2026, Laurin's decision): deliberate horizontal content swipes select the neighbouring tab in bar order, with no wrapping, slide, drag-follow or haptic. NativeTabs (Liquid Glass, scroll minimization and workout accessory) and the web bar keep their look. The shared wrapper excludes vertical/short/diagonal drags, Progress chart scrubs and web edge starts; pushed screens, sheets, the running workout and editors have no shortcut. SDK 58's Expo Go-compatible Gesture Handler 3.3, core decision tests and a light/dark touch browser suite accompany light/dark swipe frame pairs. Laurin still checks the physical iPhone and Android gestures in Expo Go before merge.
+- **Web tabs follow the finger** (9 Nov 2026, Laurin's decision, replaces PR #23): Today, Plan and Progress stay mounted in one browser scroll-snap container, each with its own vertical scroll. Swipes work from cards and rows; direction lock, momentum and snapping belong to the browser. The unchanged bar and Now Lifting stay fixed; the settled page updates the address/highlight, bar taps scroll smoothly (instant with Reduce Motion), and direct links, Back/Forward and pushed screens retain normal navigation. The chart uses `touch-action: pan-y` for scrubbing. PR #23's recognizer, core rules/tests, gesture root and direct library dependency are removed; native keeps NativeTabs without swiping for now. Real CDP touch-scroll tests cover both themes; review includes short web recordings. Laurin's home-screen iPhone is the real test.
 
 - **Optional set sides** (9 Nov 2026): Side → Left/Right/Clear in the running workout and both editors, including duration and excluding cardio. Side chips and accessibility labels identify the row; workout details lead with the side. Drafts, routines, repeat workouts, editing, backups and routine links retain it (the link’s optional sixth value is `l`/`r`); Strong CSV drops it. Placeholders and routine updates share side-aware pairing with the positional fallback for untagged lists, and “Sides changed” is a plain layout-change line. Muscle/routine working-set totals use the larger side count per exercise; minutes, tallies, volume and records still count each row. Core/browser coverage and English/German light/dark review captures accompany the PR for Laurin’s review.
 

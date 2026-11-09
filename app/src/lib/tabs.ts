@@ -1,4 +1,4 @@
-// One order for the native bar, web bar and content-swipe shortcut.
+// One order for the native bar, web bar and web pager.
 export const ROOT_TABS = [
   { name: 'index', label: 'Today', href: '/(tabs)', pathname: '/' },
   { name: 'plan', label: 'Plan', href: '/(tabs)/plan', pathname: '/plan' },

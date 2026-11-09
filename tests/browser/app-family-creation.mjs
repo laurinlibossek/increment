@@ -1,7 +1,7 @@
 // Family creation and edits keep each exercise's history separate.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { launch, devices, grantWakeLock, APP, shots, openSearch } from './env.mjs';
+import { selectTab, launch, devices, grantWakeLock, APP, shots, openSearch } from './env.mjs';
 import { SEED_EXERCISES, familyOf } from '../../core/index.js';
 import { familyCreationData } from './family-creation-data.mjs';
 
@@ -241,7 +241,7 @@ try {
       ok('a failed grouped Save keeps the form and all stored data intact, and retry saves both members and their family');
     }
 
-    await page.goto(APP); await page.getByTestId('tab-plan').click();
+    await page.goto(APP); await selectTab(page, 'plan');
     await page.getByTestId('plan-add').click(); await page.getByTestId('sheet-dialog').getByTestId('start-empty').click();
     await page.getByTestId('add-exercises').click(); await page.getByTestId('pick-new').click();
     await page.getByTestId('exercise-name').fill('Nested Squat (Cable)');

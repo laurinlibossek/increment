@@ -9,7 +9,7 @@
 // routine confirmed in a second step, Undo; German and English), "already
 // running", and discarding. 23 checks.
 import assert from 'node:assert/strict';
-import { devices, launch, grantWakeLock, APP as BASE, BACKUP, shots } from './env.mjs';
+import { selectTab, devices, launch, grantWakeLock, APP as BASE, BACKUP, shots } from './env.mjs';
 
 const OUT = shots('app-logging');
 const BENCH = 'x-bench-press-barbell', PULLUP = 'x-pull-up', LAT = 'x-lat-pulldown-cable';
@@ -303,7 +303,7 @@ async function pick(page, names) {
   await id(page, 'summary-done').click();
   await wait(page, 500);
   assert.equal(await id(page, 'mini-bar').count(), 0, 'no mini bar once finished');
-  await id(page, 'tab-progress').click();
+  await selectTab(page, 'progress');
   await id(page, 'progress-workouts').click();
   await page.locator('[data-testid^="workout-"]').first().waitFor();
   const first = await page.locator('[data-testid^="workout-"]').first().innerText();
@@ -324,7 +324,7 @@ async function pick(page, names) {
   await chooser.setFiles(BACKUP);
   for (let i = 0; i < 50 && dialogs.length < 2; i++) await wait(page, 100);
   await page.goBack();
-  await id(page, 'tab-plan').click();
+  await selectTab(page, 'plan');
   await wait(page, 400);
   await page.locator('[data-testid^="template-"]', { hasText: 'Pull' }).first().click();
   await id(page, 'start-template').click();
@@ -459,7 +459,7 @@ async function pick(page, names) {
   await wait(page, 500);
 
   // a running workout is in the way of a new one
-  await id(page, 'tab-index').click();
+  await selectTab(page, 'index');
   await id(page, 'start-empty').click();
   await id(page, 'workout-name').waitFor();
   await id(page, 'minimize').click();
@@ -467,7 +467,7 @@ async function pick(page, names) {
   // the start card now says "Resume workout"; a template still asks
   assert.equal(await id(page, 'start-empty').count(), 0);
   assert.equal(await id(page, 'resume-workout').count(), 1);
-  await id(page, 'tab-plan').click();
+  await selectTab(page, 'plan');
   await page.locator('[data-testid^="template-"]', { hasText: 'Pull' }).first().click();
   await id(page, 'start-template').click();
   await id(page, 'resume-running').waitFor();
@@ -487,7 +487,7 @@ async function pick(page, names) {
 
   // do it again from History, then discard with a confirmation
   if (!(await id(page, 'tab-progress').isVisible())) { await page.goBack(); await wait(page, 400); } // back from the template preview
-  await id(page, 'tab-progress').click();
+  await selectTab(page, 'progress');
   await id(page, 'progress-workouts').click();
   await page.locator('[data-testid^="workout-"]').first().click();
   await id(page, 'do-again').click();
@@ -520,7 +520,7 @@ async function pick(page, names) {
   const ROW = 'x-seated-row-cable';
   const original = await routine(page);
   async function startPull() {
-    await id(page, 'tab-plan').click();
+    await selectTab(page, 'plan');
     await wait(page, 300);
     await page.locator('[data-testid^="template-"]', { hasText: 'Pull' }).first().click();
     await id(page, 'start-template').click();
@@ -605,7 +605,7 @@ async function pick(page, names) {
 
   // Settings → Update routines after workouts off: the routine only changes in the editor
   await done();
-  await id(page, 'tab-index').click();
+  await selectTab(page, 'index');
   await id(page, 'open-account').click();
   await id(page, 'set-ask-template').click();
   assert.equal((await store(page)).kv.settings.askTemplateUpdate, false);

@@ -16,7 +16,7 @@
 // app: see "Store screenshots" in README.md for what differs.
 import fs from 'node:fs';
 import path from 'node:path';
-import { openSearch, launch, grantWakeLock, APP as BASE, HERE, ROOT } from './env.mjs';
+import { selectTab, openSearch, launch, grantWakeLock, APP as BASE, HERE, ROOT } from './env.mjs';
 import * as core from '../../core/index.js';
 import { demoData } from './store-demo.mjs';
 import { CAPTIONS } from './store-captions.mjs';
@@ -66,7 +66,7 @@ async function screens(store, lang) {
   await shot(5, 'today');
 
   // 6. Progress: the last 30 days, records, workouts per week
-  await id('tab-progress').click();
+  await selectTab(page, 'progress');
   await id('weekly-chart').waitFor({ state: 'visible' });
   await wait(600);
   await shot(6, 'progress');
@@ -82,7 +82,7 @@ async function screens(store, lang) {
   await page.goBack(); // Search → Progress
 
   // 4. the History calendar (Progress → Workouts), last month
-  await id('tab-progress').click();
+  await selectTab(page, 'progress');
   await id('progress-workouts').click();
   await id('history-view').click();
   await id('cal-prev').click();
@@ -91,7 +91,7 @@ async function screens(store, lang) {
   await id('history-view').click();
   await page.goBack();
   await wait(300);
-  await id('tab-index').click();
+  await selectTab(page, 'index');
   await wait(300);
 
   // 1. the suggested workout running: last time's numbers, the warm-up and first set checked off

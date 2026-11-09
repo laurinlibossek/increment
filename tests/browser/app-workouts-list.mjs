@@ -2,7 +2,7 @@
 // REVIEW_BEFORE=1 captures matching screens from main without new assertions.
 import assert from 'node:assert/strict';
 import path from 'node:path';
-import { launch, devices, grantWakeLock, APP, shots } from './env.mjs';
+import { selectTab, launch, devices, grantWakeLock, APP, shots } from './env.mjs';
 import { demoData } from './store-demo.mjs';
 import { buildStats, workoutVolume, exerciseDisplayName, startOfMonth, startOfDay, calendarMonth } from '../../core/index.js';
 
@@ -43,7 +43,7 @@ try {
     const warmups = newest.exercises.flatMap(entry => entry.sets).filter(set => set.type === 'warmup').length;
     const { ctx, page, errors, id, shot, locale } = await newPage(data, lang, theme);
     await page.goto(APP);
-    await id('tab-progress').click();
+    await selectTab(page, 'progress');
     await id('progress-workouts').click();
     const row = id(`workout-${newest.id}`);
     await row.waitFor();

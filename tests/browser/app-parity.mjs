@@ -4,7 +4,7 @@
 // link directly (the web build reads it from the page address, the phone
 // through +native-intent.tsx), and the German exercise names.
 import assert from 'node:assert/strict';
-import { openSearch, devices, launch, grantWakeLock, APP as BASE, BACKUP, shots } from './env.mjs';
+import { selectTab, openSearch, devices, launch, grantWakeLock, APP as BASE, BACKUP, shots } from './env.mjs';
 import * as core from '../../core/index.js';
 
 const OUT = shots('app-parity');
@@ -32,7 +32,7 @@ const toastText = async (page) => { await id(page, 'toast').waitFor(); return id
 const visibleText = (page) => page.locator('body').innerText();
 const store = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('increment.data')));
 async function restore(page, dialogs) {
-  await id(page, 'tab-index').click();
+  await selectTab(page, 'index');
   await id(page, 'open-account').click();
   const [chooser] = await Promise.all([page.waitForEvent('filechooser'), id(page, 'restore').click()]);
   await chooser.setFiles(BACKUP);
@@ -43,12 +43,12 @@ async function restore(page, dialogs) {
 }
 /** Account (the avatar on Today) has the settings. */
 async function openSettings(page) {
-  await id(page, 'tab-index').click();
+  await selectTab(page, 'index');
   await id(page, 'open-account').click();
   await id(page, 'set-name').waitFor();
 }
 async function openWorkouts(page) {
-  await id(page, 'tab-progress').click();
+  await selectTab(page, 'progress');
   await id(page, 'progress-workouts').click();
 }
 async function openExercise(page, exId, q) {
@@ -202,7 +202,7 @@ function startOfDayOf(t) { const d = new Date(t); d.setHours(0, 0, 0, 0); return
   // ⋯ → Add warm-up sets follows the new scheme
   await page.goBack();
   await wait(page, 300);
-  await id(page, 'tab-index').click();
+  await selectTab(page, 'index');
   await id(page, 'start-empty').click();
   await id(page, 'add-exercises').click();
   await id(page, 'pick-search').fill('bench bb');
