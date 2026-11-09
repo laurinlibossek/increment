@@ -1,6 +1,6 @@
 # Status and backlog
 
-Last updated 9 Nov 2026 (optional left/right sides on sets). Keep this file current: when a pull request finishes an item, move it to "Done" in the same PR and note any decision Laurin made.
+Last updated 9 Nov 2026 (swipe between tab roots). Keep this file current: when a pull request finishes an item, move it to "Done" in the same PR and note any decision Laurin made.
 
 ## Where things are
 
@@ -48,6 +48,8 @@ Reference for anyone touching the summary or routines.
 
 
 ## Done
+
+- **Swipe between Today, Plan and Progress** (9 Nov 2026, Laurin's decision): deliberate horizontal content swipes select the neighbouring tab in bar order, with no wrapping, slide, drag-follow or haptic. NativeTabs (Liquid Glass, scroll minimization and workout accessory) and the web bar keep their look. The shared wrapper excludes vertical/short/diagonal drags, Progress chart scrubs and web edge starts; pushed screens, sheets, the running workout and editors have no shortcut. SDK 58's Expo Go-compatible Gesture Handler 3.3, core decision tests and a light/dark touch browser suite accompany light/dark swipe frame pairs. Laurin still checks the physical iPhone and Android gestures in Expo Go before merge.
 
 - **Optional set sides** (9 Nov 2026): Side → Left/Right/Clear in the running workout and both editors, including duration and excluding cardio. Side chips and accessibility labels identify the row; workout details lead with the side. Drafts, routines, repeat workouts, editing, backups and routine links retain it (the link’s optional sixth value is `l`/`r`); Strong CSV drops it. Placeholders and routine updates share side-aware pairing with the positional fallback for untagged lists, and “Sides changed” is a plain layout-change line. Muscle/routine working-set totals use the larger side count per exercise; minutes, tallies, volume and records still count each row. Core/browser coverage and English/German light/dark review captures accompany the PR for Laurin’s review.
 

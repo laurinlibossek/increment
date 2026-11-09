@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RADIUS, SPACE } from '@/design/tally';
 import { useLang } from '@/lib/i18n';
 import { useTally } from '@/lib/theme';
+import { ROOT_TABS } from '@/lib/tabs';
 import { SymbolIcon, type SymbolName } from '@/ui/tally/ListRow';
 import { MiniBar } from '@/ui/workout/MiniBar';
 
@@ -65,9 +66,7 @@ export default function TabLayout() {
   return (
     <Tabs tabBar={(props) => <TabBar {...props} />}
       screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: t.paper } }}>
-      <Tabs.Screen name="index" options={{ title: tr('Today') }} />
-      <Tabs.Screen name="plan" options={{ title: tr('Plan') }} />
-      <Tabs.Screen name="progress" options={{ title: tr('Progress') }} />
+      {ROOT_TABS.map(({ name, label }) => <Tabs.Screen key={name} name={name} options={{ title: tr(label) }} />)}
     </Tabs>
   );
 }

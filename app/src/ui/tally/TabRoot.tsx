@@ -13,6 +13,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppSelector } from '@/data/store';
 import { SPACE, TYPE } from '@/design/tally';
 import { useTally } from '@/lib/theme';
+import type { RootTab } from '@/lib/tabs';
+import { TabSwipe } from '@/ui/TabSwipe';
 import { DOCK_SPACE, NowLiftingDock, SYSTEM_ACCESSORY } from '@/ui/workout/MiniBar';
 
 /** Padding for a tab root's scroll view, by platform (see above). */
@@ -39,15 +41,17 @@ export function TabTitle({ title, eyebrow, right }: { title: string; eyebrow?: s
   );
 }
 
-export function TabRoot({ title, eyebrow, right, children, testID }: { title: string; eyebrow?: string; right?: ReactNode; children: ReactNode; testID?: string }) {
+export function TabRoot({ tab, title, eyebrow, right, children, testID }: { tab: RootTab; title: string; eyebrow?: string; right?: ReactNode; children: ReactNode; testID?: string }) {
   const { colors: t } = useTally();
   const pad = useTabPadding();
   return (
     <View style={{ flex: 1, backgroundColor: t.paper }} testID={testID}>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={pad} contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled">
-        <TabTitle title={title} eyebrow={eyebrow} right={right} />
-        {children}
-      </ScrollView>
+      <TabSwipe tab={tab}>
+        <ScrollView testID={`tab-content-${tab}`} style={{ flex: 1 }} contentContainerStyle={pad} contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled">
+          <TabTitle title={title} eyebrow={eyebrow} right={right} />
+          {children}
+        </ScrollView>
+      </TabSwipe>
       <NowLiftingDock />
     </View>
   );

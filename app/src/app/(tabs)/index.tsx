@@ -94,7 +94,7 @@ export default function TodayTab() {
 
   const scope = tr('{done} of {goal} sessions', { done: week.done, goal });
   return (
-    <TabRoot title={tr('Today')} eyebrow={date} right={<><SearchButton tab="index" />{avatar}</>}>
+    <TabRoot tab="index" title={tr('Today')} eyebrow={date} right={<><SearchButton tab="index" />{avatar}</>}>
       <View style={{ paddingHorizontal: SPACE.s5 }}>{card}</View>
 
       {/* An empty slot the store version can fill (docs/design/phases.md, phase 7). */}
