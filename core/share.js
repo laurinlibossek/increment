@@ -2,6 +2,7 @@
 // exercises go by id, custom ones by name, category and body part, so the
 // receiver gets matching exercises (or new custom ones) without any server.
 import { FAMILY_BY_ID, familyOf } from './exercise-families.js';
+import { sideOf } from './set-sides.js';
 
 const TYPE_CODE = { normal: 'n', warmup: 'w', drop: 'd', failure: 'f' };
 const CODE_TYPE = Object.fromEntries(Object.entries(TYPE_CODE).map(([k, v]) => [v, k]));
@@ -27,6 +28,7 @@ export function encodeTemplate(t, exercises) {
     else if (Object.hasOwn(FAMILY_BY_ID, familyOf(ex))) o.f = familyOf(ex);
     o.s = x.sets.map((st) => {
       const row = [TYPE_CODE[st.type || 'normal'] || 'n', st.w ?? null, st.r ?? null, st.d ?? null, st.t ?? null];
+      if (sideOf(st)) row.push(st.side === 'left' ? 'l' : 'r');
       while (row.length > 1 && row[row.length - 1] === null) row.pop();
       return row;
     });
@@ -70,6 +72,7 @@ export function decodeTemplate(text, { categories = [], bodyParts = [] } = {}) {
       if (!Array.isArray(row)) return null;
       const set = { type: CODE_TYPE[row[0]] || 'normal' };
       ['w', 'r', 'd', 't'].forEach((k, i) => { const v = num(row[i + 1]); if (v !== null) set[k] = v; });
+      if (row[5] === 'l' || row[5] === 'r') set.side = row[5] === 'l' ? 'left' : 'right';
       return set;
     }).filter(Boolean);
     return {

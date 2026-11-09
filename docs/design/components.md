@@ -170,14 +170,14 @@ Two to five mutually exclusive options, such as a chart's range.
 
 One set: its stroke, weight × reps (or the exercise's own fields: reps only, time, distance and time), and small chips for the set type and effort.
 
-**You provide** the set (stored kg, reps, seconds, km; type; reps left), the exercise's category, last time's values (or a target the store version supplies) for the ghost text, and whether it is the set being logged.
+**You provide** the set (stored kg, reps, seconds, km; type; optional left/right side; reps left), the exercise's category, last time's values (or a target the store version supplies) for the ghost text, and whether it is the set being logged.
 
 **Rules**
 - The leading stroke logs and un-logs the set. There is no checkmark column and no "Previous" column.
 - Pending sets show the target as ghost text (`ink-3`). The set being logged shows `paper-3` fields filled with those values; tapping a field opens the Keypad; logging with untouched fields logs the ghost values.
 - Every field box says what it holds in a small caption (`t-caption`, `ink-2`) inside the box, above the number: "Weight", "Reps", or the exercise's own fields ("Time", "Distance"). The ghost value stays the placeholder under it. Boxes are on the set being logged, the Keypad's field and every set in the editors; a row is as tall with boxes as without, so nothing moves.
-- Chips: "Warm-up", "Drop", "Failure" for set types; "1 left" or "2+ left" for reps in reserve (a failure set's chip already says 0); the `signal` "Record" chip when the set beat a record.
-- A small ⋯ in `ink-3` at the trailing end of every row opens the set's menu (type, reps left, delete), so a plain working set has something to tap. The chips open it too, and so does pressing and holding the row.
+- Chips: "Left side" / "Right side" first when a side is set, then "Warm-up", "Drop", "Failure" for set types; "1 left" or "2+ left" for reps in reserve (a failure set's chip already says 0); the `signal` "Record" chip when the set beat a record.
+- A small ⋯ in `ink-3` at the trailing end of every row opens the set's menu (type, reps left, side, delete; no side for cardio), so a plain working set has something to tap. The chips open it too, and so does pressing and holding the row.
 - Swipe left to delete, with Undo.
 - `row-h` tall, hairline between rows, values aligned on the screen margin.
 
@@ -218,7 +218,7 @@ A row of strokes, one per set: hairline while pending, a solid stem once logged.
 - Groups are separated by `stroke-group`: per exercise in a session, per five when counting.
 - `record` is the only coloured state. `live` marks the one set being logged; there is never more than one.
 - Never use strokes for weight, time or other continuous numbers.
-- In a set row the stroke is the button that logs the set: give it a `hit-min` touch area and the label "Set 3, 82.5 kg × 8, not logged".
+- In a set row the stroke is the button that logs the set: give it a `hit-min` touch area and the label "Set 3, left side, 82.5 kg × 8, not logged" when tagged. The row’s accessibility label names the side too.
 
 **Native**: a row of `View`s with fixed widths; animate the logged stem's width with Reanimated (160 ms). Describe the whole tally to screen readers as one element ("4 of 22 sets logged, 1 record").
 
@@ -272,7 +272,7 @@ export interface ButtonProps {
 
 export interface SetRowProps {
   /** The stored set: w (kg), r, d (km), t (s), type, rir (reps left). */
-  set: { id: string; type?: 'normal' | 'warmup' | 'drop' | 'failure'; w?: number; r?: number; d?: number; t?: number; rir?: number; done?: boolean };
+  set: { id: string; type?: 'normal' | 'warmup' | 'drop' | 'failure'; side?: 'left' | 'right'; w?: number; r?: number; d?: number; t?: number; rir?: number; done?: boolean };
   category: 'barbell' | 'dumbbell' | 'machine' | 'weighted_bw' | 'assisted_bw' | 'reps' | 'cardio' | 'duration';
   /** Last time's numbers (or a target from the store version), shown as ghost values. */
   target?: { w?: number; r?: number; d?: number; t?: number };

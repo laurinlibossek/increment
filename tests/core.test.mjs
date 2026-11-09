@@ -1540,3 +1540,146 @@ test('new search shortcuts find actual named movements and equipment', () => {
     assert.ok(core.matchExercise(byName(name), query), query);
   }
 });
+
+// ---------- optional left/right sets ----------
+const sided = (side, w = 26, type = 'normal') => ({ type, w, r: 5, ...(side ? { side } : {}) });
+test('set sides survive drafts, targets, repeat workouts, routine copies and Edit workout', () => {
+  const st = { unit: 'kg', distUnit: 'km' };
+  const sets = [sided('left'), sided('right', 22), sided(undefined, 30)].map((s, i) => ({ ...s, id: `side-${i}` }));
+  for (const s of sets) assert.deepEqual(core.draftToSet(core.setToDraft(s, st), st), s);
+  assert.equal(core.newSetDraft('normal', { side: 'left' }).side, 'left');
+  assert.equal('side' in core.newSetDraft(), false);
+  const entry = { id: 'e', exerciseId: 'curl', sets };
+  for (const asTemplateTargets of [false, true]) {
+    assert.deepEqual(core.entryToDraft(entry, st, { asTemplateTargets }).sets.map((s) => s.side), ['left', 'right', undefined]);
+  }
+  const template = { id: 'routine', name: 'Sides', exercises: [entry] };
+  const workout = { id: 'wo', name: 'Sides', startedAt: 1, endedAt: 60001, templateId: 'routine', exercises: [entry] };
+  const lib = new Map([['curl', { id: 'curl', category: 'dumbbell' }]]);
+  for (const options of [{ template }, { fromWorkout: workout }]) {
+    const active = core.newActiveWorkout({ ...options, settings: st });
+    assert.deepEqual(active.exercises[0].sets.map((s) => s.side), ['left', 'right', undefined]);
+    assert.ok(active.exercises[0].sets.every((s) => !s.done && s.w === ''));
+  }
+  const routine = core.templateFromDraft(core.templateDraft({ template, settings: st }), { settings: st, exercises: lib }).template;
+  assert.deepEqual(routine.exercises[0].sets.map((s) => s.side), ['left', 'right', undefined]);
+  assert.deepEqual(core.cleanTemplateExercises([entry])[0].sets.map((s) => s.side), ['left', 'right', undefined]);
+  const edited = core.workoutFromEditDraft(core.workoutEditDraft(workout, st), { settings: st, exercises: lib }).workout;
+  assert.deepEqual(edited.exercises[0].sets, sets);
+});
+
+test('Add set continues alternating or repeated sides; warm-up insertion never inherits a side', () => {
+  for (const [sides, expected] of [[[], undefined], [[undefined], undefined], [['left'], 'right'], [['right'], 'left'], [['left', 'right'], 'left'], [['left', 'left'], 'left'], [['right', 'right'], 'right'], [['left', undefined], undefined]]) {
+    const entry = { sets: sides.map((s) => core.newSetDraft('normal', s ? { side: s } : {})) };
+    core.addSet(entry);
+    assert.equal(entry.sets.at(-1).side, expected, JSON.stringify(sides));
+    if (!expected) assert.equal('side' in entry.sets.at(-1), false);
+  }
+  const drop = { sets: [{ type: 'drop', side: 'left' }] };
+  core.addSet(drop);
+  assert.equal(drop.sets[1].type, 'drop');
+  assert.equal(drop.sets[1].side, 'right');
+  const entry = { sets: [core.newSetDraft('normal', { w: '100', r: '5', side: 'left' })] };
+  const result = core.addWarmups(entry, [{ ph: {} }], 'barbell', { ...core.DEFAULT_SETTINGS, unit: 'kg', bar: 20, plates: core.KG_PLATES, warmup: core.DEFAULT_WARMUP });
+  assert.ok(result.added > 0);
+  assert.ok(entry.sets.filter((s) => s.type === 'warmup').every((s) => !('side' in s)));
+  assert.equal(entry.sets.at(-1).side, 'left');
+});
+
+test('one pairing rule keeps left/right/untagged and warm-ups separate, with legacy order fallback', () => {
+  const left = [sided('left'), sided('right'), sided('left'), sided('right')];
+  const history = [sided('right', 18), sided('left', 26), sided('right', 20), sided('left', 28)];
+  assert.deepEqual(core.pairSets(left, history), [1, 0, 3, 2]);
+  assert.deepEqual(core.pairSets([sided('left'), sided(), sided('right')], [sided('right'), sided('left'), sided()]), [1, 2, 0]);
+  assert.deepEqual(core.pairSets([sided('left', 20, 'warmup'), sided('left'), sided('right')], [sided('right'), sided('left'), sided('left', 20, 'warmup')]), [2, 1, 0]);
+  assert.deepEqual(core.pairSets(left, history.map(({ side, ...s }) => s)), [0, 1, 2, 3]);
+  assert.deepEqual(core.pairSets(left.map(({ side, ...s }) => s), history), [0, 1, 2, 3]);
+  assert.deepEqual(core.pairSets([sided('left'), sided('right')], [sided('left')]), [0, -1]);
+});
+
+test('side-aware placeholders pair each side in order and retain grey values from untagged history', () => {
+  const st = { unit: 'kg', distUnit: 'km' };
+  const entry = { sets: ['left', 'right', 'left', 'right'].map((side) => core.newSetDraft('normal', { side })) };
+  const history = [sided('left', 26), sided('right', 18), sided('left', 28), sided('right', 20)];
+  assert.deepEqual(core.placeholders(entry, history, st).map((row) => row.ph.w), ['26', '18', '28', '20']);
+  const reversed = [history[1], history[0], history[3], history[2]];
+  const rows = core.placeholders(entry, reversed, st);
+  assert.deepEqual(rows.map((row) => row.prev.side), ['left', 'right', 'left', 'right']);
+  assert.deepEqual(rows.map((row) => row.ph.w), ['26', '18', '28', '20']);
+  assert.deepEqual(core.placeholders(entry, history.map(({ side, ...s }) => s), st).map((row) => row.ph.w), ['26', '18', '28', '20']);
+});
+
+test('routine comparison and both update paths pair sides, detect changes and retain the right metadata', () => {
+  const T = [E('curl', [sided('left', 26), sided('right', 18), sided('left', 28), sided('right', 20)])];
+  const W = { exercises: [E('curl', [sided('right', 19), sided('left', 27), sided('right', 21), sided('left', 29)])] };
+  const before = JSON.stringify({ T, W });
+  const diff = core.templateChanges({ exercises: T }, W);
+  assert.equal(diff.sidesChanged, false, 'the same side counts in a different order still pair by side');
+  assert.equal(diff.valueSets, 4);
+  assert.equal(diff.structure, false);
+  assert.deepEqual(core.applyWorkoutToTemplate(T, W, { valuesOnly: true })[0].sets.map((s) => [s.side, s.w]), [['left', 27], ['right', 19], ['left', 29], ['right', 21]]);
+  assert.deepEqual(core.progressTemplate(T, W, () => 'dumbbell').exercises[0].sets.map((s) => [s.side, s.w]), [['left', 27], ['right', 19], ['left', 29], ['right', 21]]);
+  const tagged = { exercises: [E('curl', [sided('left', 20), sided('right', 15)])] };
+  const untagged = [E('curl', [sided(undefined, 26), sided(undefined, 18)])];
+  assert.equal(core.templateChanges({ exercises: untagged }, tagged).sidesChanged, true);
+  assert.equal(core.templateChanges({ exercises: untagged }, tagged).structure, true);
+  assert.deepEqual(core.applyWorkoutToTemplate(untagged, tagged)[0].sets.map((s) => s.side), ['left', 'right']);
+  assert.ok(core.applyWorkoutToTemplate(untagged, tagged, { valuesOnly: true })[0].sets.every((s) => !('side' in s)));
+  const layout = core.progressTemplate(untagged, tagged, () => 'dumbbell', { layout: true });
+  assert.deepEqual(layout.exercises[0].sets.map((s) => [s.side, s.w]), [['left', 26], ['right', 18]], 'Update routine keeps better targets and saves the workout sides');
+  const removed = { exercises: [E('curl', [sided(undefined, 30), sided(undefined, 22)])] };
+  const oldSides = [E('curl', [sided('left', 26), sided('right', 18)])];
+  assert.deepEqual(core.applyWorkoutToTemplate(oldSides, removed, { valuesOnly: true })[0].sets.map((s) => s.side), ['left', 'right']);
+  assert.ok(core.applyWorkoutToTemplate(oldSides, removed)[0].sets.every((s) => !('side' in s)));
+  assert.deepEqual(core.progressTemplate(oldSides, removed, () => 'dumbbell').exercises[0].sets.map((s) => s.side), ['left', 'right']);
+  assert.ok(core.progressTemplate(oldSides, removed, () => 'dumbbell', { layout: true }).exercises[0].sets.every((s) => !('side' in s)));
+  const changedCount = core.templateChanges({ exercises: [E('curl', [sided('left'), sided('left')])] }, tagged);
+  assert.equal(changedCount.sidesChanged, true);
+  assert.equal(changedCount.structure, true);
+  const swappedWarm = core.templateChanges({ exercises: [E('curl', [sided('left', 20, 'warmup'), sided('right')])] }, { exercises: [E('curl', [sided('right', 20, 'warmup'), sided('left')])] });
+  assert.equal(swappedWarm.sidesChanged, true, 'warm-up side counts do not hide working-side changes');
+  assert.equal(JSON.stringify({ T, W }), before);
+});
+
+test('muscle and routine set counts use the larger side count per exercise; minutes count every row', () => {
+  const now = Date.now();
+  const lib = new Map([['curl', { bodyPart: 'arms', category: 'dumbbell' }], ['plank', { bodyPart: 'core', category: 'duration' }]]);
+  const paired = ['left', 'right', 'left', 'right', 'left', 'right'].map((s) => sided(s));
+  const entries = [E('curl', paired), E('plank', [sided('left'), sided('right'), sided('left'), sided()])];
+  const counts = core.setsPerMuscle([{ startedAt: now, exercises: entries }], lib, { now });
+  assert.deepEqual(counts.map((m) => [m.muscle, m.sets]), [['arms', 3], ['core', 3]]);
+  assert.equal(core.routineSize({ exercises: entries }, lib).sets, 6);
+  const normal = entries.map((e) => ({ ...e, sets: e.sets.map(({ side, ...s }) => s) }));
+  assert.equal(core.routineSize({ exercises: entries }, lib).minutes, core.routineSize({ exercises: normal }, lib).minutes);
+  assert.equal(core.routineSize({ exercises: [E('curl', [sided('left'), sided('right'), sided('left')])] }, lib).sets, 2);
+  assert.equal(core.routineSize({ exercises: [E('curl', [...paired, sided(), sided('left', 10, 'warmup')])] }, lib).sets, 4);
+  const repeated = [E('curl', paired.filter((s) => s.side === 'left')), E('curl', paired.filter((s) => s.side === 'right'))];
+  assert.equal(core.routineSize({ exercises: repeated }, lib).sets, 3);
+  assert.equal(core.setsPerMuscle([{ startedAt: now, exercises: repeated }], lib, { now })[0].sets, 3);
+});
+
+test('routine links preserve optional sixth-value sides, keep preceding nulls and read old links', () => {
+  const ex = core.SEED_EXERCISES[0];
+  const routine = { name: 'Sides', exercises: [E(ex.id, [sided('left'), { type: 'normal', t: 45, side: 'right' }, sided()])] };
+  const code = core.encodeTemplate(routine, new Map([[ex.id, ex]]));
+  const raw = JSON.parse(Buffer.from(code, 'base64url').toString());
+  assert.deepEqual(raw.e[0].s, [['n', 26, 5, null, null, 'l'], ['n', null, null, null, 45, 'r'], ['n', 26, 5]]);
+  assert.deepEqual(core.decodeTemplate('#template=' + code).exercises[0].sets, routine.exercises[0].sets);
+  const old = { v: 1, n: 'Old routine', e: [{ n: 'Curl', c: 'dumbbell', b: 'arms', s: [['n', 24, 8], ['w', 10, 10, null, null]] }] };
+  const decoded = core.decodeTemplate('#template=' + Buffer.from(JSON.stringify(old)).toString('base64url'));
+  assert.deepEqual(decoded.exercises[0].sets, [{ type: 'normal', w: 24, r: 8 }, { type: 'warmup', w: 10, r: 10 }]);
+  raw.e[0].s[0][5] = 'unknown';
+  assert.equal('side' in core.decodeTemplate('#template=' + Buffer.from(JSON.stringify(raw)).toString('base64url')).exercises[0].sets[0], false);
+});
+
+test('backups keep set sides unchanged while Strong CSV export drops only the side metadata', () => {
+  const ex = core.SEED_EXERCISES.find((e) => e.category === 'dumbbell');
+  const workout = { id: 'sides-wo', name: 'Sides', startedAt: 1, endedAt: 60001, exercises: [E(ex.id, [sided('left'), sided('right', 20), sided()])] };
+  const data = { exercises: [ex], workouts: [workout], templates: [{ id: 'tpl', name: 'Sides', exercises: workout.exercises }], measurements: [], kv: {} };
+  const restored = core.parseBackup(core.makeBackup(data, 'test')).data;
+  assert.deepEqual(restored.workouts, data.workouts);
+  assert.deepEqual(restored.templates, data.templates);
+  const untagged = { ...workout, exercises: workout.exercises.map((e) => ({ ...e, sets: e.sets.map(({ side, ...s }) => s) })) };
+  const exercises = new Map([[ex.id, ex]]);
+  assert.equal(core.exportCSV({ workouts: [workout], exercises }), core.exportCSV({ workouts: [untagged], exercises }));
+});
