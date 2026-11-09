@@ -122,13 +122,14 @@ export default function WorkoutDetail() {
             {!!e.notes && <Text style={{ ...TYPE.footnote, color: t.ink2, paddingHorizontal: MARGIN, marginBottom: SPACE.s1 }}>{e.notes}</Text>}
             {e.sets.map((x, i) => {
               const flags: string[] | undefined = st.prSets.get(x.id);
+              const footnote = [x.side ? x.side === 'left' ? tr('Left side') : tr('Right side') : '', ...(flags || []).map(label)].filter(Boolean).join(' · ');
               const oneRm = ex && hasLoadRecords(ex.category) && x.type !== 'warmup' ? est1RM(x.w, x.r, s.settings.formula) : 0;
               return (
                 <View key={x.id || i} testID={`workout-set-${x.id}`} style={[styles.set, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.line }]}>
                   <Text style={[styles.n, { color: t.ink2 }]}>{labels[i]}</Text>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={[{ ...TYPE.body, color: x.type === 'warmup' ? t.ink2 : t.ink }, tnum]} numberOfLines={1}>{f.setText(x, ex?.category, vol > 0)}</Text>
-                    {!!flags && <Text style={{ ...TYPE.footnote, color: t.ink2 }} numberOfLines={1}>{flags.map(label).join(' · ')}</Text>}
+                    {!!footnote && <Text style={{ ...TYPE.footnote, color: t.ink2 }} numberOfLines={1}>{footnote}</Text>}
                   </View>
                   {flags ? <View><Mark style={{ ...TYPE.footnote, fontWeight: '600' }} testID={`record-${x.id}`}>{tr('Record')}</Mark></View>
                     : oneRm ? <Text style={[{ ...TYPE.footnote, color: t.ink2 }, tnum]}>{`1RM ${f.e1rm(oneRm)}`}</Text> : null}

@@ -44,6 +44,7 @@ export type Chip = { text: string; record?: boolean };
 
 type Props = {
   testID: string;
+  label: string;
   first?: boolean;
   /** the running workout: the stroke that logs the set */
   stroke?: { state: StrokeState; checked: boolean; label: string; testID: string; onPress: () => void };
@@ -61,7 +62,7 @@ type Props = {
 };
 
 export function SetRow({
-  testID, first, stroke, lead, children, chips, meta, deleteLabel, onDelete, shake = 0,
+  testID, label, first, stroke, lead, children, chips, meta, deleteLabel, onDelete, shake = 0,
 }: Props) {
   const { colors: t } = useTally();
   const native = Platform.OS !== 'web';
@@ -88,7 +89,7 @@ export function SetRow({
   return (
     <View style={styles.wrap}>
       <View style={[StyleSheet.absoluteFill, styles.delBg, { backgroundColor: t.danger }]}><Text style={[styles.delText, { color: t.paper }]}>{deleteLabel}</Text></View>
-      <RNAnimated.View {...pan.panHandlers} testID={testID}
+      <RNAnimated.View {...pan.panHandlers} testID={testID} accessibilityLabel={label}
         style={[styles.row, { backgroundColor: t.paper, transform: [{ translateX: RNAnimated.add(dx, shakeX) }] }]}>
         {!first && <View style={[styles.hairline, { backgroundColor: t.line }]} />}
         {stroke && (

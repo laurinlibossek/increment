@@ -12,7 +12,7 @@ import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import {
   placeholders, restFor, addSet, joinSuperset, leaveSuperset, replaceExercise, addWarmups, rateSet, setRir, setSetType,
-  isLiveRecord, loggedFields, usesWeight, numToInput, parseNum, focusOptions, focusValues,
+  isLiveRecord, loggedFields, usesWeight, usesDistance, numToInput, parseNum, focusOptions, focusValues,
   REST_CHOICES, RPE_CHOICES, RIR_CHOICES, SET_TYPES, FOCUS_LABEL, BODY_PART_LABEL,
 } from '@increment/core';
 
@@ -96,11 +96,27 @@ export const ExerciseBlock = memo(function ExerciseBlock({
       actions: [
         ...(SET_TYPES as SetType[]).map((x) => ({ label: tr(SET_TYPE_NAME[x]), value: x, checked: set.type === x, testID: `type-${x}` })),
         effort,
+        !usesDistance(cat) ? { label: set.side ? `${tr('Side')} · ${set.side === 'left' ? tr('Left') : tr('Right')}` : tr('Side'), value: 'side', testID: 'set-side' } : null,
         { label: tr('Delete set'), value: 'delete', destructive: true, testID: 'set-delete' },
       ],
     });
     if (!choice) return;
     if (choice === 'delete') { removeSet(i); return; }
+    if (choice === 'side') {
+      const side = await actionSheet<'left' | 'right' | 'clear'>({
+        title: tr('Which side?'),
+        actions: [
+          { label: tr('Left'), value: 'left', checked: set.side === 'left', testID: 'side-left' },
+          { label: tr('Right'), value: 'right', checked: set.side === 'right', testID: 'side-right' },
+          set.side ? { label: tr('Clear'), value: 'clear', destructive: true, testID: 'side-clear' } : null,
+        ],
+      });
+      if (side) edit((e) => {
+        if (side === 'clear') delete e.sets[i].side;
+        else e.sets[i].side = side;
+      });
+      return;
+    }
     if (choice === 'rir') {
       const v = await actionSheet<string>({
         title: tr('Reps left?'), message: tr('How many more reps you could have done.'),
@@ -250,6 +266,8 @@ export const ExerciseBlock = memo(function ExerciseBlock({
     const isLive = active && set.id === live;
     const state: StrokeState = set.done ? (record ? 'record' : warm ? 'warmup' : 'done') : isLive ? 'live' : warm ? 'warmupPending' : 'pending';
     const chips: Chip[] = [];
+    const side = set.side ? set.side === 'left' ? tr('Left side') : tr('Right side') : '';
+    if (side) chips.push({ text: side });
     if (set.type !== 'normal') chips.push({ text: tr(SET_TYPE_CHIP[set.type]) });
     const rir = setRir(set) as number | null;
     // a failure set's chip already says 0 left
@@ -258,6 +276,7 @@ export const ExerciseBlock = memo(function ExerciseBlock({
     const shown = Object.fromEntries(fields.map((k) => [k, set[k] || ph[k] || ''])) as Record<Field, string>;
     const setName = tr('Set {label}', { label: labels[i] });
     const value = setValueText(shown, cat, f, tr);
+    const rowLabel = [setName, side ? side.toLocaleLowerCase(f.lang) : '', value, set.done ? tr('logged') : tr('not logged')].filter(Boolean).join(', ');
     // field boxes (with their captions) on the set being logged, the set the keypad types into, and every set in an editor
     const boxed = !active || isLive || (!!target && target.setId === set.id);
     const inputs = fields.map((k) => (
@@ -269,10 +288,10 @@ export const ExerciseBlock = memo(function ExerciseBlock({
         register={session ? (r) => session.register(`${set.id}:${k}`, r) : undefined} />
     ));
     return (
-      <SetRow key={set.id} testID={`set-${set.id}`} first={i === 0} chips={chips}
+      <SetRow key={set.id} testID={`set-${set.id}`} label={rowLabel} first={i === 0} chips={chips}
         stroke={active ? {
           state, checked: set.done, testID: `check-${set.id}`, onPress: () => toggle(i),
-          label: `${setName}${value ? `, ${value}` : ''}, ${set.done ? tr('logged') : tr('not logged')}`,
+          label: rowLabel,
         } : undefined}
         lead={active ? undefined : { text: labels[i], label: tr('Set {label}, change type', { label: labels[i] }), onPress: () => setMenu(i) }}
         meta={{

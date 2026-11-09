@@ -1,6 +1,7 @@
 // Templates: comparing a finished workout with the template it came from,
 // writing it back, and cleaning template data. Plain data in, plain data out.
 import { remapSupersets } from './drafts.js';
+import { sideOf } from './set-sides.js';
 
 const VALUE_KEYS = ['w', 'r', 'd', 't'];
 const setType = (s) => s.type || 'normal';
@@ -25,16 +26,22 @@ function pairEntries(tplEntries, woEntries) {
 }
 /**
  * For each template set, the index of the workout set it lines up with (or -1).
- * Warm-ups pair with warm-ups and working sets with working sets, each in order,
- * so skipping a warm-up doesn't shift the working weights onto it.
+ * Warm-ups pair only with warm-ups. When both lists carry sides, each side
+ * (and untagged sets) pairs separately in order; otherwise use the old order.
  */
-function pairSets(tplSets, woSets) {
-  const pos = { warmup: [], work: [] };
-  woSets.forEach((s, i) => pos[setBucket(s)].push(i));
-  const used = { warmup: 0, work: 0 };
+export function pairSets(tplSets, woSets) {
+  const sided = tplSets.some(sideOf) && woSets.some(sideOf);
+  const bucket = (s) => `${setBucket(s)}:${sided ? sideOf(s) || 'none' : ''}`;
+  const pos = new Map(), used = new Map();
+  woSets.forEach((s, i) => {
+    const b = bucket(s);
+    if (!pos.has(b)) pos.set(b, []);
+    pos.get(b).push(i);
+  });
   return tplSets.map((s) => {
-    const b = setBucket(s);
-    const j = pos[b][used[b]++];
+    const b = bucket(s), at = used.get(b) || 0;
+    const j = pos.get(b)?.[at];
+    used.set(b, at + 1);
     return j === undefined ? -1 : j;
   });
 }
@@ -46,9 +53,10 @@ function sameValues(a, b) {
   }
   return true;
 }
-function templateSet(type, from) {
+function templateSet(type, from, sideFrom = from) {
   const o = { type };
   for (const k of [...VALUE_KEYS, 'rpe']) if (from[k] !== null && from[k] !== undefined) o[k] = from[k];
+  if (sideOf(sideFrom)) o.side = sideOf(sideFrom);
   return o;
 }
 /** Superset grouping as "key → first key of its group", over the given keys only. */
@@ -66,7 +74,7 @@ function supersetLeaders(entries, keys, only) {
 
 /**
  * What finishing `workout` would change in `template`.
- * `structure` is true when exercises, their order, set counts, set types or
+ * `structure` is true when exercises, their order, set counts, set types, sides or
  * supersets differ; `valueSets` counts template sets whose numbers would change
  * with "Update values only"; `added` and `removed` are the exercise ids of the
  * entries only the workout or only the template has.
@@ -76,7 +84,7 @@ export function templateChanges(template, workout) {
   const { pairs, tk, wk } = pairEntries(T, W);
   const c = {
     addedExercises: 0, removedExercises: 0, reordered: false, addedSets: 0, removedSets: 0,
-    typesChanged: false, supersetsChanged: false, valueSets: 0, structure: false,
+    typesChanged: false, sidesChanged: false, supersetsChanged: false, valueSets: 0, structure: false,
     added: [], removed: [],
     // per exercise whose number of straight sets (normal and failure) changed:
     // the routine's (`from`) and the workout's (`to`); added and removed
@@ -91,6 +99,7 @@ export function templateChanges(template, workout) {
   pairs.forEach((wi, ti) => {
     if (wi < 0) {
       c.removedExercises++; c.removed.push(T[ti].exerciseId);
+      if (T[ti].sets.some(sideOf)) c.sidesChanged = true;
       c.sets.push({ exerciseId: T[ti].exerciseId, from: count(T[ti].sets, 'straight'), to: 0, removed: true });
       return;
     }
@@ -103,9 +112,16 @@ export function templateChanges(template, workout) {
       if (j < 0) { c.removedSets++; return; }
       paired++;
       if (setType(ts[i]) !== setType(ws[j])) c.typesChanged = true;
+      if (sideOf(ts[i]) !== sideOf(ws[j])) c.sidesChanged = true;
       if (!sameValues(ts[i], ws[j])) c.valueSets++;
     });
     c.addedSets += ws.length - paired;
+    for (const side of ['left', 'right']) {
+      for (const bucket of ['warmup', 'work']) {
+        const n = (sets) => sets.filter((s) => sideOf(s) === side && setBucket(s) === bucket).length;
+        if (n(ts) !== n(ws)) c.sidesChanged = true;
+      }
+    }
     const [from, to] = [count(ts, 'straight'), count(ws, 'straight')];
     if (from !== to) c.sets.push({ exerciseId: T[ti].exerciseId, from, to });
     if (count(ts, 'warmup') !== count(ws, 'warmup')) c.warmupsChanged = true;
@@ -116,12 +132,17 @@ export function templateChanges(template, workout) {
   });
   c.addedExercises = W.length - order.length;
   c.added = W.filter((e, wi) => !order.includes(wi)).map((e) => e.exerciseId);
-  W.forEach((e, wi) => { if (!order.includes(wi)) c.sets.push({ exerciseId: e.exerciseId, from: 0, to: count(e.sets, 'straight'), added: true }); });
+  W.forEach((e, wi) => {
+    if (!order.includes(wi)) {
+      c.sets.push({ exerciseId: e.exerciseId, from: 0, to: count(e.sets, 'straight'), added: true });
+      if (e.sets.some(sideOf)) c.sidesChanged = true;
+    }
+  });
   c.reordered = order.some((w, i) => i > 0 && w < order[i - 1]);
   const lt = supersetLeaders(T, tk, matched), lw = supersetLeaders(W, wk, matched);
   c.supersetsChanged = [...matched].some((k) => lt.get(k) !== lw.get(k));
   c.structure = !!(c.addedExercises || c.removedExercises || c.reordered || c.sets.length
-    || c.warmupsChanged || c.dropsChanged || c.failuresChanged || c.typesChanged || c.supersetsChanged);
+    || c.warmupsChanged || c.dropsChanged || c.failuresChanged || c.typesChanged || c.sidesChanged || c.supersetsChanged);
   return c;
 }
 /** Did a finished workout change the structure of its template? */
@@ -140,7 +161,7 @@ export function applyWorkoutToTemplate(templateExercises, workout, { valuesOnly 
       if (wi < 0) return e;
       const ws = workout.exercises[wi].sets;
       const sp = pairSets(e.sets, ws);
-      return { ...e, sets: e.sets.map((s, i) => (sp[i] < 0 ? s : templateSet(setType(s), ws[sp[i]]))) };
+      return { ...e, sets: e.sets.map((s, i) => (sp[i] < 0 ? s : templateSet(setType(s), ws[sp[i]], s))) };
     });
   }
   const tplOf = new Map();
@@ -209,8 +230,10 @@ export function compareSets(routineSet, doneSet, category) {
 }
 
 /** The routine set with the done set's numbers; its own type and targets (RPE) stay. */
-function raisedSet(routineSet, doneSet, type = setType(routineSet)) {
+function raisedSet(routineSet, doneSet, type = setType(routineSet), sideFrom = routineSet) {
   const o = { ...routineSet, type };
+  delete o.side;
+  if (sideOf(sideFrom)) o.side = sideOf(sideFrom);
   for (const k of VALUE_KEYS) if (doneSet[k] !== null && doneSet[k] !== undefined && doneSet[k] !== '') o[k] = doneSet[k];
   return o;
 }
@@ -218,7 +241,8 @@ function raisedSet(routineSet, doneSet, type = setType(routineSet)) {
 /**
  * A routine's exercises after a finished workout from it, for progressive
  * overload. Sets pair as in templateChanges (by exercise and occurrence,
- * warm-ups with warm-ups, working sets with working sets, in order); a paired
+ * warm-ups with warm-ups, working sets with working sets, separately per side
+ * when both lists carry sides); a paired
  * routine set takes the done set's numbers only when they're better
  * (compareSets), so a routine's numbers only ever go up. Skipped sets and
  * exercises keep theirs. With `layout`, the routine takes the workout's
@@ -261,9 +285,9 @@ export function progressTemplate(templateExercises, workout, categoryOf, { layou
       sets = we.sets.map((s, j) => {
         const r = routineOf.get(j);
         if (!r) return templateSet(setType(s), s);
-        if (!better(r, s, we.exerciseId)) return { ...r, type: setType(s) };
+        if (!better(r, s, we.exerciseId)) return raisedSet(r, {}, setType(s), s);
         raised++;
-        return raisedSet(r, s, setType(s));
+        return raisedSet(r, s, setType(s), s);
       });
     }
     const out = { exerciseId: we.exerciseId, sets };
@@ -287,10 +311,6 @@ export function cleanTemplateExercises(exercises, hasExercise = () => true) {
     supersetId: e.supersetId,
     restSec: e.restSec,
     focus: e.focus,
-    sets: e.sets.map((s) => {
-      const o = { type: s.type || 'normal' };
-      for (const k of ['w', 'r', 'd', 't', 'rpe']) if (s[k] !== null && s[k] !== undefined) o[k] = s[k];
-      return o;
-    }),
+    sets: e.sets.map((s) => templateSet(setType(s), s)),
   }))).filter((e) => hasExercise(e.exerciseId));
 }

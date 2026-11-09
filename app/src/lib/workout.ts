@@ -110,7 +110,7 @@ export async function finishFlow(f: F) {
 /** What a finished workout changed in its routine (core templateChanges). */
 export interface TemplateDiff {
   addedExercises: number; removedExercises: number; reordered: boolean; addedSets: number; removedSets: number;
-  typesChanged: boolean; supersetsChanged: boolean; valueSets: number; structure: boolean;
+  typesChanged: boolean; sidesChanged: boolean; supersetsChanged: boolean; valueSets: number; structure: boolean;
   added: string[]; removed: string[];
   /** Per exercise whose number of straight sets (normal and failure) changed: the routine's and the workout's; added and removed exercises too. */
   sets: { exerciseId: string; from: number; to: number; added?: boolean; removed?: boolean }[];
@@ -206,6 +206,7 @@ export function layoutLines(d: TemplateDiff, f: F): DiffLine[] {
       d.supersetsChanged && tr('Supersets changed'),
       d.reordered && tr('Order changed'),
       d.typesChanged && !d.warmupsChanged && !d.dropsChanged && !d.failuresChanged && tr('Set types changed'),
+      d.sidesChanged && tr('Sides changed'),
     ].filter((x): x is string => !!x).map((text) => ({ text })),
   ];
 }

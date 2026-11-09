@@ -2,12 +2,14 @@
 // weights in kg, distances in km, times in seconds, timestamps in ms.
 
 export type SetType = 'normal' | 'warmup' | 'drop' | 'failure';
+export type SetSide = 'left' | 'right';
 export type Category =
   | 'barbell' | 'dumbbell' | 'machine' | 'weighted_bw' | 'assisted_bw' | 'reps' | 'cardio' | 'duration';
 
 export interface WorkSet {
   id: string;
   type: SetType;
+  side?: SetSide;
   w?: number;
   r?: number;
   d?: number;
@@ -112,6 +114,7 @@ export interface Settings {
 export interface SetDraft {
   id: string;
   type: SetType;
+  side?: SetSide;
   w: string;
   r: string;
   d: string;

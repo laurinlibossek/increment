@@ -5,6 +5,7 @@
 export * from './units.js';
 export * from './calc.js';
 export * from './drafts.js';
+export * from './set-sides.js';
 export * from './templates.js';
 export * from './sessions.js';
 export * from './workout.js';

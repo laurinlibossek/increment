@@ -10,6 +10,8 @@ import {
 import {
   newSetDraft, setToDraft, draftToSet, entryToDraft, newEntryDraft, remapSupersets, draftEntries,
 } from './drafts.js';
+import { pairSets } from './templates.js';
+import { sideOf } from './set-sides.js';
 
 export const SET_TYPES = ['normal', 'warmup', 'drop', 'failure'];
 /** Rest timer choices per exercise (seconds; 0 = off). */
@@ -88,12 +90,11 @@ export function restFor(entry, ex, defaultRest) {
  * target, else whatever the row above has.
  */
 export function placeholders(entry, prevSets, settings) {
-  const prevWarm = (prevSets || []).filter((s) => s.type === 'warmup');
-  const prevWork = (prevSets || []).filter((s) => s.type !== 'warmup');
-  let wi = 0, ki = 0;
+  const previous = prevSets || [];
+  const pairs = pairSets(entry.sets, previous);
   let lastPh = null;
-  return entry.sets.map((s) => {
-    const p = s.type === 'warmup' ? prevWarm[wi++] : prevWork[ki++];
+  return entry.sets.map((s, i) => {
+    const p = previous[pairs[i]];
     let ph;
     if (p) ph = setToDraft(p, settings);
     else if (s.tpl) ph = setToDraft(s.tpl, settings);
@@ -339,10 +340,12 @@ export function newEntries(exerciseIds, { previousSets, kind = 'workout' }) {
   });
 }
 
-/** Add a set at the end; after a drop set comes another drop set. */
+/** Add a set: retain repeated sides, otherwise alternate; drop sets keep their type. */
 export function addSet(entry) {
   const last = entry.sets[entry.sets.length - 1];
-  entry.sets.push(newSetDraft(last && last.type === 'drop' ? 'drop' : 'normal'));
+  const side = sideOf(last), before = sideOf(entry.sets[entry.sets.length - 2]);
+  const next = side && (side === before ? side : side === 'left' ? 'right' : 'left');
+  entry.sets.push(newSetDraft(last && last.type === 'drop' ? 'drop' : 'normal', next ? { side: next } : {}));
 }
 
 /** Move an item of a list from one place to another. */

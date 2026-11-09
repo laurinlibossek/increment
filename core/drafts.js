@@ -5,6 +5,7 @@ import {
   uid, parseNum, numToInput, kgTo, toKg, kmTo, toKm, roundW, digitsToSec, secToDigits,
 } from './units.js';
 import { setIsValid, normRir } from './calc.js';
+import { sideOf } from './set-sides.js';
 
 export function newSetDraft(type = 'normal', extra = {}) {
   return { id: uid(), type, w: '', r: '', d: '', t: '', rpe: '', done: false, ...extra };
@@ -31,6 +32,7 @@ export function setToDraft(s, st, keepId = true) {
   // or from weights imported with more decimals than the display shows).
   const rir = normRir(s.rir);
   if (rir !== null) d.rir = rir;
+  if (sideOf(s)) d.side = sideOf(s);
   const orig = {};
   if (d.w !== '') orig.w = [d.w, s.w];
   if (d.d !== '') orig.d = [d.d, s.d];
@@ -51,6 +53,7 @@ export function draftToSet(sd, st) {
   if (rpe !== null && rpe > 0) out.rpe = Math.min(10, rpe);
   const rir = normRir(sd.rir);
   if (rir !== null) out.rir = rir;
+  if (sideOf(sd)) out.side = sideOf(sd);
   return out;
 }
 
@@ -67,6 +70,7 @@ export function entryToDraft(e, st, { asTemplateTargets = false } = {}) {
       ? newSetDraft(s.type || 'normal', {
         tpl: { w: s.w ?? null, r: s.r ?? null, d: s.d ?? null, t: s.t ?? null },
         rpe: s.rpe ? numToInput(s.rpe, 1) : '',
+        ...(sideOf(s) ? { side: sideOf(s) } : {}),
       })
       : setToDraft(s, st))),
   };

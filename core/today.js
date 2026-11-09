@@ -3,8 +3,18 @@
 import { startOfDay, startOfWeek, addDays } from './units.js';
 import { BODY_PARTS } from './seed.js';
 import { restFor } from './workout.js';
+import { workingSetCount } from './set-sides.js';
 
 const lookup = (exercises) => (exercises instanceof Map ? (id) => exercises.get(id) : (id) => exercises?.[id]);
+// Repeated entries of one exercise still share its left/right working-set count.
+function setsByExercise(entries) {
+  const groups = new Map();
+  for (const e of entries) {
+    if (!groups.has(e.exerciseId)) groups.set(e.exerciseId, []);
+    groups.get(e.exerciseId).push(...e.sets);
+  }
+  return groups;
+}
 
 /** Index of the day a time falls on in a list of day starts, or -1. */
 function dayIndex(days, t) {
@@ -57,10 +67,10 @@ export function setsPerMuscle(workouts, exercises, { days = 7, now = Date.now() 
   const counts = new Map();
   for (const w of workouts) {
     if (w.startedAt < since || w.startedAt > now) continue;
-    for (const e of w.exercises) {
-      const part = get(e.exerciseId)?.bodyPart;
+    for (const [id, sets] of setsByExercise(w.exercises)) {
+      const part = get(id)?.bodyPart;
       if (!MUSCLES.includes(part)) continue;
-      const n = e.sets.filter((s) => s.type !== 'warmup').length;
+      const n = workingSetCount(sets);
       if (n) counts.set(part, (counts.get(part) || 0) + n);
     }
   }
@@ -78,14 +88,15 @@ const WORK_SEC = 45, WARMUP_SEC = 30, WARMUP_REST_SEC = 60;
 export function routineSize(template, exercises, { defaultRest = 120 } = {}) {
   const get = lookup(exercises);
   const entries = template.exercises.filter((e) => get(e.exerciseId));
-  let sets = 0, sec = 0, all = 0, lastRest = 0;
+  const sets = [...setsByExercise(entries).values()].reduce((n, rows) => n + workingSetCount(rows), 0);
+  let sec = 0, all = 0, lastRest = 0;
   for (const e of entries) {
     const rest = restFor(e, get(e.exerciseId), defaultRest) || 0;
     for (const s of e.sets) {
       all++;
       lastRest = s.type === 'warmup' ? Math.min(rest, WARMUP_REST_SEC) : rest;
       if (s.type === 'warmup') sec += WARMUP_SEC + lastRest;
-      else { sets++; sec += WORK_SEC + lastRest; }
+      else sec += WORK_SEC + lastRest;
     }
   }
   sec -= lastRest; // nothing to rest for after the last set
