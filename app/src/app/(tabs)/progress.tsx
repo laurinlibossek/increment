@@ -20,6 +20,7 @@ import { SectionHeader } from '@/ui/tally/SectionHeader';
 import { StatStrip } from '@/ui/tally/StatStrip';
 import { SearchButton } from '@/ui/tally/SearchButton';
 import { TabRoot } from '@/ui/tally/TabRoot';
+import { TabSwipeBlock } from '@/ui/TabSwipe';
 
 export default function ProgressTab() {
   const s = useAppState();
@@ -53,7 +54,7 @@ export default function ProgressTab() {
     && (!s.meta.backupSnoozedAt || Date.now() - (s.meta.backupSnoozedAt as number) > 7 * DAY);
 
   return (
-    <TabRoot title={tr('Progress')} right={<SearchButton tab="progress" />}>
+    <TabRoot tab="progress" title={tr('Progress')} right={<SearchButton tab="progress" />}>
       {needsBackup && (
         <View testID="backup-banner" style={{ paddingHorizontal: SPACE.s5, marginBottom: SPACE.s6, gap: SPACE.s2 }}>
           <Text style={[TYPE.subhead, { color: t.ink }]}>
@@ -86,8 +87,10 @@ export default function ProgressTab() {
 
       <SectionHeader title={tr('Workouts per week')} scope={tr('Last 12 weeks')} />
       <View style={{ paddingHorizontal: SPACE.s5 }}>
-        <BarChart bars={m.weeks.map((w) => ({ label: f.date.dayMonth(w.start), value: w.value, title: tr('Week of {date}', { date: f.date.dayMonth(w.start) }) }))}
-          goal={goal} label={tr('Workouts per week')} testID="weekly-chart" />
+        <TabSwipeBlock>
+          <BarChart bars={m.weeks.map((w) => ({ label: f.date.dayMonth(w.start), value: w.value, title: tr('Week of {date}', { date: f.date.dayMonth(w.start) }) }))}
+            goal={goal} label={tr('Workouts per week')} testID="weekly-chart" />
+        </TabSwipeBlock>
         <Text style={[TYPE.footnote, { color: t.ink2 }]}>
           {`${tr('Goal: {n} per week', { n: goal })} · ${m.streak === 1 ? `1 ${tr('week on goal')}` : `${f.num(m.streak, 0)} ${tr('weeks on goal')}`}`}
         </Text>

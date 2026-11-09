@@ -11,7 +11,14 @@ import { NativeTabs } from 'expo-router/native-tabs';
 import { useAppSelector } from '@/data/store';
 import { useLang } from '@/lib/i18n';
 import { useTally } from '@/lib/theme';
+import { ROOT_TABS, type RootTab } from '@/lib/tabs';
 import { MiniBar, SYSTEM_ACCESSORY } from '@/ui/workout/MiniBar';
+
+const ICON = {
+  index: { sf: { default: 'sun.max', selected: 'sun.max.fill' }, md: 'light_mode' },
+  plan: { sf: { default: 'list.bullet.rectangle.portrait', selected: 'list.bullet.rectangle.portrait.fill' }, md: 'list_alt' },
+  progress: { sf: 'chart.line.uptrend.xyaxis', md: 'trending_up' },
+} as const satisfies Record<RootTab, object>;
 
 function Accessory() {
   const placement = NativeTabs.BottomAccessory.usePlacement();
@@ -33,18 +40,12 @@ export default function TabLayout() {
       indicatorColor={android ? t.paper3 : undefined}
       rippleColor={android ? t.paper3 : undefined}
       labelVisibilityMode={android ? 'labeled' : undefined}>
-      <NativeTabs.Trigger name="index" testID="tab-index" contentStyle={{ backgroundColor: t.paper }}>
-        <NativeTabs.Trigger.Icon sf={{ default: 'sun.max', selected: 'sun.max.fill' }} md="light_mode" />
-        <NativeTabs.Trigger.Label>{tr('Today')}</NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="plan" testID="tab-plan" contentStyle={{ backgroundColor: t.paper }}>
-        <NativeTabs.Trigger.Icon sf={{ default: 'list.bullet.rectangle.portrait', selected: 'list.bullet.rectangle.portrait.fill' }} md="list_alt" />
-        <NativeTabs.Trigger.Label>{tr('Plan')}</NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="progress" testID="tab-progress" contentStyle={{ backgroundColor: t.paper }}>
-        <NativeTabs.Trigger.Icon sf="chart.line.uptrend.xyaxis" md="trending_up" />
-        <NativeTabs.Trigger.Label>{tr('Progress')}</NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
+      {ROOT_TABS.map(({ name, label }) => (
+        <NativeTabs.Trigger key={name} name={name} testID={`tab-${name}`} contentStyle={{ backgroundColor: t.paper }}>
+          <NativeTabs.Trigger.Icon {...ICON[name]} />
+          <NativeTabs.Trigger.Label>{tr(label)}</NativeTabs.Trigger.Label>
+        </NativeTabs.Trigger>
+      ))}
       {SYSTEM_ACCESSORY && running && (
         <NativeTabs.BottomAccessory>
           <Accessory />
