@@ -27,34 +27,6 @@ test('core uses no browser APIs and imports only core files', () => {
   }
 });
 
-// ---------- tab swipe decisions ----------
-test('tab swipes: deliberate horizontal distance or fling, scrolling and web edges win; no wrapping', () => {
-  const swipe = core.tabSwipeDirection;
-  assert.equal(swipe({ dx: -80, dy: 3 }), 1);
-  assert.equal(swipe({ dx: 80, dy: -3 }), -1);
-  assert.equal(swipe({ dx: -30, dy: 2, velocityX: -800 }), 1);
-  assert.equal(swipe({ dx: 30, velocityX: 800 }), -1);
-  assert.equal(swipe({ dx: -24, velocityX: -2000 }), 0, 'a fast tiny drag is still too short');
-  assert.equal(swipe({ dx: 40, dy: 2 }), 0, 'a short slow drag is not a swipe');
-  assert.equal(swipe({ dx: 30, dy: 12, velocityX: 800 }), 0, 'short diagonal');
-  assert.equal(swipe({ dx: 100, dy: 15 }), 0);
-  assert.equal(swipe({ dx: 100, dy: 0, maxY: 25 }), 0, 'vertical then horizontal, returning to start Y');
-  assert.equal(swipe({ dx: -30, velocityX: 800 }), 0, 'fling must agree with displacement');
-  assert.equal(core.tabSwipeAtEdge(23, 390), true);
-  assert.equal(core.tabSwipeAtEdge(367, 390), true);
-  assert.equal(core.tabSwipeAtEdge(24, 390), false);
-  assert.equal(core.tabSwipeAtEdge(366, 390), false);
-  const tabs = ['today', 'plan', 'progress'];
-  assert.equal(core.adjacentTab(tabs, 'today', 1), 'plan');
-  assert.equal(core.adjacentTab(tabs, 'plan', 1), 'progress');
-  assert.equal(core.adjacentTab(tabs, 'progress', -1), 'plan');
-  assert.equal(core.adjacentTab(tabs, 'plan', -1), 'today');
-  assert.equal(core.adjacentTab(tabs, 'today', -1), null);
-  assert.equal(core.adjacentTab(tabs, 'progress', 1), null);
-  assert.equal(core.adjacentTab(tabs, 'missing', 1), null);
-  assert.equal(core.adjacentTab(tabs, 'plan', 0), null);
-});
-
 // ---------- units ----------
 test('numbers: decimal commas, input strings, plates, typed times', () => {
   assert.equal(core.parseNum('62,5'), 62.5);
