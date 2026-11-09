@@ -16,6 +16,8 @@ The runner serves the app on :8790 itself, runs `npm ci` in `app/` if needed, do
 
 `--no-build` reuses each export separately (and builds a missing one). `--serve` only serves the normal English `app/dist` build, for review screenshots. Stop a server already running on :8790 before running tests, so they cannot accidentally use the wrong language build.
 
+`app-tab-swipe` uses native CDP `Input.dispatchTouchEvent` (`touchStart`, several `touchMove`s, `touchEnd`). `Input.synthesizeScrollGesture` with `gestureSourceType: "touch"` does not scroll in headless Chromium here, even in a plain HTML scroller; the same failure occurred on Ubuntu CI. No DOM-created touch/pointer events or pager handlers move the scroller: browser scrolling and CSS scroll snap do it. The suite reads `scrollLeft` after a move and before release, checks the final page boundary, and checks a partial swipe moves then snaps back.
+
 ## Setup
 
 - Node 22.13 or newer (Expo SDK 58).

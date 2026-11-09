@@ -1,5 +1,8 @@
-// Browser-owned touch scrolling, not mouse drags or mocked swipe callbacks.
-// The middle of cards/rows must scroll the actual scroll-snap container.
+// Real browser input only: CDP Input.dispatchTouchEvent sends touchStart,
+// several touchMoves and touchEnd. No DOM-created TouchEvent/PointerEvent or
+// dispatchEvent, and no JS touch/pointer handlers move the pager. The browser's
+// native scrolling and scroll-snap move it, including from cards and rows.
+// Read scrollLeft while contact is still held, then verify the settled boundary.
 import assert from 'node:assert/strict';
 import { APP, devices, grantWakeLock, launch, shots } from './env.mjs';
 import { demoData } from './store-demo.mjs';
@@ -36,19 +39,33 @@ for (const scheme of ['light', 'dark']) {
       selected: document.querySelector('[role="tab"][aria-selected="true"]')?.getAttribute('data-testid'),
     }), { passive: true });
   });
-  async function gesture({ x = 295, y = 200, dx = 0, dy = 0, speed = 450 } = {}) {
-    await input.send('Input.synthesizeScrollGesture', {
-      x, y, xDistance: dx, yDistance: dy, speed, preventFling: true, gestureSourceType: 'touch',
-    });
+  async function gesture({ x = 295, y = 200, dx = 0, dy = 0, speed = 450, beforeRelease } = {}) {
+    const distance = Math.max(Math.abs(dx), Math.abs(dy));
+    const steps = Math.max(8, Math.ceil(distance / 8));
+    await input.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+    for (let i = 1; i <= steps; i++) {
+      await page.waitForTimeout(1000 * distance / speed / steps);
+      await input.send('Input.dispatchTouchEvent', {
+        type: 'touchMove', touchPoints: [{ x: x + dx * i / steps, y: y + dy * i / steps }],
+      });
+    }
+    // Let the compositor apply the last move and stop fling velocity before release.
+    await page.waitForTimeout(120);
+    if (beforeRelease) await beforeRelease();
+    await input.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
   }
   async function selected(tab) {
     const expected = tab === 'index' ? '/' : `/${tab}`;
     await page.waitForURL(APP + expected);
-    await page.waitForFunction((name) => {
+    const index = ['index', 'plan', 'progress'].indexOf(tab);
+    await page.waitForFunction(({ name, index }) => {
       const pager = document.querySelector('[data-testid="tab-pager"]');
       const page = document.querySelector(`[data-testid="tab-page-${name}"]`);
-      return pager && page && Math.abs(page.getBoundingClientRect().left - pager.getBoundingClientRect().left) < 1;
-    }, tab);
+      return pager && page && Math.abs(page.getBoundingClientRect().left - pager.getBoundingClientRect().left) < 1
+        && pager.scrollLeft === index * pager.clientWidth;
+    }, { name: tab, index });
+    const position = await pager.evaluate((el) => ({ left: el.scrollLeft, width: el.clientWidth }));
+    assert.equal(position.left, index * position.width, 'settles exactly on the page boundary');
     assert.equal(await id(`tab-${tab}`).getAttribute('aria-selected'), 'true');
     assert.equal(await page.getByRole('tabpanel').count(), 1, 'only the settled page is accessible');
   }
@@ -70,7 +87,16 @@ for (const scheme of ['light', 'dark']) {
     }
     const card = await id('up-next').boundingBox();
     const cardY = card.y + 65; // inside the tappable routine body, not the margin/Start button
-    await gesture({ x: card.x + card.width * 0.75, y: cardY, dx: -250 });
+    const pageWidth = await pager.evaluate((el) => el.clientWidth);
+    await gesture({
+      x: card.x + card.width * 0.75, y: cardY, dx: -250,
+      beforeRelease: async () => {
+        const heldLeft = await pager.evaluate((el) => el.scrollLeft);
+        assert.ok(heldLeft > 100 && heldLeft < pageWidth, 'card swipe moves the pager before touchEnd');
+        assert.equal(path(), '/', 'held swipe does not change the address');
+        assert.equal(await id('tab-index').getAttribute('aria-selected'), 'true');
+      },
+    });
     await selected('plan');
     await swipe('left', 'progress'); // begins on the Workouts/Lifts rows
     await swipe('right', 'plan');
@@ -88,7 +114,14 @@ for (const scheme of ['light', 'dark']) {
     // Observe real intermediate scroll positions: the page follows the finger,
     // but address/highlight must stay on Today until a new page settles.
     await observeScroll();
-    await gesture({ x: 280, y: cardY, dx: -185, speed: 100 });
+    await gesture({
+      x: 280, y: cardY, dx: -185, speed: 100,
+      beforeRelease: async () => {
+        const heldLeft = await pager.evaluate((el) => el.scrollLeft);
+        assert.ok(heldLeft > 70 && heldLeft < pageWidth / 2, 'half swipe moves partway before touchEnd');
+        assert.equal(path(), '/');
+      },
+    });
     await selected('index');
     const frames = await page.evaluate(() => window.__pagerFrames.splice(0));
     assert.ok(frames.some((f) => f.x > 70 && f.x < 200), 'content moved part way with the touch');
