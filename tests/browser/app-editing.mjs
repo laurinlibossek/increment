@@ -5,7 +5,7 @@
 // exercises, Measure logging, charts, backups and the new settings. 22 checks.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { openSearch, devices, launch, grantWakeLock, APP as BASE, BACKUP, shots } from './env.mjs';
+import { selectTab, openSearch, devices, launch, grantWakeLock, APP as BASE, BACKUP, shots } from './env.mjs';
 import * as core from '../../core/index.js';
 
 const OUT = shots('app-editing');
@@ -47,7 +47,7 @@ async function pickExercises(page, names, testid = 'add-exercises') {
 }
 /** Account: the avatar on Today. */
 async function openAccount(page) {
-  await id(page, 'tab-index').click();
+  await selectTab(page, 'index');
   await id(page, 'open-account').click();
 }
 async function restore(page, dialogs, { english = false } = {}) {
@@ -64,7 +64,7 @@ const store = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('inc
 // ---------- 1. templates: editor, menus, folders, shared links ----------
 {
   const { ctx, page, errors } = await newPage();
-  await id(page, 'tab-plan').click();
+  await selectTab(page, 'plan');
   await id(page, 'plan-add').click();
   await id(page, 'new-template').click();
   await id(page, 'tpl-name').waitFor();
@@ -220,7 +220,7 @@ const store = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('inc
 {
   const { ctx, page, errors, dialogs } = await newPage();
   await restore(page, dialogs, { english: true });
-  await id(page, 'tab-index').click();
+  await selectTab(page, 'index');
   await id(page, 'start-empty').click();
   await id(page, 'workout-name').waitFor();
   await pickExercises(page, [{ q: 'squat bb', id: SQUAT }]);
@@ -336,7 +336,7 @@ const store = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('inc
 {
   const { ctx, page, errors, dialogs } = await newPage({ locale: 'de-DE' });
   await restore(page, dialogs);
-  await id(page, 'tab-progress').click();
+  await selectTab(page, 'progress');
   await id(page, 'progress-workouts').click();
   await page.locator('[data-testid^="workout-"]').first().click();
   await id(page, 'workout-options').waitFor();
@@ -465,7 +465,7 @@ for (const scheme of ['light', 'dark']) {
   await page.goBack(); // Exercise → Search
   await page.goBack(); // Search → the tab root
   await wait(page, 300);
-  await id(page, 'tab-progress').click();
+  await selectTab(page, 'progress');
   await id(page, 'progress-body').click();
   await id(page, 'log-bodyweight').click();
   await id(page, 'number-dialog').waitFor();
@@ -494,7 +494,7 @@ for (const scheme of ['light', 'dark']) {
   await wait(page, 300);
 
   // Progress: weekly chart, backup reminder → download
-  await id(page, 'tab-progress').click();
+  await selectTab(page, 'progress');
   await id(page, 'weekly-chart').locator('svg').waitFor();
   assert.equal(await id(page, 'backup-banner').count(), 0, 'a restored backup counts as a backup');
   await page.evaluate(() => {
@@ -503,7 +503,7 @@ for (const scheme of ['light', 'dark']) {
     localStorage.setItem('increment.data', JSON.stringify(d));
   });
   await page.reload();
-  await id(page, 'tab-progress').click();
+  await selectTab(page, 'progress');
   await id(page, 'backup-banner').waitFor();
   await page.screenshot({ path: `${OUT}/11-progress-${scheme}.png`, fullPage: true });
   const [dl] = await Promise.all([page.waitForEvent('download'), id(page, 'backup-banner').getByText('Back up now').click()]);
@@ -527,7 +527,7 @@ for (const scheme of ['light', 'dark']) {
     await id(page, 'set-rest-alert').click();
     await page.screenshot({ path: `${OUT}/12-settings.png`, fullPage: true });
     await page.goBack();
-    await id(page, 'tab-index').click();
+    await selectTab(page, 'index');
     await id(page, 'start-empty').click();
     await id(page, 'workout-name').waitFor();
     await pickExercises(page, [{ q: 'bench bb', id: BENCH }]);

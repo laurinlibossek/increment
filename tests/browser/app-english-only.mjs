@@ -4,7 +4,7 @@
 // EXPO_PUBLIC_ENABLE_GERMAN, like the store and web apps.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { openSearch, launch, devices, grantWakeLock, APP, BACKUP, shots } from './env.mjs';
+import { selectTab, openSearch, launch, devices, grantWakeLock, APP, BACKUP, shots } from './env.mjs';
 
 const OUT = shots('app-english-only');
 const backup = JSON.parse(fs.readFileSync(BACKUP, 'utf8'));
@@ -73,7 +73,7 @@ try {
     assert.equal((await stored(page)).kv.settings.language, 'de');
     // A reloaded modal has no Expo navigation stack to pop back to Today.
     await page.goto(APP);
-    await id('tab-progress').click();
+    await selectTab(page, 'progress');
     assert.match(await id('progress-workouts').innerText(), /Workouts/);
     assert.match(await id('progress-body').innerText(), /82,4 kg/);
     await id('progress-body').click();

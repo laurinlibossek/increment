@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { openSearch, devices, launch, grantWakeLock, APP as BASE, BACKUP, STRONG, DATA, shots } from './env.mjs';
+import { selectTab, openSearch, devices, launch, grantWakeLock, APP as BASE, BACKUP, STRONG, DATA, shots } from './env.mjs';
 
 const OUT = shots('app-first-start');
 const browser = await launch();
@@ -32,7 +32,7 @@ const bg = (page) => page.evaluate(() => {
   }
   return null;
 });
-const tab = (page, name) => page.getByTestId(`tab-${name}`).click();
+const tab = (page, name) => selectTab(page, name);
 // the avatar on Today opens Account (the name and every setting)
 const openAccount = async (page) => { await tab(page, 'index'); await page.getByTestId('open-account').click(); };
 const text = async (page) => (await page.locator('body').innerText());
