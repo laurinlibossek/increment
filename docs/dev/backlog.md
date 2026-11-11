@@ -1,6 +1,6 @@
 # Status and backlog
 
-Last updated 9 Nov 2026 (browser scroll-snap tab pager). Keep this file current: when a pull request finishes an item, move it to "Done" in the same PR and note any decision Laurin made.
+Last updated 11 Nov 2026 (survey of both repositories: issues #34 to #42). Keep this file current: when a pull request finishes an item, move it to "Done" in the same PR and note any decision Laurin made.
 
 ## Where things are
 
@@ -26,6 +26,7 @@ Laurin's roadmap (6 Nov 2026): most features into the app, launch the web app, u
 
 ## Open items, any order
 
+- **From the survey of 11 Nov 2026** (the code read end to end, the suspects reproduced in the web build): the bugs are issues #34 to #42. In the order they matter: #34 (the web app shows a failed save as saved), #35 (two open tabs overwrite each other's data), #36 (Today keeps yesterday's date overnight), #37 (the session counts more records than the summary), #40 (the Strong import's weights), then #38, #39, #41 and #42. #26 (the tab highlight lagging behind a swipe) was filed against the native swipe that #24 removed: check on the phone whether anything of it is left, then close it.
 - Before the store release, decide native tab swipe: a pager that follows the finger needs non-native tabs (losing the Liquid Glass bar, its minimizing and the workout accessory), or no swipe.
 - Not answered yet: "Account" in German (kept as "Account"); the body part under the exercise name in the session; added exercises wait under Up next; the just-logged exercise stays on screen during its rest; the routine editor keeps RPE as a target.
 - Unknowns that need Laurin's input: where Strong puts exercise notes in a real export (sticky notes are probably not exported at all), and what Strong's exercise ⋯ → Preferences contains.
@@ -49,6 +50,8 @@ Reference for anyone touching the summary or routines.
 
 
 ## Done
+
+- **Survey fixes** (11 Nov 2026, `claude/blissful-curie-qqol89`): a backup file that carries a running workout (`kv.active`) no longer brings it back as a workout "in progress" the next time the app starts; core `parseBackup` drops it, since the workout running in the app keeps going (unit test). The README no longer says the apps follow the phone's language, and `docs/design/navigation.md` and `phases.md` describe the routine after a workout as it has been since 4 and 5 Nov (numbers go in by themselves, a changed layout asks in a popup) instead of the switch row. Everything else the survey found is in issues (see Open items).
 
 - **Web tabs follow the finger** (9 Nov 2026, Laurin's decision, replaces PR #23): Today, Plan and Progress stay mounted in one browser scroll-snap container, each with its own vertical scroll. Swipes work from cards and rows; direction lock, momentum and snapping belong to the browser. The unchanged bar and Now Lifting stay fixed; the settled page updates the address/highlight, bar taps scroll smoothly (instant with Reduce Motion), and direct links, Back/Forward and pushed screens retain normal navigation. The chart uses `touch-action: pan-y` for scrubbing. PR #23's recognizer, core rules/tests, gesture root and direct library dependency are removed; native keeps NativeTabs without swiping for now. Real CDP touch-scroll tests cover both themes; review includes short web recordings. Laurin's home-screen iPhone is the real test.
 

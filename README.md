@@ -23,7 +23,7 @@ Most workout trackers put their best features behind a subscription or want an a
 - **Private.** No account and no server. Your training log stays on your phone.
 - **Offline.** It keeps working in a basement gym with no signal.
 - **Open source.** GPL-3.0. iPhone, Android and the web from one codebase.
-- **English and German.** It follows your phone's language.
+- **English for now.** Dates and numbers follow your phone's region. German is built in and comes back later.
 
 ## How it works
 
