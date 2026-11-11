@@ -216,7 +216,7 @@ A row of strokes, one per set: hairline while pending, a solid stem once logged.
 **Rules**
 - Strokes keep their slot (`stroke-slot`) whatever their state, so nothing shifts when a set is logged.
 - Groups are separated by `stroke-group`: per exercise in a session, per five when counting.
-- A whole workout's tally (session header, summary, History) wraps onto new lines, inside a long exercise too, so it never runs off the screen. It grows a line per screen width of strokes: about 30 hero strokes per line on an iPhone, so 1000 sets would be some 35 lines.
+- A whole workout's tally (session header, summary, History) wraps onto new lines, inside a long exercise too, so it never runs off the screen. It grows a line per screen width of strokes: about 29 hero strokes per line on an iPhone; 1000 sets make a block about 1900 pt tall, two and a half screens.
 - `record` is the only coloured state. `live` marks the one set being logged; there is never more than one.
 - Never use strokes for weight, time or other continuous numbers.
 - In a set row the stroke is the button that logs the set: give it a `hit-min` touch area and the label "Set 3, left side, 82.5 kg × 8, not logged" when tagged. The row’s accessibility label names the side too.
