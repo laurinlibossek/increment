@@ -186,5 +186,43 @@ for (const language of ['en', 'de']) for (const theme of ['light', 'dark']) {
   await ctx.close();
 }
 
+{
+  // #40: a negative weight and mixed fields can only be left out; an exact name that logs other fields needs a choice
+  const { ctx, page, errors, dialogs } = await setup('light', 'en');
+  const before = await data(page);
+  await pickFile(page, fs.readFileSync(path.join(ROOT, 'tests/fixtures/strong-skip.csv'), 'utf8'));
+  const row = (name) => page.locator('[data-testid^="strong-row-"]').filter({ has: page.getByText(name, { exact: true }) });
+  const bench = row('Bench Press (Barbell)'), moon = row('Moon Hold'), pull = row('Pull Up');
+  assert.match(await bench.innerText(), /negative weight/);
+  assert.match(await moon.innerText(), /combine fields/);
+  assert.match(await moon.innerText(), /3 sets in 2 workouts won’t be imported/);
+  for (const r of [bench, moon]) {
+    assert.equal(await r.locator('[data-testid^="strong-new-"], [data-testid^="strong-choose-"]').count(), 0, 'nothing but Leave out');
+  }
+  assert.match(await pull.innerText(), /“Pull Up” in Increment logs other fields than these sets/);
+  assert.equal(await pull.locator('[data-testid$="-x-pull-up"]').count(), 0, 'the reps-only exact name is not offered');
+  assert.equal(await page.getByTestId('strong-confirm').getAttribute('aria-disabled'), 'true');
+  await page.screenshot({ path: `${OUT}/skip-review.png` });
+  await bench.locator('[data-testid^="strong-skip-"]').click();
+  await moon.locator('[data-testid^="strong-skip-"]').click();
+  await pull.locator('[data-testid$="-x-pull-up-weighted"]').click();
+  await page.waitForFunction(() => document.querySelector('[data-testid="strong-confirm"]').getAttribute('aria-disabled') !== 'true');
+  await page.screenshot({ path: `${OUT}/skip-decided.png` });
+  await page.getByTestId('strong-confirm').click();
+  await page.getByTestId('strong-import').waitFor();
+  assert.match(dialogs.at(-1), /Imported 1 workout/);
+  assert.match(dialogs.at(-1), /Left out: 5 sets of Bench Press \(Barbell\), Moon Hold\./);
+  const after = await data(page);
+  assert.equal(after.workouts.length, before.workouts.length + 1, 'the all-left-out workout is not made');
+  const w = after.workouts.find((x) => x.name === 'Skip');
+  assert.deepEqual(w.exercises.map((e) => e.exerciseId), ['x-pull-up-weighted']);
+  assert.equal(after.exercises.length, before.exercises.length, 'no exercise for left-out sets');
+  assert.equal(after.kv.strongAliases['Moon Hold'], undefined, 'a skip is not remembered');
+  assert.equal(after.kv.strongAliases['Pull Up'], 'x-pull-up-weighted');
+  ok('negative weights and mixed fields can only be left out, an incompatible exact name needs a choice, and the rest imports with what was left out said');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+}
+
 await browser.close();
 console.log(`\n${passed} checks passed`);

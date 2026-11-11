@@ -829,7 +829,7 @@ test('Strong review counts sessions, requires decisions and body parts, and limi
   assert.deepEqual(core.strongImportCategories([{ w: 0, r: 8 }]), ['reps']);
   assert.deepEqual(core.strongImportCategories([{ d: 1, t: 50 }]), ['cardio']);
   assert.deepEqual(core.strongImportCategories([{ t: 60 }]), ['duration']);
-  assert.deepEqual(core.strongImportCategories([{ w: -10, r: 8 }]), ['barbell', 'dumbbell', 'machine', 'weighted_bw', 'assisted_bw']);
+  assert.deepEqual(core.strongImportCategories([{ w: -10, r: 8 }]), [], 'no exercise logs a negative load (#40)');
   assert.deepEqual(core.strongImportCategories([{ w: 20, t: 60 }]), [], 'cannot discard fields from mixed sets');
   const choices = Object.fromEntries(preview.review.map((r) => [r.name, { kind: 'new', name: r.name, category: r.category, bodyPart: r.bodyPart || 'other' }]));
   choices['Kenan Flaps'] = { kind: 'existing', exerciseId: 'x-keenan-flap-cable' };
@@ -875,6 +875,144 @@ test('Strong choices survive a backup, silently match newer exports, skip duplic
   for (const exercises of [restored.exercises.filter((e) => e.id !== r.exercises[0].id), restored.exercises.map((e) => e.id === r.exercises[0].id ? { ...e, category: 'duration' } : e)]) {
     assert.equal(core.parseStrongCSV(csv, { ...opts, exercises }).review[0].name, 'Moon Lift', 'deleted or incompatible remembered targets return to review');
   }
+});
+
+test('Strong import (#40): exact names pass the field check, negative weights and mixed sets can only be left out', () => {
+  const csv = strongFile([
+    ['Bench Press (Barbell)', -20, 8], ['Bench Press (Barbell)', 60, 8], // negative: even an exact name goes to review
+    ['Pull Up', 10, 8], // exact name, but Increment's Pull Up logs reps only
+    ['Pull Up (Assisted)', 20, 8], // Strong's help is positive: stays assistance
+    ['Moon Hold', 20, 8], ['Moon Hold', 0, 0, 0, 30], // weight and time mixed
+    ['Squat (Barbell)', 100, 5, 0, 0, '2026-10-02 12:00:00'], ['Moon Hold', 0, 0, 0, 40, '2026-10-03 12:00:00'],
+  ]);
+  const preview = core.parseStrongCSV(csv, { exercises: core.SEED_EXERCISES, aliases: { 'Bench Press (Barbell)': 'x-bench-press-barbell' } });
+  const row = (name) => preview.review.find((r) => r.name === name);
+  assert.equal(preview.matches['Pull Up (Assisted)'], 'x-pull-up-assisted');
+  assert.equal(preview.matches['Squat (Barbell)'], 'x-squat-barbell');
+  assert.equal(row('Bench Press (Barbell)').blocked, 'negative', 'neither the exact name nor a remembered choice takes a negative weight');
+  assert.equal(row('Moon Hold').blocked, 'mixed');
+  assert.deepEqual(row('Moon Hold').omit, { sets: 3, workouts: 2 });
+  assert.deepEqual(row('Bench Press (Barbell)').omit, { sets: 2, workouts: 1 });
+  const pull = row('Pull Up');
+  assert.equal(pull.exact, 'x-pull-up');
+  assert.equal(pull.blocked, undefined);
+  assert.ok(!pull.suggestions.some((x) => x.id === 'x-pull-up'), 'the reps-only exercise is not offered');
+  assert.ok(pull.suggestions.some((x) => x.id === 'x-pull-up-weighted'), 'a compatible sibling is');
+  // blocked rows take nothing but Leave out
+  const choices = { 'Pull Up': { kind: 'existing', exerciseId: 'x-pull-up-weighted' }, 'Moon Hold': { kind: 'new', name: 'Moon Hold', category: 'duration', bodyPart: 'core' }, 'Bench Press (Barbell)': { kind: 'existing', exerciseId: 'x-bench-press-barbell' } };
+  const problems = core.strongImportProblems(preview, choices, core.SEED_EXERCISES);
+  assert.match(problems.find((x) => x.name === 'Bench Press (Barbell)').problem, /negative weight/);
+  assert.match(problems.find((x) => x.name === 'Moon Hold').problem, /combine fields/);
+  assert.throws(() => core.resolveStrongImport(preview, choices, { exercises: core.SEED_EXERCISES }), /negative weight/);
+  choices['Bench Press (Barbell)'] = { kind: 'skip' };
+  choices['Moon Hold'] = { kind: 'skip' };
+  const r = core.resolveStrongImport(preview, choices, { exercises: core.SEED_EXERCISES });
+  assert.deepEqual(r.workouts.map((w) => w.exercises.map((e) => e.exerciseId)), [['x-pull-up-weighted', 'x-pull-up-assisted'], ['x-squat-barbell']], 'the rest imports; a workout with nothing left is not made');
+  assert.equal(r.workouts[0].exercises[1].sets[0].w, 20, 'assistance as Strong wrote it');
+  assert.deepEqual(r.stats.omitted, { sets: 5, workouts: 1, exercises: ['Bench Press (Barbell)', 'Moon Hold'] });
+  assert.equal(r.stats.sets, 3);
+  assert.equal(r.exercises.length, 0, 'no exercise is made for left-out sets');
+  assert.equal(r.aliases['Moon Hold'], undefined, 'a skip is not remembered');
+  assert.equal(r.aliases['Pull Up'], 'x-pull-up-weighted');
+  // everything left out: nothing is made, and the stats say so
+  const lone = core.parseStrongCSV(strongFile([['Moon Hold', 20, 8], ['Moon Hold', 0, 0, 0, 30]]), { exercises: core.SEED_EXERCISES });
+  const none = core.resolveStrongImport(lone, { 'Moon Hold': { kind: 'skip' } }, { exercises: core.SEED_EXERCISES });
+  assert.deepEqual([none.workouts.length, none.exercises.length, none.stats.omitted.sets, none.stats.omitted.workouts], [0, 0, 2, 1]);
+  // the remembered choice for Pull Up matches silently next time, past the incompatible exact name
+  const again = core.parseStrongCSV(strongFile([['Pull Up', 12, 6, 0, 0, '2026-10-05 12:00:00']]), { exercises: core.SEED_EXERCISES, aliases: r.aliases });
+  assert.deepEqual([again.review.length, again.matches['Pull Up']], [0, 'x-pull-up-weighted']);
+});
+
+// ---------- export and backup contracts (#28) ----------
+const fixture = (name) => fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), 'fixtures', name), 'utf8');
+/** Run with the timezone pinned (CSV dates are local time). */
+function withTZ(tz, fn) {
+  const before = process.env.TZ;
+  process.env.TZ = tz;
+  try { return fn(); } finally { if (before === undefined) delete process.env.TZ; else process.env.TZ = before; }
+}
+const { EXPORT_EXERCISES, EXPORT_WORKOUTS } = await import('./fixtures/strong-export-workouts.mjs');
+const exportMap = (list = EXPORT_EXERCISES) => new Map(list.map((e) => [e.id, e]));
+
+test('CSV export is Strong’s 12-column style, pinned by golden files (kg/km and lb/mi)', () => {
+  withTZ('UTC', () => {
+    for (const [file, unit, distUnit] of [['strong-export-kg.csv', 'kg', 'km'], ['strong-export-lb.csv', 'lb', 'mi']]) {
+      const csv = core.exportCSV({ workouts: EXPORT_WORKOUTS, exercises: exportMap(), unit, distUnit });
+      assert.equal(csv, fixture(file), file);
+      assert.ok(csv.endsWith('",\n') || csv.endsWith(',\n'), 'one final newline');
+      assert.equal(csv.split('\n')[0], 'Date,Workout Name,Duration,Exercise Name,Set Order,Weight,Reps,Distance,Seconds,Notes,Workout Notes,RPE');
+    }
+    // the order of the workouts doesn't matter, the export is oldest first
+    assert.equal(core.exportCSV({ workouts: [...EXPORT_WORKOUTS].reverse(), exercises: exportMap() }), fixture('strong-export-kg.csv'));
+  });
+});
+
+test('app-only fields never add CSV columns or change the values', () => {
+  // sides, set times, pinned notes, families, hidden exercises, chart settings and fields from later versions
+  const extra = (o) => ({ ...o, futureField: { any: 1 } });
+  const workouts = EXPORT_WORKOUTS.map((w) => extra({ ...w, exercises: w.exercises.map((e) => extra({ ...e, supersetId: 'g1', focus: 'tempo',
+    sets: e.sets.map((x, i) => extra({ ...x, side: i % 2 ? 'left' : 'right', doneAt: w.startedAt + i * 60000, done: true })) })) }));
+  const exercises = EXPORT_EXERCISES.map((e) => extra({ ...e, pinnedNote: 'Brace', family: 'fc-mine', hidden: true, restSec: 90, chartMetric: 'heaviest' }));
+  withTZ('UTC', () => assert.equal(core.exportCSV({ workouts, exercises: exportMap(exercises) }), fixture('strong-export-kg.csv')));
+});
+
+test('CSV export → Strong import keeps the training data (stated rounding; RIR becomes RPE)', () => {
+  withTZ('UTC', () => {
+    for (const [unit, distUnit, wTol, dTol] of [['kg', 'km', 0.005, 0.0005], ['lb', 'mi', 0.05 * core.KG_PER_LB, 0.001 * core.KM_PER_MI]]) {
+      const csv = core.exportCSV({ workouts: EXPORT_WORKOUTS, exercises: exportMap(), unit, distUnit });
+      const preview = core.parseStrongCSV(csv, { exercises: EXPORT_EXERCISES, weightUnit: unit, distUnit });
+      assert.deepEqual(preview.review, [], `${unit}: every exercise matches by name`);
+      const back = core.resolveStrongImport(preview, {}, { exercises: EXPORT_EXERCISES }).workouts;
+      assert.equal(back.length, EXPORT_WORKOUTS.length);
+      EXPORT_WORKOUTS.forEach((w, i) => {
+        const b = back[i];
+        assert.equal(b.name, w.name);
+        assert.equal(b.notes, w.notes);
+        assert.equal(b.startedAt, Math.floor(w.startedAt / 1000) * 1000, 'to the second');
+        assert.equal(Math.round((b.endedAt - b.startedAt) / 60000), Math.round((w.endedAt - w.startedAt) / 60000), 'duration to the minute');
+        w.exercises.forEach((e, j) => {
+          const be = b.exercises[j];
+          assert.equal(be.exerciseId, e.exerciseId);
+          assert.equal(be.notes || '', e.notes || '');
+          e.sets.forEach((x, k) => {
+            const bs = be.sets[k];
+            assert.equal(bs.type, x.type);
+            assert.ok(Math.abs((bs.w || 0) - (x.w || 0)) <= wTol, `${unit} weight ${x.w} → ${bs.w}`);
+            assert.equal(bs.r || 0, x.r || 0);
+            assert.ok(Math.abs((bs.d || 0) - (x.d || 0)) <= dTol, `${distUnit} distance ${x.d} → ${bs.d}`);
+            assert.equal(bs.t || 0, x.t || 0);
+            // CSV knows RPE only: reps in reserve come back as 10 − RIR
+            assert.equal(bs.rpe ?? null, x.rpe ?? core.rpeFromRir(x.rir));
+          });
+        });
+      });
+    }
+  });
+});
+
+test('Setlog-format backups: structure pinned, user data kept, only documented normalization', () => {
+  const text = fixture('setlog-backup.json');
+  const file = JSON.parse(text);
+  const { data } = core.parseBackup(text, core.SEED_EXERCISES);
+  // user data comes back as it was
+  for (const list of ['workouts', 'templates', 'measurements']) assert.deepEqual(data[list], file.data[list], list);
+  for (const ex of file.data.exercises) assert.deepEqual(data.exercises.find((e) => e.id === ex.id), ex, ex.id);
+  assert.deepEqual(data.kv.settings, file.data.kv.settings);
+  assert.deepEqual(data.kv.profile, file.data.kv.profile);
+  assert.deepEqual(data.kv.strongAliases, file.data.kv.strongAliases);
+  assert.deepEqual(data.kv.futureKey, file.data.kv.futureKey, 'unknown kv data is kept');
+  // documented normalization: the built-in library is added, the backup counts as one, empty families go
+  assert.ok(data.exercises.length > file.data.exercises.length);
+  assert.equal(data.kv.meta.lastBackupAt, Date.parse(file.exportedAt));
+  assert.deepEqual({ ...data.kv.meta, lastBackupAt: 0 }, { ...file.data.kv.meta, lastBackupAt: 0 });
+  assert.deepEqual(data.kv.customFamilies, { 'fc-moon': 'Moon Lift' });
+  // a backup made from it reads the same (not byte for byte: exportedAt and appVersion change)
+  const again = JSON.parse(core.makeBackup(data, '2.0.0', new Date('2026-11-11T00:00:00Z')));
+  assert.deepEqual([again.app, again.schema, Object.keys(again).sort()], ['setlog', 1, ['app', 'appVersion', 'data', 'exportedAt', 'schema']]);
+  assert.deepEqual(Object.keys(again.data).sort(), ['exercises', 'kv', 'measurements', 'templates', 'workouts']);
+  const twice = core.parseBackup(JSON.stringify(again), core.SEED_EXERCISES).data;
+  for (const list of ['exercises', 'workouts', 'templates', 'measurements']) assert.deepEqual(twice[list], data[list], list);
+  assert.deepEqual({ ...twice.kv, meta: { ...twice.kv.meta, lastBackupAt: 0 } }, { ...data.kv, meta: { ...data.kv.meta, lastBackupAt: 0 } });
 });
 
 test('Strong shipped spellings resolve to existing identities, and new family membership is exact', () => {
