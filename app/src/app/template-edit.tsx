@@ -21,6 +21,7 @@ import {
 import { toast } from '@/ui/overlay';
 import { DraftBlocks, KeyboardDoneBar } from '@/ui/workout/DraftBlocks';
 import { useEditor } from '@/ui/workout/useEditor';
+import { attempt } from '@/lib/saving';
 
 export default function TemplateEditScreen() {
   const { id, from } = useLocalSearchParams<{ id?: string; from?: string }>();
@@ -42,7 +43,8 @@ export default function TemplateEditScreen() {
   const folders = useMemo(() => templateFolders(getState()), [templates, meta]);
 
   const save = async () => {
-    const r = await saveTemplateDraft();
+    const r = await attempt(tr, saveTemplateDraft());
+    if (!r) return;
     // the core says "template"; the app calls them routines
     if (r.problem) { toast(r.problem === EDIT_MESSAGES.templateName ? tr('Give the routine a name') : tr(r.problem)); return; }
     toast(r.created ? tr('“{name}” created', { name: r.template!.name }) : tr('Routine saved'));

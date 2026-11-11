@@ -20,6 +20,7 @@ import {
 } from '@/ui/overlay';
 import type { Format } from './format';
 import type { Tr } from './i18n';
+import { attempt } from './saving';
 
 type F = Format & { tr: Tr };
 
@@ -101,7 +102,7 @@ export async function finishFlow(f: F) {
     });
     if (!ok) return;
   }
-  const result = await finishActive('done', tr(workoutNameKey(a.startedAt)));
+  const result = await attempt(tr, finishActive('done', tr(workoutNameKey(a.startedAt))));
   if (!result) return;
   await progressRoutine(result.workout);
   router.replace({ pathname: '/summary/[id]', params: { id: result.workout.id } });

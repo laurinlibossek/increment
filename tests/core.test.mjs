@@ -918,6 +918,60 @@ test('a backup never brings a running workout along; other kv keys stay', () => 
   assert.equal(kv.later, 1, 'a key the app doesn’t know is kept');
 });
 
+test('recovery backups carry the running workout beside the data; old files restore as before', () => {
+  const active = { id: 'a1', kind: 'workout', name: 'Push', startedAt: 10, exercises: [{ id: 'e', exerciseId: 'x', sets: [] }], updatedAt: 20 };
+  const data = { exercises: [], workouts: [{ id: 'w' }], templates: [], measurements: [], kv: { settings: { unit: 'kg' } } };
+  const file = JSON.parse(core.makeBackup(data, '1.0.0', new Date(0), { active }));
+  assert.deepEqual(file.recovery, { active }, 'the running workout is beside data, not in kv');
+  assert.equal('active' in file.data.kv, false);
+  const back = core.parseBackup(JSON.stringify(file), []);
+  assert.deepEqual(back.recovery, { active });
+  assert.equal(back.data.workouts.length, 1);
+  assert.equal(core.parseBackup(core.makeBackup(data, 'old'), []).recovery, null, 'a file without recovery restores normally');
+  assert.equal('recovery' in JSON.parse(core.makeBackup(data, '1.0.0')), false);
+  try { core.parseBackup(JSON.stringify({ ...file, recovery: { active: { id: 1 } } }), []); assert.fail(); } catch (e) {
+    assert.deepEqual(e.vars, { part: 'recovery' });
+  }
+  assert.equal(core.runningWorkoutChoice(null, active), 'restore', 'a fresh install gets the draft back');
+  assert.equal(core.runningWorkoutChoice(active, null), 'keep');
+  assert.equal(core.runningWorkoutChoice({ ...active }, active), 'keep', 'the same workout: nothing to ask');
+  assert.equal(core.runningWorkoutChoice({ ...active, name: 'Pull' }, active), 'ask');
+});
+
+test('pending writes: the latest value per key, and conflicts hold whole batches', () => {
+  const w = (id, value = { id }) => ({ store: 'workouts', id, value });
+  const kv = (key, value) => ({ kv: key, value });
+  assert.equal(core.writeKey(w('a')), 'workouts/a');
+  assert.equal(core.writeKey(kv('active', null)), 'kv/active');
+  const b1 = { ops: [w('a', { id: 'a', n: 1 }), kv('active', { id: 'x' })] };
+  const b2 = { ops: [kv('active', null), w('b')] };
+  const b3 = { ops: [kv('settings', { unit: 'lb' })] };
+  const ops = core.coalesceWrites([b1, b2, b3]);
+  assert.deepEqual(ops.map(core.writeKey), ['workouts/a', 'kv/active', 'workouts/b', 'kv/settings']);
+  assert.equal(ops[1].value, null, 'the later write wins');
+  // a conflict on workouts/b holds b2, and with it b1, which shares kv/active
+  const split = core.splitBlocked([b1, b2, b3], ['workouts/b']);
+  assert.deepEqual(split.blocked, [b1, b2]);
+  assert.deepEqual(split.rest, [b3]);
+  assert.deepEqual([...split.keys].sort(), ['kv/active', 'workouts/a', 'workouts/b']);
+  assert.deepEqual(core.splitBlocked([b1, b2, b3], []).rest, [b1, b2, b3]);
+});
+
+test('stored data: checked before the move, compared record by record', () => {
+  const raw = { exercises: [{ id: 'e', name: 'A' }], workouts: [{ id: 'w', n: 1 }, { id: 'w', n: 2 }], templates: [], kv: { settings: { b: 1, a: 2 }, active: null } };
+  const d = core.storedDataFrom(raw);
+  assert.deepEqual(d.workouts, [{ id: 'w', n: 2 }], 'a document saved twice keeps its later copy');
+  assert.deepEqual(d.measurements, []);
+  assert.equal('active' in d.kv, false, 'empty values are not stored');
+  assert.deepEqual([...core.recordsOf(d).keys()], ['exercises/e', 'workouts/w', 'kv/settings']);
+  assert.ok(core.sameStoredData(d, { ...d, kv: { settings: { a: 2, b: 1 } } }), 'key order does not matter');
+  assert.ok(!core.sameStoredData(d, { ...d, workouts: [] }));
+  assert.ok(!core.sameStoredData(d, { ...d, kv: { settings: { a: 2, b: 3 } } }));
+  for (const bad of [null, [], 'x', { workouts: {} }, { workouts: [{ name: 'no id' }] }, { kv: [] }]) {
+    assert.throws(() => core.storedDataFrom(bad), undefined, JSON.stringify(bad));
+  }
+});
+
 // ---------- share links ----------
 test('template links round-trip and reject junk', () => {
   const bench = core.SEED_EXERCISES.find((e) => e.name === 'Bench Press (Barbell)');

@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { selectTab, openSearch, devices, launch, grantWakeLock, APP as BASE, BACKUP, STRONG, DATA, shots } from './env.mjs';
+import { selectTab, openSearch, devices, launch, grantWakeLock, APP as BASE, BACKUP, STRONG, DATA, shots, storedData } from './env.mjs';
 
 const OUT = shots('app-first-start');
 const browser = await launch();
@@ -87,7 +87,7 @@ const has = async (page, re) => (typeof re === 'string' ? new RegExp(re.replace(
     assert.equal(await row.getAttribute('role'), 'button', `${title}: navigation remains tappable`);
     assert.equal(await row.locator('[aria-hidden="true"]').count(), 2, `${title}: leading symbol and chevron`);
   }
-  assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('increment.data')).workouts.length), 86, 'all 86 workouts were restored');
+  assert.equal((await storedData(page)).workouts.length, 86, 'all 86 workouts were restored');
   await page.screenshot({ path: `${OUT}/03-progress.png` });
   ok('Today’s avatar has the name; Progress has German navigation without counts and all 86 workouts remain restored');
 

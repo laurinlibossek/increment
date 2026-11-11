@@ -19,6 +19,7 @@ import { pickDateTime, toast } from '@/ui/overlay';
 import { DraftBlocks, KeyboardDoneBar } from '@/ui/workout/DraftBlocks';
 import { useEditor } from '@/ui/workout/useEditor';
 import { SPACE, TYPE } from '@/design/tally';
+import { attempt } from '@/lib/saving';
 
 export default function WorkoutEditScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -33,7 +34,8 @@ export default function WorkoutEditScreen() {
   });
 
   const save = async () => {
-    const r = await saveWorkoutEdit(tr('Workout'));
+    const r = await attempt(tr, saveWorkoutEdit(tr('Workout')));
+    if (!r) return;
     if (r.problem) { toast(tr(r.problem)); return; }
     toast(tr('Workout saved'));
     leave();

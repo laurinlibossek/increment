@@ -9,6 +9,7 @@ import type { Settings } from '@/data/types';
 import { promptNumber, toast } from '@/ui/overlay';
 import type { Format } from './format';
 import type { Tr } from './i18n';
+import { attempt } from './saving';
 
 export type MeasureDef = { id: string; label: string; kind: 'weight' | 'percent' | 'kcal' | 'length'; group: 'core' | 'body' };
 
@@ -53,7 +54,7 @@ export async function logMeasurement(d: MeasureDef, f: Format & { tr: Tr }): Pro
   if (!r) return false;
   const n = parseNum(r.text);
   if (n === null || n <= 0) { toast(tr('Enter a number')); return false; }
-  await addMeasurement({ type: d.id, value: fromDisplay(d, n, st), at: r.at });
+  if (!(await attempt(tr, addMeasurement({ type: d.id, value: fromDisplay(d, n, st), at: r.at })))) return false;
   toast(tr('{name} logged', { name: tr(d.label) }));
   return true;
 }

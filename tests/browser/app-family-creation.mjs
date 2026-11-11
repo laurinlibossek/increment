@@ -1,7 +1,7 @@
 // Family creation and edits keep each exercise's history separate.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { selectTab, launch, devices, grantWakeLock, APP, shots, openSearch } from './env.mjs';
+import { selectTab, launch, devices, grantWakeLock, APP, shots, openSearch, storedData, waitStored, failWrites } from './env.mjs';
 import { SEED_EXERCISES, familyOf } from '../../core/index.js';
 import { familyCreationData } from './family-creation-data.mjs';
 
@@ -10,7 +10,7 @@ const browser = await launch();
 let activePage;
 let passed = 0;
 const ok = (name) => { passed++; console.log('PASS', name); };
-const stored = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('increment.data')));
+const stored = (page) => storedData(page);
 async function open(data) {
   const ctx = await browser.newContext({ ...devices['iPhone 13'], viewport: { width: 390, height: 844 } });
   await ctx.addInitScript(grantWakeLock);
@@ -149,8 +149,8 @@ try {
     await page.goto(APP); await page.getByTestId('open-account').click();
     const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.getByTestId('restore').click()]);
     await chooser.setFiles({ name: 'family-backup.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(backup)) });
-    await page.waitForFunction((id) => JSON.parse(localStorage.getItem('increment.data')).kv.customFamilies?.[id] === 'Kelso Shrug', familyId);
-    await page.waitForFunction(() => JSON.parse(localStorage.getItem('increment.data')).exercises.filter((e) => e.family?.startsWith('fc-')).length === 2);
+    await waitStored(page, (d, id) => d.kv.customFamilies?.[id] === 'Kelso Shrug', familyId);
+    await waitStored(page, (d) => d.exercises.filter((e) => e.family?.startsWith('fc-')).length === 2);
     assert.ok(dialogs.some((d) => d.startsWith('Replace all data?')));
     assert.ok(dialogs.some((d) => d.startsWith('Backup restored')));
     await page.goto(APP); await openSearch(page);
@@ -222,17 +222,12 @@ try {
       await create(page, 'Retry Row (Machine)');
       await page.getByTestId('exercise-family').click(); await page.getByTestId('pick-search').fill('Squat (Panatta Machine)');
       await page.getByTestId(`pick-${separate.id}`).click();
-      await page.evaluate(() => {
-        const set = Storage.prototype.setItem;
-        Storage.prototype.setItem = function (key, value) {
-          if (key === 'increment.data') { Storage.prototype.setItem = set; throw new DOMException('Storage is full', 'QuotaExceededError'); }
-          return set.call(this, key, value);
-        };
-      });
+      await failWrites(page);
       await page.getByTestId('exercise-save').click();
-      await page.getByText('Couldn’t save to storage. Make a backup in Settings to be safe.', { exact: true }).waitFor();
+      await page.getByText('Couldn’t save. Your changes are still here; try again or back up now.', { exact: true }).waitFor();
       assert.deepEqual(await stored(page), beforeFailure);
       assert.ok(await page.getByTestId('exercise-name').isVisible());
+      await failWrites(page, false);
       await page.getByTestId('exercise-save').click(); await page.getByTestId('exercise-name').waitFor({ state: 'hidden' });
       const retry = (await stored(page)).exercises.find((e) => e.name === 'Retry Row (Machine)');
       assert.match(retry.family, /^fc-/);
@@ -253,7 +248,7 @@ try {
     const nested = (await stored(page)).exercises.find((e) => e.name === 'Nested Squat (Cable)');
     assert.equal(nested.family, 'f-squat');
     await page.getByTestId('pick-add').filter({ visible: true }).click(); await page.getByTestId(`block-${nested.id}`).waitFor();
-    await page.waitForFunction((id) => JSON.parse(localStorage.getItem('increment.data')).kv.active?.exercises.some((e) => e.exerciseId === id), nested.id);
+    await waitStored(page, (d, id) => d.kv.active?.exercises.some((e) => e.exerciseId === id), nested.id);
     assert.ok((await stored(page)).kv.active.exercises.some((e) => e.exerciseId === nested.id));
     ok(`${theme}: a Variation picker inside New exercise preserves the outer session picker and adds the exercise to its draft`);
     assert.deepEqual(errors, []); await ctx.close();

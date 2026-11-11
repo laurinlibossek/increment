@@ -2,7 +2,7 @@
 // backup restore, custom-name collisions, and individual Search query results.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { openSearch, launch, devices, grantWakeLock, APP, shots } from './env.mjs';
+import { openSearch, launch, devices, grantWakeLock, APP, shots, storedData, waitStored } from './env.mjs';
 import { SEED_EXERCISES, SEED_VERSION, makeBackup, familyOf } from '../../core/index.js';
 
 const v1 = JSON.parse(fs.readFileSync(new URL('../fixtures/exercises-v1.json', import.meta.url), 'utf8'));
@@ -10,7 +10,7 @@ const OUT = shots('app-exercise-catalogue');
 const browser = await launch();
 let passed = 0;
 const ok = (name) => { passed++; console.log('PASS', name); };
-const stored = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('increment.data')));
+const stored = (page) => storedData(page);
 const base = () => ({ exercises: [], workouts: [], templates: [], measurements: [], kv: { settings: { language: 'en', theme: 'light' } } });
 async function open(data) {
   const ctx = await browser.newContext({ ...devices['iPhone 13'] });
@@ -22,7 +22,7 @@ async function open(data) {
   page.on('console', (m) => { if (m.type() === 'error' && !/favicon|DevTools/.test(m.text())) errors.push(m.text()); });
   await page.goto(APP);
   await page.getByTestId('open-search-index').waitFor();
-  await page.waitForFunction((version) => JSON.parse(localStorage.getItem('increment.data'))?.kv?.meta?.seedVersion === version, SEED_VERSION);
+  await waitStored(page, (d, version) => d?.kv?.meta?.seedVersion === version, SEED_VERSION);
   return { ctx, page, errors };
 }
 function upgradedData() {
@@ -86,7 +86,7 @@ try {
     await page.getByTestId('open-account').click();
     const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.getByTestId('restore').click()]);
     await chooser.setFiles({ name: 'old-backup.json', mimeType: 'application/json', buffer: Buffer.from(makeBackup(before, '1')) });
-    await page.waitForFunction(() => JSON.parse(localStorage.getItem('increment.data'))?.kv?.meta?.lastBackupAt > 0);
+    await waitStored(page, (d) => d?.kv?.meta?.lastBackupAt > 0);
     await page.waitForTimeout(400);
     assert.ok(dialogs.some((d) => /Backup restored/.test(d)), dialogs.join('\n'));
     checkUpgrade(await stored(page), before);

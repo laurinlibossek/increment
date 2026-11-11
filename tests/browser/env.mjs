@@ -101,3 +101,89 @@ export async function openSearch(page) {
   await page.getByRole('button').and(page.getByTestId(/^open-search-/)).click();
   await page.getByTestId('exercise-search').waitFor();
 }
+
+// ---------- the app's stored data ----------
+// The web app keeps its data in IndexedDB ('increment': a record per document
+// in `docs`, per kv value in `kv`; app/src/data/storage.web.ts). Suites still
+// seed it the old way, `localStorage['increment.data']` in an init script: the
+// app moves that in on its first start and ignores it afterwards.
+
+/** In the page: the stored data as { exercises, workouts, templates, measurements, kv }, documents in the order they were written; null before the app made its database. */
+async function readStoredInPage() {
+  const db = await new Promise((resolve) => {
+    const r = indexedDB.open('increment', 1);
+    r.onupgradeneeded = () => r.transaction.abort(); // not there yet: don't make it
+    r.onsuccess = () => resolve(r.result);
+    r.onerror = () => resolve(null);
+  });
+  if (!db) return null;
+  try {
+    const tx = db.transaction(['docs', 'kv'], 'readonly');
+    const all = (name) => new Promise((resolve, reject) => {
+      const q = tx.objectStore(name).getAll();
+      q.onsuccess = () => resolve(q.result);
+      q.onerror = () => reject(q.error);
+    });
+    const [docs, kv] = await Promise.all([all('docs'), all('kv')]);
+    const data = { exercises: [], workouts: [], templates: [], measurements: [], kv: {} };
+    for (const r of docs.sort((a, b) => a.rev - b.rev)) (data[r.store] ||= []).push(r.data);
+    for (const r of kv) data.kv[r.key] = r.value;
+    return data;
+  } finally { db.close(); }
+}
+
+/** The app's stored data (see readStoredInPage). */
+export const storedData = (page) => page.evaluate(readStoredInPage);
+
+/** Wait until `test(storedData, arg)` is true (it runs here, in Node). */
+export async function waitStored(page, test, arg, timeout = 10000) {
+  const until = Date.now() + timeout;
+  for (;;) {
+    const d = await storedData(page);
+    if (d && test(d, arg)) return d;
+    if (Date.now() > until) throw new Error(`stored data never matched: ${test}`);
+    await new Promise((r) => setTimeout(r, 50));
+  }
+}
+
+/** Replace the stored data behind the app's back (as another app version would); reload the page to see it. */
+export const writeStored = (page, data) => page.evaluate(async (data) => {
+  const db = await new Promise((resolve, reject) => { const r = indexedDB.open('increment', 1); r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error); });
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction(['docs', 'kv', 'sys', 'log'], 'readwrite');
+    const sys = tx.objectStore('sys');
+    const s = sys.get('seq');
+    s.onsuccess = () => {
+      const seq = (s.result?.value || 0) + 1;
+      for (const name of ['docs', 'kv', 'log']) tx.objectStore(name).clear();
+      for (const store of ['exercises', 'workouts', 'templates', 'measurements']) for (const doc of data[store] || []) tx.objectStore('docs').put({ store, id: doc.id, rev: seq, data: doc });
+      for (const [key, value] of Object.entries(data.kv || {})) if (value !== null && value !== undefined) tx.objectStore('kv').put({ key, rev: seq, value });
+      sys.put({ key: 'seq', value: seq });
+      tx.objectStore('log').put({ seq, keys: null });
+    };
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+  });
+  db.close();
+}, data);
+
+/** In the page: IndexedDB's put/delete throw "storage full" while localStorage['test.failWrites'] is '1'. */
+function writeGuard() {
+  if (window.__writeGuarded) return;
+  window.__writeGuarded = true;
+  for (const name of ['put', 'add', 'delete', 'clear']) {
+    const original = IDBObjectStore.prototype[name];
+    IDBObjectStore.prototype[name] = function (...args) {
+      if (localStorage.getItem('test.failWrites') === '1') throw new DOMException('Storage is full', 'QuotaExceededError');
+      return original.apply(this, args);
+    };
+  }
+}
+const guarded = new WeakSet();
+/** Make the app's storage refuse every write (true) or take them again (false), at IndexedDB's own put/delete: storage full. Lasts across page loads and holds for every tab of the context. */
+export async function failWrites(page, on = true) {
+  const ctx = page.context();
+  if (!guarded.has(ctx)) { guarded.add(ctx); await ctx.addInitScript(writeGuard); }
+  await page.evaluate(writeGuard);
+  await page.evaluate((on) => { if (on) localStorage.setItem('test.failWrites', '1'); else localStorage.removeItem('test.failWrites'); }, on);
+}
