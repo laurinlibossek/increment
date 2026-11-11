@@ -5,7 +5,7 @@
 import { Share } from 'react-native';
 import { router } from 'expo-router';
 import {
-  encodeTemplate, decodeTemplate, usesWeight, CATEGORIES, BODY_PARTS, WEB_APP_URL,
+  encodeTemplate, decodeTemplate, setTotal, usesWeight, CATEGORIES, BODY_PARTS, WEB_APP_URL,
 } from '@increment/core';
 
 import {
@@ -49,7 +49,7 @@ export function templateShareText(t: Template, f: F) {
       else if (st.w || st.r || st.d || st.t) v = f.setText(st, ex.category);
       return v && labels[i] === 'W' ? `W ${v}` : v;
     }).filter(Boolean);
-    lines.push(`• ${f.exName(ex)}: ${f.plural(x.sets.length, 'set')}${sets.length ? ` (${sets.join(', ')})` : ''}`);
+    lines.push(`• ${f.exName(ex)}: ${f.plural(setTotal(x.sets), 'set')}${sets.length ? ` (${sets.join(', ')})` : ''}`);
   }
   lines.push('', tr('Add it to Increment: open this link, or copy it and choose Routines ⋯ → Add shared routine in the app.'),
     `${WEB_APP_URL}#template=${encodeTemplate(t, s.exercises)}`);

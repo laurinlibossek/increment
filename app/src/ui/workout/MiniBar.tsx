@@ -5,9 +5,10 @@
 // tab on Android and older iPhones (NowLiftingDock). Tap to open the session.
 import { useMemo } from 'react';
 import { Platform, View } from 'react-native';
+import { sessionState, setTotal } from '@increment/core';
 
 import { activeRecords, skipRest, useAppSelector, useAppState } from '@/data/store';
-import type { ActiveWorkout } from '@/data/types';
+import type { ActiveWorkout, EntryDraft, SetDraft } from '@/data/types';
 import { useFormat } from '@/lib/format';
 import { useNow } from '@/lib/useNow';
 import { openWorkout } from '@/lib/workout';
@@ -22,25 +23,25 @@ export const DOCK_SPACE = CONTROL.accessoryH + SPACE.s4;
 
 /**
  * The session as strokes (one group per exercise), the set being logged and
- * the counts: what the accessory and Today's card show.
+ * the counts: what the accessory and Today's card show. The set being logged
+ * is the session's own next set (sessionState: the exercise jumped to, supersets
+ * round by round); warm-ups are drawn but not counted (#38).
  */
 export function sessionView(a: ActiveWorkout, records: Map<string, unknown>) {
-  let current: { entry: number; set: number } | null = null;
+  const next = (sessionState(a, { current: a.current ?? null }) as { next: { entry: EntryDraft; set: SetDraft } | null }).next;
   let done = 0, total = 0, recordCount = 0;
-  const all: StrokeState[][] = a.exercises.map((e, i) => {
-    return e.sets.map((s, j) => {
-      const warm = s.type === 'warmup';
-      if (!warm) total++;
-      if (s.done) {
-        if (!warm) done++;
-        if (records.has(s.id)) { recordCount++; return 'record'; }
-        return warm ? 'warmup' : 'done';
-      }
-      if (!current) { current = { entry: i, set: j }; return warm ? 'warmupPending' : 'live'; }
-      return warm ? 'warmupPending' : 'pending';
-    });
-  });
-  const cur = current as { entry: number; set: number } | null;
+  const all: StrokeState[][] = a.exercises.map((e) => e.sets.map((s) => {
+    const warm = s.type === 'warmup';
+    if (!warm) total++;
+    if (s.done) {
+      if (!warm) done++;
+      if (records.has(s.id)) { recordCount++; return 'record'; }
+      return warm ? 'warmup' : 'done';
+    }
+    if (s.id === next?.set.id) return warm ? 'warmupPending' : 'live';
+    return warm ? 'warmupPending' : 'pending';
+  }));
+  const cur = next ? { entry: a.exercises.indexOf(next.entry), set: next.entry.sets.indexOf(next.set) } : null;
   // the exercise being logged (or the last one once every set is done), for the accessory
   let last = a.exercises.length - 1;
   while (last > 0 && !all[last].length) last--;
@@ -67,7 +68,9 @@ export function MiniBar({ placement = 'regular', surface = 'raised' }: { placeme
   const cur = view.current;
   const entry = cur ? a.exercises[cur.entry] : null;
   const title = entry
-    ? `${f.exName(exercises.get(entry.exerciseId)) || tr('Exercise')} · ${tr('set {n} of {total}', { n: cur!.set + 1, total: entry.sets.length })}`
+    ? `${f.exName(exercises.get(entry.exerciseId)) || tr('Exercise')} · ${entry.sets[cur!.set].type === 'warmup'
+      ? tr('warm-up set')
+      : tr('set {n} of {total}', { n: setTotal(entry.sets.slice(0, cur!.set + 1)), total: setTotal(entry.sets) })}`
     : a.name;
   const subtitle = rest ? tr('Rest {time}', { time: rest }) : entry ? `${a.name} · ${elapsed}` : elapsed;
   return (

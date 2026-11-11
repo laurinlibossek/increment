@@ -286,10 +286,11 @@ export function useSessionStrokes(a: ActiveWorkout, live: string | null) {
     const byEntry = new Map<string, StrokeState[]>();
     for (const e of a.exercises) {
       byEntry.set(e.id, e.sets.map((x) => {
-        total++;
+        // warm-ups are drawn but not counted (#38)
         const warm = x.type === 'warmup';
+        if (!warm) total++;
         if (x.done) {
-          done++;
+          if (!warm) done++;
           if (recs.has(x.id)) { records++; return 'record'; }
           return warm ? 'warmup' : 'done';
         }
@@ -380,8 +381,9 @@ export function UnitRows({
           sub = [part ? tr(part) : '', last ? tr('last {sets}', { sets: last }) : ''].filter(Boolean).join(' · ');
         }
         const groups = u.entries.map((e) => strokes.get(e.id) || []);
-        const done = groups.flat().filter((x) => x === 'done' || x === 'warmup' || x === 'record').length;
-        const count = groups.flat().length;
+        // warm-ups are drawn but not counted (#38)
+        const done = groups.flat().filter((x) => x === 'done' || x === 'record').length;
+        const count = groups.flat().filter((x) => x !== 'warmup' && x !== 'warmupPending').length;
         return (
           <UnitRow key={u.id} index={i} title={names.join(' + ')} sub={sub} groups={groups} first={i === 0}
             label={`${names.join(', ')}, ${tr('{done} of {total} sets', { done, total: count })}`}

@@ -1979,3 +1979,17 @@ test('records in a running workout (#37): one set per exercise and metric, as in
   // an exercise's first session is its baseline: no records
   assert.deepEqual(recs(running([['normal', 100, 5]]), new Map()), {});
 });
+
+test('set totals (#38): warm-ups are never counted; failure and drop sets are; sides count row by row', () => {
+  const rows = [S('warmup', 40, 10), S('warmup', 60, 5), S('normal', 80, 5), S('failure', 80, 4), S('drop', 60, 8)];
+  assert.equal(core.setTotal(rows), 3);
+  assert.equal(core.setTotal([S('warmup', 40, 10)]), 0, 'a warm-up-only exercise has no sets');
+  assert.equal(core.setTotal([]), 0);
+  // changing a set's type changes the total
+  const changed = rows.map((x, i) => (i === 0 ? { ...x, type: 'normal' } : x));
+  assert.equal(core.setTotal(changed), 4);
+  // left and right rows are two rows here (the paired totals are #54)
+  assert.equal(core.setTotal([S('normal', 20, 10, { side: 'left' }), S('normal', 20, 10, { side: 'right' })]), 2);
+  const w = { exercises: [E('a', rows), E('b', [S('warmup', 20, 10)]), E('c', [S('normal', 10, 10)])] };
+  assert.equal(core.workoutSetCount(w), 4);
+});

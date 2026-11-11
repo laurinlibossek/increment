@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { kgTo, PR_LABEL, workoutVolume } from '@increment/core';
+import { kgTo, PR_LABEL, workoutSetCount, workoutVolume } from '@increment/core';
 
 import { finishResult, stats, useAppSelector } from '@/data/store';
 import type { Category, WorkSet } from '@/data/types';
@@ -70,7 +70,7 @@ export default function Summary() {
   const prs = (r ? r.prs : stats().prsByWorkout.get(w.id) || []) as Pr[];
   const number = r ? r.number : workouts.filter((x) => x.startedAt <= w.startedAt).length;
   const volume = r ? r.volume : workoutVolume(w, exercises) as number;
-  const sets = w.exercises.reduce((n, e) => n + e.sets.length, 0);
+  const sets = workoutSetCount(w) as number;
   const recordSets = new Set(prs.map((p) => p.setId).filter((x): x is string => !!x));
   const setById = new Map<string, WorkSet>();
   for (const e of w.exercises) for (const s of e.sets) setById.set(s.id, s);

@@ -26,7 +26,7 @@ Laurin's roadmap (6 Nov 2026): most features into the app, launch the web app, u
 
 ## Open items, any order
 
-- **From the survey of 11 Nov 2026** (the code read end to end, the suspects reproduced in the web build): the bugs are issues #34 to #42, ordered in #55. #34 and #35 are done (under Done). Next: #25 (the iPhone keyboard over the app's keypad), #40 (the Strong import's matching), #28, #43, #36 (Today keeps yesterday's date overnight) and #37 (the session counted more records than the summary) are done too. Next: #38, #39 and #41. #26 (the tab highlight lagging behind a swipe) was filed against the native swipe that #24 removed: check on the phone whether anything of it is left, then close it.
+- **From the survey of 11 Nov 2026** (the code read end to end, the suspects reproduced in the web build): the bugs are issues #34 to #42, ordered in #55. #34 and #35 are done (under Done). Next: #25 (the iPhone keyboard over the app's keypad), #40 (the Strong import's matching), #28, #43, #36 (Today keeps yesterday's date overnight), #37 (the session counted more records than the summary) and #38 (warm-ups in set counts) are done too. Next: #39 and #41. #26 (the tab highlight lagging behind a swipe) was filed against the native swipe that #24 removed: check on the phone whether anything of it is left, then close it.
 - Before the store release, decide native tab swipe: a pager that follows the finger needs non-native tabs (losing the Liquid Glass bar, its minimizing and the workout accessory), or no swipe.
 - Not answered yet: "Account" in German (kept as "Account"); the body part under the exercise name in the session; added exercises wait under Up next; the just-logged exercise stays on screen during its rest; the routine editor keeps RPE as a target.
 - Unknowns that need Laurin's input: where Strong puts exercise notes in a real export (sticky notes are probably not exported at all), and what Strong's exercise ⋯ → Preferences contains.
@@ -50,6 +50,8 @@ Reference for anyone touching the summary or routines.
 
 
 ## Done
+
+- **Set counts leave warm-ups out** (#38, 11 Nov 2026, `claude/blissful-curie-qqol89`): the session counted warm-ups in "x of y sets", Today didn't, and the summary and Workouts counted them again. Now no number of sets counts them, anywhere; they're still logged and drawn. Now Lifting follows the session's own next set (after jumping to an exercise too) and says "warm-up set" during a warm-up. Core `setTotal` (unit test) and `tests/browser/app-set-counts.mjs` (3 checks). Also: `app-workouts-list` scrolls on until the list has rendered the last row (a FlatList renders in batches; it failed once on CI).
 
 - **Records while lifting agree with the summary** (#37, 11 Nov 2026, `claude/blissful-curie-qqol89`): after a best of 95 kg × 5, three sets of 100 kg × 5 used to show three records in the session and one in the summary. The session, Now Lifting, Today's card and the record haptic now follow the summary's rule: one record per exercise and metric, the first of equal sets, taken over by a later, better set and given back when that one is unchecked or deleted. Core `liveRecordSets` (unit test) and `tests/browser/app-live-records.mjs` (4 checks). The haptic still needs a check on the phone: an equal set gets the light tap, not the record one.
 

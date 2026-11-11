@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { ScrollView, Text, View } from 'react-native';
-import { EXAMPLE_TEMPLATES, usesWeight } from '@increment/core';
+import { EXAMPLE_TEMPLATES, setTotal, usesWeight } from '@increment/core';
 
 import { copyTemplate, useAppState } from '@/data/store';
 import type { Template } from '@/data/types';
@@ -71,7 +71,7 @@ export default function TemplatePreview() {
             if (usesWeight(exr.category) && (x.w === undefined || x.w === null) && x.r) return f.plural(x.r, 'rep');
             return x.w || x.r || x.t || x.d ? f.setText(x, exr.category, true) : null;
           }).filter(Boolean);
-          const sub = f.plural(e.sets.length, 'set')
+          const sub = f.plural(setTotal(e.sets), 'set')
             + (targets.length ? ' · ' + [...new Set(targets)].join(', ') : '')
             + (e.restSec ? ` · ${tr('rest {time}', { time: f.clock(e.restSec) })}` : '');
           return <ListRow key={i} first={i === 0} testID={`template-exercise-${i}`}

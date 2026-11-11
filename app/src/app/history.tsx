@@ -7,7 +7,7 @@ import {
 } from 'react-native';
 import { router, Stack } from 'expo-router';
 import {
-  startOfMonth, startOfDay, addMonths, calendarMonth, workoutVolume,
+  startOfMonth, startOfDay, addMonths, calendarMonth, workoutSetCount, workoutVolume,
 } from '@increment/core';
 
 import { stats, useAppState, type State } from '@/data/store';
@@ -195,7 +195,7 @@ function WorkoutRow({ w, s, f, first, day = true }: { w: Workout; s: State; f: F
   const { tr } = f;
   const prs = stats(s).prsByWorkout.get(w.id) || [];
   const recordSets = new Set<string>(prs.map((p: { setId: string }) => p.setId));
-  const sets = w.exercises.reduce((n, e) => n + e.sets.length, 0);
+  const sets = workoutSetCount(w) as number;
   const tallyLine = [f.plural(sets, 'set'), recordSets.size ? f.plural(recordSets.size, 'record') : ''].filter(Boolean).join(' · ');
   const vol = workoutVolume(w, s.exercises);
   const meta = [day ? f.date.workoutDay(w.startedAt) : '', hm((w.endedAt || w.startedAt) - w.startedAt), vol > 0 ? f.volume(vol) : ''].filter(Boolean).join(' · ');
