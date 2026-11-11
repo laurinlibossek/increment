@@ -30,9 +30,9 @@ function Tip({ left, width, value, sub }: { left: number; width: number; value: 
   const half = SPACE.s8 * 2;
   const x = Math.min(Math.max(left, half), width - half);
   return (
-    <View pointerEvents="none" style={[styles.tip, { left: x - half, backgroundColor: c.ink }]} testID="chart-tip">
-      <Text style={[TYPE.headline, { color: c.bg, textAlign: 'center' }]} numberOfLines={1}>{value}</Text>
-      <Text style={[TYPE.caption, { color: c.bg, textAlign: 'center' }]} numberOfLines={1}>{sub}</Text>
+    <View pointerEvents="none" style={[styles.tip, { left: x - half, backgroundColor: c.chart }]} testID="chart-tip">
+      <Text style={[TYPE.headline, { color: c.primaryInk, textAlign: 'center' }]} numberOfLines={1}>{value}</Text>
+      <Text style={[TYPE.caption, { color: c.primaryInk, textAlign: 'center' }]} numberOfLines={1}>{sub}</Text>
     </View>
   );
 }

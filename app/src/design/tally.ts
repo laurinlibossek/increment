@@ -9,7 +9,7 @@ export const TALLY_THEME_IDS = [
   'intense-red'
 ] as const;
 export type TallyThemeId = (typeof TALLY_THEME_IDS)[number];
-export type TallyColors = { paper: string; paper2: string; paper3: string; controlOn: string; diffAdded: string; diffRemoved: string; line: string; ink: string; ink2: string; ink3: string; strokeDone: string; primary: string; onPrimary: string; accent: string; signal: string; onSignal: string; signalEdge: string; danger: string; glass: string; focus: string };
+export type TallyColors = { paper: string; paper2: string; paper3: string; controlOn: string; diffAdded: string; diffRemoved: string; line: string; ink: string; ink2: string; ink3: string; strokeDone: string; primary: string; onPrimary: string; accent: string; chart: string; signal: string; onSignal: string; signalEdge: string; danger: string; glass: string; focus: string };
 export type TallyTheme = { scheme: 'light' | 'dark'; colors: TallyColors };
 
 export const TALLY_THEMES: Record<TallyThemeId, TallyTheme> = {
@@ -30,6 +30,7 @@ export const TALLY_THEMES: Record<TallyThemeId, TallyTheme> = {
       primary: '#0d0d0c',
       onPrimary: '#ffffff',
       accent: '#0d0d0c',
+      chart: '#0d0d0c',
       signal: '#ffd60a',
       onSignal: '#0d0d0c',
       signalEdge: '#0d0d0c',
@@ -55,6 +56,7 @@ export const TALLY_THEMES: Record<TallyThemeId, TallyTheme> = {
       primary: '#f4f4f0',
       onPrimary: '#000000',
       accent: '#f4f4f0',
+      chart: '#f4f4f0',
       signal: '#ffd60a',
       onSignal: '#0d0d0c',
       signalEdge: '#ffd60a',
@@ -80,6 +82,7 @@ export const TALLY_THEMES: Record<TallyThemeId, TallyTheme> = {
       primary: '#bf3f55',
       onPrimary: '#fbf8f2',
       accent: '#476e2b',
+      chart: '#bf3f55',
       signal: '#c94159',
       onSignal: '#ffffff',
       signalEdge: '#9e2f43',
@@ -93,7 +96,7 @@ export const TALLY_THEMES: Record<TallyThemeId, TallyTheme> = {
     colors: {
       paper: '#000000',
       paper2: '#141414',
-      paper3: '#242424',
+      paper3: '#37171a',
       controlOn: '#6e6e6e',
       diffAdded: '#1e4a2a',
       diffRemoved: '#5a1f1c',
@@ -102,9 +105,10 @@ export const TALLY_THEMES: Record<TallyThemeId, TallyTheme> = {
       ink2: '#bdbdbd',
       ink3: '#8c8c8c',
       strokeDone: '#e5202e',
-      primary: '#f5f5f5',
-      onPrimary: '#000000',
-      accent: '#f5f5f5',
+      primary: '#d91f2c',
+      onPrimary: '#ffffff',
+      accent: '#ff4f5a',
+      chart: '#d91f2c',
       signal: '#f2b233',
       onSignal: '#0d0d0c',
       signalEdge: '#f2b233',
