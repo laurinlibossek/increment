@@ -55,7 +55,8 @@ export function templateFromDraft(draft, {
       notes: (draft.notes || '').trim(),
       exercises: draftEntries(draft, settings, exercises, { keepEmpty: true }).map((e) => ({
         exerciseId: e.exerciseId, notes: e.notes, supersetId: e.supersetId, restSec: e.restSec, focus: e.focus,
-        sets: e.sets.map(({ id: _id, ...rest }) => rest),
+        // a routine's sets are targets: no set ids, no logging times (#43)
+        sets: e.sets.map(({ id: _id, doneAt: _doneAt, ...rest }) => rest),
       })),
     },
   };

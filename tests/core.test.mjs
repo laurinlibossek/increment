@@ -923,6 +923,52 @@ test('Strong import (#40): exact names pass the field check, negative weights an
   assert.deepEqual([again.review.length, again.matches['Pull Up']], [0, 'x-pull-up-weighted']);
 });
 
+test('logging times (#43): set by logging, gone on uncheck, kept by edits and backups, never copied into routines or new sessions', () => {
+  const st = core.withDefaults({ unit: 'kg', distUnit: 'km' });
+  const bench = core.SEED_EXERCISES.find((e) => e.id === 'x-bench-press-barbell');
+  const exercises = new Map([[bench.id, bench]]);
+  const draft = core.newActiveWorkout({ template: { id: 't', name: 'Push', exercises: [E(bench.id, [S('normal', 60, 8), S('normal', 60, 8), S('normal', 60, 8)])] }, settings: st, now: 1000 });
+  const entry = draft.exercises[0];
+  assert.ok(entry.sets.every((x) => !('doneAt' in x)), 'a new session has none');
+  // a set that can't be logged yet gets no time
+  assert.ok(core.checkOffSet(draft, entry, 0, { category: 'barbell', ph: {}, rest: 0, settings: st, now: 5000 }).problem);
+  assert.equal(entry.sets[0].doneAt, undefined);
+  const ph = { w: '60', r: '8' };
+  core.checkOffSet(draft, entry, 0, { category: 'barbell', ph, rest: 0, settings: st, now: 5000 });
+  assert.equal(entry.sets[0].doneAt, 5000);
+  core.uncheckSet(entry.sets[0]);
+  assert.deepEqual([entry.sets[0].done, 'doneAt' in entry.sets[0]], [false, false]);
+  core.checkOffSet(draft, entry, 0, { category: 'barbell', ph, rest: 0, settings: st, now: 7000 });
+  assert.equal(entry.sets[0].doneAt, 7000, 'logging again takes the new time');
+  // Save them as done: pending sets get the Finish time, a time already there stays
+  entry.sets[1].w = '62.5';
+  entry.sets[2].w = '65';
+  entry.sets[2].doneAt = 6000; // e.g. logged, then edited back to pending by an older version
+  core.logPendingSets(draft, new Map([[entry.sets[1].id, { w: '62.5', r: '8' }], [entry.sets[2].id, { w: '65', r: '8' }]]), 9000);
+  assert.deepEqual(entry.sets.map((x) => x.doneAt), [7000, 9000, 6000]);
+  const workout = core.finishWorkout(draft, { settings: st, exercises, now: 10000, mode: 'done' });
+  assert.deepEqual(workout.exercises[0].sets.map((x) => x.doneAt), [7000, 9000, 6000]);
+  // Edit workout and backups keep them; an old set without one stays without
+  const old = { ...workout, exercises: [{ ...workout.exercises[0], sets: [...workout.exercises[0].sets, { id: 'old', type: 'normal', w: 50, r: 5 }] }] };
+  const edited = core.workoutFromEditDraft(core.workoutEditDraft(old, st), { settings: st, exercises }).workout;
+  assert.deepEqual(edited.exercises[0].sets.map((x) => x.doneAt), [7000, 9000, 6000, undefined]);
+  assert.equal('doneAt' in edited.exercises[0].sets[3], false);
+  const restored = core.parseBackup(core.makeBackup({ exercises: [bench], workouts: [old], templates: [], measurements: [], kv: {} }, 't')).data.workouts[0];
+  assert.deepEqual(restored, old);
+  // routines, copies, links and new sessions never take them
+  const noTimes = (list) => list.every((e) => e.sets.every((x) => !('doneAt' in x)));
+  const saveAs = core.templateFromDraft(core.templateDraft({ workout, settings: st }), { settings: st, exercises }).template;
+  assert.ok(noTimes(saveAs.exercises), 'Save as routine');
+  assert.ok(noTimes(core.applyWorkoutToTemplate(saveAs.exercises, workout)), 'Update routine');
+  assert.ok(noTimes(core.applyWorkoutToTemplate(saveAs.exercises, workout, { valuesOnly: true })), 'Update routine values');
+  assert.ok(noTimes(core.progressTemplate(saveAs.exercises, workout, () => 'barbell').exercises), 'progression');
+  assert.ok(noTimes(core.cleanTemplateExercises(workout.exercises)), 'cleaned routine');
+  assert.ok(noTimes(core.copyTemplateRecord(saveAs, { hasExercise: () => true }).exercises), 'Duplicate');
+  assert.doesNotMatch(core.encodeTemplate(saveAs, exercises), /doneAt/);
+  assert.ok(noTimes(core.newActiveWorkout({ fromWorkout: workout, settings: st, now: 20000 }).exercises), 'Do this workout again');
+  assert.ok(noTimes(core.newActiveWorkout({ template: saveAs, settings: st, now: 20000 }).exercises), 'start the routine');
+});
+
 // ---------- export and backup contracts (#28) ----------
 const fixture = (name) => fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), 'fixtures', name), 'utf8');
 /** Run with the timezone pinned (CSV dates are local time). */

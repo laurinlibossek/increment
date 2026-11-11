@@ -138,14 +138,16 @@ export function setProblem(set, cat, settings) {
  * Check off set `i` of `entry`: empty fields come from the placeholders.
  * Returns { problem } when it can't be checked off yet (the set keeps what
  * was filled in, like the web app always did), else { rest } with the
- * seconds of rest to start (0 for none).
+ * seconds of rest to start (0 for none). A logged set gets `doneAt`: when the
+ * person logged it (#43), not proof of when the set ended.
  */
-export function checkOffSet(draft, entry, i, { category, ph, rest, settings }) {
+export function checkOffSet(draft, entry, i, { category, ph, rest, settings, now = Date.now() }) {
   const set = entry.sets[i];
   Object.assign(set, completeSet(set, ph, category));
   const problem = setProblem(set, category, settings);
   if (problem) return { problem };
   set.done = true;
+  set.doneAt = now;
   // inside a superset the rest starts after the last exercise of the round
   if (entry.supersetId) {
     const group = draft.exercises.filter((e) => e.supersetId === entry.supersetId);
@@ -153,6 +155,27 @@ export function checkOffSet(draft, entry, i, { category, ph, rest, settings }) {
   }
   if (!(rest > 0)) return { rest: 0 };
   return { rest: set.type === 'warmup' ? Math.min(rest, 60) : rest };
+}
+
+/** Uncheck a logged set: it's no longer logged, so its logging time goes too. */
+export function uncheckSet(set) {
+  set.done = false;
+  delete set.doneAt;
+}
+
+/**
+ * "Save them as done" at Finish: the pending sets (from pendingSets) are filled
+ * and logged now; a set keeps a logging time it already has (#43).
+ * `filled` maps set id -> the filled values.
+ */
+export function logPendingSets(draft, filled, now = Date.now()) {
+  for (const e of draft.exercises) {
+    for (const x of e.sets) {
+      if (!filled.has(x.id)) continue;
+      Object.assign(x, filled.get(x.id), { done: true });
+      if (!x.doneAt) x.doneAt = now;
+    }
+  }
 }
 
 /** Copy the previous set's values into a row (tapping the "Previous" column). */
