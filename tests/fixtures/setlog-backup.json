@@ -1,0 +1,31 @@
+{
+  "app": "setlog",
+  "schema": 1,
+  "appVersion": "1.6.0",
+  "exportedAt": "2026-10-20T18:00:00.000Z",
+  "data": {
+    "exercises": [
+      { "id": "x-bench-press-barbell", "name": "Bench Press (Barbell)", "category": "barbell", "bodyPart": "chest", "builtin": true, "restSec": 150, "pinnedNote": "Elbows in" },
+      { "id": "c-moon-lift", "name": "Moon Lift (Cable)", "category": "machine", "bodyPart": "back", "family": "fc-moon", "notes": "Low pulley", "imported": true, "createdAt": 1700000000000 },
+      { "id": "c-old-row", "name": "Old Row", "category": "machine", "bodyPart": "back", "hidden": true }
+    ],
+    "workouts": [
+      { "id": "w1", "name": "Push", "notes": "Good, fast", "startedAt": 1760983200000, "endedAt": 1760986800000, "templateId": "t1", "source": "strong",
+        "exercises": [{ "id": "e1", "exerciseId": "x-bench-press-barbell", "notes": "Pause", "restSec": 120, "supersetId": "g1", "focus": "speed",
+          "sets": [{ "id": "s1", "type": "warmup", "w": 20, "r": 10 }, { "id": "s2", "type": "normal", "w": 62.5, "r": 8, "rir": 1, "side": "left", "doneAt": 1760983500000, "later": "kept" }] }] }
+    ],
+    "templates": [
+      { "id": "t1", "name": "Push", "folder": "Strength", "notes": "Heavy day", "archived": false, "lastUsedAt": 1760986800000, "createdAt": 1700000000000, "updatedAt": 1700000500000,
+        "exercises": [{ "exerciseId": "x-bench-press-barbell", "restSec": 150, "sets": [{ "type": "normal", "w": 60, "r": 8, "rpe": 8 }] }] }
+    ],
+    "measurements": [{ "id": "m1", "type": "bodyweight", "value": 80.4, "at": 1760900000000 }],
+    "kv": {
+      "settings": { "unit": "kg", "theme": "dark", "language": "de" },
+      "profile": { "name": "Test" },
+      "meta": { "seedVersion": 1, "createdAt": 1700000000000, "lastBackupAt": 1760000000000, "folders": ["Strength", "Empty"] },
+      "strongAliases": { "Kenan Flaps": "x-keenan-flap-cable" },
+      "customFamilies": { "fc-moon": "Moon Lift", "fc-gone": "Nobody" },
+      "futureKey": { "anything": [1, 2, 3] }
+    }
+  }
+}

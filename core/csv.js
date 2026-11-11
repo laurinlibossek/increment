@@ -498,9 +498,20 @@ function isoLocal(t) {
   const d = new Date(t);
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
+/** A number as Strong writes it: always with a decimal point (20.0, 8.0, 62.5), never fewer decimals than it has. */
+const strongNumber = (n) => (Number.isInteger(n) ? n.toFixed(1) : String(n));
+/** A text cell Strong always quotes (names, the first row's notes), even empty. */
+const quoted = (v) => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+
 /**
  * All workouts as a Strong-style CSV: weights in `unit` (kg | lb), distances in
- * `distUnit` (km | mi). `exercises` maps id -> exercise.
+ * `distUnit` (km | mi). `exercises` maps id -> exercise. The style is Strong's own
+ * export (#28, pinned by tests/fixtures/strong-export-*.csv): local date and
+ * time; workout and exercise names quoted; weight, reps and seconds as decimals
+ * (20.0, 8.0, 0.0); distance 0 when there is none, else a decimal; W, D, F or
+ * the working set's number; the notes quoted on an exercise's first row, the
+ * workout notes on the workout's first row, both empty elsewhere; RPE as it is
+ * (from reps in reserve: 10 − RIR); one newline at the end.
  */
 export function exportCSV({ workouts, exercises, unit = 'kg', distUnit = 'km', unknownName = 'Unknown exercise' }) {
   const st = { unit, distUnit };
@@ -508,6 +519,7 @@ export function exportCSV({ workouts, exercises, unit = 'kg', distUnit = 'km', u
   const asc = [...workouts].sort((a, b) => a.startedAt - b.startedAt);
   for (const w of asc) {
     const dur = strongDuration((w.endedAt || w.startedAt) - w.startedAt);
+    let firstOfWorkout = true;
     for (const e of w.exercises) {
       const name = exercises.get(e.exerciseId)?.name || unknownName;
       let n = 0;
@@ -517,16 +529,18 @@ export function exportCSV({ workouts, exercises, unit = 'kg', distUnit = 'km', u
         else if (s.type === 'drop') order = 'D';
         else if (s.type === 'failure') order = 'F';
         else order = String(++n);
+        const d = s.d ? Math.round(kmTo(s.d, st.distUnit) * 1000) / 1000 : 0;
         lines.push([
-          isoLocal(w.startedAt), w.name, dur, name, order,
-          s.w !== undefined && s.w !== null ? roundW(kgTo(s.w, st.unit), st.unit) : 0,
-          s.r || 0,
-          s.d ? Math.round(kmTo(s.d, st.distUnit) * 1000) / 1000 : 0,
-          s.t || 0,
-          i === 0 ? e.notes || '' : '',
-          w.notes || '',
-          s.rpe || rpeFromRir(s.rir) || '',
-        ].map(csvCell).join(','));
+          csvCell(isoLocal(w.startedAt)), quoted(w.name), csvCell(dur), quoted(name), order,
+          strongNumber(s.w !== undefined && s.w !== null ? roundW(kgTo(s.w, st.unit), st.unit) : 0),
+          strongNumber(s.r || 0),
+          d ? strongNumber(d) : '0',
+          strongNumber(s.t || 0),
+          i === 0 ? quoted(e.notes || '') : '',
+          firstOfWorkout ? quoted(w.notes || '') : '',
+          csvCell(s.rpe || rpeFromRir(s.rir) || ''),
+        ].join(','));
+        firstOfWorkout = false;
       });
     }
   }
