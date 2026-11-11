@@ -23,6 +23,7 @@ import { TabRoot } from '@/ui/tally/TabRoot';
 import type { StrokeState } from '@/ui/tally/Tally';
 import { WeekStrip } from '@/ui/tally/WeekStrip';
 import { useSessionView } from '@/ui/workout/MiniBar';
+import { useToday } from '@/lib/useNow';
 
 type Why = { kind: 'after' | 'weekday' | 'due'; name?: string; day?: number; at?: number };
 
@@ -33,13 +34,15 @@ export default function TodayTab() {
   const { locale } = useLang();
   const { colors: t } = useTally();
   const session = useSessionView();
-  const sug = useMemo(() => (s.active ? null : suggestion(s)), [s.templates, s.workouts, !s.active]); // eslint-disable-line react-hooks/exhaustive-deps
+  // the date, the week, the suggestion and the last seven days follow the day (#36)
+  const today = useToday();
+  const sug = useMemo(() => (s.active ? null : suggestion(s)), [s.templates, s.workouts, !s.active, today]); // eslint-disable-line react-hooks/exhaustive-deps
   const goal = s.settings.weeklyGoal || 3;
   const week = useMemo(() => weekStrip(s.workouts, { weekStart: s.settings.weekStart, goal }) as {
     days: { start: number; done: number; planned: boolean }[]; today: number; done: number; goal: number;
-  }, [s.workouts, s.settings.weekStart, goal]);
-  const muscles = useMemo(() => setsPerMuscle(s.workouts, s.exercises) as { muscle: string; label: string; sets: number }[], [s.workouts, s.exercises]);
-  const date = new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'long' }).format(Date.now());
+  }, [s.workouts, s.settings.weekStart, goal, today]); // eslint-disable-line react-hooks/exhaustive-deps
+  const muscles = useMemo(() => setsPerMuscle(s.workouts, s.exercises) as { muscle: string; label: string; sets: number }[], [s.workouts, s.exercises, today]); // eslint-disable-line react-hooks/exhaustive-deps
+  const date = new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'long' }).format(today);
 
   const why = (w: Why) => {
     if (w.kind === 'weekday') {

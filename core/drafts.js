@@ -33,6 +33,8 @@ export function setToDraft(s, st, keepId = true) {
   const rir = normRir(s.rir);
   if (rir !== null) d.rir = rir;
   if (sideOf(s)) d.side = sideOf(s);
+  // when a performed set was logged (#43): kept by Edit workout and backups, never by routines
+  if (Number.isFinite(s.doneAt)) d.doneAt = s.doneAt;
   const orig = {};
   if (d.w !== '') orig.w = [d.w, s.w];
   if (d.d !== '') orig.d = [d.d, s.d];
@@ -54,6 +56,7 @@ export function draftToSet(sd, st) {
   const rir = normRir(sd.rir);
   if (rir !== null) out.rir = rir;
   if (sideOf(sd)) out.side = sideOf(sd);
+  if (Number.isFinite(sd.doneAt)) out.doneAt = sd.doneAt;
   return out;
 }
 

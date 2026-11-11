@@ -17,6 +17,8 @@ export interface WorkSet {
   rpe?: number;
   /** reps left in reserve: 0–3 (3 = "3+"); older sets may have RPE instead */
   rir?: number;
+  /** when the person logged it (ms; #43): set by the tick, Log or Next, gone on uncheck; older and imported sets have none */
+  doneAt?: number;
 }
 
 export interface Entry {
@@ -40,7 +42,8 @@ export interface Workout {
   source?: string;
 }
 
-export type TemplateSet = Omit<WorkSet, 'id'>;
+/** A routine's set: a target, so nothing that only a performed set has (id, logging time). */
+export type TemplateSet = Omit<WorkSet, 'id' | 'doneAt'>;
 export interface TemplateEntry extends Omit<Entry, 'id' | 'sets'> {
   sets: TemplateSet[];
 }
@@ -123,6 +126,8 @@ export interface SetDraft {
   /** reps left in reserve, rated after the set (0–3) */
   rir?: number;
   done: boolean;
+  /** when it was logged (ms; #43) */
+  doneAt?: number;
   /** template target, shown as the placeholder */
   tpl?: { w: number | null; r: number | null; d: number | null; t: number | null };
   /** stored numbers behind untouched text */

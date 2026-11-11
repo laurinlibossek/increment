@@ -12,7 +12,7 @@ import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import {
   placeholders, restFor, addSet, joinSuperset, leaveSuperset, replaceExercise, addWarmups, rateSet, setRir, setSetType,
-  isLiveRecord, loggedFields, usesWeight, usesDistance, numToInput, parseNum, focusOptions, focusValues,
+  isLiveRecord, loggedFields, usesWeight, usesDistance, numToInput, parseNum, focusOptions, focusValues, uncheckSet,
   REST_CHOICES, RPE_CHOICES, RIR_CHOICES, SET_TYPES, FOCUS_LABEL, BODY_PART_LABEL,
 } from '@increment/core';
 
@@ -75,7 +75,7 @@ export const ExerciseBlock = memo(function ExerciseBlock({
   // ---------- sets ----------
   const toggle = (i: number) => {
     const set = entry.sets[i];
-    if (set.done) { edit((e) => { e.sets[i].done = false; }); return; }
+    if (set.done) { edit((e) => { uncheckSet(e.sets[i]); }); return; }
     session?.logSet(entry.id, set.id);
   };
   const removeSet = (i: number) => {

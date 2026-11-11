@@ -6,7 +6,7 @@
 import { useSyncExternalStore } from 'react';
 import { router } from 'expo-router';
 import {
-  progressOf, workoutNameKey, pendingSets, templateChanges, progressTemplate,
+  progressOf, workoutNameKey, pendingSets, logPendingSets, templateChanges, progressTemplate,
 } from '@increment/core';
 
 import {
@@ -92,7 +92,7 @@ export async function finishFlow(f: F) {
     if (c === 'all') {
       const filled = new Map(pending.map((p) => [p.set.id, p.filled]));
       editActive((draft) => {
-        for (const e of draft.exercises) for (const x of e.sets) if (filled.has(x.id)) Object.assign(x, filled.get(x.id), { done: true });
+        logPendingSets(draft, filled, Date.now());
       });
     }
   } else {
