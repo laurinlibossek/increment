@@ -20,6 +20,7 @@ import { SectionHeader } from '@/ui/tally/SectionHeader';
 import { StatStrip } from '@/ui/tally/StatStrip';
 import { SearchButton } from '@/ui/tally/SearchButton';
 import { TabRoot } from '@/ui/tally/TabRoot';
+import { useToday } from '@/lib/useNow';
 
 export default function ProgressTab() {
   const s = useAppState();
@@ -27,6 +28,8 @@ export default function ProgressTab() {
   const { tr } = f;
   const { colors: t } = useTally();
   const goal = s.settings.weeklyGoal || 3;
+  // the 30 days and the backup reminder move on with the day (#36)
+  const today = useToday();
 
   const m = useMemo(() => {
     const weekStart = s.settings.weekStart;
@@ -45,7 +48,7 @@ export default function ProgressTab() {
       weeks: weeklyCounts(s.workouts, { weeks: 12, weekStart }) as { start: number; value: number }[],
       streak: weekStreak(s.workouts, { goal, weekStart }) as number,
     };
-  }, [s.workouts, s.exercises, s.settings, goal]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [s.workouts, s.exercises, s.settings, goal, today]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const vol = f.totalVolume(m.volume);
   const bw = s.measurements.find((x) => x.type === 'bodyweight');

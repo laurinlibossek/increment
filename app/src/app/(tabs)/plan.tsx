@@ -20,6 +20,7 @@ import { ListRow, SymbolIcon } from '@/ui/tally/ListRow';
 import { SectionHeader } from '@/ui/tally/SectionHeader';
 import { SearchButton } from '@/ui/tally/SearchButton';
 import { TabRoot } from '@/ui/tally/TabRoot';
+import { useToday } from '@/lib/useNow';
 import { actionSheet, toast } from '@/ui/overlay';
 
 function lastUsed(t: Template, workouts: { templateId: string | null; startedAt: number }[]) {
@@ -33,6 +34,8 @@ export default function PlanTab() {
   const f = useFormat();
   const { tr } = f;
   const { colors: t } = useTally();
+  // "today", "yesterday" and weekdays move on with the day (#36)
+  useToday();
   const [closed, setClosed] = useState<Record<string, boolean>>({ __archived: true });
   const toggle = (k: string) => setClosed({ ...closed, [k]: !closed[k] });
 

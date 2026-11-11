@@ -51,6 +51,8 @@ Reference for anyone touching the summary or routines.
 
 ## Done
 
+- **Screens move on at midnight** (#36, 11 Nov 2026, `claude/blissful-curie-qqol89`): Today, Plan and Progress used to keep yesterday's date until the app was reloaded. They now change at local midnight while open (a single timer to the next midnight, right across daylight-saving changes) and when the app comes back to the foreground, without touching the data.
+
 - **When each set was logged** (#43, 11 Nov 2026, `claude/blissful-curie-qqol89`): logging a set (tick, Log, the keypad's Next) now stores the time on it (`doneAt`), unchecking removes it, and "Save them as done" at Finish gives the pending sets the Finish time. Edit workout and backups keep it; routines, Save as routine, Duplicate, shared links and new sessions never take it; older and imported sets have none; the CSV is unchanged. Nothing shows it yet: it's history collected now for a later timeline or rest view.
 
 - **CSV export in Strong's style, export and backup contracts pinned** (#28, 11 Nov 2026, Laurin's decision, `claude/blissful-curie-qqol89`): Export as CSV now writes exactly like Strong's own export (names quoted, `20.0`, `8.0`, `0.0`, distance `0` or a decimal, notes on the first row). Golden files pin the format in kg/km and lb/mi; app-only fields can't change it; export → import keeps the training data within stated rounding; a synthetic Setlog backup pins what restore keeps and normalizes. Strong itself has no import (Laurin checked, 11 Nov 2026): the format is for apps that read Strong exports and for Increment's own import, which the round-trip test covers.
