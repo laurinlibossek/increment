@@ -18,6 +18,7 @@ import {
 } from '@/ui/overlay';
 import { setLabels, type Format } from './format';
 import type { Tr } from './i18n';
+import { attempt } from './saving';
 
 type F = Format & { tr: Tr };
 
@@ -95,11 +96,11 @@ export async function templateMenu(t: Template, f: F): Promise<string | undefine
     const v = await prompt({ title: tr('Rename routine'), value: t.name });
     if (v && v.trim()) await patchTemplate(t.id, { name: v.trim() });
   }
-  if (c === 'dup') { await copyTemplate(t, { name: tr('{name} (copy)', { name: t.name }) }); toast(tr('Routine duplicated')); }
+  if (c === 'dup' && await attempt(tr, copyTemplate(t, { name: tr('{name} (copy)', { name: t.name }) }))) toast(tr('Routine duplicated'));
   if (c === 'folder') await moveToFolder(t, f);
   if (c === 'archive') {
     const archived = !t.archived;
-    await patchTemplate(t.id, { archived });
+    if (!(await attempt(tr, patchTemplate(t.id, { archived }).then(() => true)))) return c;
     toast(archived ? tr('“{name}” archived', { name: t.name }) : tr('“{name}” is back in your routines', { name: t.name }),
       archived ? { label: tr('Undo'), fn: () => { patchTemplate(t.id, { archived: false }); } } : undefined);
   }
@@ -109,7 +110,7 @@ export async function templateMenu(t: Template, f: F): Promise<string | undefine
       title: tr('Delete “{name}”?', { name: t.name }), message: tr('Past workouts stay in your history.'), ok: tr('Delete'), cancel: tr('Cancel'), destructive: true, testID: 'confirm-delete',
     });
     if (!ok) return undefined;
-    const gone = await deleteTemplate(t.id);
+    const gone = await attempt(tr, deleteTemplate(t.id));
     if (gone) toast(tr('Routine deleted'), { label: tr('Undo'), fn: () => { saveTemplate(gone); } });
     return 'deleted';
   }
@@ -212,7 +213,8 @@ export async function offerSharedTemplate(text: string, f: F): Promise<boolean> 
     if (x.focus) e.focus = x.focus;
     exercises.push(e);
   }
-  const t = await copyTemplate({ id: '', name: p.name, notes: p.notes, exercises });
+  const t = await attempt(tr, copyTemplate({ id: '', name: p.name, notes: p.notes, exercises }));
+  if (!t) return true;
   toast(tr('“{name}” added to your routines', { name: t.name }));
   return true;
 }

@@ -7,12 +7,13 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as WebBrowser from 'expo-web-browser';
 import { File } from 'expo-file-system';
 import {
-  DEFAULT_WARMUP, FORMULAS, REST_CHOICES, WEB_APP_URL, exportCSV, parsePlates, privacyPage, startOfDay,
+  DEFAULT_WARMUP, FORMULAS, REST_CHOICES, WEB_APP_URL, exportCSV, parsePlates, privacyPage, runningWorkoutChoice, startOfDay,
 } from '@increment/core';
 
 import {
-  deleteAllData, readBackup, readStrong, restoreBackup, setProfile, setSetting, strongNothingNew, useAppState,
+  backupText, deleteAllData, getState, readBackup, readStrong, restoreBackup, setProfile, setSetting, strongNothingNew, useAppState,
 } from '@/data/store';
+import type { ActiveWorkout } from '@/data/types';
 import type { LanguageSetting, Settings, ThemeSetting } from '@/data/types';
 import { appVersion, backupNow } from '@/lib/backup';
 import { dateStamp, saveTextFile } from '@/lib/files';
@@ -21,6 +22,7 @@ import { ENABLE_GERMAN } from '@/lib/i18n';
 import { reviewStrongImport } from '@/lib/strongImport';
 import { bodyUnit, lengthUnit } from '@/lib/measure';
 import { confirm, notice } from '@/lib/notice';
+import { attempt } from '@/lib/saving';
 import { RADIUS, SPACE, TYPE } from '@/design/tally';
 import { useTally } from '@/lib/theme';
 import { HeaderButton, Txt } from '@/ui/kit';
@@ -29,7 +31,7 @@ import { SymbolIcon } from '@/ui/tally/ListRow';
 import { SectionHeader } from '@/ui/tally/SectionHeader';
 import { SettingRow, SwitchSettingRow } from '@/ui/tally/SettingRow';
 import {
-  actionSheet, ask, pickDateTime, prompt, toast,
+  actionSheet, ask, choose, pickDateTime, prompt, toast,
 } from '@/ui/overlay';
 
 /** Let the user pick a file and read it as text (null if they cancel). */
@@ -69,7 +71,7 @@ export default function AccountSheet() {
     const v = await prompt({ title: tr('Type {word} to confirm', { word }), placeholder: word, ok: tr('Delete everything') });
     if ((v || '').trim().toUpperCase() !== word.toUpperCase()) { if (v !== null) toast(tr('Nothing was deleted')); return; }
     setBusy(true);
-    try { await deleteAllData(); toast(tr('All data deleted')); } finally { setBusy(false); }
+    try { if (await attempt(tr, deleteAllData().then(() => true))) toast(tr('All data deleted')); } finally { setBusy(false); }
   };
   const doBackup = () => backupNow(tr);
   const doCSV = async () => {
@@ -89,8 +91,33 @@ export default function AccountSheet() {
       workouts: f.plural(counts.workouts, 'workout'), templates: f.plural(counts.templates, 'routine'), measurements: f.plural(counts.measurements, 'measurement'),
     }), tr('Replace'), tr('Cancel'), true);
     if (!ok) return;
+    // a backup made during a workout carries it (#34): a fresh install gets it back; if a
+    // different one is running, the person picks, and the one replaced is saved to a file first
+    let active: ActiveWorkout | null = getState().active || preview.active;
+    if (runningWorkoutChoice(getState().active, preview.active) === 'ask') {
+      const pick = await choose<'app' | 'backup'>({
+        title: tr('Which running workout?'),
+        message: tr('The backup was made during a workout, and a different one is running now.'),
+        options: [
+          { label: tr('Keep the one running now'), value: 'app', tone: 'primary', testID: 'restore-keep-running' },
+          { label: tr('Use the one from the backup'), sub: tr('The one running now is saved to a file first'), value: 'backup', tone: 'plain', testID: 'restore-use-backup-workout' },
+        ],
+        cancel: tr('Cancel'),
+      });
+      if (!pick) return;
+      if (pick === 'backup') {
+        const r = await saveTextFile(`increment-backup-${dateStamp()}.json`, backupText(appVersion()), 'application/json', 'public.json', tr('Back up now'));
+        if (r === 'failed') { notice(tr('Restore from backup'), tr('Couldn’t make the backup')); return; }
+        active = preview.active;
+      }
+    }
     setBusy(true);
-    try { await restoreBackup(preview); notice(tr('Backup restored'), tr('{n} stored', { n: f.plural(counts.workouts, 'workout') })); } finally { setBusy(false); }
+    try {
+      await restoreBackup(preview, active);
+      notice(tr('Backup restored'), tr('{n} stored', { n: f.plural(counts.workouts, 'workout') }));
+    } catch {
+      notice(tr('Restore from backup'), tr('Couldn’t restore the backup. Nothing was changed.'));
+    } finally { setBusy(false); }
   };
 
   const doStrong = async () => {

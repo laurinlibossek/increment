@@ -5,7 +5,7 @@
 // exercises, Measure logging, charts, backups and the new settings. 22 checks.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { selectTab, openSearch, devices, launch, grantWakeLock, APP as BASE, BACKUP, shots } from './env.mjs';
+import { selectTab, openSearch, devices, launch, grantWakeLock, APP as BASE, BACKUP, shots, storedData, writeStored } from './env.mjs';
 import * as core from '../../core/index.js';
 
 const OUT = shots('app-editing');
@@ -59,7 +59,7 @@ async function restore(page, dialogs, { english = false } = {}) {
   await page.goBack();
   await wait(page, 300);
 }
-const store = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('increment.data')));
+const store = (page) => storedData(page);
 
 // ---------- 1. templates: editor, menus, folders, shared links ----------
 {
@@ -497,11 +497,11 @@ for (const scheme of ['light', 'dark']) {
   await selectTab(page, 'progress');
   await id(page, 'weekly-chart').locator('svg').waitFor();
   assert.equal(await id(page, 'backup-banner').count(), 0, 'a restored backup counts as a backup');
-  await page.evaluate(() => {
-    const d = JSON.parse(localStorage.getItem('increment.data'));
+  {
+    const d = await storedData(page);
     d.kv.meta.lastBackupAt = Date.now() - 20 * 86400000;
-    localStorage.setItem('increment.data', JSON.stringify(d));
-  });
+    await writeStored(page, d);
+  }
   await page.reload();
   await selectTab(page, 'progress');
   await id(page, 'backup-banner').waitFor();

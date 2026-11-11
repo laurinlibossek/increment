@@ -2,14 +2,14 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { launch, devices, grantWakeLock, APP, ROOT, shots } from './env.mjs';
+import { launch, devices, grantWakeLock, APP, ROOT, shots, storedData, waitStored, failWrites } from './env.mjs';
 
 const OUT = shots('app-strong-review');
 const csv = fs.readFileSync(path.join(ROOT, 'tests/fixtures/strong-review.csv'), 'utf8');
 const browser = await launch();
 let passed = 0;
 const ok = (label) => { passed++; console.log('PASS', label); };
-const data = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('increment.data')));
+const data = (page) => storedData(page);
 async function pickFile(page, text = csv) {
   const [picker] = await Promise.all([page.waitForEvent('filechooser'), page.getByTestId('strong-import').click()]);
   await picker.setFiles({ name: 'review.csv', mimeType: 'text/csv', buffer: Buffer.from(text) });
@@ -152,7 +152,7 @@ for (const language of ['en', 'de']) for (const theme of ['light', 'dark']) {
   assert.deepEqual(backup.data.kv.strongAliases, (await data(page)).kv.strongAliases);
   const [picker] = await Promise.all([page.waitForEvent('filechooser'), page.getByTestId('restore').click()]);
   await picker.setFiles({ name: 'backup.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(backup)) });
-  await page.waitForFunction(() => JSON.parse(localStorage.getItem('increment.data')).kv.meta.lastBackupAt > 0);
+  await waitStored(page, (d) => d.kv.meta.lastBackupAt > 0);
   await pickFile(page, csv.replaceAll('2026-10-0', '2026-12-0'));
   assert.equal(await page.locator('[data-testid^="strong-row-"]').count(), 0);
   ok('downloaded backup and real restore retain every Strong choice');
@@ -170,19 +170,12 @@ for (const language of ['en', 'de']) for (const theme of ['light', 'dark']) {
   const before = await data(page);
   // One exact match and one spelling suggestion; both are ready immediately.
   await pickFile(page, csv.split('\n').slice(0, 3).join('\n'));
-  await page.evaluate(() => {
-    const setItem = Storage.prototype.setItem;
-    window.restoreStorage = () => { Storage.prototype.setItem = setItem; };
-    Storage.prototype.setItem = function (key, value) {
-      if (key === 'increment.data') throw new DOMException('Storage is full', 'QuotaExceededError');
-      return setItem.call(this, key, value);
-    };
-  });
+  await failWrites(page);
   await page.getByTestId('strong-confirm').click();
   await page.waitForFunction(() => document.querySelector('[data-testid="strong-confirm"]').getAttribute('aria-disabled') !== 'true');
   assert.match(dialogs.at(-1), /Couldn’t save the import/);
   assert.deepEqual(await data(page), before, 'a failed write cannot publish exercises, workouts or aliases');
-  await page.evaluate(() => window.restoreStorage());
+  await failWrites(page, false);
   await page.getByTestId('strong-confirm').click();
   await page.getByTestId('strong-import').waitFor();
   assert.match(dialogs.at(-1), /Imported 1 workout/);

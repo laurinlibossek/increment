@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
-import { openSearch, launch, devices, APP, grantWakeLock } from './env.mjs';
+import { openSearch, launch, devices, APP, grantWakeLock, storedData } from './env.mjs';
 import { SEED_EXERCISES } from '../../core/index.js';
 const [stage, output] = process.argv.slice(2);
 if (!['before', 'after'].includes(stage) || !output) throw new Error('Pass before|after and an output folder');
@@ -25,7 +25,7 @@ try {
     await page.waitForTimeout(300);
     await page.getByTestId('exercise-search').blur();
     await page.waitForTimeout(200);
-    const data = await page.evaluate(() => JSON.parse(localStorage.getItem('increment.data')));
+    const data = await storedData(page);
     assert.equal(data.exercises.length, stage === 'before' ? 190 : SEED_EXERCISES.length);
     await page.screenshot({ path: path.join(output, `${stage}-search-${lang}-${theme}.png`) });
     assert.deepEqual(errors, []);

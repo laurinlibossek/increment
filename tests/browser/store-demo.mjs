@@ -71,7 +71,7 @@ function setsFor(ex, w, deload, idPrefix) {
   return sets;
 }
 
-/** The demo data in the app's storage format, for `localStorage['increment.data']`. */
+/** The demo data in the app's old storage format, `localStorage['increment.data']`, which the app moves into IndexedDB on its first start. */
 export function demoData(lang, now = Date.now()) {
   const today = new Date(now); today.setHours(0, 0, 0, 0);
   const monday = new Date(today); monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));

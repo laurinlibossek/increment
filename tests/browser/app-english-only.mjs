@@ -4,7 +4,7 @@
 // EXPO_PUBLIC_ENABLE_GERMAN, like the store and web apps.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { selectTab, openSearch, launch, devices, grantWakeLock, APP, BACKUP, shots } from './env.mjs';
+import { selectTab, openSearch, launch, devices, grantWakeLock, APP, BACKUP, shots, storedData } from './env.mjs';
 
 const OUT = shots('app-english-only');
 const backup = JSON.parse(fs.readFileSync(BACKUP, 'utf8'));
@@ -12,7 +12,7 @@ assert.equal(backup.data.kv.settings.language, 'de', 'the Setlog fixture must ca
 const browser = await launch();
 let passed = 0;
 const ok = label => { passed++; console.log('PASS', label); };
-const stored = page => page.evaluate(() => JSON.parse(localStorage.getItem('increment.data')));
+const stored = page => storedData(page);
 
 async function englishAccount(page) {
   assert.match(await page.getByTestId('restore').innerText(), /Restore from backup/);

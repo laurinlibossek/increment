@@ -33,6 +33,7 @@ import { ExerciseFamilyChips } from '@/ui/exerciseFamilyChips';
 import {
   actionSheet, ask, prompt, toast,
 } from '@/ui/overlay';
+import { attempt } from '@/lib/saving';
 
 type Rec = { value: number; at: number; w?: number; r?: number; workoutId?: string } | null;
 type Records = Record<string, Rec> & { repMax: Map<number, { w: number; at: number; workoutId: string }> };
@@ -267,12 +268,10 @@ async function exerciseMenu(ex: Exercise, sessions: number, f: ReturnType<typeof
     if (!ok) return;
     // to the target's page first, so this one never shows "not found"
     router.replace({ pathname: '/exercise/[id]', params: { id: into } });
-    await mergeExercise(ex.id, into);
-    toast(tr('Exercises merged'));
+    if (await attempt(tr, mergeExercise(ex.id, into).then(() => true))) toast(tr('Exercises merged'));
   }
   if (c === 'hide') {
-    await updateExercise(ex.id, { hidden: !ex.hidden });
-    toast(ex.hidden ? tr('Visible again') : tr('Hidden from lists'));
+    if (await attempt(tr, updateExercise(ex.id, { hidden: !ex.hidden }).then(() => true))) toast(ex.hidden ? tr('Visible again') : tr('Hidden from lists'));
   }
   if (c === 'delete') {
     const u = exerciseUsage(ex.id);
@@ -292,7 +291,6 @@ async function exerciseMenu(ex: Exercise, sessions: number, f: ReturnType<typeof
     });
     if (!ok) return;
     if (router.canGoBack()) router.back();
-    await deleteExercise(ex.id);
-    toast(tr('Exercise deleted'));
+    if (await attempt(tr, deleteExercise(ex.id).then(() => true))) toast(tr('Exercise deleted'));
   }
 }

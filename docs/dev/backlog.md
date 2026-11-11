@@ -1,6 +1,6 @@
 # Status and backlog
 
-Last updated 11 Nov 2026 (survey of both repositories: issues #34 to #42). Keep this file current: when a pull request finishes an item, move it to "Done" in the same PR and note any decision Laurin made.
+Last updated 11 Nov 2026 (#34 and #35: the web app on IndexedDB; the issues' order is #55). Keep this file current: when a pull request finishes an item, move it to "Done" in the same PR and note any decision Laurin made.
 
 ## Where things are
 
@@ -26,7 +26,7 @@ Laurin's roadmap (6 Nov 2026): most features into the app, launch the web app, u
 
 ## Open items, any order
 
-- **From the survey of 11 Nov 2026** (the code read end to end, the suspects reproduced in the web build): the bugs are issues #34 to #42. In the order they matter: #34 (the web app shows a failed save as saved), #35 (two open tabs overwrite each other's data), #36 (Today keeps yesterday's date overnight), #37 (the session counts more records than the summary), #40 (the Strong import's weights), then #38, #39, #41 and #42. #26 (the tab highlight lagging behind a swipe) was filed against the native swipe that #24 removed: check on the phone whether anything of it is left, then close it.
+- **From the survey of 11 Nov 2026** (the code read end to end, the suspects reproduced in the web build): the bugs are issues #34 to #42, ordered in #55. #34 and #35 are done (under Done). Next: #25 (the iPhone keyboard over the app's keypad), #40 (the Strong import's matching), #28, #43, #36 (Today keeps yesterday's date overnight), #37 (the session counts more records than the summary), then #38, #39 and #41. #26 (the tab highlight lagging behind a swipe) was filed against the native swipe that #24 removed: check on the phone whether anything of it is left, then close it.
 - Before the store release, decide native tab swipe: a pager that follows the finger needs non-native tabs (losing the Liquid Glass bar, its minimizing and the workout accessory), or no swipe.
 - Not answered yet: "Account" in German (kept as "Account"); the body part under the exercise name in the session; added exercises wait under Up next; the just-logged exercise stays on screen during its rest; the routine editor keeps RPE as a target.
 - Unknowns that need Laurin's input: where Strong puts exercise notes in a real export (sticky notes are probably not exported at all), and what Strong's exercise ⋯ → Preferences contains.
@@ -50,6 +50,8 @@ Reference for anyone touching the summary or routines.
 
 
 ## Done
+
+- **Saving on the web: IndexedDB, failed saves and other tabs** (#34, #35, 11 Nov 2026, Laurin's decision to move to IndexedDB now, `claude/blissful-curie-qqol89`): the web app keeps its data in IndexedDB, a record per document like the phone's SQLite table, and moves the old localStorage data in once, removing it only after the copy was read back (unreadable data stops the app with Save the old data and Start empty instead of being overwritten). A save storage refuses never shows its success message: the change stays on screen, a warning at the top of every screen says Changes aren’t saved with Back up now and Retry, and it's tried again with the next change. Back up now works when saving doesn't and now carries the running workout (`recovery.active`); restoring brings it back on a fresh install and asks when a different one is running. Finish saves the workout and clears the running one in one transaction, on the phone too. Two tabs: each change tells the other tabs, which take it in; every record has a revision, so a tab that missed a change can't save over it (or over a delete, Finish, restore or Delete all data): its change is held under Changed in another tab · Review, which shows both versions with Keep mine and Use the saved version. Details: `architecture.md` → Data → Saving. Not checked on a real iPhone yet; the native warning layout (above the native stack's header) wants a look in Expo Go.
 
 - **Intense Red like Setlog** (11 Nov 2026, Laurin's decision, `claude/blissful-curie-qqol89`): the same colour zones as Strawberry Matcha: main buttons and charts red `#d91f2c` with white text, control fills (number fields, chips, secondary buttons, the selected tab) dark red `#37171a`, secondary labels and the selected tab `#ff4f5a`. The page stays true black, records stay gold.
 

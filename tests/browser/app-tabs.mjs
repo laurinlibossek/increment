@@ -6,7 +6,7 @@
 // not templates, in English and German; a wide window (the centred column);
 // dark segmented controls and switches. 14 checks.
 import assert from 'node:assert/strict';
-import { selectTab, openSearch, devices, launch, grantWakeLock, APP as BASE, shots } from './env.mjs';
+import { selectTab, openSearch, devices, launch, grantWakeLock, APP as BASE, shots, storedData } from './env.mjs';
 import * as core from '../../core/index.js';
 import { demoData } from './store-demo.mjs';
 
@@ -31,7 +31,7 @@ async function newPage({ lang = 'en', scheme = 'light' } = {}) {
 }
 const id = (page, t) => page.getByTestId(t);
 const wait = (page, ms = 300) => page.waitForTimeout(ms);
-const store = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('increment.data')));
+const store = (page) => storedData(page);
 const text = (page) => page.locator('body').innerText();
 async function discard(page) {
   await id(page, 'discard-workout').click();

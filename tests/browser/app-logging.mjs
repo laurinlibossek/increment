@@ -9,7 +9,7 @@
 // routine confirmed in a second step, Undo; German and English), "already
 // running", and discarding. 23 checks.
 import assert from 'node:assert/strict';
-import { selectTab, devices, launch, grantWakeLock, APP as BASE, BACKUP, shots } from './env.mjs';
+import { selectTab, devices, launch, grantWakeLock, APP as BASE, BACKUP, shots, storedData } from './env.mjs';
 
 const OUT = shots('app-logging');
 const BENCH = 'x-bench-press-barbell', PULLUP = 'x-pull-up', LAT = 'x-lat-pulldown-cable';
@@ -45,7 +45,7 @@ const toastText = async (page) => { await id(page, 'toast').waitFor(); return id
 const checked = async (loc) => (await loc.getAttribute('aria-checked')) === 'true';
 const wait = (page, ms = 300) => page.waitForTimeout(ms);
 const sec = (t) => t.split(':').map(Number).reduce((a, b) => a * 60 + b, 0);
-const store = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('increment.data')));
+const store = (page) => storedData(page);
 const routine = async (page, name = 'Pull') => (await store(page)).templates.find((x) => x.name === name);
 const sets = (t, ex) => t.exercises.find((e) => e.exerciseId === ex).sets.map((x) => [x.type, x.w ?? null, x.r ?? null]);
 /** Finishing before every set is logged: ⋯ → Finish early ("Finish workout" is in the Action bar after the last set). */
@@ -141,7 +141,7 @@ async function pick(page, names) {
   await id(page, 'effort-0').click();
   await wait(page, 300);
   assert.equal((await labels(page, BENCH).nth(1).innerText()).trim(), 'Failure');
-  const activeSet = async (n) => (await page.evaluate(() => JSON.parse(localStorage.getItem('increment.data')).kv.active)).exercises[0].sets[n];
+  const activeSet = async (n) => (await storedData(page)).kv.active.exercises[0].sets[n];
   await wait(page, 300);
   assert.deepEqual([(await activeSet(1)).type, (await activeSet(1)).rir], ['failure', 0]);
   await id(page, 'effort-2').click();
@@ -294,7 +294,7 @@ async function pick(page, names) {
   assert.equal(await page.locator('[data-testid^="pr-"]').count(), 0);
   await wait(page, 700);
   assert.equal(await id(page, 'routine-line').count() + await id(page, 'routine-update').count(), 0, 'nothing about a routine after an empty workout');
-  const saved = (await page.evaluate(() => JSON.parse(localStorage.getItem('increment.data')))).workouts[0];
+  const saved = (await storedData(page)).workouts[0];
   assert.deepEqual(saved.exercises.find((e) => e.exerciseId === PULLUP).sets.map((x) => x.r), [10]);
   assert.equal(saved.exercises.find((e) => e.exerciseId === BENCH).sets.length, 3);
   assert.ok(saved.exercises.find((e) => e.exerciseId === BENCH).sets.some((x) => x.w === 80 && x.r === 5));
@@ -353,7 +353,7 @@ async function pick(page, names) {
   assert.equal((await rows()).at(-1), `jump-${SQUAT}`);
   await dragRow(page, `jump-${SQUAT}`, -130);
   assert.equal((await rows())[0], `jump-${SQUAT}`, (await rows()).join(', '));
-  const order = (await page.evaluate(() => JSON.parse(localStorage.getItem('increment.data')).kv.active.exercises.map((e) => e.exerciseId)));
+  const order = (await storedData(page)).kv.active.exercises.map((e) => e.exerciseId);
   assert.deepEqual(order.slice(0, 2), [LAT, SQUAT]);
   ok('Up next: Squat, added last, is dragged to the top of the list');
 

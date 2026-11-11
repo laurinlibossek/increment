@@ -1,7 +1,7 @@
 // Families browse siblings; every selected id retains its own history/records.
 // REVIEW_BEFORE=1 captures the matching main screens, before family UI existed.
 import assert from 'node:assert/strict';
-import { selectTab, openSearch, launch, devices, grantWakeLock, APP, shots } from './env.mjs';
+import { selectTab, openSearch, launch, devices, grantWakeLock, APP, shots, storedData } from './env.mjs';
 import { familiesData, SQ, SMITH, DB, FRONT, FRONT_SMITH, CABLE, CURL_DB } from './families-data.mjs';
 import { SEED_EXERCISES } from '../../core/index.js';
 const before = process.env.REVIEW_BEFORE === '1';
@@ -173,8 +173,9 @@ for (const theme of ['light', 'dark']) {
   if (!before) {
     const linkText = await page.getByTestId(`ex-link-${SMITH}`).innerText();
     assert.equal(linkText.replace(/[\uE000-\uF8FF]/g, '').trim(), 'Squat (Smith Machine)');
-    const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('increment.data')));
-    assert.deepEqual(stored.workouts, data.workouts, 'browsing/swapping drafts changes no completed history');
+    const stored = await storedData(page);
+    const byId = (list) => [...list].sort((a, b) => a.id.localeCompare(b.id));
+    assert.deepEqual(byId(stored.workouts), byId(data.workouts), 'browsing/swapping drafts changes no completed history');
     assert.deepEqual(stored.templates, data.templates, 'unsaved editor choices change no routine');
     ok(`${theme}: Workouts and workout details show exact variations, with stored history and routines intact`);
   }

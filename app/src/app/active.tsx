@@ -50,10 +50,12 @@ type SessionAt = { units: Unit[]; unit: Unit | null; next: { entry: EntryDraft; 
 
 export default function ActiveWorkoutScreen() {
   const current = useAppSelector((s) => s.active);
-  // after Finish or Discard the workout is gone while the screen closes; keep showing it
+  const gone = useAppSelector((s) => s.activeGone);
+  // after Finish or Discard the workout is gone while the screen closes; keep showing it,
+  // unless another tab ended it (then there's nothing running here either)
   const last = useRef(current);
   if (current) last.current = current;
-  const a = current || last.current;
+  const a = current || (last.current?.id !== gone ? last.current : null);
   const { tr } = useFormat();
   const { colors: t } = useTally();
   const insets = useSafeAreaInsets();

@@ -1,14 +1,14 @@
 // Optional sides in every editor, their persistence, and side-aware grey values.
 // REVIEW_BEFORE=1 captures matching old screens without asserting new behavior.
 import assert from 'node:assert/strict';
-import { launch, devices, grantWakeLock, APP, shots } from './env.mjs';
+import { launch, devices, grantWakeLock, APP, shots, storedData, waitStored } from './env.mjs';
 import { setSidesData, CURL, PLANK, CARDIO, ROUTINE } from './set-sides-data.mjs';
 const before = process.env.REVIEW_BEFORE === '1';
 const OUT = shots(before ? 'set-sides-before' : 'app-set-sides');
 const browser = await launch();
 let passed = 0;
 const ok = (label) => { passed++; console.log('PASS', label); };
-const stored = (p) => p.evaluate(() => JSON.parse(localStorage.getItem('increment.data')));
+const stored = (p) => storedData(p);
 const block = (p, ex = CURL) => p.getByTestId(`block-${ex}`);
 const setIds = (p, ex = CURL) => block(p, ex).locator('[data-testid^="set-menu-"]').evaluateAll((els) => els.map((e) => e.dataset.testid.slice('set-menu-'.length)));
 const input = (p, f, i) => block(p).locator(`[data-testid^="in-${f}-"]`).nth(i);
@@ -122,10 +122,7 @@ try {
       ok(`${language}/${theme}: restarting the routine restores Left/Right chips and the correct side's grey values`);
       await side(p, 'clear');
       await p.getByTestId(`label-${again[0]}`).getByText(left, { exact: true }).waitFor({ state: 'hidden' });
-      await p.waitForFunction((id) => {
-        const set = JSON.parse(localStorage.getItem('increment.data')).kv.active.exercises[0].sets.find((s) => s.id === id);
-        return !Object.hasOwn(set, 'side');
-      }, again[0]);
+      await waitStored(p, (d, id) => !Object.hasOwn(d.kv.active.exercises[0].sets.find((s) => s.id === id), 'side'), again[0]);
       assert.equal((await stored(p)).kv.active.exercises[0].sets[1].side, 'right');
       ok(`${language}/${theme}: Clear removes the side field and chip without changing the other set`);
       // Both editors use this same menu and persist the selected side on Save.

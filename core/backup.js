@@ -1,14 +1,38 @@
 // Backup files: everything in the app as one JSON file, and reading it back.
 import { withSeedExercises } from './seed-sync.js';
 import { cleanCustomFamilies } from './exercise-families.js';
+import { sameRecord } from './pending-writes.js';
 
 // The file says app 'setlog' on purpose: Increment reads and writes the same
 // backups as the Setlog web app it grew out of, so data moves between them.
-/** A backup file's text. `data` = { exercises, workouts, templates, measurements, kv }. */
-export function makeBackup(data, appVersion, now = new Date()) {
-  return JSON.stringify({
-    app: 'setlog', schema: 1, appVersion, exportedAt: now.toISOString(), data,
-  });
+/**
+ * A backup file's text. `data` = { exercises, workouts, templates, measurements, kv }:
+ * what the app shows, including changes storage hasn't saved yet. `recovery`
+ * carries what isn't part of the saved data: `active`, the running workout. It
+ * sits beside `data`, so Setlog and older versions read the file as before.
+ * @param {object} data
+ * @param {string} appVersion
+ * @param {Date} [now]
+ * @param {{ active?: object | null } | null} [recovery]
+ */
+export function makeBackup(data, appVersion, now = new Date(), recovery = null) {
+  const file = { app: 'setlog', schema: 1, appVersion, exportedAt: now.toISOString(), data };
+  if (recovery?.active) file.recovery = { active: recovery.active };
+  return JSON.stringify(file);
+}
+
+/** A running workout as backups and storage keep it. */
+const isRunningWorkout = (a) => !!a && typeof a === 'object' && typeof a.id === 'string' && Array.isArray(a.exercises) && Number.isFinite(a.startedAt);
+
+/**
+ * Restoring a backup with a running workout (`recovery.active`): 'restore' it
+ * when the app has none, 'keep' the app's when there is nothing new, 'ask'
+ * which to keep when they differ.
+ */
+export function runningWorkoutChoice(current, fromBackup) {
+  if (!fromBackup) return 'keep';
+  if (!current) return 'restore';
+  return sameRecord(current, fromBackup) ? 'keep' : 'ask';
 }
 
 /** An error with an English message (a translation key) and its {placeholders}. */
@@ -30,8 +54,8 @@ export function parseBackup(text, seedExercises = []) {
   // the backup itself counts as a backup: without this the reminder would come
   // back early after a restore (the file holds the time of the backup before it)
   const kv = { ...(d.kv || {}) };
-  // a running workout is never restored: the one in the app keeps going. The
-  // apps' own backups don't carry one, but a file from elsewhere may, and it
+  // a running workout in kv is never restored: the apps keep theirs in
+  // `recovery` (below), but a file from elsewhere may carry one here, and it
   // would come back as a workout "in progress" the next time the app starts
   delete kv.active;
   const madeAt = Date.parse(obj.exportedAt || '');
@@ -39,8 +63,12 @@ export function parseBackup(text, seedExercises = []) {
   // keep the built-in library even if the backup predates it
   const exercises = withSeedExercises(d.exercises || [], seedExercises);
   kv.customFamilies = cleanCustomFamilies(kv.customFamilies, exercises);
+  // the running workout of a recovery backup comes back only when asked for (runningWorkoutChoice)
+  const recovered = obj.recovery?.active;
+  if (recovered !== undefined && recovered !== null && !isRunningWorkout(recovered)) throw fail('The backup is damaged ({part}).', { part: 'recovery' });
   return {
     exportedAt: obj.exportedAt,
+    recovery: recovered ? { active: recovered } : null,
     data: {
       exercises,
       workouts: d.workouts || [],

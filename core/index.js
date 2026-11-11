@@ -16,6 +16,7 @@ export * from './today.js';
 export * from './csv.js';
 export * from './strong-matching.js';
 export * from './backup.js';
+export * from './pending-writes.js';
 export * from './share.js';
 export * from './links.js';
 export * from './search.js';

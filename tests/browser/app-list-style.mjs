@@ -1,7 +1,7 @@
 // Design todo group 4. REVIEW_BEFORE=1 captures the matching review baseline.
 import assert from 'node:assert/strict';
 import path from 'node:path';
-import { selectTab, launch, devices, grantWakeLock, APP, shots } from './env.mjs';
+import { selectTab, launch, devices, grantWakeLock, APP, shots, waitStored } from './env.mjs';
 import { demoData } from './store-demo.mjs';
 import { DEFAULT_SETTINGS, MEASUREMENTS, exerciseDisplayName, translator } from '../../core/index.js';
 
@@ -112,9 +112,9 @@ try {
       const otherLanguage = lang === 'en' ? 'de' : 'en';
       await id(`language-${otherLanguage}`).click();
       assert.equal(await id(`language-${otherLanguage}`).getAttribute('role'), 'radio');
-      await page.waitForFunction(value => JSON.parse(localStorage.getItem('increment.data')).kv.settings.language === value, otherLanguage);
+      await waitStored(page, (d, value) => d.kv.settings.language === value, otherLanguage);
       await id(`language-${lang}`).click();
-      await page.waitForFunction(value => JSON.parse(localStorage.getItem('increment.data')).kv.settings.language === value, lang);
+      await waitStored(page, (d, value) => d.kv.settings.language === value, lang);
       assert.equal(await id(`theme-${theme}`).getAttribute('role'), 'radio');
       assert.equal(await id(`theme-${theme}`).locator('[aria-hidden="true"]').count(), 1, 'chosen theme retains its checkmark');
       await id('set-rest').click();

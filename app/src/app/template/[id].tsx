@@ -17,6 +17,7 @@ import { toast } from '@/ui/overlay';
 import { ActionBar } from '@/ui/tally/ActionBar';
 import { ListRow } from '@/ui/tally/ListRow';
 import { SectionHeader } from '@/ui/tally/SectionHeader';
+import { attempt } from '@/lib/saving';
 
 export default function TemplatePreview() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -44,7 +45,8 @@ export default function TemplatePreview() {
     if (r === 'deleted' && router.canGoBack()) router.back();
   };
   const saveExample = async () => {
-    const copy = await copyTemplate(t, { name: t.name, folder: t.folder || '' });
+    const copy = await attempt(tr, copyTemplate(t, { name: t.name, folder: t.folder || '' }));
+    if (!copy) return;
     toast(tr('“{name}” added to your routines', { name: copy.name }));
     router.replace({ pathname: '/template/[id]', params: { id: copy.id } });
   };

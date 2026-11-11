@@ -4,7 +4,7 @@
 // link directly (the web build reads it from the page address, the phone
 // through +native-intent.tsx), and the German exercise names.
 import assert from 'node:assert/strict';
-import { selectTab, openSearch, devices, launch, grantWakeLock, APP as BASE, BACKUP, shots } from './env.mjs';
+import { selectTab, openSearch, devices, launch, grantWakeLock, APP as BASE, BACKUP, shots, storedData } from './env.mjs';
 import * as core from '../../core/index.js';
 
 const OUT = shots('app-parity');
@@ -30,7 +30,7 @@ const id = (page, t) => page.getByTestId(t);
 const wait = (page, ms = 300) => page.waitForTimeout(ms);
 const toastText = async (page) => { await id(page, 'toast').waitFor(); return id(page, 'toast').innerText(); };
 const visibleText = (page) => page.locator('body').innerText();
-const store = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('increment.data')));
+const store = (page) => storedData(page);
 async function restore(page, dialogs) {
   await selectTab(page, 'index');
   await id(page, 'open-account').click();
