@@ -20,7 +20,7 @@ Laurin's decision (6 Nov 2026): Today, Plan and Progress are the three tabs. Tru
 - **Web tabs follow the finger:** Today, Plan and Progress stay mounted side by side in one browser scroll-snap pager (`scroll-snap-type: x mandatory`). Each page fills its width and keeps its own vertical scroll position. Swipes start anywhere on the content, including routine cards and rows; taps still open them. The browser owns direction lock, momentum and snapping, including returning from a short half swipe and stopping at either end.
 - The existing web bar and Now Lifting stay fixed below the pages. A tab highlights and its address (`/`, `/plan`, `/progress`) updates when its page settles. Tapping the bar scrolls smoothly to that page, instantly with Reduce Motion. Direct addresses, browser Back/Forward and pushed screens retain normal routing. Progress's scrub chart uses `touch-action: pan-y`: sideways touches scrub it instead of paging; vertical scrolling remains available.
 - **Native:** no tab swipe for now. iPhone/Android keep NativeTabs, Liquid Glass, minimize-on-scroll and the workout accessory. Before the store release, decide between a finger-following pager with non-native tabs or no swipe; the native bar cannot host that pager while keeping its system features.
-- Account (name, units, appearance, rest timer, backups, import, privacy policy) is a sheet from the avatar, not a tab.
+- Account (name, units, appearance, rest timer, backups, import, privacy policy) is a sheet from the avatar, not a tab. Its rows are one step larger than other lists: titles in Title 3 at regular weight, values in Body, the grey lines in Subheadline.
 
 ## The session
 
