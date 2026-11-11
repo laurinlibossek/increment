@@ -193,7 +193,8 @@ try {
     const older = page.getByRole('button', { name: 'Show older workouts', exact: true });
     await older.scrollIntoViewIfNeeded();
     await older.click();
-    assert.equal(await older.count(), 0);
+    // the button goes once the list re-renders; count() alone doesn't wait for that
+    await older.waitFor({ state: 'detached' });
     await page.locator('[data-testid^="workout-"]').last().scrollIntoViewIfNeeded();
     await id('workout-page-44').waitFor();
     await id('workout-page-44').click();
