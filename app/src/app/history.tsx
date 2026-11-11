@@ -49,8 +49,8 @@ export default function HistoryTab() {
   if (!s.workouts.length) {
     return (
       <View style={{ flex: 1, backgroundColor: t.paper }}>
-        <Empty title={tr('No workouts yet')} text={tr('Bring your workouts over from the Setlog web app: make a backup there, then restore it here in Account.')}>
-          <Button kind="tinted" icon="download" title={tr('Restore from backup')} onPress={() => router.push('/account')} testID="history-restore" />
+        <Empty title={tr('No workouts yet')} text={tr('Finished workouts show up here. To bring your history over, use Import from Strong or Restore from backup in Account.')}>
+          <Button kind="tinted" icon="download" title={tr('Open Account')} onPress={() => router.push('/account')} testID="history-restore" />
         </Empty>
       </View>
     );

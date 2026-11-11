@@ -1,5 +1,5 @@
-// Setlog core: the training logic shared by the web app and the coming Expo
-// app. Nothing in core/ touches the DOM, storage, the network or a UI
+// Increment core: the training logic shared by the app on the phone and in the
+// web browser. Nothing in core/ touches the DOM, storage, the network or a UI
 // framework, and every label is an English translation key; the apps supply
 // state, language and screens. `npm test` checks that this stays true.
 export * from './units.js';

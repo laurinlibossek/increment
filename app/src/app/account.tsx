@@ -15,7 +15,7 @@ import {
 } from '@/data/store';
 import type { ActiveWorkout } from '@/data/types';
 import type { LanguageSetting, Settings, ThemeSetting } from '@/data/types';
-import { appVersion, backupNow } from '@/lib/backup';
+import { appVersion, backupNow, storageNote } from '@/lib/backup';
 import { dateStamp, saveTextFile } from '@/lib/files';
 import { useFormat } from '@/lib/format';
 import { ENABLE_GERMAN } from '@/lib/i18n';
@@ -63,7 +63,9 @@ export default function AccountSheet() {
   const doDeleteAll = async () => {
     const ok = await ask({
       title: tr('Delete all data?'),
-      message: tr('Every workout, routine, measurement and custom exercise on this phone will be erased. Your settings, name, folders and changes to built-in exercises are reset too.'),
+      message: Platform.OS === 'web'
+        ? tr('Every workout, routine, measurement and custom exercise on this device will be erased. Your settings, name, folders and changes to built-in exercises are reset too.')
+        : tr('Every workout, routine, measurement and custom exercise on this phone will be erased. Your settings, name, folders and changes to built-in exercises are reset too.'),
       ok: tr('Continue'), cancel: tr('Cancel'), destructive: true, testID: 'confirm-delete-all',
     });
     if (!ok) return;
@@ -280,7 +282,7 @@ export default function AccountSheet() {
         <SegmentedControl label={tr('Which units did Strong use?')} value={strongUnits.distUnit} onChange={(v) => setStrongUnits({ ...strongUnits, distUnit: v })} options={[{ value: 'km', label: tr('Kilometres') }, { value: 'mi', label: tr('Miles') }]} />
       </View>
       <Txt tone="ink2" style={[TYPE.subhead, { marginTop: SPACE.s3, paddingHorizontal: SPACE.s5 }]}>
-        {tr('Everything stays on this phone. Nothing is uploaded anywhere — back up regularly and keep the file in iCloud Drive or another safe place.')}
+        {storageNote(tr)}
       </Txt>
 
       <View style={{ marginTop: SPACE.s6 }}>

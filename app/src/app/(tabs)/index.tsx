@@ -3,18 +3,18 @@
 // this week's sessions and the sets per muscle of the last 7 days. The avatar
 // opens Account. docs/design/navigation.md, phases.md → 2.
 import { useMemo } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { routineSize, setsPerMuscle, weekStrip } from '@increment/core';
 
 import { suggestion, useAppState } from '@/data/store';
 import type { Template } from '@/data/types';
-import { RADIUS, SPACE, TYPE } from '@/design/tally';
+import { SPACE, TYPE } from '@/design/tally';
 import { useFormat } from '@/lib/format';
 import { useLang } from '@/lib/i18n';
 import { useTally } from '@/lib/theme';
 import { beginWorkout, openWorkout } from '@/lib/workout';
-import { SymbolIcon } from '@/ui/tally/ListRow';
+import { AccountButton } from '@/ui/tally/AccountButton';
 import { MuscleVolume } from '@/ui/tally/MuscleVolume';
 import { RoutineCard } from '@/ui/tally/RoutineCard';
 import { SectionHeader } from '@/ui/tally/SectionHeader';
@@ -54,17 +54,6 @@ export default function TodayTab() {
     return tr('Last done {when}', { when: f.relDayLower(w.at ?? 0) });
   };
 
-  const name = s.profile.name.trim();
-  const avatar = (
-    <Pressable onPress={() => router.push('/account')} accessibilityRole="button" testID="open-account"
-      accessibilityLabel={name ? tr('Account, {name}', { name }) : tr('Account')} hitSlop={4}
-      style={({ pressed }) => ({ width: 36, height: 36, borderRadius: RADIUS.capsule, alignItems: 'center', justifyContent: 'center', backgroundColor: t.paper3, opacity: pressed ? 0.6 : 1 })}>
-      {name
-        ? <Text style={{ fontSize: 15, fontWeight: '600', color: t.ink }}>{name.charAt(0).toUpperCase()}</Text>
-        : <SymbolIcon name="person.crop.circle" size={20} color={t.ink} />}
-    </Pressable>
-  );
-
   let card;
   if (s.active && session) {
     const a = s.active;
@@ -97,7 +86,7 @@ export default function TodayTab() {
 
   const scope = tr('{done} of {goal} sessions', { done: week.done, goal });
   return (
-    <TabRoot title={tr('Today')} eyebrow={date} right={<><SearchButton tab="index" />{avatar}</>}>
+    <TabRoot title={tr('Today')} eyebrow={date} right={<><SearchButton tab="index" /><AccountButton tab="index" /></>}>
       <View style={{ paddingHorizontal: SPACE.s5 }}>{card}</View>
 
       {/* An empty slot the store version can fill (docs/design/phases.md, phase 7). */}

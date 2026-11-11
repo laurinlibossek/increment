@@ -10,7 +10,7 @@ Laurin's decision (6 Nov 2026): Today, Plan and Progress are the three tabs. Tru
 | --- | --- | --- | --- |
 | Today | `sun.max` | Up next (the routine to start), this week's sessions, sets per muscle for the last 7 days, recent records. At the top right, the magnifying glass opens Search and the avatar opens Account and settings. | Workout tab, Profile dashboard |
 | Plan | `list.bullet.rectangle.portrait` | The current block (mesocycle) with its weeks, routines and folders, examples. Search and + at the top right. | Templates on the Workout tab |
-| Progress | `chart.line.uptrend.xyaxis` | Last 30 days at a glance, then Workouts (history and calendar), Lifts (every exercise with its chart and records), Records, Body (measurements), Moving up. Search at the top right. | History, Exercises, Measure tabs |
+| Progress | `chart.line.uptrend.xyaxis` | Last 30 days at a glance, then Workouts (history and calendar), Lifts (every exercise with its chart and records), Records, Body (measurements), Moving up. Search and the avatar (Account) at the top right, as on Today. | History, Exercises, Measure tabs |
 | TrueTrain | a plain symbol, to be chosen (no sparkles) | The membership. On the web: what TrueTrain is and that it's in the App Store and Google Play apps, with links. In the store apps: the same page with a free trial, and for members the coach itself (built in the private repository). | — |
 
 - Today, Plan and Progress in this order, Today selected on launch. TrueTrain becomes the fourth tab once the store apps are live.
@@ -20,7 +20,7 @@ Laurin's decision (6 Nov 2026): Today, Plan and Progress are the three tabs. Tru
 - **Web tabs follow the finger:** Today, Plan and Progress stay mounted side by side in one browser scroll-snap pager (`scroll-snap-type: x mandatory`). Each page fills its width and keeps its own vertical scroll position. Swipes start anywhere on the content, including routine cards and rows; taps still open them. The browser owns direction lock, momentum and snapping, including returning from a short half swipe and stopping at either end.
 - The existing web bar and Now Lifting stay fixed below the pages. A tab highlights and its address (`/`, `/plan`, `/progress`) updates when its page settles. Tapping the bar scrolls smoothly to that page, instantly with Reduce Motion. Direct addresses, browser Back/Forward and pushed screens retain normal routing. Progress's scrub chart uses `touch-action: pan-y`: sideways touches scrub it instead of paging; vertical scrolling remains available.
 - **Native:** no tab swipe for now. iPhone/Android keep NativeTabs, Liquid Glass, minimize-on-scroll and the workout accessory. Before the store release, decide between a finger-following pager with non-native tabs or no swipe; the native bar cannot host that pager while keeping its system features.
-- Account (name, units, appearance, rest timer, backups, import, privacy policy) is a sheet from the avatar, not a tab. Its rows are one step larger than other lists: titles in Title 3 at regular weight, values in Body, the grey lines in Subheadline.
+- Account (name, units, appearance, rest timer, backups, import, privacy policy) is a sheet from the avatar (on Today and Progress), not a tab. Its rows are one step larger than other lists: titles in Title 3 at regular weight, values in Body, the grey lines in Subheadline.
 
 ## The session
 
@@ -37,7 +37,7 @@ The running workout is a full-height sheet, like Now Playing in a music app.
 
 ## Screen templates
 
-- **Tab root**: `t-eyebrow` (Today only) → `t-large-title` with trailing controls (Search next to the avatar on Today, next to + on Plan, on its own on Progress) → content sections `space-8` apart, each with a `t-title-2` header. Floating tab bar.
+- **Tab root**: `t-eyebrow` (Today only) → `t-large-title` with trailing controls (Search next to the avatar on Today and Progress, next to + on Plan; the avatar is one shared `AccountButton`, #30) → content sections `space-8` apart, each with a `t-title-2` header. Floating tab bar.
 - **Detail** (exercise, workout, routine): back and ⋯ in the bar → `t-title-1` with a `t-footnote` line → the hero number if there is one → chart → Stat strip → lists. One scrolling page; no inner tabs. On an exercise page, movement/equipment chips switch to a sibling exercise with `setParams`, replacing the selected id without another history entry. They do not split the page into sections; every number and history row still belongs to that selected exercise.
 - **Summary**: Done at the top right → date eyebrow → workout name → Stat strip (Time, Volume, Sets) → hero tally → Records (highlighted) → Notes → Routine (one line of what the workout did to its routine: "New numbers for 4 sets in Push A"). Better numbers go into the routine by themselves; a changed layout asks once in a small popup over the summary ("Change Push A?", Keep routine first), with Undo (Laurin, 4 and 5 Nov 2026; this replaced the switch row).
 - **Sheets**: system sheets with detents for choices and short forms. The keypad is a sheet drawn by the app at `paper-2`.
