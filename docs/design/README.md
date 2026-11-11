@@ -47,7 +47,7 @@ Voice: plain, short, numbers first. The person is mid-set with sweaty hands; eve
 - `line` is a hairline between rows and stat cells. Never draw a border around a card.
 - `control-on` raises the chosen option of a segmented control above its `paper-3` track: `paper` in light themes, a lighter grey in dark ones. A switch that's on has an `ink` track; one that's off a `paper-3` track, with an `ink-2` knob in dark themes so it reads as the dimmer of the two.
 - Dark themes are true black (`paper` #000), so OLED pixels switch off. Raise with `paper-2` only where a surface has to read as separate.
-- Named themes swap `paper`, `ink`, `signal` and `stroke-done` and nothing else: Strawberry Matcha has matcha strokes and strawberry records, Intense Red has red strokes and gold records. A theme never adds a second accent.
+- Named themes swap the paper and ink colours, `signal` and `stroke-done`. Intense Red has red strokes and gold records. Strawberry Matcha follows Setlog's colourway, a little calmer (Laurin, 11 Nov 2026): a cream page with lighter cards, pale matcha control fills, olive greys, matcha strokes, `accent` labels and the selected tab in matcha, and `primary` buttons in strawberry, the same colour as its records. `primary`, `on-primary` and `accent` follow ink and paper in every other theme.
 - Keyboard focus is the `focus` ring: 2 px solid, 2 px offset, on every surface.
 
 ## Type

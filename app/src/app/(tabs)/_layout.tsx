@@ -33,7 +33,7 @@ export default function TabLayout() {
   return (
     <NativeTabs
       minimizeBehavior="onScrollDown"
-      tintColor={t.ink}
+      tintColor={t.accent}
       iconColor={{ default: t.ink2, selected: t.ink }}
       labelStyle={{ default: { color: t.ink2 }, selected: { color: t.ink } }}
       backgroundColor={android ? t.paper : undefined}

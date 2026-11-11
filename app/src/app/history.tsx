@@ -133,12 +133,12 @@ function Calendar({ s, f }: { s: State; f: Format & { tr: (t: string, v?: Record
                     accessibilityRole="button" accessibilityState={{ selected: on }}
                     accessibilityLabel={n ? `${f.date.full(d)}, ${f.plural(n, 'workout')}` : f.date.full(d)}
                     style={[st.day, {
-                      backgroundColor: n ? c.primary : 'transparent',
+                      backgroundColor: n ? c.chipOn : 'transparent',
                       borderColor: on ? c.ink : 'transparent',
                     }]}>
                     <Text style={{
                       fontSize: 15, fontVariant: ['tabular-nums'],
-                      color: n ? c.primaryInk : d === today ? c.accentText : c.ink2,
+                      color: n ? c.chipOnInk : d === today ? c.accentText : c.ink2,
                       fontWeight: n || d === today ? '700' : '400',
                     }}>{new Date(d).getDate()}</Text>
                   </Pressable>

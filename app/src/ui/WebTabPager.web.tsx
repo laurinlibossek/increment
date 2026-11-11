@@ -158,8 +158,8 @@ function TabBar({ state, descriptors, emitter, scrollToPage }: Pick<PagerProps, 
       <Pressable key={route.key} onPress={press} testID={`tab-${route.name}`} accessibilityRole="tab" accessibilityState={{ selected: focused }}
         accessibilityLabel={label} aria-selected={focused} aria-controls={`tab-page-${route.name}`}
         style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2, borderRadius: RADIUS.capsule, backgroundColor: focused ? t.paper3 : 'transparent' }}>
-        <SymbolIcon name={focused ? selected : icon} size={24} color={focused ? t.ink : t.ink2} />
-        <Text style={{ fontSize: 11, lineHeight: 13, fontWeight: focused ? '600' : '500', color: focused ? t.ink : t.ink2 }}>{label}</Text>
+        <SymbolIcon name={focused ? selected : icon} size={24} color={focused ? t.accent : t.ink2} />
+        <Text style={{ fontSize: 11, lineHeight: 13, fontWeight: focused ? '600' : '500', color: focused ? t.accent : t.ink2 }}>{label}</Text>
       </Pressable>
     );
   };
