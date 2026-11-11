@@ -15,7 +15,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { HERE, ROOT, APP, STRONG } from './env.mjs';
 
-export const APP_SUITES = ['app-english-only', 'app-web-site', 'app-storage', 'app-day-change', 'app-live-records', 'app-set-counts', 'app-families', 'app-family-creation', 'app-strong-review', 'app-exercise-catalogue', 'app-first-start', 'app-logging', 'app-set-sides', 'app-editing', 'app-parity', 'app-tabs', 'app-tab-swipe', 'app-design-bugs', 'app-number-format', 'app-workouts-list', 'app-list-style', 'app-main-actions', 'app-progress-noise', 'app-tally-scale'];
+export const APP_SUITES = ['app-english-only', 'app-web-site', 'app-storage', 'app-day-change', 'app-live-records', 'app-set-counts', 'app-superset-remove', 'app-one-rm', 'app-families', 'app-family-creation', 'app-strong-review', 'app-exercise-catalogue', 'app-first-start', 'app-logging', 'app-set-sides', 'app-editing', 'app-parity', 'app-tabs', 'app-tab-swipe', 'app-design-bugs', 'app-number-format', 'app-workouts-list', 'app-list-style', 'app-main-actions', 'app-progress-noise', 'app-tally-scale'];
 // suites for the shipped build (app/dist, English only); the rest run with German switched on.
 // app-web-site builds the published website from app/dist and serves it itself.
 const ENGLISH_ONLY = ['app-english-only', 'app-web-site'];

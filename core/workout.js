@@ -402,6 +402,41 @@ export function leaveSuperset(list, entry) {
   if (rest.length < 2) for (const e of rest) e.supersetId = null;
 }
 
+/**
+ * Take entry `id` out of a list (running workout, routine editor, Edit
+ * workout): a superset left with one exercise dissolves, one left with two or
+ * more stays (#39). Returns what restoreEntry needs to undo it, or null.
+ */
+export function removeEntry(list, id) {
+  const index = list.findIndex((e) => e.id === id);
+  if (index < 0) return null;
+  const [entry] = list.splice(index, 1);
+  const supersetId = entry.supersetId || null;
+  const dissolved = [];
+  if (supersetId) {
+    const rest = list.filter((e) => e.supersetId === supersetId);
+    if (rest.length < 2) for (const e of rest) { e.supersetId = null; dissolved.push(e.id); }
+  }
+  return { entry: JSON.parse(JSON.stringify(entry)), index, supersetId, dissolved };
+}
+
+/** Undo removeEntry: the entry back in its place and in its superset, with a partner that was left alone (unless it joined another since). */
+export function restoreEntry(list, removed) {
+  if (!removed || list.some((e) => e.id === removed.entry.id)) return;
+  const { supersetId, dissolved } = removed;
+  for (const e of list) if (dissolved.includes(e.id) && !e.supersetId) e.supersetId = supersetId;
+  list.splice(Math.min(removed.index, list.length), 0, JSON.parse(JSON.stringify({ ...removed.entry, supersetId })));
+}
+
+/** A stored routine's entries without an exercise (deleted from the library): supersets left with one exercise dissolve (#39). */
+export function withoutExercise(entries, exerciseId) {
+  const out = entries.filter((e) => e.exerciseId !== exerciseId).map((e) => ({ ...e }));
+  const counts = new Map();
+  for (const e of out) if (e.supersetId) counts.set(e.supersetId, (counts.get(e.supersetId) || 0) + 1);
+  for (const e of out) if (e.supersetId && counts.get(e.supersetId) < 2) delete e.supersetId;
+  return out;
+}
+
 /** Superset letter (A, B, …) and index for every group, in list order. */
 export function supersetLetters(list) {
   const out = new Map();

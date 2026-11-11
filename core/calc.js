@@ -47,9 +47,18 @@ const ONE_RM = {
   wathen: (w, r) => (100 * w) / (48.8 + 53.8 * Math.exp(-0.075 * r)),
   lander: (w, r) => (r < 37 ? (100 * w) / (101.3 - 2.67123 * r) : 0),
 };
+/**
+ * Above this many reps every formula setting uses Epley, "Average of all" too:
+ * the others run away at high reps (20 kg × 36 is 720 kg by Brzycki), which
+ * made chart spikes and false records (#41, Laurin, 11 Nov 2026).
+ */
+export const EPLEY_ABOVE_REPS = 12;
+
+/** Estimated 1RM by the chosen formula; Epley above EPLEY_ABOVE_REPS reps. Records, charts, the summary and Tools all use it. */
 export function est1RM(w, r, formula = calcOpts.formula) {
   if (!(w > 0) || !(r > 0)) return 0;
   if (r === 1) return w;
+  if (r > EPLEY_ABOVE_REPS) return ONE_RM.epley(w, r);
   if (formula === 'average') {
     const all = Object.values(ONE_RM).map((f) => f(w, r)).filter((v) => v > 0);
     return all.length ? all.reduce((a, b) => a + b, 0) / all.length : 0;

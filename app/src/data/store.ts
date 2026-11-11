@@ -5,7 +5,7 @@ import { useSyncExternalStore } from 'react';
 import { AppState } from 'react-native';
 import {
   SEED_EXERCISES, SEED_VERSION, withDefaults, buildStats, sessionsByExercise, configureCalc, bodyweightFrom,
-  parseBackup, parseStrongCSV, resolveStrongImport, STRONG_EXERCISE_ALIASES, suggestTemplate, previousSetsFrom, newActiveWorkout, finishWorkout, prsForNewWorkout, liveRecordSets,
+  parseBackup, parseStrongCSV, resolveStrongImport, STRONG_EXERCISE_ALIASES, suggestTemplate, previousSetsFrom, newActiveWorkout, finishWorkout, prsForNewWorkout, liveRecordSets, withoutExercise,
   workoutVolume, makeBackup, uid, seedExerciseChanges,
   templateFromDraft, workoutFromEditDraft, copyTemplateRecord, folderNames, findExerciseByName, newExerciseRecord,
   exerciseInDraft, patchDraftExercise, changeSetting, convertDraftUnits, mergeExercisePatch, moveExerciseEntries,
@@ -737,7 +737,8 @@ export async function deleteExercise(id: string) {
     const changed: Template[] = [];
     const templates = state.templates.map((t) => {
       if (!t.exercises.some((e) => e.exerciseId === id)) return t;
-      const next = { ...t, exercises: t.exercises.filter((e) => e.exerciseId !== id) };
+      // a superset left with one exercise dissolves (#39)
+      const next = { ...t, exercises: withoutExercise(t.exercises, id) as Template['exercises'] };
       changed.push(next);
       return next;
     });

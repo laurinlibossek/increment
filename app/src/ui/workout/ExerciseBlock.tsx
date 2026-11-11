@@ -11,7 +11,7 @@ import {
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import {
-  placeholders, restFor, addSet, joinSuperset, leaveSuperset, replaceExercise, addWarmups, rateSet, setRir, setSetType,
+  placeholders, restFor, addSet, joinSuperset, leaveSuperset, removeEntry, restoreEntry, replaceExercise, addWarmups, rateSet, setRir, setSetType,
   loggedFields, usesWeight, usesDistance, numToInput, parseNum, focusOptions, focusValues, uncheckSet,
   REST_CHOICES, RPE_CHOICES, RIR_CHOICES, SET_TYPES, FOCUS_LABEL, BODY_PART_LABEL,
 } from '@increment/core';
@@ -221,11 +221,11 @@ export const ExerciseBlock = memo(function ExerciseBlock({
       }
     }
     if (choice === 'remove') {
-      const i = a.exercises.findIndex((e) => e.id === entry.id);
-      const removed = a.exercises[i];
-      editDraft(draftKey, (d) => { d.exercises.splice(i, 1); });
+      // a superset left with one exercise dissolves; Undo puts both back (#39)
+      let removed: unknown = null;
+      editDraft(draftKey, (d) => { removed = removeEntry(d.exercises, entry.id); });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
-      toast(tr('{name} removed', { name }), { label: tr('Undo'), fn: () => editDraft(draftKey, (d) => { d.exercises.splice(Math.min(i, d.exercises.length), 0, removed); }) });
+      toast(tr('{name} removed', { name }), { label: tr('Undo'), fn: () => editDraft(draftKey, (d) => { restoreEntry(d.exercises, removed); }) });
     }
   };
 
