@@ -47,7 +47,7 @@ export function legacyColors({ scheme, colors: t }: TallyTheme) {
     ink: t.ink, ink2: t.ink2, ink3: t.ink3, line: t.line, lineStrong: t.ink3,
     accent: t.ink, accentInk: t.paper, accentSoft: t.paper3, accentText: t.accent,
     done: t.strokeDone, doneSoft: 'transparent', doneInk: t.paper, up: mark,
-    primary: t.primary, primaryInk: t.onPrimary, chart: t.ink, primarySoft: t.paper3, primaryText: t.ink,
+    primary: t.primary, primaryInk: t.onPrimary, chart: t.chart, primarySoft: t.paper3, primaryText: t.ink,
     label: t.ink2, labelStrong: t.ink, chipOn: t.ink, chipOnInk: t.paper, navBg: t.glass, barBg: t.glass,
     warm: t.ink2, warmSoft: t.paper3, drop: t.ink2, dropSoft: t.paper3,
     danger: t.danger, dangerSoft: rgba(t.danger, 0.12),

@@ -115,12 +115,12 @@ export function LineChart({
           ))}
           {sp && <Line x1={sx(sp.at)} x2={sx(sp.at)} y1={padT} y2={sy(y0)} stroke={t.ink3} strokeWidth={1} />}
           {points.length > 1
-            ? <Path d={d} fill="none" stroke={t.ink} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
-            : <Circle cx={sx(last.at)} cy={sy(last.value)} r={4} fill={t.paper} stroke={t.ink} strokeWidth={2} />}
+            ? <Path d={d} fill="none" stroke={t.chart} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+            : <Circle cx={sx(last.at)} cy={sy(last.value)} r={4} fill={t.paper} stroke={t.chart} strokeWidth={2} />}
           {points.map((p, i) => (p.record
             ? <Circle key={`r${i}`} cx={sx(p.at)} cy={sy(p.value)} r={4} fill={t.signal} stroke={t.signalEdge} strokeWidth={1.5} />
             : null))}
-          {sp && !sp.record && points.length > 1 && <Circle cx={sx(sp.at)} cy={sy(sp.value)} r={4} fill={t.paper} stroke={t.ink} strokeWidth={2} />}
+          {sp && !sp.record && points.length > 1 && <Circle cx={sx(sp.at)} cy={sy(sp.value)} r={4} fill={t.paper} stroke={t.chart} strokeWidth={2} />}
         </Svg>
       )}
       {sp && (
