@@ -909,6 +909,15 @@ test('backups round-trip, count as the latest backup and restore the built-in li
   }
 });
 
+test('a backup never brings a running workout along; other kv keys stay', () => {
+  const active = { id: 'a', kind: 'workout', name: 'Old', startedAt: 1, exercises: [] };
+  const data = { exercises: [], workouts: [], templates: [], measurements: [], kv: { settings: { unit: 'lb' }, active, later: 1 } };
+  const kv = core.parseBackup(core.makeBackup(data, '1.6.0'), []).data.kv;
+  assert.equal('active' in kv, false);
+  assert.deepEqual(kv.settings, { unit: 'lb' });
+  assert.equal(kv.later, 1, 'a key the app doesn’t know is kept');
+});
+
 // ---------- share links ----------
 test('template links round-trip and reject junk', () => {
   const bench = core.SEED_EXERCISES.find((e) => e.name === 'Bench Press (Barbell)');

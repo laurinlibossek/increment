@@ -28,7 +28,7 @@ export function useSecondsLeft(end: number) {
   return secs;
 }
 
-/** A capsule button: `primary` ink, `secondary` paper-3; `small` is 36 high with a 44 touch area. */
+/** A capsule button: `primary` in the primary fill (ink unless the theme says otherwise), `secondary` paper-3 with an accent label; `small` is 36 high with a 44 touch area. */
 export function CapsuleButton({
   title, onPress, kind = 'primary', small, block, testID, label, icon, disabled,
 }: { title: string; onPress: () => void; kind?: 'primary' | 'secondary'; small?: boolean; block?: boolean; testID?: string; label?: string; icon?: ReactNode; disabled?: boolean }) {
@@ -40,12 +40,12 @@ export function CapsuleButton({
       style={({ pressed }) => ({
         minHeight: h, paddingHorizontal: small ? SPACE.s4 : SPACE.s6, borderRadius: RADIUS.capsule,
         flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACE.s2,
-        backgroundColor: kind === 'primary' ? t.ink : t.paper3, opacity: disabled ? 0.45 : pressed ? 0.8 : 1,
+        backgroundColor: kind === 'primary' ? t.primary : t.paper3, opacity: disabled ? 0.45 : pressed ? 0.8 : 1,
         alignSelf: block ? 'stretch' : 'auto',
       })}>
       {icon}
       <Text numberOfLines={1} style={{
-        color: kind === 'primary' ? t.paper : t.ink, fontSize: small ? 15 : 17, lineHeight: small ? 20 : 22, fontWeight: '600', fontVariant: ['tabular-nums'],
+        color: kind === 'primary' ? t.onPrimary : t.accent, fontSize: small ? 15 : 17, lineHeight: small ? 20 : 22, fontWeight: '600', fontVariant: ['tabular-nums'],
       }}>{title}</Text>
     </Pressable>
   );

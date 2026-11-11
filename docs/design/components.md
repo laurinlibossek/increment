@@ -211,11 +211,12 @@ A row of strokes, one per set: hairline while pending, a solid stem once logged.
 
 **Use it** wherever sets are counted: the session header, each set row's leading mark, exercise rows in Up next, routine cards, the summary, the week strip (one stroke per session) and Sets per muscle.
 
-**You provide** the list of sets, each with a state (`pending`, `done`, `warmup`, `warmupPending`, `live`, `record`, `skipped`), how to group them (by exercise, or in fives) and a size (`small` 14, `regular` `stroke-h`, `hero` `stroke-h-hero`).
+**You provide** the list of sets, each with a state (`pending`, `done`, `warmup`, `warmupPending`, `live`, `record`, `skipped`), how to group them (by exercise, or in fives) and a size (`small` 14, `regular` `stroke-h`, `hero` `stroke-h-hero`, 40, with the wider `stroke-*-hero` slot, hairline and gaps).
 
 **Rules**
 - Strokes keep their slot (`stroke-slot`) whatever their state, so nothing shifts when a set is logged.
 - Groups are separated by `stroke-group`: per exercise in a session, per five when counting.
+- A whole workout's tally (session header, summary, History) wraps onto new lines, inside a long exercise too, so it never runs off the screen. It grows a line per screen width of strokes: about 29 hero strokes per line on an iPhone; 1000 sets make a block about 1900 pt tall, two and a half screens.
 - `record` is the only coloured state. `live` marks the one set being logged; there is never more than one.
 - Never use strokes for weight, time or other continuous numbers.
 - In a set row the stroke is the button that logs the set: give it a `hit-min` touch area and the label "Set 3, left side, 82.5 kg × 8, not logged" when tagged. The row’s accessibility label names the side too.

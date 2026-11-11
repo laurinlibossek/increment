@@ -1,6 +1,6 @@
 # Status and backlog
 
-Last updated 9 Nov 2026 (browser scroll-snap tab pager). Keep this file current: when a pull request finishes an item, move it to "Done" in the same PR and note any decision Laurin made.
+Last updated 11 Nov 2026 (survey of both repositories: issues #34 to #42). Keep this file current: when a pull request finishes an item, move it to "Done" in the same PR and note any decision Laurin made.
 
 ## Where things are
 
@@ -26,6 +26,7 @@ Laurin's roadmap (6 Nov 2026): most features into the app, launch the web app, u
 
 ## Open items, any order
 
+- **From the survey of 11 Nov 2026** (the code read end to end, the suspects reproduced in the web build): the bugs are issues #34 to #42. In the order they matter: #34 (the web app shows a failed save as saved), #35 (two open tabs overwrite each other's data), #36 (Today keeps yesterday's date overnight), #37 (the session counts more records than the summary), #40 (the Strong import's weights), then #38, #39, #41 and #42. #26 (the tab highlight lagging behind a swipe) was filed against the native swipe that #24 removed: check on the phone whether anything of it is left, then close it.
 - Before the store release, decide native tab swipe: a pager that follows the finger needs non-native tabs (losing the Liquid Glass bar, its minimizing and the workout accessory), or no swipe.
 - Not answered yet: "Account" in German (kept as "Account"); the body part under the exercise name in the session; added exercises wait under Up next; the just-logged exercise stays on screen during its rest; the routine editor keeps RPE as a target.
 - Unknowns that need Laurin's input: where Strong puts exercise notes in a real export (sticky notes are probably not exported at all), and what Strong's exercise ⋯ → Preferences contains.
@@ -49,6 +50,14 @@ Reference for anyone touching the summary or routines.
 
 
 ## Done
+
+- **Bigger session tally** (11 Nov 2026, Laurin's decision, `claude/blissful-curie-qqol89`): hero strokes (session header, workout summary) are 40 high instead of 32, with a 7 px slot, 2 px hairline and wider gaps (new `stroke-*-hero` tokens); "0 of 18 sets" under it is Subheadline instead of Footnote. A workout's tally now also wraps inside a long exercise: before, one exercise with more sets than fit in a line (about 35) ran off the right edge. It still has no cap: 1000 sets make a block about 1900 pt tall (two and a half screens) above the exercises. Account values may now take 55 % of the row (was 45 %), so "Aus jedem Training" stays whole at 375 pt with the larger text.
+
+- **Strawberry Matcha like Setlog; no black bar on iPhone** (11 Nov 2026, Laurin's decisions, `claude/blissful-curie-qqol89`): Strawberry Matcha moves to Setlog's colourway, a little calmer: page `#f2ebde`, cards `#fbf8f2`, matcha control fills `#e3e7d8`, olive greys, main buttons (Start, Log set, Skip, the keypad's Next) in strawberry `#bf3f55` with cream text, and secondary-button labels, text buttons and the selected tab in matcha `#476e2b`. New tokens `primary`, `on-primary` and `accent` carry this; every other theme keeps ink and paper there. The History calendar's workout days stay ink. On the web the browser bar took the phone's light/dark setting (`theme-color` with media queries), so a light theme on a dark phone sat under a black status bar; the root layout now sets it to the theme's paper. Not yet checked on a real iPhone.
+
+- **Larger Account text** (11 Nov 2026, Laurin's decision, `claude/blissful-curie-qqol89`): Account's rows are one step larger than other lists. `SettingRow` titles go from Body (17) to Title 3 at regular weight (20), values from Subheadline (15) to Body (17), and subtitles from Footnote (13) to Subheadline (15), wrapping to three lines instead of two so the longer ones aren't cut off. Account's own grey labels (units, Strong units, the storage note and the version line) also move from Footnote to Subheadline. Section headers stay Title 2. Strong import's choice rows use the same row, so they grow with it.
+
+- **Survey fixes** (11 Nov 2026, `claude/blissful-curie-qqol89`): a backup file that carries a running workout (`kv.active`) no longer brings it back as a workout "in progress" the next time the app starts; core `parseBackup` drops it, since the workout running in the app keeps going (unit test). The README no longer says the apps follow the phone's language, and `docs/design/navigation.md` and `phases.md` describe the routine after a workout as it has been since 4 and 5 Nov (numbers go in by themselves, a changed layout asks in a popup) instead of the switch row. Everything else the survey found is in issues (see Open items).
 
 - **Web tabs follow the finger** (9 Nov 2026, Laurin's decision, replaces PR #23): Today, Plan and Progress stay mounted in one browser scroll-snap container, each with its own vertical scroll. Swipes work from cards and rows; direction lock, momentum and snapping belong to the browser. The unchanged bar and Now Lifting stay fixed; the settled page updates the address/highlight, bar taps scroll smoothly (instant with Reduce Motion), and direct links, Back/Forward and pushed screens retain normal navigation. The chart uses `touch-action: pan-y` for scrubbing. PR #23's recognizer, core rules/tests, gesture root and direct library dependency are removed; native keeps NativeTabs without swiping for now. Real CDP touch-scroll tests cover both themes; review includes short web recordings. Laurin's home-screen iPhone is the real test.
 

@@ -96,8 +96,8 @@ export function Keypad({
           {key('minus', steps[0], { fn: true, label: labels.minus, side: true })}
           {key('plus', steps[1], { fn: true, label: labels.plus, side: true })}
           <Pressable onPress={() => onKey('next')} accessibilityRole="button" testID="key-next"
-            style={({ pressed }) => [styles.sideKey, styles.next, { backgroundColor: t.ink, opacity: pressed ? 0.85 : 1 }]}>
-            <Text style={{ color: t.paper, fontSize: 17, fontWeight: '600' }}>{labels.next}</Text>
+            style={({ pressed }) => [styles.sideKey, styles.next, { backgroundColor: t.primary, opacity: pressed ? 0.85 : 1 }]}>
+            <Text style={{ color: t.onPrimary, fontSize: 17, fontWeight: '600' }}>{labels.next}</Text>
           </Pressable>
         </View>
       </View>

@@ -42,6 +42,21 @@ export default function RootLayout() {
 
   useEffect(() => { load(); }, []);
   useEffect(() => { if (ready) SplashScreen.hideAsync().catch(() => {}); }, [ready]);
+  // Web: the browser's bar (the status bar of the home-screen app on iPhone, Safari's
+  // toolbar) takes the app theme's paper. The page's theme-color tags follow the phone's
+  // light/dark setting, which left a black bar above a light theme on a dark phone.
+  const paper = palette.colors.bg;
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+    if (!document.querySelector('meta[name="theme-color"]')) {
+      const meta = document.createElement('meta');
+      meta.name = 'theme-color';
+      document.head.appendChild(meta);
+    }
+    document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]').forEach((meta) => { meta.removeAttribute('media'); meta.content = paper; });
+    document.documentElement.style.backgroundColor = paper;
+    document.body.style.backgroundColor = paper;
+  }, [paper]);
 
   if (!ready) return <Loading />;
   return (

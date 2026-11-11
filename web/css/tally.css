@@ -15,6 +15,9 @@
   --ink-2: #5d5d58;
   --ink-3: #8a8a84;
   --stroke-done: #0d0d0c;
+  --primary: #0d0d0c;
+  --on-primary: #ffffff;
+  --accent: #0d0d0c;
   --signal: #ffd60a;
   --on-signal: #0d0d0c;
   --signal-edge: #0d0d0c;
@@ -54,6 +57,9 @@
     --ink-2: #a6a6a0;
     --ink-3: #72726c;
     --stroke-done: #f4f4f0;
+    --primary: #f4f4f0;
+    --on-primary: #000000;
+    --accent: #f4f4f0;
     --signal: #ffd60a;
     --on-signal: #0d0d0c;
     --signal-edge: #ffd60a;

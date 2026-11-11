@@ -168,20 +168,20 @@ export default function AccountSheet() {
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={[TYPE.title2, { color: s.profile.name.trim() ? t.ink : t.ink2 }]} numberOfLines={1}>{s.profile.name.trim() || tr('Not set')}</Text>
-          <Text style={[TYPE.footnote, { color: t.ink2 }]}>{tr('Your name')}</Text>
+          <Text style={[TYPE.subhead, { color: t.ink2 }]}>{tr('Your name')}</Text>
         </View>
         <SymbolIcon name="chevron.right" size={13} color={t.ink3} />
       </Pressable>
 
       <SectionHeader title={tr('Units')} />
       <View style={{ gap: SPACE.s2, paddingHorizontal: SPACE.s5 }}>
-        <Txt tone="ink2" style={TYPE.footnote}>{tr('Lifting weight')}</Txt>
+        <Txt tone="ink2" style={TYPE.subhead}>{tr('Lifting weight')}</Txt>
         <SegmentedControl testID="set-unit" label={tr('Lifting weight')} value={st.unit} onChange={(v) => set('unit', v)} options={[{ value: 'kg', label: 'kg' }, { value: 'lb', label: 'lb' }]} />
-        <Txt tone="ink2" style={[TYPE.footnote, { marginTop: SPACE.s1 }]}>{tr('Distance')}</Txt>
+        <Txt tone="ink2" style={[TYPE.subhead, { marginTop: SPACE.s1 }]}>{tr('Distance')}</Txt>
         <SegmentedControl label={tr('Distance')} value={st.distUnit} onChange={(v) => set('distUnit', v)} options={[{ value: 'km', label: 'km' }, { value: 'mi', label: 'mi' }]} />
-        <Txt tone="ink2" style={[TYPE.footnote, { marginTop: SPACE.s1 }]}>{tr('Body weight')}</Txt>
+        <Txt tone="ink2" style={[TYPE.subhead, { marginTop: SPACE.s1 }]}>{tr('Body weight')}</Txt>
         <SegmentedControl label={tr('Body weight')} value={bodyUnit(st)} onChange={(v) => set('bodyUnit', v)} options={[{ value: 'kg', label: 'kg' }, { value: 'lb', label: 'lb' }]} />
-        <Txt tone="ink2" style={[TYPE.footnote, { marginTop: SPACE.s1 }]}>{tr('Body measurements')}</Txt>
+        <Txt tone="ink2" style={[TYPE.subhead, { marginTop: SPACE.s1 }]}>{tr('Body measurements')}</Txt>
         <SegmentedControl label={tr('Body measurements')} value={lengthUnit(st)} onChange={(v) => set('sizeUnit', v)} options={[{ value: 'cm', label: 'cm' }, { value: 'in', label: 'in' }]} />
       </View>
 
@@ -247,12 +247,12 @@ export default function AccountSheet() {
         <SettingRow symbol="arrow.left.arrow.right" title={tr('Import from Strong')} sub={tr('In Strong: Settings → Export Workouts, then pick that CSV here')} onPress={busy ? undefined : doStrong} testID="strong-import" />
         <SettingRow symbol="tablecells" title={tr('Export as CSV')} sub={tr('Spreadsheet-friendly, Strong column format')} onPress={doCSV} testID="export-csv" />
       </View>
-      <Txt tone="ink2" style={[TYPE.footnote, { marginTop: SPACE.s2, paddingHorizontal: SPACE.s5 }]}>{tr('Which units did Strong use?')}</Txt>
+      <Txt tone="ink2" style={[TYPE.subhead, { marginTop: SPACE.s2, paddingHorizontal: SPACE.s5 }]}>{tr('Which units did Strong use?')}</Txt>
       <View style={{ gap: SPACE.s2, marginTop: SPACE.s2, paddingHorizontal: SPACE.s5 }}>
         <SegmentedControl label={tr('Which units did Strong use?')} value={strongUnits.weightUnit} onChange={(v) => setStrongUnits({ ...strongUnits, weightUnit: v })} options={[{ value: 'kg', label: tr('Kilograms') }, { value: 'lb', label: tr('Pounds') }]} />
         <SegmentedControl label={tr('Which units did Strong use?')} value={strongUnits.distUnit} onChange={(v) => setStrongUnits({ ...strongUnits, distUnit: v })} options={[{ value: 'km', label: tr('Kilometres') }, { value: 'mi', label: tr('Miles') }]} />
       </View>
-      <Txt tone="ink2" style={[TYPE.footnote, { marginTop: SPACE.s3, paddingHorizontal: SPACE.s5 }]}>
+      <Txt tone="ink2" style={[TYPE.subhead, { marginTop: SPACE.s3, paddingHorizontal: SPACE.s5 }]}>
         {tr('Everything stays on this phone. Nothing is uploaded anywhere — back up regularly and keep the file in iCloud Drive or another safe place.')}
       </Txt>
 
@@ -264,7 +264,7 @@ export default function AccountSheet() {
         <SettingRow first title={tr('Privacy policy')} onPress={openPrivacy} testID="privacy" />
       </View>
 
-      <Txt tone="ink2" style={[TYPE.footnote, { textAlign: 'center', marginTop: SPACE.s6, paddingHorizontal: SPACE.s5 }]}>
+      <Txt tone="ink2" style={[TYPE.subhead, { textAlign: 'center', marginTop: SPACE.s6, paddingHorizontal: SPACE.s5 }]}>
         {`Increment ${appVersion()} · ${tr('{n} stored', { n: f.plural(s.workouts.length, 'workout') })}`}
       </Txt>
     </ScrollView>
