@@ -30,6 +30,10 @@ export function parseBackup(text, seedExercises = []) {
   // the backup itself counts as a backup: without this the reminder would come
   // back early after a restore (the file holds the time of the backup before it)
   const kv = { ...(d.kv || {}) };
+  // a running workout is never restored: the one in the app keeps going. The
+  // apps' own backups don't carry one, but a file from elsewhere may, and it
+  // would come back as a workout "in progress" the next time the app starts
+  delete kv.active;
   const madeAt = Date.parse(obj.exportedAt || '');
   if (Number.isFinite(madeAt)) kv.meta = { ...(kv.meta || {}), lastBackupAt: Math.max(kv.meta?.lastBackupAt || 0, madeAt) };
   // keep the built-in library even if the backup predates it
