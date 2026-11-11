@@ -600,7 +600,8 @@ export const markBackedUp = () => setMeta({ lastBackupAt: Date.now() });
 
 // ---------- Strong import ----------
 export type StrongReview = ReturnType<typeof parseStrongCSV>;
-export type StrongChoice = { kind: 'existing'; exerciseId: string } | { kind: 'new'; name: string; category: string; bodyPart: string };
+/** Use an existing exercise, create one, or leave the exercise out of the import (#40). */
+export type StrongChoice = { kind: 'existing'; exerciseId: string } | { kind: 'new'; name: string; category: string; bodyPart: string } | { kind: 'skip' };
 export type StrongChoices = Record<string, StrongChoice>;
 
 /** Parse a Strong export against the app's data. Nothing is saved yet. */
@@ -630,7 +631,7 @@ export async function saveStrongImport(preview: StrongReview, choices: StrongCho
     exercises: state.exercises, workouts: state.workouts, aliases: state.strongAliases,
   }) as { exercises: Exercise[]; workouts: Workout[]; aliases: Record<string, string>;
     noteUpdates: { id: string; notes?: string; entries: [number, string][] }[];
-    stats: { workouts: number; notesAdded: number; duplicates: number } };
+    stats: { workouts: number; notesAdded: number; duplicates: number; omitted: { sets: number; workouts: number; exercises: string[] } } };
   const exercises = new Map(state.exercises);
   for (const e of r.exercises) exercises.set(e.id, e);
   // notes for workouts that are already here (older imports that dropped them)

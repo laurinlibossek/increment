@@ -829,7 +829,7 @@ test('Strong review counts sessions, requires decisions and body parts, and limi
   assert.deepEqual(core.strongImportCategories([{ w: 0, r: 8 }]), ['reps']);
   assert.deepEqual(core.strongImportCategories([{ d: 1, t: 50 }]), ['cardio']);
   assert.deepEqual(core.strongImportCategories([{ t: 60 }]), ['duration']);
-  assert.deepEqual(core.strongImportCategories([{ w: -10, r: 8 }]), ['barbell', 'dumbbell', 'machine', 'weighted_bw', 'assisted_bw']);
+  assert.deepEqual(core.strongImportCategories([{ w: -10, r: 8 }]), [], 'no exercise logs a negative load (#40)');
   assert.deepEqual(core.strongImportCategories([{ w: 20, t: 60 }]), [], 'cannot discard fields from mixed sets');
   const choices = Object.fromEntries(preview.review.map((r) => [r.name, { kind: 'new', name: r.name, category: r.category, bodyPart: r.bodyPart || 'other' }]));
   choices['Kenan Flaps'] = { kind: 'existing', exerciseId: 'x-keenan-flap-cable' };
@@ -875,6 +875,52 @@ test('Strong choices survive a backup, silently match newer exports, skip duplic
   for (const exercises of [restored.exercises.filter((e) => e.id !== r.exercises[0].id), restored.exercises.map((e) => e.id === r.exercises[0].id ? { ...e, category: 'duration' } : e)]) {
     assert.equal(core.parseStrongCSV(csv, { ...opts, exercises }).review[0].name, 'Moon Lift', 'deleted or incompatible remembered targets return to review');
   }
+});
+
+test('Strong import (#40): exact names pass the field check, negative weights and mixed sets can only be left out', () => {
+  const csv = strongFile([
+    ['Bench Press (Barbell)', -20, 8], ['Bench Press (Barbell)', 60, 8], // negative: even an exact name goes to review
+    ['Pull Up', 10, 8], // exact name, but Increment's Pull Up logs reps only
+    ['Pull Up (Assisted)', 20, 8], // Strong's help is positive: stays assistance
+    ['Moon Hold', 20, 8], ['Moon Hold', 0, 0, 0, 30], // weight and time mixed
+    ['Squat (Barbell)', 100, 5, 0, 0, '2026-10-02 12:00:00'], ['Moon Hold', 0, 0, 0, 40, '2026-10-03 12:00:00'],
+  ]);
+  const preview = core.parseStrongCSV(csv, { exercises: core.SEED_EXERCISES, aliases: { 'Bench Press (Barbell)': 'x-bench-press-barbell' } });
+  const row = (name) => preview.review.find((r) => r.name === name);
+  assert.equal(preview.matches['Pull Up (Assisted)'], 'x-pull-up-assisted');
+  assert.equal(preview.matches['Squat (Barbell)'], 'x-squat-barbell');
+  assert.equal(row('Bench Press (Barbell)').blocked, 'negative', 'neither the exact name nor a remembered choice takes a negative weight');
+  assert.equal(row('Moon Hold').blocked, 'mixed');
+  assert.deepEqual(row('Moon Hold').omit, { sets: 3, workouts: 2 });
+  assert.deepEqual(row('Bench Press (Barbell)').omit, { sets: 2, workouts: 1 });
+  const pull = row('Pull Up');
+  assert.equal(pull.exact, 'x-pull-up');
+  assert.equal(pull.blocked, undefined);
+  assert.ok(!pull.suggestions.some((x) => x.id === 'x-pull-up'), 'the reps-only exercise is not offered');
+  assert.ok(pull.suggestions.some((x) => x.id === 'x-pull-up-weighted'), 'a compatible sibling is');
+  // blocked rows take nothing but Leave out
+  const choices = { 'Pull Up': { kind: 'existing', exerciseId: 'x-pull-up-weighted' }, 'Moon Hold': { kind: 'new', name: 'Moon Hold', category: 'duration', bodyPart: 'core' }, 'Bench Press (Barbell)': { kind: 'existing', exerciseId: 'x-bench-press-barbell' } };
+  const problems = core.strongImportProblems(preview, choices, core.SEED_EXERCISES);
+  assert.match(problems.find((x) => x.name === 'Bench Press (Barbell)').problem, /negative weight/);
+  assert.match(problems.find((x) => x.name === 'Moon Hold').problem, /combine fields/);
+  assert.throws(() => core.resolveStrongImport(preview, choices, { exercises: core.SEED_EXERCISES }), /negative weight/);
+  choices['Bench Press (Barbell)'] = { kind: 'skip' };
+  choices['Moon Hold'] = { kind: 'skip' };
+  const r = core.resolveStrongImport(preview, choices, { exercises: core.SEED_EXERCISES });
+  assert.deepEqual(r.workouts.map((w) => w.exercises.map((e) => e.exerciseId)), [['x-pull-up-weighted', 'x-pull-up-assisted'], ['x-squat-barbell']], 'the rest imports; a workout with nothing left is not made');
+  assert.equal(r.workouts[0].exercises[1].sets[0].w, 20, 'assistance as Strong wrote it');
+  assert.deepEqual(r.stats.omitted, { sets: 5, workouts: 1, exercises: ['Bench Press (Barbell)', 'Moon Hold'] });
+  assert.equal(r.stats.sets, 3);
+  assert.equal(r.exercises.length, 0, 'no exercise is made for left-out sets');
+  assert.equal(r.aliases['Moon Hold'], undefined, 'a skip is not remembered');
+  assert.equal(r.aliases['Pull Up'], 'x-pull-up-weighted');
+  // everything left out: nothing is made, and the stats say so
+  const lone = core.parseStrongCSV(strongFile([['Moon Hold', 20, 8], ['Moon Hold', 0, 0, 0, 30]]), { exercises: core.SEED_EXERCISES });
+  const none = core.resolveStrongImport(lone, { 'Moon Hold': { kind: 'skip' } }, { exercises: core.SEED_EXERCISES });
+  assert.deepEqual([none.workouts.length, none.exercises.length, none.stats.omitted.sets, none.stats.omitted.workouts], [0, 0, 2, 1]);
+  // the remembered choice for Pull Up matches silently next time, past the incompatible exact name
+  const again = core.parseStrongCSV(strongFile([['Pull Up', 12, 6, 0, 0, '2026-10-05 12:00:00']]), { exercises: core.SEED_EXERCISES, aliases: r.aliases });
+  assert.deepEqual([again.review.length, again.matches['Pull Up']], [0, 'x-pull-up-weighted']);
 });
 
 test('Strong shipped spellings resolve to existing identities, and new family membership is exact', () => {
