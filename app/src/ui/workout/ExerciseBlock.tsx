@@ -12,7 +12,7 @@ import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import {
   placeholders, restFor, addSet, joinSuperset, leaveSuperset, replaceExercise, addWarmups, rateSet, setRir, setSetType,
-  isLiveRecord, loggedFields, usesWeight, usesDistance, numToInput, parseNum, focusOptions, focusValues, uncheckSet,
+  loggedFields, usesWeight, usesDistance, numToInput, parseNum, focusOptions, focusValues, uncheckSet,
   REST_CHOICES, RPE_CHOICES, RIR_CHOICES, SET_TYPES, FOCUS_LABEL, BODY_PART_LABEL,
 } from '@increment/core';
 
@@ -42,7 +42,8 @@ type Props = {
   entry: EntryDraft;
   ex: Exercise | undefined;
   prevSets: WorkSet[] | null;
-  bests: Record<string, number> | undefined;
+  /** running workout: the ids of this entry's record sets, space-separated (a string, so blocks whose records didn't change don't render again) */
+  recordSets: string;
   settings: Settings;
   superset?: { index: number; letter: string };
   /** running workout: the id of the set being logged */
@@ -55,7 +56,7 @@ const SET_TYPE_CHIP: Record<SetType, string> = { normal: '', warmup: 'Warm-up', 
 type FocusKey = keyof typeof FOCUS_LABEL;
 
 export const ExerciseBlock = memo(function ExerciseBlock({
-  draftKey, mode, entry, ex, prevSets, bests, settings, superset, live = null,
+  draftKey, mode, entry, ex, prevSets, recordSets, settings, superset, live = null,
 }: Props) {
   const f = useFormat();
   const { tr } = f;
@@ -69,7 +70,7 @@ export const ExerciseBlock = memo(function ExerciseBlock({
   const labels = setLabels(entry.sets);
   const active = mode === 'active';
   const edit = (fn: (e: EntryDraft) => void) => editDraft(draftKey, (_a, e) => fn(e), entry.id);
-  const now = Date.now();
+  const records = recordSets ? recordSets.split(' ') : [];
   const name = f.exName(ex);
 
   // ---------- sets ----------
@@ -261,7 +262,7 @@ export const ExerciseBlock = memo(function ExerciseBlock({
 
   const row = (set: SetDraft, i: number) => {
     const ph = rows[i]?.ph || {};
-    const record = active && isLiveRecord(set, cat, bests, settings, now);
+    const record = active && set.done && records.includes(set.id);
     const warm = set.type === 'warmup';
     const isLive = active && set.id === live;
     const state: StrokeState = set.done ? (record ? 'record' : warm ? 'warmup' : 'done') : isLive ? 'live' : warm ? 'warmupPending' : 'pending';

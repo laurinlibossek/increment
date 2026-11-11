@@ -5,7 +5,7 @@ import { useSyncExternalStore } from 'react';
 import { AppState } from 'react-native';
 import {
   SEED_EXERCISES, SEED_VERSION, withDefaults, buildStats, sessionsByExercise, configureCalc, bodyweightFrom,
-  parseBackup, parseStrongCSV, resolveStrongImport, STRONG_EXERCISE_ALIASES, suggestTemplate, previousSetsFrom, newActiveWorkout, finishWorkout, prsForNewWorkout,
+  parseBackup, parseStrongCSV, resolveStrongImport, STRONG_EXERCISE_ALIASES, suggestTemplate, previousSetsFrom, newActiveWorkout, finishWorkout, prsForNewWorkout, liveRecordSets,
   workoutVolume, makeBackup, uid, seedExerciseChanges,
   templateFromDraft, workoutFromEditDraft, copyTemplateRecord, folderNames, findExerciseByName, newExerciseRecord,
   exerciseInDraft, patchDraftExercise, changeSetting, convertDraftUnits, mergeExercisePatch, moveExerciseEntries,
@@ -475,6 +475,22 @@ export function stats(s: State = state): Stats {
     statsFor = { workouts: s.workouts, exercises: s.exercises, key };
   }
   return statsCache;
+}
+
+let recordsFor: { active: State['active']; stats: Stats; settings: Settings } | null = null;
+let recordsCache: Map<string, string[]> = new Map();
+/**
+ * The running workout's record sets (set id -> the metrics it holds), by the
+ * summary's rule (#37): what the session, Now Lifting and Today count and colour.
+ */
+export function activeRecords(s: State = state): Map<string, string[]> {
+  const st = stats(s);
+  if (!s.active) return new Map();
+  if (!recordsFor || recordsFor.active !== s.active || recordsFor.stats !== st || recordsFor.settings !== s.settings) {
+    recordsCache = liveRecordSets(s.active, st.bests, s.exercises, s.settings) as Map<string, string[]>;
+    recordsFor = { active: s.active, stats: st, settings: s.settings };
+  }
+  return recordsCache;
 }
 
 let allFor: Workout[] | null = null;

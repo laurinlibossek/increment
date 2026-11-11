@@ -201,8 +201,9 @@ export function sessionsByExercise(workouts) {
 }
 
 /**
- * Record metrics a single set beats, compared with the stored bests for its
- * exercise. Used for the live PR badge so it agrees with the summary.
+ * Record metrics a single set beats on its own, compared with the stored bests
+ * for its exercise. The records a workout shows are liveRecordSets /
+ * prsForNewWorkout, which also weigh the workout's other sets.
  */
 export function newRecords(s, cat, bests, formula, at) {
   if (!bests || !isWorking(s)) return [];

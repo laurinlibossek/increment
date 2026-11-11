@@ -5,7 +5,7 @@
 // Messages are English translation keys (WORKOUT_MESSAGES), translated by the UI.
 import { uid, numToInput, parseNum } from './units.js';
 import {
-  usesWeight, setIsValid, loggedFields, warmupSets, newRecords, countsVolume, setVolume, isWorking, normRir,
+  usesWeight, setIsValid, loggedFields, warmupSets, prsForNewWorkout, countsVolume, setVolume, isWorking, normRir,
 } from './calc.js';
 import {
   newSetDraft, setToDraft, draftToSet, entryToDraft, newEntryDraft, remapSupersets, draftEntries,
@@ -437,10 +437,20 @@ export function addWarmups(entry, rows, cat, settings) {
   return { added: ws.length };
 }
 
-/** Would this checked set beat the stored records? Same rules as the summary's records. */
-export function isLiveRecord(set, cat, bests, settings, now = Date.now()) {
-  if (!bests || !set.done || set.type === 'warmup') return false;
-  return newRecords(draftToSet(set, settings), cat, bests, settings.formula, now).length > 0;
+/**
+ * The record sets of the running workout so far (#37), worked out the way the
+ * summary does it (the logged sets as Finish saves them, prsForNewWorkout): per
+ * exercise and metric at most one set, the best logged working set if it beats
+ * the stored best. A later, better set takes the record over; an equal one
+ * doesn't; several entries of one exercise count together; an exercise's first
+ * session sets none. Returns setId -> the metrics it holds, so its size is the
+ * number of records (a set beating several metrics is one record).
+ */
+export function liveRecordSets(a, bests, exercises, settings) {
+  const logged = { startedAt: a.startedAt, exercises: draftEntries(a, settings, exercises, { onlyDone: true }) };
+  const out = new Map();
+  for (const p of prsForNewWorkout(logged, { bests }, exercises, settings.formula)) out.set(p.setId, [...(out.get(p.setId) || []), p.metric]);
+  return out;
 }
 
 // ---------- focus metric ----------

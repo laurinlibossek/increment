@@ -5,10 +5,9 @@
 // tab on Android and older iPhones (NowLiftingDock). Tap to open the session.
 import { useMemo } from 'react';
 import { Platform, View } from 'react-native';
-import { isLiveRecord } from '@increment/core';
 
-import { skipRest, stats, useAppSelector, useAppState } from '@/data/store';
-import type { ActiveWorkout, Exercise, Settings } from '@/data/types';
+import { activeRecords, skipRest, useAppSelector, useAppState } from '@/data/store';
+import type { ActiveWorkout } from '@/data/types';
 import { useFormat } from '@/lib/format';
 import { useNow } from '@/lib/useNow';
 import { openWorkout } from '@/lib/workout';
@@ -25,17 +24,16 @@ export const DOCK_SPACE = CONTROL.accessoryH + SPACE.s4;
  * The session as strokes (one group per exercise), the set being logged and
  * the counts: what the accessory and Today's card show.
  */
-export function sessionView(a: ActiveWorkout, exercises: Map<string, Exercise>, settings: Settings, bests: Map<string, Record<string, number>>) {
+export function sessionView(a: ActiveWorkout, records: Map<string, unknown>) {
   let current: { entry: number; set: number } | null = null;
-  let done = 0, total = 0, records = 0;
+  let done = 0, total = 0, recordCount = 0;
   const all: StrokeState[][] = a.exercises.map((e, i) => {
-    const cat = exercises.get(e.exerciseId)?.category;
     return e.sets.map((s, j) => {
       const warm = s.type === 'warmup';
       if (!warm) total++;
       if (s.done) {
         if (!warm) done++;
-        if (isLiveRecord(s, cat, bests.get(e.exerciseId), settings)) { records++; return 'record'; }
+        if (records.has(s.id)) { recordCount++; return 'record'; }
         return warm ? 'warmup' : 'done';
       }
       if (!current) { current = { entry: i, set: j }; return warm ? 'warmupPending' : 'live'; }
@@ -47,12 +45,12 @@ export function sessionView(a: ActiveWorkout, exercises: Map<string, Exercise>, 
   let last = a.exercises.length - 1;
   while (last > 0 && !all[last].length) last--;
   const exercise = all[cur ? cur.entry : last] || [];
-  return { groups: all.filter((g) => g.length), exercise, current: cur, done, total, records };
+  return { groups: all.filter((g) => g.length), exercise, current: cur, done, total, records: recordCount };
 }
 
 export function useSessionView() {
   const s = useAppState();
-  return useMemo(() => (s.active ? sessionView(s.active, s.exercises, s.settings, stats(s).bests) : null),
+  return useMemo(() => (s.active ? sessionView(s.active, activeRecords(s)) : null),
     [s.active, s.exercises, s.settings, s.workouts]); // eslint-disable-line react-hooks/exhaustive-deps
 }
 

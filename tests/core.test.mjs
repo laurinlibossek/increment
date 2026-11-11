@@ -1930,3 +1930,52 @@ test('backups keep set sides unchanged while Strong CSV export drops only the si
   const exercises = new Map([[ex.id, ex]]);
   assert.equal(core.exportCSV({ workouts: [workout], exercises }), core.exportCSV({ workouts: [untagged], exercises }));
 });
+
+test('records in a running workout (#37): one set per exercise and metric, as in the summary', () => {
+  const st = core.withDefaults({ unit: 'kg', distUnit: 'km' });
+  const bench = core.SEED_EXERCISES.find((e) => e.id === 'x-bench-press-barbell');
+  const exercises = new Map([[bench.id, bench]]);
+  const before = { id: 'old', startedAt: 1000, endedAt: 2000, exercises: [{ id: 'oe', exerciseId: bench.id, sets: [{ id: 'o1', type: 'normal', w: 95, r: 5 }] }] };
+  const { bests } = core.buildStats([before], exercises, st.formula);
+  /** A running workout with these entries of bench press, sets as [type, w, r, done]. */
+  const running = (...entries) => {
+    const a = core.newActiveWorkout({ settings: st, now: 5000 });
+    a.exercises = entries.map((sets, i) => ({ ...core.newEntryDraft(bench.id), id: `e${i}`,
+      sets: sets.map(([type, w, r, done = true], j) => ({ ...core.newSetDraft(type, { w: String(w), r: String(r) }), id: `e${i}s${j}`, done })) }));
+    return a;
+  };
+  const recs = (a, b = bests) => Object.fromEntries([...core.liveRecordSets(a, b, exercises, st)].map(([id, m]) => [id, [...m].sort()]));
+  const ALL = ['e1rm', 'volume', 'weight'];
+  // the summary of the same workout names the same sets
+  const summary = (a, b = bests) => new Set(core.prsForNewWorkout(core.finishWorkout(a, { settings: st, exercises, mode: 'done' }), { bests: b }, exercises, st.formula).map((p) => p.setId));
+  const same = (a) => assert.deepEqual(new Set(core.liveRecordSets(a, bests, exercises, st).keys()), summary(a));
+
+  // three equal sets above the old best: one record, the first; one set beating three metrics counts once
+  let a = running([['normal', 100, 5], ['normal', 100, 5], ['normal', 100, 5]]);
+  assert.deepEqual(recs(a), { e0s0: ALL });
+  same(a);
+  // a later, better set takes over; an equal one doesn't
+  a = running([['normal', 100, 5], ['normal', 102.5, 5], ['normal', 102.5, 5]]);
+  assert.deepEqual(recs(a), { e0s1: ALL });
+  same(a);
+  // different winning sets count separately: the heavy set keeps weight and 1RM, the long one takes volume
+  a = running([['normal', 100, 5], ['normal', 90, 8]]);
+  assert.deepEqual(recs(a), { e0s0: ['e1rm', 'weight'], e0s1: ['volume'] });
+  same(a);
+  // matching the old best isn't a record; warm-ups and unchecked sets can't set one
+  assert.deepEqual(recs(running([['normal', 95, 5], ['warmup', 200, 5], ['normal', 120, 5, false]])), {});
+  // two entries of the same exercise are compared together
+  a = running([['normal', 100, 5]], [['normal', 100, 5]]);
+  assert.deepEqual(recs(a), { e0s0: ALL });
+  a = running([['normal', 100, 5]], [['normal', 105, 5]]);
+  assert.deepEqual(recs(a), { e1s0: ALL });
+  same(a);
+  // unchecking (or deleting) the winner gives the record back to the earlier set
+  a = running([['normal', 100, 5], ['normal', 102.5, 5]]);
+  core.uncheckSet(a.exercises[0].sets[1]);
+  assert.deepEqual(recs(a), { e0s0: ALL });
+  a.exercises[0].sets.splice(0, 1);
+  assert.deepEqual(recs(a), {});
+  // an exercise's first session is its baseline: no records
+  assert.deepEqual(recs(running([['normal', 100, 5]]), new Map()), {});
+});
