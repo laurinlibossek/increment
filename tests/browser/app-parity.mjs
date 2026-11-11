@@ -153,7 +153,7 @@ function startOfDayOf(t) { const d = new Date(t); d.setHours(0, 0, 0, 0); return
   assert.match(await visibleText(page), new RegExp(`All ${pull} sessions of “Snatch Pull \\(Barbell\\)” move to “Snatch \\(Barbell\\)”`));
   await page.screenshot({ path: `${OUT}/04-merge-confirm.png` });
   await id(page, 'confirm-merge').click();
-  assert.equal(await toastText(page), 'Exercises merged');
+  await id(page, 'toast').filter({ hasText: 'Exercises merged' }).waitFor(); // the earlier toast may still show while the merge saves
   await wait(page, 300);
   assert.ok(page.url().includes(`/exercise/${SNATCH}`), 'the target’s page is open');
   data = await store(page);
@@ -273,7 +273,7 @@ function startOfDayOf(t) { const d = new Date(t); d.setHours(0, 0, 0, 0); return
   await wait(page, 200);
   await page.screenshot({ path: `${OUT}/10-delete-all-type.png` });
   await id(page, 'prompt-ok').click();
-  assert.equal(await toastText(page), 'All data deleted');
+  await id(page, 'toast').filter({ hasText: 'All data deleted' }).waitFor();
   await wait(page, 300);
   const after = await store(page);
   assert.deepEqual([after.workouts.length, after.templates.length, after.measurements.length], [0, 0, 0]);
@@ -308,7 +308,7 @@ function startOfDayOf(t) { const d = new Date(t); d.setHours(0, 0, 0, 0); return
   assert.match(text, /These exercises are new to you and will be created: Landmine Press/);
   await page.screenshot({ path: `${OUT}/11-template-link.png` });
   await id(page, 'confirm-add-shared').click();
-  assert.equal(await toastText(page), '“Shared Push” added to your routines');
+  await id(page, 'toast').filter({ hasText: '“Shared Push” added to your routines' }).waitFor();
   await wait(page, 300);
   let data = await store(page);
   const added = data.templates.find((x) => x.name === 'Shared Push');

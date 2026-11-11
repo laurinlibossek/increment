@@ -60,9 +60,11 @@ try {
     assert.equal(data.kv.settings.language, 'de', 'the dormant preference is preserved');
     assert.equal(data.kv.settings.theme, backup.data.kv.settings.theme);
     assert.equal(data.kv.settings.unit, backup.data.kv.settings.unit);
-    assert.deepEqual(data.workouts, backup.data.workouts);
-    assert.deepEqual(data.templates, backup.data.templates);
-    assert.deepEqual(data.measurements, backup.data.measurements);
+    // storage keeps no order: compare by id
+    const byId = (list) => [...list].sort((a, b) => a.id.localeCompare(b.id));
+    assert.deepEqual(byId(data.workouts), byId(backup.data.workouts));
+    assert.deepEqual(byId(data.templates), byId(backup.data.templates));
+    assert.deepEqual(byId(data.measurements), byId(backup.data.measurements));
     assert.equal(await id('theme-intense-red').getAttribute('aria-checked'), 'true');
     await page.screenshot({ path: `${OUT}/${locale}-${theme}-account-restored.png` });
     ok(`${locale}: restoring a German Setlog backup stays English and preserves settings and data`);
