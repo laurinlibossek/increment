@@ -21,7 +21,7 @@ import {
   adjustRest, discardActive, editActive, getState, patchActive, previousSets, skipRest, startRest, useAppSelector, useSettings,
 } from '@/data/store';
 import type { ActiveWorkout, EntryDraft, SetDraft } from '@/data/types';
-import { SPACE, STROKE, TYPE, CONTROL } from '@/design/tally';
+import { SPACE, TYPE, CONTROL } from '@/design/tally';
 import { useFormat } from '@/lib/format';
 import { pickExercises } from '@/lib/picker';
 import { useTally } from '@/lib/theme';
@@ -33,7 +33,7 @@ import {
 import { ActionBar, type ActionBarState } from '@/ui/tally/ActionBar';
 import { EffortPicker } from '@/ui/tally/EffortPicker';
 import { CapsuleButton } from '@/ui/tally/RestBar';
-import { Tally } from '@/ui/tally/Tally';
+import { WorkoutTally } from '@/ui/facts';
 import { useBlockProps } from '@/ui/workout/DraftBlocks';
 import { ExerciseBlock } from '@/ui/workout/ExerciseBlock';
 import {
@@ -251,13 +251,11 @@ function Running({ a, reveal }: { a: ActiveWorkout; reveal: { current: (ref: Tex
               </Pressable>
             </View>
             {strokes.total > 0 && (
-              <View accessible accessibilityRole="image" testID="session-tally"
-                accessibilityLabel={`${tr('{done} of {total} sets logged', { done: strokes.done, total: strokes.total })}${strokes.records ? `, ${countText.split(' · ')[1]}` : ''}`}
-                style={styles.hero}>
-                {a.exercises.filter((e) => e.sets.length).map((e) => <Tally key={e.id} groups={[strokes.byEntry.get(e.id) || []]} size="hero" label="" />)}
-              </View>
+              <WorkoutTally testID="session-tally" style={styles.hero}
+                label={`${tr('{done} of {total} sets logged', { done: strokes.done, total: strokes.total })}${strokes.records ? `, ${countText.split(' · ')[1]}` : ''}`}
+                groups={a.exercises.filter((e) => e.sets.length).map((e) => strokes.byEntry.get(e.id) || [])} />
             )}
-            {strokes.total > 0 && <Text style={{ ...TYPE.footnote, color: t.ink2, marginTop: SPACE.s2, fontVariant: ['tabular-nums'] }} testID="session-count">{countText}</Text>}
+            {strokes.total > 0 && <Text style={{ ...TYPE.subhead, color: t.ink2, marginTop: SPACE.s2, fontVariant: ['tabular-nums'] }} testID="session-count">{countText}</Text>}
             {!!a.templateNotes && <Text style={{ ...TYPE.subhead, color: t.ink2, marginTop: SPACE.s3 }}>{a.templateNotes}</Text>}
             {(a.showNotes || !!a.notes) && (
               <TextInput value={a.notes} onChangeText={(v) => patchActive({ notes: v })} onFocus={session.close} multiline placeholder={tr('How did it go?')} placeholderTextColor={t.ink3} testID="workout-notes"
@@ -315,7 +313,7 @@ const styles = StyleSheet.create({
   head: { paddingHorizontal: SPACE.s5 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.s3 },
   name: { ...TYPE.title1, flex: 1, minWidth: 0, paddingVertical: 2, paddingHorizontal: 0 },
-  hero: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-end', columnGap: STROKE.group, rowGap: SPACE.s2, marginTop: SPACE.s3 },
+  hero: { marginTop: SPACE.s3 },
   notes: { borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10, marginTop: SPACE.s3, fontSize: 15, minHeight: 60 },
   effort: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: SPACE.s3 },
   end: { paddingHorizontal: SPACE.s5, paddingTop: SPACE.s6, gap: SPACE.s2, alignItems: 'flex-start' },

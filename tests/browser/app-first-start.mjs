@@ -175,7 +175,9 @@ const has = async (page, re) => (typeof re === 'string' ? new RegExp(re.replace(
   await openAccount(page);
   await page.getByTestId('theme-strawberry-matcha').click();
   await page.waitForTimeout(200);
-  assert.equal(await bg(page), 'rgb(251, 248, 242)', 'Strawberry Matcha cream');
+  assert.equal(await bg(page), 'rgb(242, 235, 222)', 'Strawberry Matcha cream');
+  // the browser bar (the iPhone status bar of the home-screen app) takes the theme's paper, not the phone's light/dark
+  assert.deepEqual(await page.evaluate(() => [...document.querySelectorAll('meta[name="theme-color"]')].map((m) => [m.content, m.media])), [['#f2ebde', '']], 'theme-color follows the theme');
   await page.getByTestId('language-en').click();
   await page.waitForTimeout(200);
   assert.ok(await has(page, 'Your data'));

@@ -133,11 +133,15 @@ export const RADIUS = {
 } as const;
 export const STROKE = {
   h: 20,
-  hHero: 32,
+  hHero: 40,
   slot: 5,
   hair: 1.5,
   gap: 4,
-  group: 10
+  group: 10,
+  slotHero: 7,
+  hairHero: 2,
+  gapHero: 5,
+  groupHero: 14
 } as const;
 export const CONTROL = {
   hitMin: 44,
