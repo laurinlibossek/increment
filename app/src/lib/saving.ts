@@ -1,6 +1,8 @@
 // When storage refuses a change (#34) or another tab changed the same record
 // (#35): the message after an explicit save, and the review of a conflict that
 // the warning at the top of the screen opens (ui/SaveWarning.tsx).
+import { setTotal } from '@increment/core';
+
 import { getState, keepMine, takeSaved, type ConflictItem } from '@/data/store';
 import { Conflict } from '@/data/storage-types';
 import type { EntryDraft, TemplateEntry } from '@/data/types';
@@ -54,7 +56,7 @@ function lines(key: string, v: unknown, f: F): string[] {
     const out = rec.name ? [String(rec.name)] : [];
     for (const e of rec.exercises || []) {
       const exercise = ex.get(e.exerciseId);
-      out.push(`${exercise ? f.exName(exercise) : f.tr('Unknown exercise')}: ${f.plural(e.sets.length, 'set')}`);
+      out.push(`${exercise ? f.exName(exercise) : f.tr('Unknown exercise')}: ${f.plural(setTotal(e.sets), 'set')}`);
     }
     return out;
   }

@@ -1930,3 +1930,132 @@ test('backups keep set sides unchanged while Strong CSV export drops only the si
   const exercises = new Map([[ex.id, ex]]);
   assert.equal(core.exportCSV({ workouts: [workout], exercises }), core.exportCSV({ workouts: [untagged], exercises }));
 });
+
+test('records in a running workout (#37): one set per exercise and metric, as in the summary', () => {
+  const st = core.withDefaults({ unit: 'kg', distUnit: 'km' });
+  const bench = core.SEED_EXERCISES.find((e) => e.id === 'x-bench-press-barbell');
+  const exercises = new Map([[bench.id, bench]]);
+  const before = { id: 'old', startedAt: 1000, endedAt: 2000, exercises: [{ id: 'oe', exerciseId: bench.id, sets: [{ id: 'o1', type: 'normal', w: 95, r: 5 }] }] };
+  const { bests } = core.buildStats([before], exercises, st.formula);
+  /** A running workout with these entries of bench press, sets as [type, w, r, done]. */
+  const running = (...entries) => {
+    const a = core.newActiveWorkout({ settings: st, now: 5000 });
+    a.exercises = entries.map((sets, i) => ({ ...core.newEntryDraft(bench.id), id: `e${i}`,
+      sets: sets.map(([type, w, r, done = true], j) => ({ ...core.newSetDraft(type, { w: String(w), r: String(r) }), id: `e${i}s${j}`, done })) }));
+    return a;
+  };
+  const recs = (a, b = bests) => Object.fromEntries([...core.liveRecordSets(a, b, exercises, st)].map(([id, m]) => [id, [...m].sort()]));
+  const ALL = ['e1rm', 'volume', 'weight'];
+  // the summary of the same workout names the same sets
+  const summary = (a, b = bests) => new Set(core.prsForNewWorkout(core.finishWorkout(a, { settings: st, exercises, mode: 'done' }), { bests: b }, exercises, st.formula).map((p) => p.setId));
+  const same = (a) => assert.deepEqual(new Set(core.liveRecordSets(a, bests, exercises, st).keys()), summary(a));
+
+  // three equal sets above the old best: one record, the first; one set beating three metrics counts once
+  let a = running([['normal', 100, 5], ['normal', 100, 5], ['normal', 100, 5]]);
+  assert.deepEqual(recs(a), { e0s0: ALL });
+  same(a);
+  // a later, better set takes over; an equal one doesn't
+  a = running([['normal', 100, 5], ['normal', 102.5, 5], ['normal', 102.5, 5]]);
+  assert.deepEqual(recs(a), { e0s1: ALL });
+  same(a);
+  // different winning sets count separately: the heavy set keeps weight and 1RM, the long one takes volume
+  a = running([['normal', 100, 5], ['normal', 90, 8]]);
+  assert.deepEqual(recs(a), { e0s0: ['e1rm', 'weight'], e0s1: ['volume'] });
+  same(a);
+  // matching the old best isn't a record; warm-ups and unchecked sets can't set one
+  assert.deepEqual(recs(running([['normal', 95, 5], ['warmup', 200, 5], ['normal', 120, 5, false]])), {});
+  // two entries of the same exercise are compared together
+  a = running([['normal', 100, 5]], [['normal', 100, 5]]);
+  assert.deepEqual(recs(a), { e0s0: ALL });
+  a = running([['normal', 100, 5]], [['normal', 105, 5]]);
+  assert.deepEqual(recs(a), { e1s0: ALL });
+  same(a);
+  // unchecking (or deleting) the winner gives the record back to the earlier set
+  a = running([['normal', 100, 5], ['normal', 102.5, 5]]);
+  core.uncheckSet(a.exercises[0].sets[1]);
+  assert.deepEqual(recs(a), { e0s0: ALL });
+  a.exercises[0].sets.splice(0, 1);
+  assert.deepEqual(recs(a), {});
+  // an exercise's first session is its baseline: no records
+  assert.deepEqual(recs(running([['normal', 100, 5]]), new Map()), {});
+});
+
+test('set totals (#38): warm-ups are never counted; failure and drop sets are; sides count row by row', () => {
+  const rows = [S('warmup', 40, 10), S('warmup', 60, 5), S('normal', 80, 5), S('failure', 80, 4), S('drop', 60, 8)];
+  assert.equal(core.setTotal(rows), 3);
+  assert.equal(core.setTotal([S('warmup', 40, 10)]), 0, 'a warm-up-only exercise has no sets');
+  assert.equal(core.setTotal([]), 0);
+  // changing a set's type changes the total
+  const changed = rows.map((x, i) => (i === 0 ? { ...x, type: 'normal' } : x));
+  assert.equal(core.setTotal(changed), 4);
+  // left and right rows are two rows here (the paired totals are #54)
+  assert.equal(core.setTotal([S('normal', 20, 10, { side: 'left' }), S('normal', 20, 10, { side: 'right' })]), 2);
+  const w = { exercises: [E('a', rows), E('b', [S('warmup', 20, 10)]), E('c', [S('normal', 10, 10)])] };
+  assert.equal(core.workoutSetCount(w), 4);
+});
+
+test('removing an exercise from a superset (#39): a group left with one dissolves, Undo restores it, other groups stay', () => {
+  const list = () => [
+    { id: 'a', exerciseId: 'xa', supersetId: 'g1', sets: [] }, { id: 'b', exerciseId: 'xb', supersetId: 'g1', sets: [] },
+    { id: 'c', exerciseId: 'xc', supersetId: 'g2', sets: [] }, { id: 'd', exerciseId: 'xd', supersetId: 'g2', sets: [] }, { id: 'e', exerciseId: 'xe', supersetId: 'g2', sets: [] },
+    { id: 'f', exerciseId: 'xf', supersetId: null, sets: [{ type: 'normal', w: '1' }] },
+  ];
+  const shape = (l) => l.map((e) => `${e.id}:${e.supersetId || '-'}`).join(' ');
+  // two members: the partner is on its own at once
+  let l = list();
+  const r = core.removeEntry(l, 'a');
+  assert.equal(shape(l), 'b:- c:g2 d:g2 e:g2 f:-');
+  assert.equal(core.supersetLetters(l).size, 1, 'only one group still has a letter');
+  core.restoreEntry(l, r);
+  assert.equal(shape(l), shape(list()), 'Undo: the entry, its place and the group are back');
+  core.restoreEntry(l, r);
+  assert.equal(l.length, 6, 'a second Undo does nothing');
+  // three members: the other two stay a superset
+  l = list();
+  const r2 = core.removeEntry(l, 'd');
+  assert.equal(shape(l), 'a:g1 b:g1 c:g2 e:g2 f:-');
+  core.restoreEntry(l, r2);
+  assert.equal(shape(l), shape(list()));
+  // a partner that joined another group in between stays there
+  l = list();
+  const r3 = core.removeEntry(l, 'b');
+  core.joinSuperset(l, l.find((e) => e.id === 'a'), l.find((e) => e.id === 'f'));
+  const joined = l.find((e) => e.id === 'a').supersetId;
+  core.restoreEntry(l, r3);
+  assert.equal(l.find((e) => e.id === 'a').supersetId, joined);
+  // the removed entry's sets come back as they were; unknown ids change nothing
+  l = list();
+  const r4 = core.removeEntry(l, 'f');
+  core.restoreEntry(l, r4);
+  assert.deepEqual(l.find((e) => e.id === 'f').sets, [{ type: 'normal', w: '1' }]);
+  assert.equal(core.removeEntry(l, 'zz'), null);
+  // a stored routine without a deleted exercise: no lone superset, the input untouched
+  const stored = list().map(({ id, ...e }) => e);
+  const left = core.withoutExercise(stored, 'xa');
+  assert.deepEqual(left.map((e) => e.supersetId ?? '-'), ['-', 'g2', 'g2', 'g2', '-']);
+  assert.ok(!('supersetId' in left[0]));
+  assert.equal(stored[1].supersetId, 'g1');
+});
+
+test('estimated 1RM (#41): the chosen formula up to 12 reps, Epley above, for every setting', () => {
+  const epley = (w, r) => w * (1 + r / 30);
+  const near = (a, b) => Math.abs(a - b) < 1e-9;
+  for (const { id } of core.FORMULAS) {
+    // 13 reps and the reported high-rep sets: Epley, Average of all included
+    for (const r of [13, 30, 33, 36, 37]) assert.ok(near(core.est1RM(20, r, id), epley(20, r)), `${id} at ${r} reps`);
+    // one rep and nonsense stay as they were
+    assert.equal(core.est1RM(100, 1, id), 100);
+    assert.equal(core.est1RM(0, 5, id), 0);
+    assert.equal(core.est1RM(100, 0, id), 0);
+  }
+  // at 12 reps each formula is still its own
+  assert.ok(near(core.est1RM(100, 12, 'brzycki'), 100 * 36 / 25));
+  assert.ok(near(core.est1RM(100, 12, 'epley'), 140));
+  assert.ok(!near(core.est1RM(100, 12, 'average'), 140), 'Average of all still averages at 12');
+  assert.ok(core.est1RM(20, 36, 'brzycki') < 50, 'no 720 kg from 20 kg × 36');
+  // records go through the same estimate
+  const bench = core.SEED_EXERCISES.find((e) => e.id === 'x-bench-press-barbell');
+  const w = { id: 'w', startedAt: 1, exercises: [{ exerciseId: bench.id, sets: [{ id: 's', type: 'normal', w: 20, r: 36 }] }] };
+  const rec = core.exerciseRecords(core.buildStats([w], new Map([[bench.id, bench]]), 'brzycki').byExercise.get(bench.id), 'barbell', 'brzycki');
+  assert.ok(near(rec.e1rm.value, epley(20, 36)));
+});

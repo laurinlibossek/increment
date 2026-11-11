@@ -127,9 +127,12 @@ function ExercisePage({ id }: { id: string }) {
   const pickMetric = async () => {
     const v = await actionSheet<string>({
       title: tr('Chart'),
+      // above 12 reps every formula gives way to Epley (#41)
       message: metrics.some((x) => x.id === 'e1rm') ? (formula === 'average'
-        ? tr('Estimated 1RM uses the average of all formulas on your best working set of each session. Change it in Account.')
-        : tr('Estimated 1RM uses the {name} formula on your best working set of each session. Change it in Account.', { name: formulaLabel(formula) })) : undefined,
+        ? tr('Estimated 1RM uses the average of all formulas on your best working set of each session, and Epley above 12 reps. Change it in Account.')
+        : formula === 'epley'
+          ? tr('Estimated 1RM uses the {name} formula on your best working set of each session. Change it in Account.', { name: formulaLabel(formula) })
+          : tr('Estimated 1RM uses the {name} formula on your best working set of each session, and Epley above 12 reps. Change it in Account.', { name: formulaLabel(formula) })) : undefined,
       actions: metrics.map((x) => ({ label: tr(x.label), value: x.id, checked: x.id === m.id, testID: `metric-${x.id}` })),
     });
     if (v) setMetricId(v);

@@ -82,7 +82,10 @@ async function discard(page) {
   const first = sug.template.exercises[0];
   const firstName = lib.get(first.exerciseId).name;
   const bar = await id(page, 'mini-bar').innerText();
-  assert.ok(bar.includes(`${firstName} · set 3 of ${first.sets.length}`), bar);
+  // the third set, numbered among the working sets: warm-ups aren't counted (#38)
+  const working = (sets) => sets.filter((x) => x.type !== 'warmup').length;
+  const third = first.sets[2].type === 'warmup' ? 'warm-up set' : `set ${working(first.sets.slice(0, 3))} of ${working(first.sets)}`;
+  assert.ok(bar.includes(`${firstName} · ${third}`), bar);
   assert.match(bar, /Rest \d:\d\d/);
   const now = await id(page, 'now-card').innerText();
   assert.match(now, /In progress · since/);

@@ -157,7 +157,9 @@ try {
       for (const [index, exercise] of routine.exercises.entries()) {
         const text = normal(await id(`template-exercise-${index}`).innerText());
         assert.ok(text.startsWith(exerciseDisplayName(lib.get(exercise.exerciseId), lang)), text);
-        assert.ok(text.includes(`${exercise.sets.length} ${tr('sets')}`), text);
+        // warm-ups aren't counted (#38)
+        const n = exercise.sets.filter((x) => x.type !== 'warmup').length;
+        assert.ok(text.includes(`${n} ${tr(n === 1 ? 'set' : 'sets')}`), text);
         for (const set of exercise.sets) assert.ok(text.includes(`${new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(set.w)} × ${set.r}`), text);
         assert.ok(text.includes(`${Math.floor(exercise.restSec / 60)}:${String(exercise.restSec % 60).padStart(2, '0')}`), text);
       }

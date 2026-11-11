@@ -39,7 +39,8 @@ try {
     const lib = new Map(data.exercises.map(ex => [ex.id, ex]));
     const prs = buildStats(data.workouts, lib, data.kv.settings.formula).prsByWorkout.get(newest.id) || [];
     const records = new Set(prs.map(pr => pr.setId)).size;
-    const sets = newest.exercises.reduce((n, entry) => n + entry.sets.length, 0);
+    // warm-ups aren't counted (#38)
+    const sets = newest.exercises.reduce((n, entry) => n + entry.sets.filter((x) => x.type !== 'warmup').length, 0);
     const warmups = newest.exercises.flatMap(entry => entry.sets).filter(set => set.type === 'warmup').length;
     const { ctx, page, errors, id, shot, locale } = await newPage(data, lang, theme);
     await page.goto(APP);
@@ -67,7 +68,8 @@ try {
         const s = getComputedStyle(e), rgb = s.backgroundColor.match(/[\d.]+/g)?.map(Number) || [];
         return { width: parseFloat(s.width), height: parseFloat(s.height), rgb };
       }).filter(s => s.width > 0 && s.height > 0 && s.rgb.length >= 3 && (s.rgb.length < 4 || s.rgb[3] > 0)));
-      assert.equal(marks.length, sets, 'one drawn stroke per set');
+      // every row is drawn, warm-ups too (short strokes); only the count leaves them out
+      assert.equal(marks.length, sets + warmups, 'one drawn stroke per set');
       const fullHeight = Math.max(...marks.map(mark => mark.height));
       assert.equal(marks.filter(mark => mark.height < fullHeight * 0.7).length, warmups, 'warm-up strokes are shorter');
       const signal = marks.filter(({ rgb: [r, g, b] }) => r > 100 && g > 80 && b < Math.min(r, g) * 0.6);
@@ -195,7 +197,11 @@ try {
     await older.click();
     // the button goes once the list re-renders; count() alone doesn't wait for that
     await older.waitFor({ state: 'detached' });
-    await page.locator('[data-testid^="workout-"]').last().scrollIntoViewIfNeeded();
+    // the list renders its rows in batches as it scrolls (FlatList): scroll on until the last one is there
+    for (let i = 0; i < 30 && !(await id('workout-page-44').count()); i++) {
+      await page.locator('[data-testid^="workout-page-"]').last().scrollIntoViewIfNeeded();
+      await page.waitForTimeout(150);
+    }
     await id('workout-page-44').waitFor();
     await id('workout-page-44').click();
     await id('workout-title').waitFor();

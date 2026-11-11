@@ -8,7 +8,7 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { moveItem } from '@increment/core';
+import { moveItem, setTotal } from '@increment/core';
 
 import { editDraft, getDraft, useAppSelector } from '@/data/store';
 import type { DraftKey, EntryDraft } from '@/data/types';
@@ -90,7 +90,7 @@ export default function Reorder() {
       <ScrollView scrollEnabled={!drag} contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 24 }}>
         <View style={[styles.group, { backgroundColor: c.surface }]}>
           {list.map((e, i) => (
-            <Row key={e.id} entry={e} index={i} name={f.exName(exercises.get(e.exerciseId)) || ''} sub={f.plural(e.sets.length, 'set') + (e.supersetId ? ` · ${tr('superset')}` : '')}
+            <Row key={e.id} entry={e} index={i} name={f.exName(exercises.get(e.exerciseId)) || ''} sub={f.plural(setTotal(e.sets), 'set') + (e.supersetId ? ` · ${tr('superset')}` : '')}
               lifted={drag?.from === i} shift={shift(i)} dy={dy} api={apiRef} first={i === 0} moveLabel={tr('Move {name}', { name: f.exName(exercises.get(e.exerciseId)) || '' })} />
           ))}
         </View>

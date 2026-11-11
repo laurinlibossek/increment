@@ -7,7 +7,7 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-  platesFor, est1RM, formulaLabel, parseNum, toKg,
+  platesFor, est1RM, EPLEY_ABOVE_REPS, formulaLabel, parseNum, toKg,
 } from '@increment/core';
 
 import { useSettings } from '@/data/store';
@@ -136,6 +136,8 @@ function OneRM() {
   const wN = parseNum(wv), rN = parseNum(rv);
   const kg = wN !== null ? toKg(wN, u) : null;
   const oneRm = kg && rN ? est1RM(kg, Math.round(rN), st.formula) : 0;
+  // the formula the estimate used: Epley above 12 reps, whatever the setting (#41)
+  const used = rN !== null && Math.round(rN) > EPLEY_ABOVE_REPS ? 'epley' : st.formula;
   const pct = [100, 95, 90, 85, 80, 75, 70, 65, 60, 50];
   const repsAt: Record<number, number> = { 100: 1, 95: 2, 90: 4, 85: 6, 80: 8, 75: 10, 70: 12, 65: 15, 60: 18, 50: 25 };
   const show = (v: number) => `${f.e1rm(v)} ${u}`;
@@ -151,7 +153,7 @@ function OneRM() {
           <Card style={{ alignItems: 'center' }}>
             <Txt tone="ink2" style={TYPE.footnote}>{tr('Estimated 1RM')}</Txt>
             <Txt style={[TYPE.numberXl, { fontVariant: ['tabular-nums'] }]} testID="rm-result">{show(oneRm)}</Txt>
-            <Txt tone="ink2" style={TYPE.footnote} testID="rm-formula">{st.formula === 'average' ? tr(formulaLabel('average')) : tr('{name} formula', { name: formulaLabel(st.formula) })}</Txt>
+            <Txt tone="ink2" style={TYPE.footnote} testID="rm-formula">{used === 'average' ? tr(formulaLabel('average')) : tr('{name} formula', { name: formulaLabel(used) })}</Txt>
           </Card>
           <View style={{ borderRadius: RADIUS.m, overflow: 'hidden', backgroundColor: c.paper2 }} testID="rm-table">
             <View style={[styles.rmRow, { backgroundColor: c.paper3 }]}>

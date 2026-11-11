@@ -5,7 +5,7 @@ import { useSyncExternalStore } from 'react';
 import { AppState } from 'react-native';
 import {
   SEED_EXERCISES, SEED_VERSION, withDefaults, buildStats, sessionsByExercise, configureCalc, bodyweightFrom,
-  parseBackup, parseStrongCSV, resolveStrongImport, STRONG_EXERCISE_ALIASES, suggestTemplate, previousSetsFrom, newActiveWorkout, finishWorkout, prsForNewWorkout,
+  parseBackup, parseStrongCSV, resolveStrongImport, STRONG_EXERCISE_ALIASES, suggestTemplate, previousSetsFrom, newActiveWorkout, finishWorkout, prsForNewWorkout, liveRecordSets, withoutExercise,
   workoutVolume, makeBackup, uid, seedExerciseChanges,
   templateFromDraft, workoutFromEditDraft, copyTemplateRecord, folderNames, findExerciseByName, newExerciseRecord,
   exerciseInDraft, patchDraftExercise, changeSetting, convertDraftUnits, mergeExercisePatch, moveExerciseEntries,
@@ -477,6 +477,22 @@ export function stats(s: State = state): Stats {
   return statsCache;
 }
 
+let recordsFor: { active: State['active']; stats: Stats; settings: Settings } | null = null;
+let recordsCache: Map<string, string[]> = new Map();
+/**
+ * The running workout's record sets (set id -> the metrics it holds), by the
+ * summary's rule (#37): what the session, Now Lifting and Today count and colour.
+ */
+export function activeRecords(s: State = state): Map<string, string[]> {
+  const st = stats(s);
+  if (!s.active) return new Map();
+  if (!recordsFor || recordsFor.active !== s.active || recordsFor.stats !== st || recordsFor.settings !== s.settings) {
+    recordsCache = liveRecordSets(s.active, st.bests, s.exercises, s.settings) as Map<string, string[]>;
+    recordsFor = { active: s.active, stats: st, settings: s.settings };
+  }
+  return recordsCache;
+}
+
 let allFor: Workout[] | null = null;
 let allCache: Map<string, { workoutId: string; startedAt: number; name: string; entry: Workout['exercises'][number] }[]> | null = null;
 /** Every session of every exercise, including those before "Start history from". */
@@ -721,7 +737,8 @@ export async function deleteExercise(id: string) {
     const changed: Template[] = [];
     const templates = state.templates.map((t) => {
       if (!t.exercises.some((e) => e.exerciseId === id)) return t;
-      const next = { ...t, exercises: t.exercises.filter((e) => e.exerciseId !== id) };
+      // a superset left with one exercise dissolves (#39)
+      const next = { ...t, exercises: withoutExercise(t.exercises, id) as Template['exercises'] };
       changed.push(next);
       return next;
     });

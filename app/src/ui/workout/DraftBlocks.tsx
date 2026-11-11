@@ -2,14 +2,13 @@
 // finished workout), each with what it needs from the history, plus the
 // "Done" bar above the iPhone number pad. The running workout shows its
 // exercises one at a time (active.tsx) with the same blocks.
-import { useMemo } from 'react';
 import {
   InputAccessoryView, Keyboard, Platform, Pressable, StyleSheet, Text, View,
 } from 'react-native';
 import { supersetLetters, draftTemplateId } from '@increment/core';
 
 import {
-  exerciseFor, getState, previousSets, stats, useAppSelector, useSettings,
+  activeRecords, exerciseFor, getState, previousSets, useAppSelector, useSettings,
 } from '@/data/store';
 import type { AnyDraft, DraftKey, EntryDraft } from '@/data/types';
 import { useFormat } from '@/lib/format';
@@ -20,10 +19,11 @@ import { KEYBOARD_BAR } from './SetRow';
 /** What an exercise block of this draft needs: the exercise, last time's sets, records, superset letter. */
 export function useBlockProps(draftKey: DraftKey, draft: AnyDraft) {
   const exercises = useAppSelector((s) => s.exercises);
-  const workouts = useAppSelector((s) => s.workouts);
+  // previous values and records follow the history and the settings
+  useAppSelector((s) => s.workouts);
   const settings = useSettings();
-  // records and previous values follow the history and the settings
-  const st = useMemo(() => stats(), [workouts, exercises, settings]); // eslint-disable-line react-hooks/exhaustive-deps
+  // the running workout's records, by the summary's rule (#37)
+  const records = draftKey === 'active' ? activeRecords() : null;
   const letters = supersetLetters(draft.exercises) as Map<string, { index: number; letter: string }>;
   const templateId = draftTemplateId(draft) as string | null;
   // editing a finished workout: "previous" is what came before it
@@ -35,7 +35,7 @@ export function useBlockProps(draftKey: DraftKey, draft: AnyDraft) {
     settings,
     ex: draft.kind === 'workout' ? exercises.get(e.exerciseId) : exerciseFor(draftKey, e.exerciseId, getState()),
     prevSets: previousSets(e.exerciseId, { templateId, before, excludeWorkoutId }),
-    bests: st.bests.get(e.exerciseId),
+    recordSets: records ? e.sets.filter((x) => records.has(x.id)).map((x) => x.id).join(' ') : '',
     superset: e.supersetId ? letters.get(e.supersetId) : undefined,
   });
 }

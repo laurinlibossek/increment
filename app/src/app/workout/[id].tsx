@@ -8,7 +8,7 @@ import {
   Pressable, ScrollView, StyleSheet, Text, View,
 } from 'react-native';
 import {
-  workoutVolume, est1RM, hasLoadRecords, kgTo, PR_LABEL,
+  workoutSetCount, workoutVolume, est1RM, hasLoadRecords, kgTo, PR_LABEL,
 } from '@increment/core';
 
 import {
@@ -59,7 +59,7 @@ export default function WorkoutDetail() {
   const vol = workoutVolume(w, s.exercises) as number;
   const prs = st.prsByWorkout.get(w.id) || [];
   const recordSets = new Set<string>(prs.map((p: { setId: string }) => p.setId));
-  const sets = w.exercises.reduce((n, e) => n + e.sets.length, 0);
+  const sets = workoutSetCount(w) as number;
   const shown = kgTo(vol || 0, f.unit);
   const label = (k: string) => tr((PR_LABEL as Record<string, string>)[k] || k);
   const tallyLine = [f.plural(sets, 'set'), recordSets.size ? f.plural(recordSets.size, 'record') : ''].filter(Boolean).join(' · ');

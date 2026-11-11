@@ -11,12 +11,12 @@ import {
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import {
-  checkOffSet, placeholders, restFor, isLiveRecord, sessionState, loggedFields, platesFor, parseNum,
+  checkOffSet, placeholders, restFor, sessionState, loggedFields, platesFor, parseNum,
   numToInput, digitsToSec, secToDigits, fmtDigits, weightStep, moveUnit, BODY_PART_LABEL,
 } from '@increment/core';
 
 import {
-  editActive, getState, patchActive, previousSets, startRest, stats, useAppSelector,
+  activeRecords, editActive, getState, patchActive, previousSets, startRest, useAppSelector,
 } from '@/data/store';
 import type { ActiveWorkout, Category, EntryDraft } from '@/data/types';
 import { SPACE, TYPE } from '@/design/tally';
@@ -125,8 +125,8 @@ export function SessionProvider({ children, onTarget }: { children: ReactNode; o
       return false;
     }
     const after = getState().active!;
-    const logged = after.exercises.find((e) => e.id === entryId)!.sets[i];
-    const record = isLiveRecord(logged, ex.category, stats().bests.get(ex.id), settings);
+    // the record haptic only when this set now holds a record (an equal set doesn't, #37)
+    const record = activeRecords().has(setId);
     if (record) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     else Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     if (r.rest && r.rest > 0) startRest(r.rest, f.exName(ex), { entryId, setId });
@@ -281,19 +281,17 @@ export function useSessionStrokes(a: ActiveWorkout, live: string | null) {
   const workouts = useAppSelector((x) => x.workouts);
   const settings = useAppSelector((x) => x.settings);
   return useMemo(() => {
-    const st = stats();
-    const now = Date.now();
+    const recs = activeRecords();
     let done = 0, total = 0, records = 0;
     const byEntry = new Map<string, StrokeState[]>();
     for (const e of a.exercises) {
-      const ex = exercises.get(e.exerciseId);
-      const bests = st.bests.get(e.exerciseId);
       byEntry.set(e.id, e.sets.map((x) => {
-        total++;
+        // warm-ups are drawn but not counted (#38)
         const warm = x.type === 'warmup';
+        if (!warm) total++;
         if (x.done) {
-          done++;
-          if (ex && isLiveRecord(x, ex.category, bests, settings, now)) { records++; return 'record'; }
+          if (!warm) done++;
+          if (recs.has(x.id)) { records++; return 'record'; }
           return warm ? 'warmup' : 'done';
         }
         if (x.id === live) return 'live';
@@ -383,8 +381,9 @@ export function UnitRows({
           sub = [part ? tr(part) : '', last ? tr('last {sets}', { sets: last }) : ''].filter(Boolean).join(' · ');
         }
         const groups = u.entries.map((e) => strokes.get(e.id) || []);
-        const done = groups.flat().filter((x) => x === 'done' || x === 'warmup' || x === 'record').length;
-        const count = groups.flat().length;
+        // warm-ups are drawn but not counted (#38)
+        const done = groups.flat().filter((x) => x === 'done' || x === 'record').length;
+        const count = groups.flat().filter((x) => x !== 'warmup' && x !== 'warmupPending').length;
         return (
           <UnitRow key={u.id} index={i} title={names.join(' + ')} sub={sub} groups={groups} first={i === 0}
             label={`${names.join(', ')}, ${tr('{done} of {total} sets', { done, total: count })}`}
