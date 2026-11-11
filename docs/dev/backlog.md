@@ -51,6 +51,8 @@ Reference for anyone touching the summary or routines.
 
 ## Done
 
+- **Intense Red like Setlog** (11 Nov 2026, Laurin's decision, `claude/blissful-curie-qqol89`): the same colour zones as Strawberry Matcha: main buttons and charts red `#d91f2c` with white text, control fills (number fields, chips, secondary buttons, the selected tab) dark red `#37171a`, secondary labels and the selected tab `#ff4f5a`. The page stays true black, records stay gold.
+
 - **Strawberry charts** (11 Nov 2026, Laurin's decision, `claude/blissful-curie-qqol89`): new token `chart` (ink everywhere except Strawberry Matcha, where it's strawberry `#bf3f55`) for the bars of Workouts per week, the bar chart's tooltip (with `on-primary` text) and the line of the exercise and body charts. Record dots stay `signal`.
 
 - **Bigger session tally** (11 Nov 2026, Laurin's decision, `claude/blissful-curie-qqol89`): hero strokes (session header, workout summary) are 40 high instead of 32, with a 7 px slot, 2 px hairline and wider gaps (new `stroke-*-hero` tokens); "0 of 18 sets" under it is Subheadline instead of Footnote. A workout's tally now also wraps inside a long exercise: before, one exercise with more sets than fit in a line (about 35) ran off the right edge. It still has no cap: 1000 sets make a block about 1900 pt tall (two and a half screens) above the exercises. Account values may now take 55 % of the row (was 45 %), so "Aus jedem Training" stays whole at 375 pt with the larger text.
