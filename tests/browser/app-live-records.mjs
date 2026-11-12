@@ -38,7 +38,7 @@ page.on('pageerror', (e) => errors.push(String(e)));
 const id = (t) => page.getByTestId(t);
 const block = () => id(`block-${BENCH}`);
 const checks = () => block().locator('[data-testid^="check-"]');
-const labels = () => block().locator('[data-testid^="label-"]');
+const labels = () => block().locator('[data-testid^="notes-"]');
 const wait = (ms = 300) => page.waitForTimeout(ms);
 /** Which set rows have the Record chip. */
 const chips = async () => {

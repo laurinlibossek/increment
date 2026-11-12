@@ -845,6 +845,11 @@ export default {
   'Reps left': 'Wdh. übrig',
   '{n} left': '{n} übrig',
   '2+ left': '2+ übrig',
+  // the set rows (#48): reps in reserve beside a set, and the sets' names for screen readers
+  '{n} RIR': '{n} RIR',
+  '2+ RIR': '2+ RIR',
+  'Warm-up set': 'Aufwärmsatz',
+  'Set {n}, failure': 'Satz {n}, bis zum Versagen',
   'How many more reps you could have done.': 'Wie viele Wiederholungen du noch geschafft hättest.',
   Clear: 'Entfernen',
   '1 record': '1 Rekord',

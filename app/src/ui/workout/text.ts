@@ -9,6 +9,8 @@ import type { Field } from './SetRow';
 
 /** "0 left", "1 left", "2+ left" */
 export const effortText = (rir: number, tr: Tr) => (rir >= 2 ? tr('2+ left') : tr('{n} left', { n: rir }));
+/** Reps in reserve beside a set (#48): "1 RIR", "2+ RIR". */
+export const rirText = (rir: number, tr: Tr) => (rir >= 2 ? tr('2+ RIR') : tr('{n} RIR', { n: rir }));
 
 /** Last time's working sets in one line: "80 × 8, 8, 7", "80 × 8 · 82.5 × 6", "12, 10, 8 reps". */
 export function lastTimeText(prev: WorkSet[] | null, cat: Category, f: Format, tr: Tr) {

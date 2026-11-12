@@ -168,16 +168,17 @@ Two to five mutually exclusive options, such as a chart's range.
 
 ## SetRow
 
-One set: its stroke, weight × reps (or the exercise's own fields: reps only, time, distance and time), and small chips for the set type and effort.
+One set: its label, weight × reps (or the exercise's own fields: reps only, time, distance and time), short notes on the set, and in the running workout one tick that logs it (#48).
 
-**You provide** the set (stored kg, reps, seconds, km; type; optional left/right side; reps left), the exercise's category, last time's values (or a target the store version supplies) for the ghost text, and whether it is the set being logged.
+**You provide** the set (stored kg, reps, seconds, km; type; optional left/right side; reps left), the exercise's category, last time's values (or a target the store version supplies) for the ghost text, last time's paired set for the change, and whether it is the set being logged.
 
 **Rules**
-- The leading stroke logs and un-logs the set. There is no checkmark column and no "Previous" column.
-- Pending sets show the target as ghost text (`ink-3`). The set being logged shows `paper-3` fields filled with those values; tapping a field opens the Keypad; logging with untouched fields logs the ghost values.
-- Every field box says what it holds in a small caption (`t-caption`, `ink-2`) inside the box, above the number: "Weight", "Reps", or the exercise's own fields ("Time", "Distance"). The ghost value stays the placeholder under it. Boxes are on the set being logged, the Keypad's field and every set in the editors; a row is as tall with boxes as without, so nothing moves.
-- Chips: "Left side" / "Right side" first when a side is set, then "Warm-up", "Drop", "Failure" for set types; "1 left" or "2+ left" for reps in reserve (a failure set's chip already says 0); the `signal` "Record" chip when the set beat a record.
-- A small ⋯ in `ink-3` at the trailing end of every row opens the set's menu (type, reps left, side, delete; no side for cardio), so a plain working set has something to tap. The chips open it too, and so does pressing and holding the row.
+- One header row above an exercise's sets names the columns: "Set", then each field's ("kg" or "lb", "Reps", "Time", "km" or "mi"), centred over its numbers. The fields have no captions of their own.
+- The leading label says what the set is: W (warm-up), 1, 2, 3 for working sets, D (drop), F (failure, which counts as a working set). Tapping it opens the set's menu (type, reps left, side, delete; no side for cardio). There is no ⋯, no type chip and no press-and-hold.
+- The tick at the trailing end logs and un-logs the set: outlined while pending (`ink-3`; `ink` on the set being logged), filled `ink` once logged, `signal` for a record. Its label reads like "Set 3, left side, 82.5 kg × 8, not logged". The editors have no tick. Rows have no strokes; the session header, Up next, Now Lifting and Today keep their tallies.
+- Pending sets show the target as ghost text (`ink-3`); a value with nothing to show is a faint dash. The set being logged and the Keypad's set show `paper-3` field boxes, as do all sets in the editors; tapping a field opens the Keypad; logging with untouched fields logs the ghost values. A row is as tall with boxes as without, so nothing moves.
+- Notes on a set, between the values and the tick, wrapping when they don't fit: the change since last time's paired set on a logged set ("+2.5 kg", "+1 rep"; the value that decided it, by the same rule that moves a routine on) in `signal`, or in grey when it went down; "Record" in `signal` instead of the change; "1 RIR" or "2+ RIR" (a failure set's F already says 0); "Left" or "Right"; a routine's rep range ("8–10 reps"). Warm-ups and a first time get no change and no record.
+- Written notes belong to the exercise, above the header: the pinned note first, on `paper-3` with its pin, then this time's note. Sets have no written notes.
 - Swipe left to delete, with Undo.
 - `row-h` tall, hairline between rows, values aligned on the screen margin.
 
@@ -209,7 +210,7 @@ Three tabs, floating over the content. Search opens from the large-title trailin
 
 A row of strokes, one per set: hairline while pending, a solid stem once logged.
 
-**Use it** wherever sets are counted: the session header, each set row's leading mark, exercise rows in Up next, routine cards, the summary, the week strip (one stroke per session) and Sets per muscle.
+**Use it** wherever sets are counted: the session header, exercise rows in Up next, routine cards, the summary, the week strip (one stroke per session) and Sets per muscle.
 
 **You provide** the list of sets, each with a state (`pending`, `done`, `warmup`, `warmupPending`, `live`, `record`, `skipped`), how to group them (by exercise, or in fives) and a size (`small` 14, `regular` `stroke-h`, `hero` `stroke-h-hero`, 40, with the wider `stroke-*-hero` slot, hairline and gaps).
 
@@ -219,7 +220,6 @@ A row of strokes, one per set: hairline while pending, a solid stem once logged.
 - A whole workout's tally (session header, summary, History) wraps onto new lines, inside a long exercise too, so it never runs off the screen. It grows a line per screen width of strokes: about 29 hero strokes per line on an iPhone; 1000 sets make a block about 1900 pt tall, two and a half screens.
 - `record` is the only coloured state. `live` marks the one set being logged; there is never more than one.
 - Never use strokes for weight, time or other continuous numbers.
-- In a set row the stroke is the button that logs the set: give it a `hit-min` touch area and the label "Set 3, left side, 82.5 kg × 8, not logged" when tagged. The row’s accessibility label names the side too.
 
 **Native**: a row of `View`s with fixed widths; animate the logged stem's width with Reanimated (160 ms). Describe the whole tally to screen readers as one element ("4 of 22 sets logged, 1 record").
 

@@ -32,7 +32,7 @@ Built as planned, with these choices: the web build keeps JS tabs (`(tabs)/_layo
 
 Owns: `src/app/active.tsx`, `src/ui/workout/`, a new `src/ui/tally/Keypad.tsx`.
 
-- Set rows as in `components.md` → SetRow: stroke, weight × reps with ghost values from last time, chips for set type and reps left; no PREVIOUS column, no header row, no field boxes except on the set being logged.
+- Set rows as in `components.md` → SetRow: stroke, weight × reps with ghost values from last time, chips for set type and reps left; no PREVIOUS column, no header row, no field boxes except on the set being logged. (Since #48, 12 Nov 2026: one header row, a label per set that opens its menu, one tick at the end and notes per set instead of the stroke and chips.)
 - Header: minimize, ⋯, workout name, elapsed time, the hero tally of the whole session, "4 of 22 sets · 1 record".
 - Up next: the remaining exercises with full variation names and their own tally; drag to reorder. Only the current exercise header splits its last equipment bracket onto the equipment · body-part line.
 - Action bar: Log (logs the next set with its shown values) → Rest (countdown, −15, +15, Skip, drain bar, "Reps left?" 0 · 1 · 2+, since 4 Nov 2026) → "Finish workout" after the last set. Finish leaves the top corner.
