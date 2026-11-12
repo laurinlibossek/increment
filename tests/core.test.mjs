@@ -2235,3 +2235,61 @@ test('rep ranges (#44): Duplicate, shared links and backups keep bounds and targ
   const back = core.parseBackup(core.makeBackup({ exercises: [], workouts: [], templates: [t], measurements: [], kv: {} }, '1.0.0', new Date()), core.SEED_EXERCISES);
   assert.deepEqual(back.data.templates[0].exercises[0].sets, t.exercises[0].sets);
 });
+
+test('weight increase recommended (#49): every prescribed working set at the top of its range in one workout', () => {
+  const cats = { a: 'barbell', b: 'assisted_bw', c: 'reps', d: 'dumbbell' };
+  const cat = (id) => cats[id];
+  const R = (w, extra) => S('normal', w, 8, { rMin: 8, rMax: 10, ...extra });
+  const tpl = (sets, more = []) => ({ id: 't', exercises: [E('a', sets), ...more] });
+  const wo = (sets, more = [], extra = {}) => ({ id: 'w', templateId: 't', startedAt: 5000, exercises: [E('a', sets), ...more], ...extra });
+  const done = (w, r, extra) => S('normal', w, r, extra);
+  const ready = (t, w) => core.routineReadiness(t, w, cat);
+  const three = tpl([S('warmup', 40, 10), R(80), R(80), R(80)]);
+  // 10/10/10 qualifies; 10/10/9 or a missing set doesn't
+  assert.deepEqual(ready(three, wo([S('warmup', 40, 10), done(80, 10), done(80, 10), done(80, 10)])), ['weight']);
+  assert.deepEqual(ready(three, wo([done(80, 10), done(80, 10), done(80, 9)])), [null]);
+  assert.deepEqual(ready(three, wo([done(80, 10), done(80, 10)])), [null], 'a skipped set');
+  assert.deepEqual(ready(three, wo([done(80, 12), done(80, 11), done(82.5, 10)])), ['weight'], 'more reps or weight is fine');
+  assert.deepEqual(ready(three, wo([done(80, 10), done(80, 10), done(77.5, 10)])), [null], 'less weight');
+  // warm-ups, drop sets and extra sets neither count nor prevent it
+  assert.deepEqual(ready(three, wo([done(80, 10), done(80, 10), done(80, 10), S('drop', 60, 6), done(70, 5)])), ['weight']);
+  assert.deepEqual(ready(three, wo([S('warmup', 40, 3), done(80, 10), done(80, 10), done(80, 10)])), ['weight']);
+  // each set against its own weight and range
+  const mixed = tpl([R(80), S('failure', 70, 12, { rMin: 12, rMax: 15 })]);
+  assert.deepEqual(ready(mixed, wo([done(80, 10), S('failure', 70, 15)])), ['weight']);
+  assert.deepEqual(ready(mixed, wo([done(80, 10), S('failure', 70, 14)])), [null]);
+  // a set without a range: no mark until every working set has one
+  assert.deepEqual(ready(tpl([R(80), S('normal', 80, 10)]), wo([done(80, 10), done(80, 10)])), [null]);
+  // both sides must qualify; a missing right side never passes
+  const sided = tpl([R(20, { side: 'left' }), R(20, { side: 'right' })]);
+  assert.deepEqual(ready(sided, wo([done(20, 10, { side: 'right' }), done(20, 10, { side: 'left' })])), ['weight']);
+  assert.deepEqual(ready(sided, wo([done(20, 10, { side: 'left' }), done(20, 12, { side: 'left' })])), [null]);
+  assert.deepEqual(ready(sided, wo([done(20, 10), done(20, 10)])), [null], 'sets without sides don’t stand in for them');
+  // repeated entries pair by occurrence; assisted means less assistance; reps only gets no prompt
+  const multi = { id: 't', exercises: [E('a', [R(80)]), E('b', [R(30)]), E('a', [R(60)]), E('c', [S('normal', null, 8, { rMin: 8, rMax: 12 })])] };
+  const multiDone = (aw2, bw) => ({ id: 'w', templateId: 't', startedAt: 5000,
+    exercises: [E('a', [done(80, 10)]), E('b', [done(bw, 10)]), E('a', [done(aw2, 10)]), E('c', [S('normal', null, 12)])] });
+  assert.deepEqual(ready(multi, multiDone(60, 25)), ['weight', 'assistance', 'weight', null]);
+  assert.deepEqual(ready(multi, multiDone(57.5, 35)), ['weight', null, null, null]);
+  // only a workout from this routine, after the prescription last changed
+  assert.deepEqual(ready(three, { ...wo([done(80, 10), done(80, 10), done(80, 10)]), templateId: null }), [null]);
+  assert.deepEqual(ready({ ...three, prescribedAt: 6000 }, wo([done(80, 10), done(80, 10), done(80, 10)])), [null]);
+  assert.deepEqual(ready({ ...three, prescribedAt: 4000 }, wo([done(80, 10), done(80, 10), done(80, 10)])), ['weight']);
+  assert.deepEqual(ready(three, null), [null]);
+  // more weight next time: progression raises the routine, and the old workout no longer qualifies
+  const after = core.progressTemplate(three.exercises, wo([done(82.5, 8), done(82.5, 8), done(82.5, 8)]), cat).exercises;
+  assert.deepEqual(ready({ ...three, exercises: after }, wo([done(82.5, 8), done(82.5, 8), done(82.5, 8)])), [null]);
+});
+
+test('weight increase recommended (#49): the editor stamps a changed prescription, not a rename or a moved target', () => {
+  const st = core.withDefaults({ unit: 'kg', distUnit: 'km' });
+  const exercises = new Map(core.SEED_EXERCISES.map((e) => [e.id, e]));
+  const t = { id: 't', name: 'Push', exercises: [E('x-bench-press-barbell', [S('normal', 80, 9, { rMin: 8, rMax: 10 }), S('normal', 70, 12)])] };
+  const save = (edit) => { const d = core.templateDraft({ template: t, settings: st }); edit(d); return core.templateFromDraft(d, { settings: st, exercises, existing: t, now: 9000 }).template; };
+  assert.equal(save((d) => { d.name = 'Push A'; }).prescribedAt, undefined);
+  assert.equal(save((d) => { d.exercises[0].sets[0].w = '82.5'; }).prescribedAt, 9000);
+  assert.equal(save((d) => { d.exercises[0].sets[0].r = '8-12'; }).prescribedAt, 9000);
+  assert.equal(save((d) => { d.exercises[0].sets[1].r = '10'; }).prescribedAt, 9000);
+  assert.equal(save((d) => { d.exercises[0].sets.pop(); }).prescribedAt, 9000);
+  assert.equal(core.prescriptionKey(t.exercises), core.prescriptionKey([E('x-bench-press-barbell', [S('normal', 80, 10, { rMin: 8, rMax: 10 }), S('normal', 70, 12)])]), 'a moved target is no change');
+});

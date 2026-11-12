@@ -4,7 +4,7 @@
 // Problems are English texts (translation keys), translated by the UI.
 import { uid, slug } from './units.js';
 import { entryToDraft, draftEntries, remapSupersets } from './drafts.js';
-import { cleanTemplateExercises } from './templates.js';
+import { cleanTemplateExercises, prescriptionKey } from './templates.js';
 import { loggedFields } from './calc.js';
 import { parseRepsInput } from './rep-range.js';
 
@@ -52,6 +52,13 @@ export function templateFromDraft(draft, {
   if (!draft.exercises.length) return { problem: EDIT_MESSAGES.templateEmpty };
   // a range that doesn't read ("10–8", "8–") never saves as some other prescription (#44)
   if (draft.exercises.some((e) => e.sets.some((x) => parseRepsInput(x.r)?.problem))) return { problem: EDIT_MESSAGES.repRange };
+  const entries = draftEntries(draft, settings, exercises, { keepEmpty: true }).map((e) => ({
+    exerciseId: e.exerciseId, notes: e.notes, supersetId: e.supersetId, restSec: e.restSec, focus: e.focus,
+    // a routine's sets are targets: no set ids, no logging times (#43)
+    sets: e.sets.map(({ id: _id, doneAt: _doneAt, ...rest }) => rest),
+  }));
+  // a changed prescription (weights, ranges, sets) makes earlier workouts count for nothing in "Weight increase recommended" (#49)
+  const prescribed = existing && prescriptionKey(existing.exercises) !== prescriptionKey(entries) ? { prescribedAt: now } : {};
   return {
     template: withPinnedNote({
       ...(existing || { createdAt: now }),
@@ -59,11 +66,8 @@ export function templateFromDraft(draft, {
       name,
       folder: (draft.folder || '').trim(),
       notes: (draft.notes || '').trim(),
-      exercises: draftEntries(draft, settings, exercises, { keepEmpty: true }).map((e) => ({
-        exerciseId: e.exerciseId, notes: e.notes, supersetId: e.supersetId, restSec: e.restSec, focus: e.focus,
-        // a routine's sets are targets: no set ids, no logging times (#43)
-        sets: e.sets.map(({ id: _id, doneAt: _doneAt, ...rest }) => rest),
-      })),
+      exercises: entries,
+      ...prescribed,
     }, draft.pinnedNote ?? existing?.pinnedNote),
   };
 }

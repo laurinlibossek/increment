@@ -11,7 +11,7 @@ const count = (sets, kind) => sets.filter((s) => (kind === 'straight' ? ['normal
 const setBucket = (s) => (setType(s) === 'warmup' ? 'warmup' : 'work');
 
 /** "exerciseId#n" per entry, so the n-th Bench Press pairs with the n-th Bench Press. */
-function entryKeys(entries) {
+export function entryKeys(entries) {
   const n = new Map();
   return entries.map((e) => {
     const i = n.get(e.exerciseId) || 0;
@@ -332,4 +332,72 @@ export function cleanTemplateExercises(exercises, hasExercise = () => true) {
     focus: e.focus,
     sets: e.sets.map((s) => templateSet(setType(s), s)),
   }))).filter((e) => hasExercise(e.exerciseId));
+}
+
+
+// ---------- weight increase recommended (#49) ----------
+const STRAIGHT = new Set(['normal', 'failure']);
+
+/** Which prompt an exercise of this category can get: more weight, less assistance, or none (reps only, time, cardio). */
+export function readinessKind(category) {
+  if (category === 'assisted_bw') return 'assistance';
+  return ['barbell', 'dumbbell', 'machine', 'weighted_bw'].includes(category) ? 'weight' : null;
+}
+
+/**
+ * What a routine prescribes, for telling whether it changed (#49): per
+ * exercise its sets' types, sides, weights and rep ranges, and the reps of
+ * sets without a range. A ranged set's target is left out, since progression
+ * moves it inside the range.
+ */
+export function prescriptionKey(exercises) {
+  return JSON.stringify((exercises || []).map((e) => [e.exerciseId, e.sets.map((s) => {
+    const range = repRange(s);
+    return [setType(s), sideOf(s) || '', s.w ?? null, range || (s.r ?? null)];
+  })]));
+}
+
+/**
+ * "Weight increase recommended" (#49), per entry of `template`: 'weight', 'assistance'
+ * (assisted exercises: less assistance weight recommended) or null. `workout` is the
+ * routine's latest finished workout; readiness comes from that one workout
+ * against the routine as it is, never from sets gathered across workouts.
+ * An entry is ready when every prescribed working set (normal and failure)
+ * has a rep range and its done counterpart reached the top of that range at
+ * the prescribed weight or more (less assistance). Working sets pair in
+ * order, per side when the routine has sides, so a skipped set or a missing
+ * side keeps it from being ready; warm-ups, drop sets and extra sets don't
+ * count either way. A workout from before the routine's prescription last
+ * changed (`prescribedAt`, stamped by the editor) counts for nothing.
+ * `categoryOf(exerciseId)` gives each exercise's category.
+ */
+export function routineReadiness(template, workout, categoryOf) {
+  const T = template.exercises;
+  const none = T.map(() => null);
+  if (!workout || workout.templateId !== template.id) return none;
+  if (Number.isFinite(template.prescribedAt) && !(workout.startedAt >= template.prescribedAt)) return none;
+  const { pairs } = pairEntries(T, workout.exercises);
+  return T.map((e, ti) => {
+    const kind = readinessKind(categoryOf(e.exerciseId));
+    const prescribed = e.sets.filter((s) => STRAIGHT.has(setType(s)));
+    if (!kind || !prescribed.length || prescribed.some((s) => !repRange(s)) || pairs[ti] < 0) return null;
+    const sided = prescribed.some(sideOf);
+    const bucket = (s) => (sided ? sideOf(s) || 'none' : '');
+    const done = new Map();
+    for (const s of workout.exercises[pairs[ti]].sets) {
+      if (!STRAIGHT.has(setType(s))) continue;
+      if (!done.has(bucket(s))) done.set(bucket(s), []);
+      done.get(bucket(s)).push(s);
+    }
+    const used = new Map();
+    for (const p of prescribed) {
+      const b = bucket(p), n = used.get(b) || 0;
+      used.set(b, n + 1);
+      const d = done.get(b)?.[n];
+      if (!d || !(Number(d.r) >= p.rMax)) return null;
+      const pw = Number(p.w) || 0, dw = Number(d.w) || 0;
+      if (kind === 'weight' ? dw < pw - 1e-6 : dw > pw + 1e-6) return null;
+    }
+    return kind;
+  });
 }

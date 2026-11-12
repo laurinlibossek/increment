@@ -6,7 +6,7 @@
 import { useSyncExternalStore } from 'react';
 import { router } from 'expo-router';
 import {
-  progressOf, workoutNameKey, pendingSets, logPendingSets, templateChanges, progressTemplate, setTotal,
+  progressOf, workoutNameKey, pendingSets, logPendingSets, templateChanges, progressTemplate, setTotal, routineReadiness, entryKeys,
 } from '@increment/core';
 
 import {
@@ -178,6 +178,36 @@ export async function progressRoutine(workout: Workout) {
   results.set(workout.id, r);
   return r;
 }
+
+/** Which prompt an exercise of a routine gets (#49): "Weight increase recommended", "Less assistance weight recommended", or none. */
+export type Readiness = 'weight' | 'assistance' | null;
+
+/**
+ * "Weight increase recommended" per entry of a routine (#49, core routineReadiness),
+ * from its latest finished workout against the routine as it is now. None for
+ * examples, and none with Settings → Update routines after workouts off.
+ */
+export function routineReady(t: Template | null | undefined): Readiness[] {
+  if (!t) return [];
+  const s = getState();
+  if (t.example || s.settings.askTemplateUpdate === false) return t.exercises.map(() => null);
+  const latest = s.workouts.find((w) => w.templateId === t.id) || null; // newest first
+  return routineReadiness(t, latest, categoryOf) as Readiness[];
+}
+
+/** The same for a running workout's entries, matched to the routine's by exercise and occurrence. */
+export function workoutReady(a: ActiveWorkout | null): Map<string, Readiness> {
+  const out = new Map<string, Readiness>();
+  const t = a?.templateId ? routineOf(a.templateId) : null;
+  if (!a || !t) return out;
+  const ready = routineReady(t);
+  const byKey = new Map((entryKeys(t.exercises) as string[]).map((k, i) => [k, ready[i]]));
+  (entryKeys(a.exercises) as string[]).forEach((k, i) => { const r = byKey.get(k); if (r) out.set(a.exercises[i].id, r); });
+  return out;
+}
+
+/** The prompt's text. */
+export const readyText = (r: Readiness, tr: Tr) => (r === 'assistance' ? tr('Less assistance weight recommended') : r === 'weight' ? tr('Weight increase recommended') : '');
 
 /**
  * What's different in the layout, as diff lines for the routine popup: the
