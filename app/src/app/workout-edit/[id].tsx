@@ -3,7 +3,7 @@
 import { Pressable, ScrollView, View } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { newEntries, workoutEditDraft } from '@increment/core';
+import { newEntries, workoutEditDraft, isUnilateral } from '@increment/core';
 
 import {
   editDraft, getState, patchDraft, previousSets, saveWorkoutEdit,
@@ -46,7 +46,7 @@ export default function WorkoutEditScreen() {
   const addExercises = async () => {
     const ids = await pickExercises({ multi: true, title: tr('Add exercises') });
     if (!ids) return;
-    editDraft('edit', (x) => { x.exercises.push(...newEntries(ids, { previousSets: (eid: string) => previousSets(eid) })); });
+    editDraft('edit', (x) => { x.exercises.push(...newEntries(ids, { previousSets: (eid: string) => previousSets(eid), isUnilateral: (eid: string) => isUnilateral(getState().exercises.get(eid)) })); });
   };
   const changeStart = async () => {
     if (!d) return;

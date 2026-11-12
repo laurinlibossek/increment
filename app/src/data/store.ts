@@ -9,7 +9,7 @@ import {
   workoutVolume, makeBackup, uid, seedExerciseChanges,
   templateFromDraft, workoutFromEditDraft, copyTemplateRecord, folderNames, findExerciseByName, newExerciseRecord,
   exerciseInDraft, patchDraftExercise, changeSetting, convertDraftUnits, mergeExercisePatch, moveExerciseEntries,
-  changeExerciseFamily, cleanCustomFamilies, writeKey, coalesceWrites, splitBlocked, recordsOf,
+  changeExerciseFamily, cleanCustomFamilies, writeKey, coalesceWrites, splitBlocked, recordsOf, isUnilateral, splitRoutine,
 } from '@increment/core';
 
 import * as db from './storage';
@@ -1059,9 +1059,14 @@ export async function saveWorkoutEdit(defaultName: string): Promise<{ problem?: 
 }
 
 export function startWorkout(from: { template?: Template | null; fromWorkout?: Workout | null }, defaultName: string) {
+  const uni = (id: string) => isUnilateral(state.exercises.get(id));
+  // a routine's unilateral sets without a side become left and right ones, in the routine too (#54),
+  // so progression, readiness and Update routine compare side with side
+  const split = from.template && !from.template.example ? splitRoutine(from.template, uni) as Template | null : null;
+  if (split) saveTemplate(split).catch(() => {});
   const active = newActiveWorkout({
-    template: from.template || null, fromWorkout: from.fromWorkout || null, hasExercise: (id: string) => state.exercises.has(id),
-    settings: state.settings, now: Date.now(), name: defaultName,
+    template: split || from.template || null, fromWorkout: from.fromWorkout || null, hasExercise: (id: string) => state.exercises.has(id),
+    isUnilateral: uni, settings: state.settings, now: Date.now(), name: defaultName,
   }) as ActiveWorkout;
   setState({ active });
   persistActive(true);

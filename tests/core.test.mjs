@@ -1932,7 +1932,7 @@ test('one pairing rule keeps left/right/untagged and warm-ups separate, with leg
   assert.deepEqual(core.pairSets([sided('left'), sided('right')], [sided('left')]), [0, -1]);
 });
 
-test('side-aware placeholders pair each side in order and retain grey values from untagged history', () => {
+test('side-aware placeholders pair each side in order; a set without a side last time fills both sides', () => {
   const st = { unit: 'kg', distUnit: 'km' };
   const entry = { sets: ['left', 'right', 'left', 'right'].map((side) => core.newSetDraft('normal', { side })) };
   const history = [sided('left', 26), sided('right', 18), sided('left', 28), sided('right', 20)];
@@ -1941,7 +1941,8 @@ test('side-aware placeholders pair each side in order and retain grey values fro
   const rows = core.placeholders(entry, reversed, st);
   assert.deepEqual(rows.map((row) => row.prev.side), ['left', 'right', 'left', 'right']);
   assert.deepEqual(rows.map((row) => row.ph.w), ['26', '18', '28', '20']);
-  assert.deepEqual(core.placeholders(entry, history.map(({ side, ...s }) => s), st).map((row) => row.ph.w), ['26', '18', '28', '20']);
+  // untagged history (Strong): each old set covered both sides, so set 1 fills left 1 and right 1 (#54)
+  assert.deepEqual(core.placeholders(entry, history.map(({ side, ...s }) => s), st).map((row) => row.ph.w), ['26', '26', '18', '18']);
 });
 
 test('routine comparison and both update paths pair sides, detect changes and retain the right metadata', () => {
@@ -2006,8 +2007,10 @@ test('set totals pair unilateral rows (#54): the table cases, warm-ups, rows wit
   // warm-ups never count, with or without a side; rows without a side prove no pair
   const warm = [sided(undefined, 10, 'warmup'), sided(undefined, 10, 'warmup'), ...rows('LR')];
   assert.deepEqual(core.exerciseSetCount(warm, true), { sets: 1, unpaired: 0 });
+  // among sided rows, a row without a side is a side probably forgotten: unpaired, a reminder
   assert.deepEqual(core.exerciseSetCount(rows('LR--'), true), { sets: 1, unpaired: 2 });
-  assert.deepEqual(core.exerciseSetCount(rows('---'), true), { sets: 0, unpaired: 3 }, 'zero pairs, three rows of work');
+  // no side at all (Strong, or before the exercise was unilateral): each row covered both sides (Laurin, 12 Nov 2026)
+  assert.deepEqual(core.exerciseSetCount(rows('---'), true), { sets: 3, unpaired: 0 });
   assert.deepEqual(core.exerciseSetCount(rows('---'), true, { pair: false }), { sets: 3, unpaired: 0 });
   assert.deepEqual(core.exerciseSetCount([], true), { sets: 0, unpaired: 0 });
   // failure and drop sets are working rows on their side
@@ -2046,6 +2049,68 @@ test('muscle and routine totals (#54): pairs within one exercise and one workout
   assert.deepEqual(muscles([{ startedAt: now, exercises: entries }], { pair: false }), muscles([{ startedAt: now, exercises: entries }]));
   // an exercise missing from the library counts its rows
   assert.deepEqual(core.entriesSetCount([E('gone', [sided('left'), sided('left')])], lib), { sets: 2, unpaired: 0 });
+});
+
+test('unilateral sets always have a side (#54): L first, then the pattern goes on; drops stay; warm-ups need none', () => {
+  const sides = (list) => list.map((x) => (x ? { type: 'normal', side: x === 'L' ? 'left' : 'right' } : { type: 'warmup' }));
+  assert.equal(core.nextSide([]), 'left');
+  assert.equal(core.nextSide(sides([null, null])), 'left', 'after warm-ups only');
+  assert.equal(core.nextSide(sides(['L'])), 'right');
+  assert.equal(core.nextSide(sides(['L', 'R'])), 'left');
+  assert.equal(core.nextSide(sides(['R', 'R'])), 'right', 'R R L L: the person’s own order goes on');
+  assert.equal(core.nextSide(sides(['R', 'R', 'L'])), 'right');
+  assert.equal(core.nextSide(sides(['L', 'R']), 'drop'), 'right', 'a drop set stays on its side');
+  assert.equal(core.nextSide(sides(['L']), 'warmup'), undefined);
+  const entry = { sets: [] };
+  for (let i = 0; i < 4; i++) core.addSet(entry, { unilateral: true });
+  assert.deepEqual(entry.sets.map((x) => x.side), ['left', 'right', 'left', 'right']);
+  const plain = { sets: [] };
+  core.addSet(plain);
+  assert.equal(plain.sets[0].side, undefined, 'bilateral: no side');
+});
+
+test('old sets without a side split into left and right (#54): routines on start, new entries, and the ghost values', () => {
+  const W = (side, w, type = 'normal') => ({ type, w, r: 8, ...(side ? { side } : {}) });
+  assert.deepEqual(core.splitSides([W(null, 10, 'warmup'), W(null, 20), W(null, 22)]).map((x) => [x.type, x.side, x.w]),
+    [['warmup', undefined, 10], ['normal', 'left', 20], ['normal', 'right', 20], ['normal', 'left', 22], ['normal', 'right', 22]]);
+  const sided = [W('left', 20), W('right', 20)];
+  assert.equal(core.splitSides(sided), sided, 'nothing to split');
+  const uni = (id) => id === 'ext';
+  const routine = { id: 't', name: 'Legs', exercises: [{ exerciseId: 'ext', sets: [W(null, 50), W(null, 50)] }, { exerciseId: 'bench', sets: [W(null, 80)] }] };
+  const split = core.splitRoutine(routine, uni);
+  assert.deepEqual(split.exercises[0].sets.map((x) => x.side), ['left', 'right', 'left', 'right']);
+  assert.equal(split.exercises[1], routine.exercises[1], 'bilateral exercises stay');
+  assert.equal(core.splitRoutine(split, uni), null, 'once split, nothing changes');
+  const a = core.newActiveWorkout({ template: routine, isUnilateral: uni, settings: core.withDefaults({}) });
+  assert.deepEqual(a.exercises.map((e) => e.sets.map((x) => x.side || '-').join(' ')), ['left right left right', '-']);
+  const again = core.newActiveWorkout({ fromWorkout: { name: 'Old', exercises: routine.exercises }, isUnilateral: uni, settings: core.withDefaults({}) });
+  assert.equal(again.exercises[0].sets.length, 4, 'Do this workout again splits the same way');
+  // new entries: last time's sides, or a pair per set
+  const prev = { ext: [W('left', 1), W('right', 1), W('left', 1)], old: [W(null, 1), W(null, 1)] };
+  const make = (id, kind) => core.newEntries([id], { previousSets: (x) => prev[x] || null, kind, isUnilateral: () => true })[0].sets.map((x) => x.side[0]).join('');
+  assert.equal(make('ext'), 'lrl');
+  assert.equal(make('old'), 'lrlr');
+  assert.equal(make('new'), 'lr');
+  assert.equal(make('new', 'template'), 'lrlrlr');
+});
+
+test('the Strong CSV merges a unilateral left and right into one row (#54), only with pairs on', () => {
+  const ex = { id: 'x-single-leg-extension-machine', name: 'Single Leg Extension (Machine)', category: 'machine', bodyPart: 'legs' };
+  assert.equal(core.isUnilateral(ex), true);
+  const set = (id, side, w, r, extra = {}) => ({ id, type: 'normal', side, w, r, ...extra });
+  const workout = { id: 'w', name: 'Legs', startedAt: Date.UTC(2026, 10, 3, 9), endedAt: Date.UTC(2026, 10, 3, 10), exercises: [E(ex.id, [
+    { id: 'w0', type: 'warmup', w: 40, r: 10 }, set('a', 'left', 100, 8, { rir: 2 }), set('b', 'right', 120, 8, { rir: 1 }),
+    set('c', 'left', 100, 8), set('d', 'right', 102.5, 7), set('e', 'left', 90, 10),
+  ])] };
+  const rows = (pairSides) => core.exportCSV({ workouts: [workout], exercises: new Map([[ex.id, ex]]), pairSides }).trim().split('\n').slice(1)
+    .map((l) => l.split(',')).map((c) => [c[4], c[5], c[6], c[11]]);
+  // 100 and 120 × 8 → 110 × 8; 8 and 7 reps → 7 (never more than was done); the harder side's RIR; the lone left stays
+  assert.deepEqual(rows(true), [['W', '40.0', '10.0', ''], ['1', '110.0', '8.0', '9'], ['2', '101.25', '7.0', ''], ['3', '90.0', '10.0', '']]);
+  assert.equal(rows(false).length, 6, 'pairs off: every side its own row');
+  assert.equal(rows(undefined).length, 6, 'and that is the default');
+  // bilateral exercises never merge
+  const bench = { ...ex, id: 'x-bench-press-barbell', name: 'Bench Press (Barbell)' };
+  assert.equal(core.exportCSV({ workouts: [{ ...workout, exercises: [E(bench.id, workout.exercises[0].sets)] }], exercises: new Map([[bench.id, bench]]), pairSides: true }).trim().split('\n').length, 7);
 });
 
 test('routine links preserve optional sixth-value sides, keep preceding nulls and read old links', () => {

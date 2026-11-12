@@ -5,12 +5,13 @@
 // the rest as unpaired, or every row with Account's "Count left/right sets
 // together" off; Sets per muscle always counts pairs. Light, dark and German.
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import { launch, devices, grantWakeLock, APP, shots, selectTab, openSearch, storedData, waitStored } from './env.mjs';
 import { SEED_EXERCISES, SEED_VERSION, DAY } from '../../core/index.js';
 
 const OUT = shots('app-paired-sets');
 const CURL = 'x-concentration-curl-dumbbell', LEGX = 'x-single-leg-extension-machine', BENCH = 'x-bench-press-barbell';
-const PLANK = 'x-side-plank', EXT = 'x-leg-extension-machine';
+const PLANK = 'x-side-plank', EXT = 'x-leg-extension-machine', LEGCURL = 'x-single-leg-curl-machine';
 const browser = await launch();
 let passed = 0;
 const ok = (label) => { passed++; console.log('PASS', label); };
@@ -28,8 +29,13 @@ const done = { id: 'done', name: 'Pairs', templateId: 'pairs', startedAt: at, en
 ].map(([exerciseId, sets], i) => ({ id: `e${i}`, exerciseId, sets: sets.map((x, j) => ({ id: `s${i}${j}`, ...x })) })) };
 // a bilateral exercise with an old side tag on its first set
 const legacy = { id: 'legacy', name: 'Legacy', exercises: [{ exerciseId: BENCH, sets: [S('left'), S()] }] };
+// from Strong: a unilateral exercise's routine and workout without sides, each set both legs
+const strongRoutine = { id: 'split', name: 'From Strong', exercises: [{ exerciseId: LEGCURL, sets: [S(), S()] }] };
+const old = { id: 'old-curl', name: 'From Strong', templateId: null, startedAt: at - 4 * DAY, endedAt: at - 4 * DAY + 3600000, exercises: [
+  { id: 'oc', exerciseId: LEGCURL, sets: [{ id: 'oc1', type: 'normal', w: 30, r: 10 }, { id: 'oc2', type: 'normal', w: 32, r: 9 }] },
+] };
 const data = (language) => ({
-  exercises: SEED_EXERCISES, workouts: [done], measurements: [], templates: [routine, legacy],
+  exercises: SEED_EXERCISES, workouts: [done, old], measurements: [], templates: [routine, legacy, strongRoutine],
   kv: { settings: { language, showExamples: false, appKeepAwake: false, defaultRest: 0, askTemplateUpdate: false }, meta: { seedVersion: SEED_VERSION, createdAt: 1000, lastBackupAt: Date.now() } },
 });
 
@@ -74,13 +80,13 @@ for (const theme of ['light', 'dark']) {
   const { ctx, page, errors, id, text, shot } = await open('en', theme);
   await page.goto(APP);
   // Sets per muscle: pairs within the workout, warm-ups out
-  for (const [m, n] of [['chest', 3], ['arms', 2], ['legs', 1]]) assert.match(await text(`muscle-${m}`), new RegExp(` ${n}$`), m);
+  for (const [m, n] of [['chest', 3], ['arms', 2], ['legs', 3]]) assert.match(await text(`muscle-${m}`), new RegExp(` ${n}$`), m);
   // Plan: the routine's prescribed rows, paired; the rest unpaired
   await selectTab(page, 'plan');
   await id('template-pairs').waitFor();
   assert.match(await text('template-facts-pairs'), /· 5 sets · 3 unpaired ·/);
   await shot('plan');
-  ok(`${theme}: Sets per muscle counts pairs (arms 2, legs 1, chest 3); Plan says “5 sets · 3 unpaired”`);
+  ok(`${theme}: Sets per muscle counts pairs (arms 2, legs 3 with the Strong workout, chest 3); Plan says “5 sets · 3 unpaired”`);
 
   await page.goto(`${APP}/template/pairs`);
   assert.match(await text('template-exercise-0'), /2 sets/);
@@ -124,7 +130,7 @@ for (const theme of ['light', 'dark']) {
   await setPairing(page, false);
   await shot('account');
   await page.goto(APP);
-  for (const [m, n] of [['chest', 3], ['arms', 2], ['legs', 1]]) assert.match(await text(`muscle-${m}`), new RegExp(` ${n}$`), m);
+  for (const [m, n] of [['chest', 3], ['arms', 2], ['legs', 3]]) assert.match(await text(`muscle-${m}`), new RegExp(` ${n}$`), m);
   await selectTab(page, 'plan');
   assert.match(await text('template-facts-pairs'), /· 10 sets ·/);
   assert.doesNotMatch(await text('template-facts-pairs'), /unpaired/);
@@ -135,7 +141,7 @@ for (const theme of ['light', 'dark']) {
   const stored = await storedData(page);
   assert.equal(stored.workouts[0].exercises[1].sets.length, 4, 'the stored rows stay');
   await setPairing(page, true);
-  ok(`${theme}: “Count left/right sets together” off counts rows (Plan 10, workout 11, extension 3); Sets per muscle stays 3 / 2 / 1`);
+  ok(`${theme}: “Count left/right sets together” off counts rows (Plan 10, workout 11, extension 3); Sets per muscle stays 3 / 2 / 3`);
   assert.deepEqual(errors, []);
   await ctx.close();
 }
@@ -179,6 +185,54 @@ for (const theme of ['light', 'dark']) {
   const d = await waitStored(page, (x) => x.exercises.some((e) => e.name === 'Zebra Reach'));
   assert.equal(d.exercises.find((e) => e.name === 'Zebra Reach').unilateral, true);
   ok('a new custom exercise can be unilateral');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+}
+
+// the rework (#54): Strong data without sides, the split at start, no Clear, Add set's side, the CSV
+{
+  const { ctx, page, errors, id, text, shot } = await open('en', 'light');
+  await page.goto(APP);
+  await selectTab(page, 'plan');
+  await id('template-split').waitFor();
+  assert.match(await text('template-facts-split'), /· 2 sets · about/, 'no sides: each set covered both legs');
+  await page.goto(`${APP}/workout/old-curl`);
+  await id('workout-title').waitFor();
+  assert.equal(await text('workout-sets'), 'Sets 2');
+  assert.ok(await page.getByText('2 sets', { exact: true }).count(), 'the line under the tally: 2 sets, nothing unpaired');
+  ok('Strong data without sides: a unilateral exercise counts every set (2 sets, nothing unpaired)');
+
+  await page.goto(`${APP}/template/split`);
+  await id('start-template').click();
+  await id(`block-${LEGCURL}`).waitFor();
+  const ids = await id(`block-${LEGCURL}`).locator('[data-testid^="label-"]').evaluateAll((els) => els.map((e) => e.dataset.testid.slice('label-'.length)));
+  assert.equal(ids.length, 4, 'each set became a left and a right one');
+  const ghosts = await id(`block-${LEGCURL}`).locator('[data-testid^="in-w-"]').evaluateAll((els) => els.map((e) => e.placeholder));
+  assert.deepEqual(ghosts, ['30', '30', '32', '32'], 'last time’s set 1 fills left 1 and right 1');
+  const d1 = await waitStored(page, (d) => d.templates.find((t) => t.id === 'split').exercises[0].sets.length === 4);
+  assert.deepEqual(d1.templates.find((t) => t.id === 'split').exercises[0].sets.map((x) => x.side), ['left', 'right', 'left', 'right']);
+  assert.deepEqual(d1.kv.active.exercises[0].sets.map((x) => x.side), ['left', 'right', 'left', 'right']);
+  await shot('split');
+  await id(`label-${ids[0]}`).click();
+  await id('set-side').click();
+  assert.equal(await id('side-clear').count(), 0, 'a unilateral working set keeps a side');
+  await id('sheet-cancel').click();
+  await id(`add-set-${LEGCURL}`).click();
+  await waitStored(page, (d) => d.kv.active.exercises[0].sets.length === 5);
+  assert.equal((await storedData(page)).kv.active.exercises[0].sets[4].side, 'left');
+  ok('starting it splits each set into Left and Right (saved in the routine) with last time’s numbers on both; no Clear; Add set goes on Left');
+  await id('workout-menu').click(); await id('menu-discard').click(); await id('confirm-discard').click().catch(() => {});
+
+  // the CSV: with pairs on, Single Leg Extension's L L L R goes out as one merged row and the two lone lefts
+  const csvRows = async () => {
+    await page.goto(`${APP}/account`);
+    const [file] = await Promise.all([page.waitForEvent('download'), id('export-csv').click()]);
+    return fs.readFileSync(await file.path(), 'utf8').split('\n').filter((l) => l.includes('"Single Leg Extension (Machine)"'));
+  };
+  assert.equal((await csvRows()).length, 3);
+  await setPairing(page, false);
+  assert.equal((await csvRows()).length, 4, 'pairs off: every side its own row');
+  ok('CSV: L L L R of a unilateral exercise is 3 rows with pairs on (one merged), 4 with pairs off');
   assert.deepEqual(errors, []);
   await ctx.close();
 }

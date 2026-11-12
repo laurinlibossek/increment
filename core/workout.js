@@ -11,7 +11,7 @@ import {
   newSetDraft, setToDraft, draftToSet, entryToDraft, newEntryDraft, remapSupersets, draftEntries,
 } from './drafts.js';
 import { pairSets } from './templates.js';
-import { sideOf } from './set-sides.js';
+import { nextSide, sideOf, splitSides } from './set-sides.js';
 
 export const SET_TYPES = ['normal', 'warmup', 'drop', 'failure'];
 /** Rest timer choices per exercise (seconds; 0 = off). */
@@ -42,23 +42,26 @@ export function workoutNameKey(t) {
 /**
  * A new running workout: empty, from a template (its sets become grey
  * targets) or again from a finished workout. `name` is the (translated)
- * default name for an empty one.
- * @param {{ template?: any, fromWorkout?: any, hasExercise?: (id: string) => boolean, settings: any, now?: number, name?: string }} [o]
+ * default name for an empty one. A unilateral exercise's sets without a
+ * side become a left and a right set (splitSides, #54).
+ * @param {{ template?: any, fromWorkout?: any, hasExercise?: (id: string) => boolean, isUnilateral?: (id: string) => boolean, settings: any, now?: number, name?: string }} [o]
  */
 export function newActiveWorkout({
-  template = null, fromWorkout = null, hasExercise = () => true, settings, now = Date.now(), name = '',
+  template = null, fromWorkout = null, hasExercise = () => true, isUnilateral = () => false, settings, now = Date.now(), name = '',
 } = {}) {
+  // a unilateral exercise's sets without a side become a left and a right set (#54)
+  const split = (e) => (isUnilateral(e.exerciseId) ? { ...e, sets: splitSides(e.sets) } : e);
   let exercises = [];
   let templateNotes = '';
   if (template) {
     name = template.name;
     templateNotes = template.notes || '';
     exercises = remapSupersets(template.exercises.filter((e) => hasExercise(e.exerciseId))
-      .map((e) => entryToDraft(e, settings, { asTemplateTargets: true })));
+      .map((e) => entryToDraft(split(e), settings, { asTemplateTargets: true })));
   } else if (fromWorkout) {
     name = fromWorkout.name;
     exercises = remapSupersets(fromWorkout.exercises.filter((e) => hasExercise(e.exerciseId))
-      .map((e) => entryToDraft({ ...e, notes: '' }, settings, { asTemplateTargets: true })));
+      .map((e) => entryToDraft(split({ ...e, notes: '' }), settings, { asTemplateTargets: true })));
   }
   return {
     id: uid(),
@@ -91,7 +94,8 @@ export function restFor(entry, ex, defaultRest) {
  */
 export function placeholders(entry, prevSets, settings) {
   const previous = prevSets || [];
-  const pairs = pairSets(entry.sets, previous);
+  // a set without a side last time covered both: its numbers fill this time's left and right (#54)
+  const pairs = pairSets(entry.sets, previous, { split: true });
   let lastPh = null;
   return entry.sets.map((s, i) => {
     const p = previous[pairs[i]];
@@ -383,21 +387,38 @@ export function moveUnit(list, fromId, toId) {
 }
 
 // ---------- editing the list ----------
-/** New entries for picked exercises, with as many sets as last time (templates get at least 3). */
-export function newEntries(exerciseIds, { previousSets, kind = 'workout' }) {
+/**
+ * New entries for picked exercises, with as many sets as last time (templates
+ * get at least 3). A unilateral exercise (#54) gets them per side: last
+ * time's sides in order, or a left and a right for each set without one (or
+ * each new set).
+ */
+export function newEntries(exerciseIds, { previousSets, kind = 'workout', isUnilateral = /** @type {(id: string) => boolean} */ (() => false) }) {
   return exerciseIds.map((id) => {
     const prev = previousSets(id);
-    const count = prev ? Math.min(prev.filter((s) => s.type !== 'warmup').length || 1, 6) : 1;
+    const working = prev ? prev.filter((s) => s.type !== 'warmup') : [];
+    if (isUnilateral(id)) {
+      const sides = working.some(sideOf)
+        ? working.filter(sideOf).slice(0, 12).map(sideOf)
+        : Array.from({ length: Math.min(Math.max(working.length || 1, kind === 'template' ? 3 : 1), 6) }, () => ['left', 'right']).flat();
+      const entry = newEntryDraft(id, 0);
+      entry.sets = sides.map((side) => newSetDraft('normal', { side }));
+      return entry;
+    }
+    const count = prev ? Math.min(working.length || 1, 6) : 1;
     return newEntryDraft(id, kind === 'template' ? Math.max(count, 3) : count);
   });
 }
 
-/** Add a set: retain repeated sides, otherwise alternate; drop sets keep their type. */
-export function addSet(entry) {
+/**
+ * Add a set: retain repeated sides, otherwise alternate; drop sets keep their
+ * type. A unilateral exercise's set always gets a side (nextSide, #54).
+ */
+export function addSet(entry, { unilateral = false } = {}) {
   const last = entry.sets[entry.sets.length - 1];
   const side = sideOf(last), before = sideOf(entry.sets[entry.sets.length - 2]);
-  const next = side && (side === before ? side : side === 'left' ? 'right' : 'left');
   const type = last && last.type === 'drop' ? 'drop' : 'normal';
+  const next = unilateral ? nextSide(entry.sets, type) : side && (side === before ? side : side === 'left' ? 'right' : 'left');
   // a routine's rep range carries on to a set like the one above (#44)
   const range = last && (last.type || 'normal') === type && last.range ? { range: last.range } : {};
   entry.sets.push(newSetDraft(type, { ...(next ? { side: next } : {}), ...range }));
