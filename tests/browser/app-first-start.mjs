@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { openSearch, devices, launch, grantWakeLock, APP as BASE, BACKUP, STRONG, DATA, shots } from './env.mjs';
+import { selectTab, openSearch, devices, launch, grantWakeLock, APP as BASE, BACKUP, STRONG, DATA, shots, storedData } from './env.mjs';
 
 const OUT = shots('app-first-start');
 const browser = await launch();
@@ -32,7 +32,7 @@ const bg = (page) => page.evaluate(() => {
   }
   return null;
 });
-const tab = (page, name) => page.getByTestId(`tab-${name}`).click();
+const tab = (page, name) => selectTab(page, name);
 // the avatar on Today opens Account (the name and every setting)
 const openAccount = async (page) => { await tab(page, 'index'); await page.getByTestId('open-account').click(); };
 const text = async (page) => (await page.locator('body').innerText());
@@ -87,7 +87,7 @@ const has = async (page, re) => (typeof re === 'string' ? new RegExp(re.replace(
     assert.equal(await row.getAttribute('role'), 'button', `${title}: navigation remains tappable`);
     assert.equal(await row.locator('[aria-hidden="true"]').count(), 2, `${title}: leading symbol and chevron`);
   }
-  assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('increment.data')).workouts.length), 86, 'all 86 workouts were restored');
+  assert.equal((await storedData(page)).workouts.length, 86, 'all 86 workouts were restored');
   await page.screenshot({ path: `${OUT}/03-progress.png` });
   ok('Today’s avatar has the name; Progress has German navigation without counts and all 86 workouts remain restored');
 
@@ -175,7 +175,9 @@ const has = async (page, re) => (typeof re === 'string' ? new RegExp(re.replace(
   await openAccount(page);
   await page.getByTestId('theme-strawberry-matcha').click();
   await page.waitForTimeout(200);
-  assert.equal(await bg(page), 'rgb(251, 248, 242)', 'Strawberry Matcha cream');
+  assert.equal(await bg(page), 'rgb(242, 235, 222)', 'Strawberry Matcha cream');
+  // the browser bar (the iPhone status bar of the home-screen app) takes the theme's paper, not the phone's light/dark
+  assert.deepEqual(await page.evaluate(() => [...document.querySelectorAll('meta[name="theme-color"]')].map((m) => [m.content, m.media])), [['#f2ebde', '']], 'theme-color follows the theme');
   await page.getByTestId('language-en').click();
   await page.waitForTimeout(200);
   assert.ok(await has(page, 'Your data'));

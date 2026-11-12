@@ -21,6 +21,7 @@ import {
 import { toast } from '@/ui/overlay';
 import { DraftBlocks, KeyboardDoneBar } from '@/ui/workout/DraftBlocks';
 import { useEditor } from '@/ui/workout/useEditor';
+import { attempt } from '@/lib/saving';
 
 export default function TemplateEditScreen() {
   const { id, from } = useLocalSearchParams<{ id?: string; from?: string }>();
@@ -42,7 +43,8 @@ export default function TemplateEditScreen() {
   const folders = useMemo(() => templateFolders(getState()), [templates, meta]);
 
   const save = async () => {
-    const r = await saveTemplateDraft();
+    const r = await attempt(tr, saveTemplateDraft());
+    if (!r) return;
     // the core says "template"; the app calls them routines
     if (r.problem) { toast(r.problem === EDIT_MESSAGES.templateName ? tr('Give the routine a name') : tr(r.problem)); return; }
     toast(r.created ? tr('“{name}” created', { name: r.template!.name }) : tr('Routine saved'));
@@ -86,6 +88,7 @@ export default function TemplateEditScreen() {
             </ScrollView>
           )}
           <Field value={d.notes} onChange={(v) => patchDraft('edit', { notes: v })} placeholder={tr('Notes (optional)')} multiline testID="tpl-notes" />
+          <Field value={d.pinnedNote} onChange={(v) => patchDraft('edit', { pinnedNote: v })} placeholder={tr('Pin a note for next time (optional)')} multiline testID="tpl-pinned" />
         </View>
         <DraftBlocks draftKey="edit" mode="template" draft={d} />
         {!d.exercises.length && <Empty title={tr('Build your routine')} text={tr('Add the exercises and sets you want to repeat.')} />}

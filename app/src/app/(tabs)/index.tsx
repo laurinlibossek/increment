@@ -3,18 +3,18 @@
 // this week's sessions and the sets per muscle of the last 7 days. The avatar
 // opens Account. docs/design/navigation.md, phases.md → 2.
 import { useMemo } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { router } from 'expo-router';
-import { routineSize, setsPerMuscle, weekStrip } from '@increment/core';
+import { entryRepRange, routineSize, setsPerMuscle, weekStrip } from '@increment/core';
 
 import { suggestion, useAppState } from '@/data/store';
 import type { Template } from '@/data/types';
-import { RADIUS, SPACE, TYPE } from '@/design/tally';
+import { SPACE, TYPE } from '@/design/tally';
 import { useFormat } from '@/lib/format';
 import { useLang } from '@/lib/i18n';
 import { useTally } from '@/lib/theme';
 import { beginWorkout, openWorkout } from '@/lib/workout';
-import { SymbolIcon } from '@/ui/tally/ListRow';
+import { AccountButton } from '@/ui/tally/AccountButton';
 import { MuscleVolume } from '@/ui/tally/MuscleVolume';
 import { RoutineCard } from '@/ui/tally/RoutineCard';
 import { SectionHeader } from '@/ui/tally/SectionHeader';
@@ -23,6 +23,7 @@ import { TabRoot } from '@/ui/tally/TabRoot';
 import type { StrokeState } from '@/ui/tally/Tally';
 import { WeekStrip } from '@/ui/tally/WeekStrip';
 import { useSessionView } from '@/ui/workout/MiniBar';
+import { useToday } from '@/lib/useNow';
 
 type Why = { kind: 'after' | 'weekday' | 'due'; name?: string; day?: number; at?: number };
 
@@ -33,13 +34,15 @@ export default function TodayTab() {
   const { locale } = useLang();
   const { colors: t } = useTally();
   const session = useSessionView();
-  const sug = useMemo(() => (s.active ? null : suggestion(s)), [s.templates, s.workouts, !s.active]); // eslint-disable-line react-hooks/exhaustive-deps
+  // the date, the week, the suggestion and the last seven days follow the day (#36)
+  const today = useToday();
+  const sug = useMemo(() => (s.active ? null : suggestion(s)), [s.templates, s.workouts, !s.active, today]); // eslint-disable-line react-hooks/exhaustive-deps
   const goal = s.settings.weeklyGoal || 3;
   const week = useMemo(() => weekStrip(s.workouts, { weekStart: s.settings.weekStart, goal }) as {
     days: { start: number; done: number; planned: boolean }[]; today: number; done: number; goal: number;
-  }, [s.workouts, s.settings.weekStart, goal]);
-  const muscles = useMemo(() => setsPerMuscle(s.workouts, s.exercises) as { muscle: string; label: string; sets: number }[], [s.workouts, s.exercises]);
-  const date = new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'long' }).format(Date.now());
+  }, [s.workouts, s.settings.weekStart, goal, today]); // eslint-disable-line react-hooks/exhaustive-deps
+  const muscles = useMemo(() => setsPerMuscle(s.workouts, s.exercises) as { muscle: string; label: string; sets: number }[], [s.workouts, s.exercises, today]); // eslint-disable-line react-hooks/exhaustive-deps
+  const date = new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'long' }).format(today);
 
   const why = (w: Why) => {
     if (w.kind === 'weekday') {
@@ -50,17 +53,6 @@ export default function TodayTab() {
     if (w.kind === 'after') return tr('Usually after {name}', { name: w.name ?? '' });
     return tr('Last done {when}', { when: f.relDayLower(w.at ?? 0) });
   };
-
-  const name = s.profile.name.trim();
-  const avatar = (
-    <Pressable onPress={() => router.push('/account')} accessibilityRole="button" testID="open-account"
-      accessibilityLabel={name ? tr('Account, {name}', { name }) : tr('Account')} hitSlop={4}
-      style={({ pressed }) => ({ width: 36, height: 36, borderRadius: RADIUS.capsule, alignItems: 'center', justifyContent: 'center', backgroundColor: t.paper3, opacity: pressed ? 0.6 : 1 })}>
-      {name
-        ? <Text style={{ fontSize: 15, fontWeight: '600', color: t.ink }}>{name.charAt(0).toUpperCase()}</Text>
-        : <SymbolIcon name="person.crop.circle" size={20} color={t.ink} />}
-    </Pressable>
-  );
 
   let card;
   if (s.active && session) {
@@ -78,7 +70,8 @@ export default function TodayTab() {
     const groups: StrokeState[][] = entries.map((e) => e.sets.map((x) => (x.type === 'warmup' ? 'warmupPending' : 'pending')));
     card = (
       <RoutineCard testID="up-next" context={`${tr('Up next')} · ${why(sug.why)}`} name={tpl.name}
-        exercises={entries.map((e) => f.exName(s.exercises.get(e.exerciseId)))}
+        // with the range a routine prescribes for an exercise (#44): "Bench Press × 8–10"
+        exercises={entries.map((e) => { const r = entryRepRange(e); return `${f.exName(s.exercises.get(e.exerciseId))}${r ? ` × ${r[0]}–${r[1]}` : ''}`; })}
         tally={{ groups, label: f.plural(size.sets, 'set') }}
         facts={[f.plural(size.exercises, 'exercise'), f.plural(size.sets, 'set'), size.minutes ? tr('about {n} min', { n: size.minutes }) : ''].filter(Boolean).join(' · ')}
         onPress={() => router.push({ pathname: '/template/[id]', params: { id: tpl.id } })}
@@ -94,7 +87,7 @@ export default function TodayTab() {
 
   const scope = tr('{done} of {goal} sessions', { done: week.done, goal });
   return (
-    <TabRoot tab="index" title={tr('Today')} eyebrow={date} right={<><SearchButton tab="index" />{avatar}</>}>
+    <TabRoot title={tr('Today')} eyebrow={date} right={<><SearchButton tab="index" /><AccountButton tab="index" /></>}>
       <View style={{ paddingHorizontal: SPACE.s5 }}>{card}</View>
 
       {/* An empty slot the store version can fill (docs/design/phases.md, phase 7). */}

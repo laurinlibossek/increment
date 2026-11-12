@@ -47,9 +47,18 @@ const ONE_RM = {
   wathen: (w, r) => (100 * w) / (48.8 + 53.8 * Math.exp(-0.075 * r)),
   lander: (w, r) => (r < 37 ? (100 * w) / (101.3 - 2.67123 * r) : 0),
 };
+/**
+ * Above this many reps every formula setting uses Epley, "Average of all" too:
+ * the others run away at high reps (20 kg × 36 is 720 kg by Brzycki), which
+ * made chart spikes and false records (#41, Laurin, 11 Nov 2026).
+ */
+export const EPLEY_ABOVE_REPS = 12;
+
+/** Estimated 1RM by the chosen formula; Epley above EPLEY_ABOVE_REPS reps. Records, charts, the summary and Tools all use it. */
 export function est1RM(w, r, formula = calcOpts.formula) {
   if (!(w > 0) || !(r > 0)) return 0;
   if (r === 1) return w;
+  if (r > EPLEY_ABOVE_REPS) return ONE_RM.epley(w, r);
   if (formula === 'average') {
     const all = Object.values(ONE_RM).map((f) => f(w, r)).filter((v) => v > 0);
     return all.length ? all.reduce((a, b) => a + b, 0) / all.length : 0;
@@ -141,9 +150,22 @@ export function workoutVolume(w, exById) {
   return v;
 }
 
+/**
+ * How many sets a number of sets shows (#38): every row but warm-ups, which
+ * are logged and drawn (W rows, short strokes) but never counted. Normal,
+ * failure and drop sets count. Rows with a side count one by one here; the
+ * per-muscle and routine totals pair them (workingSetCount, #54).
+ */
+export function setTotal(sets) {
+  let n = 0;
+  for (const s of sets) if (isWorking(s)) n++;
+  return n;
+}
+
+/** A workout's sets, warm-ups left out (setTotal). */
 export function workoutSetCount(w) {
   let n = 0;
-  for (const e of w.exercises) n += e.sets.length;
+  for (const e of w.exercises) n += setTotal(e.sets);
   return n;
 }
 
@@ -201,8 +223,9 @@ export function sessionsByExercise(workouts) {
 }
 
 /**
- * Record metrics a single set beats, compared with the stored bests for its
- * exercise. Used for the live PR badge so it agrees with the summary.
+ * Record metrics a single set beats on its own, compared with the stored bests
+ * for its exercise. The records a workout shows are liveRecordSets /
+ * prsForNewWorkout, which also weigh the workout's other sets.
  */
 export function newRecords(s, cat, bests, formula, at) {
   if (!bests || !isWorking(s)) return [];
@@ -382,6 +405,36 @@ export function chartMetricsFor(cat) {
     ];
   }
   return [{ id: 'time', label: 'Total time', kind: 'time' }];
+}
+
+/**
+ * The chart an exercise page opens with (#27): Heaviest weight where there is
+ * one, Most reps for bodyweight and assisted exercises, Distance for cardio,
+ * Time for timed ones.
+ */
+export function defaultChartMetric(cat) {
+  const ids = chartMetricsFor(cat).map((m) => m.id);
+  return ['weight', 'reps', 'distance', 'time'].find((id) => ids.includes(id)) || ids[0];
+}
+
+/** The chart chosen for an exercise if it still has that metric, else its default. */
+export function chartMetricFor(cat, chosen) {
+  return chartMetricsFor(cat).some((m) => m.id === chosen) ? chosen : defaultChartMetric(cat);
+}
+
+/**
+ * The remembered charts (exercise id -> metric id, kept in kv and in backups)
+ * without exercises that are gone or metrics they no longer have.
+ */
+export function cleanChartMetrics(map, exercises) {
+  const get = exercises instanceof Map ? (id) => exercises.get(id) : (id) => (exercises || []).find((e) => e.id === id);
+  /** @type {Record<string, string>} */
+  const out = {};
+  for (const [id, metric] of Object.entries(map && typeof map === 'object' ? map : {})) {
+    const ex = get(id);
+    if (ex && typeof metric === 'string' && chartMetricsFor(ex.category).some((m) => m.id === metric)) out[id] = metric;
+  }
+  return out;
 }
 
 // ---------- plates & warm-ups ----------

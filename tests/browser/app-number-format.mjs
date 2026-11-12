@@ -3,7 +3,7 @@
 // REVIEW_BEFORE=1 captures the same demo screens on the unchanged baseline.
 import assert from 'node:assert/strict';
 import path from 'node:path';
-import { launch, devices, grantWakeLock, APP, shots } from './env.mjs';
+import { selectTab, launch, devices, grantWakeLock, APP, shots } from './env.mjs';
 import { demoData } from './store-demo.mjs';
 import { est1RM, kgTo, roundW, toKg, workoutVolume, calendarMonth } from '../../core/index.js';
 
@@ -60,7 +60,7 @@ try {
       await id('record-0').waitFor();
       await shot('records');
       await go('/');
-      await id('tab-progress').click();
+      await selectTab(page, 'progress');
       await id('last-30').waitFor();
       await shot('progress');
       await go('/exercise/x-squat-barbell');
@@ -78,6 +78,8 @@ try {
   if (!before) for (const lang of ['en', 'de']) for (const unit of ['kg', 'lb']) {
     const data = demoData(lang);
     data.kv.settings.unit = unit;
+    // the exercise pages show Estimated 1RM, whose rounding this checks (Heaviest weight is the default, #27)
+    data.kv.chartMetrics = { [BENCH]: 'e1rm', [DEAD]: 'e1rm' };
     const day = new Date(); day.setDate(Math.min(15, day.getDate())); day.setHours(0, 0, 0, 0);
     const workout = (key, hour, exerciseId, sets) => ({ id: `format-${key}`, name: `Format ${key}`, startedAt: day.getTime() + hour * 3600000, endedAt: day.getTime() + hour * 3600000 + 71 * 60000, exercises: [{ id: `entry-${key}`, exerciseId, sets }] });
     const precise = workout('precise', 18, BENCH, [
@@ -180,7 +182,7 @@ try {
     await page.getByText(`${toolRm} ${unit}`, { exact: true }).first().waitFor();
 
     await go('/');
-    await id('tab-progress').click();
+    await selectTab(page, 'progress');
     const totals = normal(await id('last-30').innerText());
     const v = kgTo(data.workouts.reduce((sum, w) => sum + workoutVolume(w, lib), 0), unit);
     const totalText = unit === 'kg' ? `${nf(v / 1000, v >= 100000 ? 0 : 1)} t` : `${nf(v / 1000, v >= 100000 ? 0 : 1)}k lb`;

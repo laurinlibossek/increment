@@ -7,7 +7,7 @@ import {
 } from 'react-native';
 import { router, Stack } from 'expo-router';
 import {
-  startOfMonth, startOfDay, addMonths, calendarMonth, workoutVolume,
+  startOfMonth, startOfDay, addMonths, calendarMonth, workoutSetCount, workoutVolume,
 } from '@increment/core';
 
 import { stats, useAppState, type State } from '@/data/store';
@@ -49,8 +49,8 @@ export default function HistoryTab() {
   if (!s.workouts.length) {
     return (
       <View style={{ flex: 1, backgroundColor: t.paper }}>
-        <Empty title={tr('No workouts yet')} text={tr('Bring your workouts over from the Setlog web app: make a backup there, then restore it here in Account.')}>
-          <Button kind="tinted" icon="download" title={tr('Restore from backup')} onPress={() => router.push('/account')} testID="history-restore" />
+        <Empty title={tr('No workouts yet')} text={tr('Finished workouts show up here. To bring your history over, use Import from Strong or Restore from backup in Account.')}>
+          <Button kind="tinted" icon="download" title={tr('Open Account')} onPress={() => router.push('/account')} testID="history-restore" />
         </Empty>
       </View>
     );
@@ -133,12 +133,12 @@ function Calendar({ s, f }: { s: State; f: Format & { tr: (t: string, v?: Record
                     accessibilityRole="button" accessibilityState={{ selected: on }}
                     accessibilityLabel={n ? `${f.date.full(d)}, ${f.plural(n, 'workout')}` : f.date.full(d)}
                     style={[st.day, {
-                      backgroundColor: n ? c.primary : 'transparent',
+                      backgroundColor: n ? c.chipOn : 'transparent',
                       borderColor: on ? c.ink : 'transparent',
                     }]}>
                     <Text style={{
                       fontSize: 15, fontVariant: ['tabular-nums'],
-                      color: n ? c.primaryInk : d === today ? c.accentText : c.ink2,
+                      color: n ? c.chipOnInk : d === today ? c.accentText : c.ink2,
                       fontWeight: n || d === today ? '700' : '400',
                     }}>{new Date(d).getDate()}</Text>
                   </Pressable>
@@ -195,7 +195,7 @@ function WorkoutRow({ w, s, f, first, day = true }: { w: Workout; s: State; f: F
   const { tr } = f;
   const prs = stats(s).prsByWorkout.get(w.id) || [];
   const recordSets = new Set<string>(prs.map((p: { setId: string }) => p.setId));
-  const sets = w.exercises.reduce((n, e) => n + e.sets.length, 0);
+  const sets = workoutSetCount(w) as number;
   const tallyLine = [f.plural(sets, 'set'), recordSets.size ? f.plural(recordSets.size, 'record') : ''].filter(Boolean).join(' · ');
   const vol = workoutVolume(w, s.exercises);
   const meta = [day ? f.date.workoutDay(w.startedAt) : '', hm((w.endedAt || w.startedAt) - w.startedAt), vol > 0 ? f.volume(vol) : ''].filter(Boolean).join(' · ');

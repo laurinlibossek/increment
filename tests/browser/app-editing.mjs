@@ -5,7 +5,7 @@
 // exercises, Measure logging, charts, backups and the new settings. 22 checks.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { openSearch, devices, launch, grantWakeLock, APP as BASE, BACKUP, shots } from './env.mjs';
+import { selectTab, openSearch, devices, launch, grantWakeLock, APP as BASE, BACKUP, shots, storedData, writeStored } from './env.mjs';
 import * as core from '../../core/index.js';
 
 const OUT = shots('app-editing');
@@ -31,6 +31,8 @@ const id = (page, t) => page.getByTestId(t);
 const block = (page, ex) => id(page, `block-${ex}`);
 const inputs = (page, ex, f) => block(page, ex).locator(`[data-testid^="in-${f}-"]`);
 const checks = (page, ex) => block(page, ex).locator('[data-testid^="check-"]');
+/** The header row's column names, "Set kg Reps" (#48). */
+const head = async (page, ex) => (await page.getByTestId(`sets-head-${ex}`).innerText()).replace(/×/g, ' ').split(/\s+/).filter(Boolean);
 const toastText = async (page) => { await id(page, 'toast').waitFor(); return id(page, 'toast').innerText(); };
 const wait = (page, ms = 300) => page.waitForTimeout(ms);
 const visibleText = (page) => page.locator('body').innerText();
@@ -47,7 +49,7 @@ async function pickExercises(page, names, testid = 'add-exercises') {
 }
 /** Account: the avatar on Today. */
 async function openAccount(page) {
-  await id(page, 'tab-index').click();
+  await selectTab(page, 'index');
   await id(page, 'open-account').click();
 }
 async function restore(page, dialogs, { english = false } = {}) {
@@ -59,12 +61,12 @@ async function restore(page, dialogs, { english = false } = {}) {
   await page.goBack();
   await wait(page, 300);
 }
-const store = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('increment.data')));
+const store = (page) => storedData(page);
 
 // ---------- 1. templates: editor, menus, folders, shared links ----------
 {
   const { ctx, page, errors } = await newPage();
-  await id(page, 'tab-plan').click();
+  await selectTab(page, 'plan');
   await id(page, 'plan-add').click();
   await id(page, 'new-template').click();
   await id(page, 'tpl-name').waitFor();
@@ -78,10 +80,9 @@ const store = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('inc
   await pickExercises(page, [{ q: 'bench bb', id: BENCH }, { q: 'pull up', id: PULLUP }]);
   assert.equal(await inputs(page, BENCH, 'w').count(), 3, 'templates start with at least 3 sets');
   assert.equal(await checks(page, BENCH).count(), 0, 'no check-off in the template editor');
-  // every set has boxes that say what they hold, and a ⋯ for its menu
-  const captions = (page2, ex) => block(page2, ex).locator('[data-testid^="cap-"]').evaluateAll((els) => [...new Set(els.map((e) => e.innerText))]);
-  assert.deepEqual(await captions(page, BENCH), ['Weight', 'Reps']);
-  assert.equal(await block(page, BENCH).locator('[data-testid^="set-menu-"]').count(), 3);
+  // one header names the columns (#48); every set has a label that opens its menu
+  assert.deepEqual(await head(page, BENCH), ['Set', 'kg', 'Reps']);
+  assert.deepEqual(await block(page, BENCH).locator('[data-testid^="label-"]').evaluateAll((els) => els.map((e) => e.innerText.trim())), ['1', '2', '3']);
   await inputs(page, BENCH, 'w').first().fill('80');
   await inputs(page, BENCH, 'r').first().fill('8');
   // the rest timer of an exercise waits for Save
@@ -220,7 +221,7 @@ const store = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('inc
 {
   const { ctx, page, errors, dialogs } = await newPage();
   await restore(page, dialogs, { english: true });
-  await id(page, 'tab-index').click();
+  await selectTab(page, 'index');
   await id(page, 'start-empty').click();
   await id(page, 'workout-name').waitFor();
   await pickExercises(page, [{ q: 'squat bb', id: SQUAT }]);
@@ -336,7 +337,7 @@ const store = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('inc
 {
   const { ctx, page, errors, dialogs } = await newPage({ locale: 'de-DE' });
   await restore(page, dialogs);
-  await id(page, 'tab-progress').click();
+  await selectTab(page, 'progress');
   await id(page, 'progress-workouts').click();
   await page.locator('[data-testid^="workout-"]').first().click();
   await id(page, 'workout-options').waitFor();
@@ -349,7 +350,7 @@ const store = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('inc
   await id(page, 'edit-save').waitFor();
   assert.equal(await id(page, 'edit-name').inputValue(), w.name);
   assert.equal(await page.locator('[data-testid^="check-"]').count(), 0, 'no check-off when editing');
-  assert.deepEqual(await block(page, firstWeighted.exerciseId).locator('[data-testid^="cap-"]').evaluateAll((els) => [...new Set(els.map((e) => e.innerText))]), ['Gewicht', 'Wdh.'], 'the boxes say what they hold, in German');
+  assert.deepEqual(await head(page, firstWeighted.exerciseId), ['Satz', 'kg', 'Wdh.'], 'the header names the columns, in German');
   await id(page, 'edit-name').fill('Montag schwer');
   await id(page, 'edit-duration').fill('75');
   await inputs(page, firstWeighted.exerciseId, 'w').first().fill('77,5');
@@ -426,9 +427,9 @@ for (const scheme of ['light', 'dark']) {
   await id(page, `exercise-${SQUAT}`).click();
   await id(page, 'exercise-chart').waitFor();
   await wait(page, 400);
-  // the hero number (estimated 1RM of the last session), one line, a signal dot per record
+  // the hero number (heaviest weight of the last session, the default for a loaded exercise, #27), one line, a signal dot per record
   assert.match(await id(page, 'exercise-hero').innerText(), /^[\d.,]+\s*kg$/);
-  assert.match(await id(page, 'exercise-metric').innerText(), /Estimated 1RM, best of last session/);
+  assert.match(await id(page, 'exercise-metric').innerText(), /Heaviest weight, last session/);
   const paths = await id(page, 'exercise-chart').locator('svg path').count();
   const dots = await id(page, 'exercise-chart').locator('svg circle').count();
   assert.ok(paths === 1 && dots >= 1, `paths ${paths}, record dots ${dots}`);
@@ -465,7 +466,7 @@ for (const scheme of ['light', 'dark']) {
   await page.goBack(); // Exercise → Search
   await page.goBack(); // Search → the tab root
   await wait(page, 300);
-  await id(page, 'tab-progress').click();
+  await selectTab(page, 'progress');
   await id(page, 'progress-body').click();
   await id(page, 'log-bodyweight').click();
   await id(page, 'number-dialog').waitFor();
@@ -494,16 +495,16 @@ for (const scheme of ['light', 'dark']) {
   await wait(page, 300);
 
   // Progress: weekly chart, backup reminder → download
-  await id(page, 'tab-progress').click();
+  await selectTab(page, 'progress');
   await id(page, 'weekly-chart').locator('svg').waitFor();
   assert.equal(await id(page, 'backup-banner').count(), 0, 'a restored backup counts as a backup');
-  await page.evaluate(() => {
-    const d = JSON.parse(localStorage.getItem('increment.data'));
+  {
+    const d = await storedData(page);
     d.kv.meta.lastBackupAt = Date.now() - 20 * 86400000;
-    localStorage.setItem('increment.data', JSON.stringify(d));
-  });
+    await writeStored(page, d);
+  }
   await page.reload();
-  await id(page, 'tab-progress').click();
+  await selectTab(page, 'progress');
   await id(page, 'backup-banner').waitFor();
   await page.screenshot({ path: `${OUT}/11-progress-${scheme}.png`, fullPage: true });
   const [dl] = await Promise.all([page.waitForEvent('download'), id(page, 'backup-banner').getByText('Back up now').click()]);
@@ -527,7 +528,7 @@ for (const scheme of ['light', 'dark']) {
     await id(page, 'set-rest-alert').click();
     await page.screenshot({ path: `${OUT}/12-settings.png`, fullPage: true });
     await page.goBack();
-    await id(page, 'tab-index').click();
+    await selectTab(page, 'index');
     await id(page, 'start-empty').click();
     await id(page, 'workout-name').waitFor();
     await pickExercises(page, [{ q: 'bench bb', id: BENCH }]);

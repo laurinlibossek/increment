@@ -4,14 +4,16 @@
 // Problems are English texts (translation keys), translated by the UI.
 import { uid, slug } from './units.js';
 import { entryToDraft, draftEntries, remapSupersets } from './drafts.js';
-import { cleanTemplateExercises } from './templates.js';
+import { cleanTemplateExercises, prescriptionKey } from './templates.js';
 import { loggedFields } from './calc.js';
+import { parseRepsInput } from './rep-range.js';
 
 export const EDIT_MESSAGES = {
   templateName: 'Give the template a name',
   templateEmpty: 'Add at least one exercise',
   workoutEmpty: 'Keep at least one complete set',
   exerciseName: 'Give the exercise a name',
+  repRange: 'A rep range needs two whole numbers, like 8–10',
 };
 
 /**
@@ -29,6 +31,8 @@ export function templateDraft({
     name: src?.name || '',
     folder: (template && template.folder) || '',
     notes: (template && template.notes) || '',
+    // the routine's pinned note for next time (#33), edited here and saved with the routine
+    pinnedNote: (template && template.pinnedNote) || '',
     exercises: src ? remapSupersets(src.exercises.filter((e) => hasExercise(e.exerciseId))
       .map((e) => entryToDraft({ ...e, notes: template ? e.notes : '' }, settings))) : [],
   };
@@ -46,19 +50,37 @@ export function templateFromDraft(draft, {
   const name = (draft.name || '').trim();
   if (!name) return { problem: EDIT_MESSAGES.templateName };
   if (!draft.exercises.length) return { problem: EDIT_MESSAGES.templateEmpty };
+  // a range that doesn't read ("10–8", "8–") never saves as some other prescription (#44)
+  if (draft.exercises.some((e) => e.sets.some((x) => parseRepsInput(x.r)?.problem))) return { problem: EDIT_MESSAGES.repRange };
+  const entries = draftEntries(draft, settings, exercises, { keepEmpty: true }).map((e) => ({
+    exerciseId: e.exerciseId, notes: e.notes, supersetId: e.supersetId, restSec: e.restSec, focus: e.focus,
+    // a routine's sets are targets: no set ids, no logging times (#43)
+    sets: e.sets.map(({ id: _id, doneAt: _doneAt, ...rest }) => rest),
+  }));
+  // a changed prescription (weights, ranges, sets) makes earlier workouts count for nothing in "Weight increase recommended" (#49)
+  const prescribed = existing && prescriptionKey(existing.exercises) !== prescriptionKey(entries) ? { prescribedAt: now } : {};
   return {
-    template: {
+    template: withPinnedNote({
       ...(existing || { createdAt: now }),
       id: draft.id,
       name,
       folder: (draft.folder || '').trim(),
       notes: (draft.notes || '').trim(),
-      exercises: draftEntries(draft, settings, exercises, { keepEmpty: true }).map((e) => ({
-        exerciseId: e.exerciseId, notes: e.notes, supersetId: e.supersetId, restSec: e.restSec, focus: e.focus,
-        sets: e.sets.map(({ id: _id, ...rest }) => rest),
-      })),
-    },
+      exercises: entries,
+      ...prescribed,
+    }, draft.pinnedNote ?? existing?.pinnedNote),
   };
+}
+
+/**
+ * A routine with its pinned note for next time set, or removed when empty
+ * (#33): one optional note, apart from the routine's Notes and the sessions'
+ * notes, until it is edited or removed. A new one replaces the old.
+ */
+export function withPinnedNote(template, note) {
+  const { pinnedNote: _old, ...rest } = template;
+  const text = typeof note === 'string' ? note.trim() : '';
+  return text ? { ...rest, pinnedNote: text } : rest;
 }
 
 /**
@@ -119,6 +141,7 @@ export function copyTemplateRecord(src, { patch = {}, hasExercise = () => true, 
     name: src.name,
     folder: src.folder || '',
     notes: src.notes || '',
+    ...(src.pinnedNote ? { pinnedNote: src.pinnedNote } : {}),
     exercises: cleanTemplateExercises(src.exercises, hasExercise),
     createdAt: now,
     ...patch,

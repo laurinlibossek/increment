@@ -10,7 +10,7 @@ import {
 
 import { setMeta, stats, useAppState } from '@/data/store';
 import { SPACE, TYPE } from '@/design/tally';
-import { backupNow } from '@/lib/backup';
+import { backupNow, backupWhy } from '@/lib/backup';
 import { useFormat } from '@/lib/format';
 import { fmtMeasure, measureDef } from '@/lib/measure';
 import { useTally } from '@/lib/theme';
@@ -18,9 +18,10 @@ import { BarChart } from '@/ui/Chart';
 import { ListRow } from '@/ui/tally/ListRow';
 import { SectionHeader } from '@/ui/tally/SectionHeader';
 import { StatStrip } from '@/ui/tally/StatStrip';
+import { AccountButton } from '@/ui/tally/AccountButton';
 import { SearchButton } from '@/ui/tally/SearchButton';
 import { TabRoot } from '@/ui/tally/TabRoot';
-import { TabSwipeBlock } from '@/ui/TabSwipe';
+import { useToday } from '@/lib/useNow';
 
 export default function ProgressTab() {
   const s = useAppState();
@@ -28,6 +29,8 @@ export default function ProgressTab() {
   const { tr } = f;
   const { colors: t } = useTally();
   const goal = s.settings.weeklyGoal || 3;
+  // the 30 days and the backup reminder move on with the day (#36)
+  const today = useToday();
 
   const m = useMemo(() => {
     const weekStart = s.settings.weekStart;
@@ -46,7 +49,7 @@ export default function ProgressTab() {
       weeks: weeklyCounts(s.workouts, { weeks: 12, weekStart }) as { start: number; value: number }[],
       streak: weekStreak(s.workouts, { goal, weekStart }) as number,
     };
-  }, [s.workouts, s.exercises, s.settings, goal]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [s.workouts, s.exercises, s.settings, goal, today]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const vol = f.totalVolume(m.volume);
   const bw = s.measurements.find((x) => x.type === 'bodyweight');
@@ -54,12 +57,12 @@ export default function ProgressTab() {
     && (!s.meta.backupSnoozedAt || Date.now() - (s.meta.backupSnoozedAt as number) > 7 * DAY);
 
   return (
-    <TabRoot tab="progress" title={tr('Progress')} right={<SearchButton tab="progress" />}>
+    <TabRoot title={tr('Progress')} right={<><SearchButton tab="progress" /><AccountButton tab="progress" /></>}>
       {needsBackup && (
         <View testID="backup-banner" style={{ paddingHorizontal: SPACE.s5, marginBottom: SPACE.s6, gap: SPACE.s2 }}>
           <Text style={[TYPE.subhead, { color: t.ink }]}>
             <Text style={{ fontWeight: '600' }}>{tr('Back up your training log.')}</Text>
-            {` ${tr('It lives only on this phone — a backup file in iCloud Drive protects it if the phone is lost or reset.')}`}
+            {` ${backupWhy(tr)}`}
           </Text>
           <View style={{ flexDirection: 'row', gap: SPACE.s5 }}>
             <Pressable onPress={() => backupNow(tr)} accessibilityRole="button" hitSlop={8}><Text style={[TYPE.headline, { color: t.ink }]}>{tr('Back up now')}</Text></Pressable>
@@ -87,10 +90,8 @@ export default function ProgressTab() {
 
       <SectionHeader title={tr('Workouts per week')} scope={tr('Last 12 weeks')} />
       <View style={{ paddingHorizontal: SPACE.s5 }}>
-        <TabSwipeBlock>
-          <BarChart bars={m.weeks.map((w) => ({ label: f.date.dayMonth(w.start), value: w.value, title: tr('Week of {date}', { date: f.date.dayMonth(w.start) }) }))}
-            goal={goal} label={tr('Workouts per week')} testID="weekly-chart" />
-        </TabSwipeBlock>
+        <BarChart bars={m.weeks.map((w) => ({ label: f.date.dayMonth(w.start), value: w.value, title: tr('Week of {date}', { date: f.date.dayMonth(w.start) }) }))}
+          goal={goal} label={tr('Workouts per week')} testID="weekly-chart" />
         <Text style={[TYPE.footnote, { color: t.ink2 }]}>
           {`${tr('Goal: {n} per week', { n: goal })} · ${m.streak === 1 ? `1 ${tr('week on goal')}` : `${f.num(m.streak, 0)} ${tr('weeks on goal')}`}`}
         </Text>

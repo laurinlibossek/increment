@@ -1,7 +1,7 @@
 // Design todo group 9. REVIEW_BEFORE=1 captures the unchanged main build.
 import assert from 'node:assert/strict';
 import path from 'node:path';
-import { launch, devices, grantWakeLock, APP, shots } from './env.mjs';
+import { selectTab, launch, devices, grantWakeLock, APP, shots } from './env.mjs';
 import { demoData } from './store-demo.mjs';
 import { DEFAULT_SETTINGS, platesFor, translator } from '../../core/index.js';
 
@@ -326,7 +326,7 @@ try {
     await check('exercise-history warm-up values remain readable');
 
     await go('/');
-    await id('tab-progress').click();
+    await selectTab(page, 'progress');
     await id('weekly-chart').waitFor();
     await id('weekly-chart').scrollIntoViewIfNeeded();
     await shot('progress-chart');
@@ -339,7 +339,7 @@ try {
       await tokenStyle(id('chart-tip'), { borderTopLeftRadius: '14px' });
       ok(`${lang} ${theme}: bar-chart labels and tooltip are readable with token shape/type`);
     }
-    await id('tab-plan').click();
+    await selectTab(page, 'plan');
     await id(`template-${routine.id}`).waitFor();
     await shot('plan');
     await check('Plan folder counts remain readable');

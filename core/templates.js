@@ -2,6 +2,7 @@
 // writing it back, and cleaning template data. Plain data in, plain data out.
 import { remapSupersets } from './drafts.js';
 import { sideOf } from './set-sides.js';
+import { repRange, withRepRange, clampReps } from './rep-range.js';
 
 const VALUE_KEYS = ['w', 'r', 'd', 't'];
 const setType = (s) => s.type || 'normal';
@@ -10,7 +11,7 @@ const count = (sets, kind) => sets.filter((s) => (kind === 'straight' ? ['normal
 const setBucket = (s) => (setType(s) === 'warmup' ? 'warmup' : 'work');
 
 /** "exerciseId#n" per entry, so the n-th Bench Press pairs with the n-th Bench Press. */
-function entryKeys(entries) {
+export function entryKeys(entries) {
   const n = new Map();
   return entries.map((e) => {
     const i = n.get(e.exerciseId) || 0;
@@ -53,11 +54,12 @@ function sameValues(a, b) {
   }
   return true;
 }
-function templateSet(type, from, sideFrom = from) {
+/** A routine set of `type` with the numbers of `from`; side and rep range (#44) come from `meta`. */
+function templateSet(type, from, meta = from) {
   const o = { type };
   for (const k of [...VALUE_KEYS, 'rpe']) if (from[k] !== null && from[k] !== undefined) o[k] = from[k];
-  if (sideOf(sideFrom)) o.side = sideOf(sideFrom);
-  return o;
+  if (sideOf(meta)) o.side = sideOf(meta);
+  return withRepRange(o, repRange(meta));
 }
 /** Superset grouping as "key → first key of its group", over the given keys only. */
 function supersetLeaders(entries, keys, only) {
@@ -229,13 +231,42 @@ export function compareSets(routineSet, doneSet, category) {
   return 0;
 }
 
-/** The routine set with the done set's numbers; its own type and targets (RPE) stay. */
+/**
+ * What changed from last time's paired set to this one (#48), for the note
+ * beside a logged set: `{ dir, key, diff }`, where `dir` is compareSets'
+ * verdict (1 better, -1 worse), `key` the value that decided it ('w', 'r',
+ * 'd' or 't') and `diff` that value's change in stored units (kg, reps, km,
+ * seconds; for assisted exercises less assistance is a negative diff that's
+ * better). Null when nothing changed or either set has no numbers.
+ */
+export function setChange(prevSet, doneSet, category) {
+  if (!prevSet || !doneSet || !hasNumbers(prevSet) || !hasNumbers(doneSet)) return null;
+  const dir = compareSets(prevSet, doneSet, category);
+  if (!dir) return null;
+  const keys = category === 'cardio'
+    ? (valueOf(prevSet, 'd') || valueOf(doneSet, 'd')) && sign(valueOf(doneSet, 'd') - valueOf(prevSet, 'd')) ? ['d'] : ['t']
+    : (BETTER[category] || BETTER.barbell).map(([k]) => k);
+  const key = keys.find((k) => sign(valueOf(doneSet, k) - valueOf(prevSet, k))) || keys[0];
+  return { dir, key, diff: Math.round((valueOf(doneSet, key) - valueOf(prevSet, key)) * 1000) / 1000 };
+}
+
+/** The routine set with the done set's numbers; its own type, targets (RPE) and rep range stay. */
 function raisedSet(routineSet, doneSet, type = setType(routineSet), sideFrom = routineSet) {
   const o = { ...routineSet, type };
   delete o.side;
   if (sideOf(sideFrom)) o.side = sideOf(sideFrom);
   for (const k of VALUE_KEYS) if (doneSet[k] !== null && doneSet[k] !== undefined && doneSet[k] !== '') o[k] = doneSet[k];
-  return o;
+  return withRepRange(o, repRange(routineSet));
+}
+
+/**
+ * The done set as the routine set can take it: its reps moved inside the
+ * routine set's rep range (#44), so 80 × 12 against 8–10 counts as 80 × 10
+ * and 82.5 × 6 as 82.5 × 8. The workout keeps what was done.
+ */
+function withinRange(routineSet, doneSet) {
+  const range = repRange(routineSet);
+  return range && Number.isFinite(doneSet.r) ? { ...doneSet, r: clampReps(doneSet.r, range) } : doneSet;
 }
 
 /**
@@ -248,6 +279,9 @@ function raisedSet(routineSet, doneSet, type = setType(routineSet), sideFrom = r
  * exercises keep theirs. With `layout`, the routine takes the workout's
  * exercises and sets instead: paired sets still only go up, new sets take
  * what was done, and the routine's own exercise notes stay.
+ * Rep ranges (#44) stay as they are: a ranged set's target only moves inside
+ * its bounds, never the bounds themselves, and with `layout` a new set takes
+ * the range of the set before it of the same type and side.
  * `categoryOf(exerciseId)` gives each exercise's category.
  * Returns { exercises, raised }: `raised` counts the sets whose numbers went up.
  */
@@ -265,9 +299,9 @@ export function progressTemplate(templateExercises, workout, categoryOf, { layou
       return {
         ...e,
         sets: e.sets.map((s, i) => {
-          if (sp[i] < 0 || !better(s, ws[sp[i]], e.exerciseId)) return s;
+          if (sp[i] < 0 || !better(s, withinRange(s, ws[sp[i]]), e.exerciseId)) return s;
           raised++;
-          return raisedSet(s, ws[sp[i]]);
+          return raisedSet(s, withinRange(s, ws[sp[i]]));
         }),
       };
     });
@@ -282,12 +316,16 @@ export function progressTemplate(templateExercises, workout, categoryOf, { layou
     else {
       const routineOf = new Map();
       pairSets(te.sets, we.sets).forEach((j, i) => { if (j >= 0) routineOf.set(j, te.sets[i]); });
+      const rangeBefore = new Map(); // "type:side" → the range of the set before
       sets = we.sets.map((s, j) => {
         const r = routineOf.get(j);
-        if (!r) return templateSet(setType(s), s);
-        if (!better(r, s, we.exerciseId)) return raisedSet(r, {}, setType(s), s);
-        raised++;
-        return raisedSet(r, s, setType(s), s);
+        const key = `${setType(s)}:${sideOf(s) || ''}`;
+        let out;
+        if (!r) out = withRepRange(templateSet(setType(s), s), rangeBefore.get(key) || null);
+        else if (!better(r, withinRange(r, s), we.exerciseId)) out = raisedSet(r, {}, setType(s), s);
+        else { raised++; out = raisedSet(r, withinRange(r, s), setType(s), s); }
+        rangeBefore.set(key, repRange(out));
+        return out;
       });
     }
     const out = { exerciseId: we.exerciseId, sets };
@@ -313,4 +351,72 @@ export function cleanTemplateExercises(exercises, hasExercise = () => true) {
     focus: e.focus,
     sets: e.sets.map((s) => templateSet(setType(s), s)),
   }))).filter((e) => hasExercise(e.exerciseId));
+}
+
+
+// ---------- weight increase recommended (#49) ----------
+const STRAIGHT = new Set(['normal', 'failure']);
+
+/** Which prompt an exercise of this category can get: more weight, less assistance, or none (reps only, time, cardio). */
+export function readinessKind(category) {
+  if (category === 'assisted_bw') return 'assistance';
+  return ['barbell', 'dumbbell', 'machine', 'weighted_bw'].includes(category) ? 'weight' : null;
+}
+
+/**
+ * What a routine prescribes, for telling whether it changed (#49): per
+ * exercise its sets' types, sides, weights and rep ranges, and the reps of
+ * sets without a range. A ranged set's target is left out, since progression
+ * moves it inside the range.
+ */
+export function prescriptionKey(exercises) {
+  return JSON.stringify((exercises || []).map((e) => [e.exerciseId, e.sets.map((s) => {
+    const range = repRange(s);
+    return [setType(s), sideOf(s) || '', s.w ?? null, range || (s.r ?? null)];
+  })]));
+}
+
+/**
+ * "Weight increase recommended" (#49), per entry of `template`: 'weight', 'assistance'
+ * (assisted exercises: less assistance weight recommended) or null. `workout` is the
+ * routine's latest finished workout; readiness comes from that one workout
+ * against the routine as it is, never from sets gathered across workouts.
+ * An entry is ready when every prescribed working set (normal and failure)
+ * has a rep range and its done counterpart reached the top of that range at
+ * the prescribed weight or more (less assistance). Working sets pair in
+ * order, per side when the routine has sides, so a skipped set or a missing
+ * side keeps it from being ready; warm-ups, drop sets and extra sets don't
+ * count either way. A workout from before the routine's prescription last
+ * changed (`prescribedAt`, stamped by the editor) counts for nothing.
+ * `categoryOf(exerciseId)` gives each exercise's category.
+ */
+export function routineReadiness(template, workout, categoryOf) {
+  const T = template.exercises;
+  const none = T.map(() => null);
+  if (!workout || workout.templateId !== template.id) return none;
+  if (Number.isFinite(template.prescribedAt) && !(workout.startedAt >= template.prescribedAt)) return none;
+  const { pairs } = pairEntries(T, workout.exercises);
+  return T.map((e, ti) => {
+    const kind = readinessKind(categoryOf(e.exerciseId));
+    const prescribed = e.sets.filter((s) => STRAIGHT.has(setType(s)));
+    if (!kind || !prescribed.length || prescribed.some((s) => !repRange(s)) || pairs[ti] < 0) return null;
+    const sided = prescribed.some(sideOf);
+    const bucket = (s) => (sided ? sideOf(s) || 'none' : '');
+    const done = new Map();
+    for (const s of workout.exercises[pairs[ti]].sets) {
+      if (!STRAIGHT.has(setType(s))) continue;
+      if (!done.has(bucket(s))) done.set(bucket(s), []);
+      done.get(bucket(s)).push(s);
+    }
+    const used = new Map();
+    for (const p of prescribed) {
+      const b = bucket(p), n = used.get(b) || 0;
+      used.set(b, n + 1);
+      const d = done.get(b)?.[n];
+      if (!d || !(Number(d.r) >= p.rMax)) return null;
+      const pw = Number(p.w) || 0, dw = Number(d.w) || 0;
+      if (kind === 'weight' ? dw < pw - 1e-6 : dw > pw + 1e-6) return null;
+    }
+    return kind;
+  });
 }

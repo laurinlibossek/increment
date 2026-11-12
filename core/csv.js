@@ -287,30 +287,6 @@ export function parseStrongCSV(text, opts = {}) {
       item.sessions.add(workoutKey(g.startedAt, g.name));
     }
   }
-  const byName = new Map(exercises.map((e) => [strongNameKey(e.name), e]));
-  const byId = new Map(exercises.map((e) => [e.id, e]));
-  const shippedAliases = new Map(Object.entries(STRONG_EXERCISE_ALIASES).map(([name, id]) => [strongNameKey(name), id]));
-  const aliases = new Map([...shippedAliases, ...Object.entries(opts.aliases || {}).map(([name, id]) => [strongNameKey(name), id])]);
-  const matches = {}, review = [];
-  for (const { name, sets, sessions } of rowsByName.values()) {
-    const exact = byName.get(strongNameKey(name));
-    if (exact) { Object.defineProperty(matches, name, { value: exact.id, enumerable: true }); continue; }
-    const category = inferCategory(name, sets);
-    const aliasId = aliases.get(strongNameKey(name));
-    // A catalogue upgrade can preserve a same-name custom instead of adding
-    // the built-in id. Its existing identity is the alias target in that case.
-    const seedTarget = shippedAliases.get(strongNameKey(name)) === aliasId && SEED_EXERCISES.find((e) => e.id === aliasId);
-    const target = byId.get(aliasId) || (seedTarget && byName.get(strongNameKey(seedTarget.name)));
-    const categories = strongImportCategories(sets);
-    if (target && categories.includes(target.category) && canMergeExercises({ id: null, category }, target)) {
-      Object.defineProperty(matches, name, { value: target.id, enumerable: true }); continue;
-    }
-    const part = inferBodyPart(name);
-    review.push({
-      name, sessions: sessions.size, category, bodyPart: part === 'other' ? '' : part, categories,
-      suggestions: categories.length ? strongExerciseSuggestions(name, category, exercises) : [],
-    });
-  }
   const nonempty = [...groups.values()].filter((g) => g.entries.some((e) => e.sets.length));
   const existing = new Set(known.map((w) => workoutKey(w.startedAt, w.name)));
   const fresh = nonempty.filter((g) => {
@@ -319,6 +295,47 @@ export function parseStrongCSV(text, opts = {}) {
     existing.add(key);
     return true;
   });
+  // what leaving an exercise out would leave out: its sets in the workouts that are new
+  const freshCounts = new Map();
+  for (const g of fresh) {
+    for (const e of g.entries.filter((x) => x.sets.length)) {
+      const key = strongNameKey(e.name);
+      const c = freshCounts.get(key) || { sets: 0, workouts: new Set() };
+      c.sets += e.sets.length;
+      c.workouts.add(g);
+      freshCounts.set(key, c);
+    }
+  }
+  const byName = new Map(exercises.map((e) => [strongNameKey(e.name), e]));
+  const byId = new Map(exercises.map((e) => [e.id, e]));
+  const shippedAliases = new Map(Object.entries(STRONG_EXERCISE_ALIASES).map(([name, id]) => [strongNameKey(name), id]));
+  const aliases = new Map([...shippedAliases, ...Object.entries(opts.aliases || {}).map(([name, id]) => [strongNameKey(name), id])]);
+  const matches = {}, review = [];
+  for (const { name, sets, sessions } of rowsByName.values()) {
+    const category = inferCategory(name, sets);
+    const categories = strongImportCategories(sets);
+    // every match, the exact name included, has to log the fields these sets have (#40)
+    const fits = (ex) => !!ex && categories.includes(ex.category) && canMergeExercises({ id: null, category }, ex);
+    const exact = byName.get(strongNameKey(name));
+    const aliasId = aliases.get(strongNameKey(name));
+    // A catalogue upgrade can preserve a same-name custom instead of adding
+    // the built-in id. Its existing identity is the alias target in that case.
+    const seedTarget = shippedAliases.get(strongNameKey(name)) === aliasId && SEED_EXERCISES.find((e) => e.id === aliasId);
+    const target = byId.get(aliasId) || (seedTarget && byName.get(strongNameKey(seedTarget.name)));
+    const match = fits(exact) ? exact : fits(target) ? target : null;
+    if (match) { Object.defineProperty(matches, name, { value: match.id, enumerable: true }); continue; }
+    const part = inferBodyPart(name);
+    const counts = freshCounts.get(strongNameKey(name));
+    review.push({
+      name, sessions: sessions.size, category, bodyPart: part === 'other' ? '' : part, categories,
+      // nothing can import these sets as they are: the only way on is leaving the exercise out
+      ...(categories.length ? {} : { blocked: sets.some((x) => x.w < 0) ? 'negative' : 'mixed' }),
+      // an exercise with this exact name logs other fields
+      ...(exact ? { exact: exact.id } : {}),
+      omit: { sets: counts?.sets || 0, workouts: counts?.workouts.size || 0 },
+      suggestions: categories.length ? strongExerciseSuggestions(name, category, exercises) : [],
+    });
+  }
   return {
     groups: nonempty, matches, review,
     stats: {
@@ -331,8 +348,9 @@ export function parseStrongCSV(text, opts = {}) {
   };
 }
 
-/** Categories that retain the fields actually logged, including negative loads. */
+/** Categories that retain the fields actually logged. None for a negative load (#40: never its absolute value) or a mixture. */
 export function strongImportCategories(sets) {
+  if (sets.some((s) => s.w < 0)) return [];
   const w = sets.some((s) => s.w != null && s.w !== 0), r = sets.some((s) => s.r > 0);
   const d = sets.some((s) => s.d > 0), t = sets.some((s) => s.t > 0);
   if ((r || w) && (d || t)) return []; // no supported category logs this mixture
@@ -349,7 +367,9 @@ export function strongImportProblems(preview, choices, exercises) {
   for (const row of preview.review) {
     const choice = choices[row.name];
     let problem;
-    if (!row.categories.length) problem = 'These sets combine fields no exercise can log. Check the CSV.';
+    if (choice?.kind === 'skip') problem = undefined;
+    else if (row.blocked === 'negative') problem = 'Some sets have a negative weight. Leave the exercise out, or cancel and fix the file.';
+    else if (!row.categories.length) problem = 'These sets combine fields no exercise can log. Leave the exercise out, or cancel and fix the file.';
     else if (choice?.kind === 'existing') {
       const target = all.find((e) => e.id === choice.exerciseId);
       if (!target || !row.categories.includes(target.category) || !canMergeExercises({ id: null, category: row.category }, target)) problem = 'Choose an exercise that logs the same fields';
@@ -379,8 +399,11 @@ export function resolveStrongImport(preview, choices, opts = {}) {
   const byName = new Map(Object.entries(preview.matches).map(([name, id]) => [strongNameKey(name), id]));
   if ([...byName.values()].some((id) => !ids.has(id))) throw new Error('The exercise library changed. Pick the file again.');
   const newExercises = [], remembered = new Map(Object.entries({ ...STRONG_EXERCISE_ALIASES, ...aliases }));
+  // left out: not imported, and not remembered, so the file can be imported again once fixed
+  const skipped = new Set(preview.review.filter((row) => choices[row.name]?.kind === 'skip').map((row) => strongNameKey(row.name)));
   for (const row of preview.review) {
     const choice = choices[row.name];
+    if (choice.kind === 'skip') continue;
     let id = choice.exerciseId;
     if (choice.kind === 'new') {
       id = 'c-' + slug(choice.name);
@@ -403,8 +426,17 @@ export function resolveStrongImport(preview, choices, opts = {}) {
   const noteUpdates = [];
   let duplicates = 0;
   let setCount = 0;
+  const omitted = { sets: 0, workouts: 0, exercises: preview.review.filter((row) => skipped.has(strongNameKey(row.name))).map((row) => row.name) };
   for (const g of preview.groups) {
-    const entries = g.entries.filter((e) => e.sets.length).map((e) => {
+    const kept = g.entries.filter((e) => e.sets.length && !skipped.has(strongNameKey(e.name)));
+    const left = g.entries.filter((e) => e.sets.length && skipped.has(strongNameKey(e.name)));
+    const fresh = !existingKeys.has(keyOf(g.startedAt, g.name));
+    if (fresh && left.length) {
+      omitted.sets += left.reduce((n, e) => n + e.sets.length, 0);
+      // a workout with nothing else in it isn't made at all
+      if (!kept.length) omitted.workouts++;
+    }
+    const entries = kept.map((e) => {
       const entry = { id: uid(), exerciseId: byName.get(strongNameKey(e.name)), sets: e.sets };
       if (e.notes) entry.notes = e.notes;
       if (e.restSec) entry.restSec = e.restSec;
@@ -445,6 +477,7 @@ export function resolveStrongImport(preview, choices, opts = {}) {
       notesAdded: noteUpdates.length,
       sets: setCount,
       duplicates,
+      omitted,
       newExercises: newExercises.map((e) => e.name),
       first: workouts[0]?.startedAt || null,
       last: workouts[workouts.length - 1]?.startedAt || null,
@@ -465,9 +498,20 @@ function isoLocal(t) {
   const d = new Date(t);
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
+/** A number as Strong writes it: always with a decimal point (20.0, 8.0, 62.5), never fewer decimals than it has. */
+const strongNumber = (n) => (Number.isInteger(n) ? n.toFixed(1) : String(n));
+/** A text cell Strong always quotes (names, the first row's notes), even empty. */
+const quoted = (v) => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+
 /**
  * All workouts as a Strong-style CSV: weights in `unit` (kg | lb), distances in
- * `distUnit` (km | mi). `exercises` maps id -> exercise.
+ * `distUnit` (km | mi). `exercises` maps id -> exercise. The style is Strong's own
+ * export (#28, pinned by tests/fixtures/strong-export-*.csv): local date and
+ * time; workout and exercise names quoted; weight, reps and seconds as decimals
+ * (20.0, 8.0, 0.0); distance 0 when there is none, else a decimal; W, D, F or
+ * the working set's number; the notes quoted on an exercise's first row, the
+ * workout notes on the workout's first row, both empty elsewhere; RPE as it is
+ * (from reps in reserve: 10 − RIR); one newline at the end.
  */
 export function exportCSV({ workouts, exercises, unit = 'kg', distUnit = 'km', unknownName = 'Unknown exercise' }) {
   const st = { unit, distUnit };
@@ -475,6 +519,7 @@ export function exportCSV({ workouts, exercises, unit = 'kg', distUnit = 'km', u
   const asc = [...workouts].sort((a, b) => a.startedAt - b.startedAt);
   for (const w of asc) {
     const dur = strongDuration((w.endedAt || w.startedAt) - w.startedAt);
+    let firstOfWorkout = true;
     for (const e of w.exercises) {
       const name = exercises.get(e.exerciseId)?.name || unknownName;
       let n = 0;
@@ -484,16 +529,18 @@ export function exportCSV({ workouts, exercises, unit = 'kg', distUnit = 'km', u
         else if (s.type === 'drop') order = 'D';
         else if (s.type === 'failure') order = 'F';
         else order = String(++n);
+        const d = s.d ? Math.round(kmTo(s.d, st.distUnit) * 1000) / 1000 : 0;
         lines.push([
-          isoLocal(w.startedAt), w.name, dur, name, order,
-          s.w !== undefined && s.w !== null ? roundW(kgTo(s.w, st.unit), st.unit) : 0,
-          s.r || 0,
-          s.d ? Math.round(kmTo(s.d, st.distUnit) * 1000) / 1000 : 0,
-          s.t || 0,
-          i === 0 ? e.notes || '' : '',
-          w.notes || '',
-          s.rpe || rpeFromRir(s.rir) || '',
-        ].map(csvCell).join(','));
+          csvCell(isoLocal(w.startedAt)), quoted(w.name), csvCell(dur), quoted(name), order,
+          strongNumber(s.w !== undefined && s.w !== null ? roundW(kgTo(s.w, st.unit), st.unit) : 0),
+          strongNumber(s.r || 0),
+          d ? strongNumber(d) : '0',
+          strongNumber(s.t || 0),
+          i === 0 ? quoted(e.notes || '') : '',
+          firstOfWorkout ? quoted(w.notes || '') : '',
+          csvCell(s.rpe || rpeFromRir(s.rir) || ''),
+        ].join(','));
+        firstOfWorkout = false;
       });
     }
   }

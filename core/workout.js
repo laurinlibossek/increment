@@ -5,7 +5,7 @@
 // Messages are English translation keys (WORKOUT_MESSAGES), translated by the UI.
 import { uid, numToInput, parseNum } from './units.js';
 import {
-  usesWeight, setIsValid, loggedFields, warmupSets, newRecords, countsVolume, setVolume, isWorking, normRir,
+  usesWeight, setIsValid, loggedFields, warmupSets, prsForNewWorkout, countsVolume, setVolume, isWorking, normRir,
 } from './calc.js';
 import {
   newSetDraft, setToDraft, draftToSet, entryToDraft, newEntryDraft, remapSupersets, draftEntries,
@@ -138,14 +138,16 @@ export function setProblem(set, cat, settings) {
  * Check off set `i` of `entry`: empty fields come from the placeholders.
  * Returns { problem } when it can't be checked off yet (the set keeps what
  * was filled in, like the web app always did), else { rest } with the
- * seconds of rest to start (0 for none).
+ * seconds of rest to start (0 for none). A logged set gets `doneAt`: when the
+ * person logged it (#43), not proof of when the set ended.
  */
-export function checkOffSet(draft, entry, i, { category, ph, rest, settings }) {
+export function checkOffSet(draft, entry, i, { category, ph, rest, settings, now = Date.now() }) {
   const set = entry.sets[i];
   Object.assign(set, completeSet(set, ph, category));
   const problem = setProblem(set, category, settings);
   if (problem) return { problem };
   set.done = true;
+  set.doneAt = now;
   // inside a superset the rest starts after the last exercise of the round
   if (entry.supersetId) {
     const group = draft.exercises.filter((e) => e.supersetId === entry.supersetId);
@@ -153,6 +155,27 @@ export function checkOffSet(draft, entry, i, { category, ph, rest, settings }) {
   }
   if (!(rest > 0)) return { rest: 0 };
   return { rest: set.type === 'warmup' ? Math.min(rest, 60) : rest };
+}
+
+/** Uncheck a logged set: it's no longer logged, so its logging time goes too. */
+export function uncheckSet(set) {
+  set.done = false;
+  delete set.doneAt;
+}
+
+/**
+ * "Save them as done" at Finish: the pending sets (from pendingSets) are filled
+ * and logged now; a set keeps a logging time it already has (#43).
+ * `filled` maps set id -> the filled values.
+ */
+export function logPendingSets(draft, filled, now = Date.now()) {
+  for (const e of draft.exercises) {
+    for (const x of e.sets) {
+      if (!filled.has(x.id)) continue;
+      Object.assign(x, filled.get(x.id), { done: true });
+      if (!x.doneAt) x.doneAt = now;
+    }
+  }
 }
 
 /** Copy the previous set's values into a row (tapping the "Previous" column). */
@@ -345,7 +368,10 @@ export function addSet(entry) {
   const last = entry.sets[entry.sets.length - 1];
   const side = sideOf(last), before = sideOf(entry.sets[entry.sets.length - 2]);
   const next = side && (side === before ? side : side === 'left' ? 'right' : 'left');
-  entry.sets.push(newSetDraft(last && last.type === 'drop' ? 'drop' : 'normal', next ? { side: next } : {}));
+  const type = last && last.type === 'drop' ? 'drop' : 'normal';
+  // a routine's rep range carries on to a set like the one above (#44)
+  const range = last && (last.type || 'normal') === type && last.range ? { range: last.range } : {};
+  entry.sets.push(newSetDraft(type, { ...(next ? { side: next } : {}), ...range }));
 }
 
 /** Move an item of a list from one place to another. */
@@ -377,6 +403,41 @@ export function leaveSuperset(list, entry) {
   entry.supersetId = null;
   const rest = list.filter((e) => e.supersetId === id);
   if (rest.length < 2) for (const e of rest) e.supersetId = null;
+}
+
+/**
+ * Take entry `id` out of a list (running workout, routine editor, Edit
+ * workout): a superset left with one exercise dissolves, one left with two or
+ * more stays (#39). Returns what restoreEntry needs to undo it, or null.
+ */
+export function removeEntry(list, id) {
+  const index = list.findIndex((e) => e.id === id);
+  if (index < 0) return null;
+  const [entry] = list.splice(index, 1);
+  const supersetId = entry.supersetId || null;
+  const dissolved = [];
+  if (supersetId) {
+    const rest = list.filter((e) => e.supersetId === supersetId);
+    if (rest.length < 2) for (const e of rest) { e.supersetId = null; dissolved.push(e.id); }
+  }
+  return { entry: JSON.parse(JSON.stringify(entry)), index, supersetId, dissolved };
+}
+
+/** Undo removeEntry: the entry back in its place and in its superset, with a partner that was left alone (unless it joined another since). */
+export function restoreEntry(list, removed) {
+  if (!removed || list.some((e) => e.id === removed.entry.id)) return;
+  const { supersetId, dissolved } = removed;
+  for (const e of list) if (dissolved.includes(e.id) && !e.supersetId) e.supersetId = supersetId;
+  list.splice(Math.min(removed.index, list.length), 0, JSON.parse(JSON.stringify({ ...removed.entry, supersetId })));
+}
+
+/** A stored routine's entries without an exercise (deleted from the library): supersets left with one exercise dissolve (#39). */
+export function withoutExercise(entries, exerciseId) {
+  const out = entries.filter((e) => e.exerciseId !== exerciseId).map((e) => ({ ...e }));
+  const counts = new Map();
+  for (const e of out) if (e.supersetId) counts.set(e.supersetId, (counts.get(e.supersetId) || 0) + 1);
+  for (const e of out) if (e.supersetId && counts.get(e.supersetId) < 2) delete e.supersetId;
+  return out;
 }
 
 /** Superset letter (A, B, …) and index for every group, in list order. */
@@ -414,10 +475,20 @@ export function addWarmups(entry, rows, cat, settings) {
   return { added: ws.length };
 }
 
-/** Would this checked set beat the stored records? Same rules as the summary's records. */
-export function isLiveRecord(set, cat, bests, settings, now = Date.now()) {
-  if (!bests || !set.done || set.type === 'warmup') return false;
-  return newRecords(draftToSet(set, settings), cat, bests, settings.formula, now).length > 0;
+/**
+ * The record sets of the running workout so far (#37), worked out the way the
+ * summary does it (the logged sets as Finish saves them, prsForNewWorkout): per
+ * exercise and metric at most one set, the best logged working set if it beats
+ * the stored best. A later, better set takes the record over; an equal one
+ * doesn't; several entries of one exercise count together; an exercise's first
+ * session sets none. Returns setId -> the metrics it holds, so its size is the
+ * number of records (a set beating several metrics is one record).
+ */
+export function liveRecordSets(a, bests, exercises, settings) {
+  const logged = { startedAt: a.startedAt, exercises: draftEntries(a, settings, exercises, { onlyDone: true }) };
+  const out = new Map();
+  for (const p of prsForNewWorkout(logged, { bests }, exercises, settings.formula)) out.set(p.setId, [...(out.get(p.setId) || []), p.metric]);
+  return out;
 }
 
 // ---------- focus metric ----------

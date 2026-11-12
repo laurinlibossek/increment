@@ -5,7 +5,7 @@
 import { useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
-import { EXAMPLE_TEMPLATES } from '@increment/core';
+import { EXAMPLE_TEMPLATES, namesPreview, routineMuscles, routineSize } from '@increment/core';
 
 import { setSetting, templateFolders, useAppState } from '@/data/store';
 import type { Template } from '@/data/types';
@@ -20,6 +20,7 @@ import { ListRow, SymbolIcon } from '@/ui/tally/ListRow';
 import { SectionHeader } from '@/ui/tally/SectionHeader';
 import { SearchButton } from '@/ui/tally/SearchButton';
 import { TabRoot } from '@/ui/tally/TabRoot';
+import { useToday } from '@/lib/useNow';
 import { actionSheet, toast } from '@/ui/overlay';
 
 function lastUsed(t: Template, workouts: { templateId: string | null; startedAt: number }[]) {
@@ -33,6 +34,8 @@ export default function PlanTab() {
   const f = useFormat();
   const { tr } = f;
   const { colors: t } = useTally();
+  // "today", "yesterday" and weekdays move on with the day (#36)
+  useToday();
   const [closed, setClosed] = useState<Record<string, boolean>>({ __archived: true });
   const toggle = (k: string) => setClosed({ ...closed, [k]: !closed[k] });
 
@@ -72,11 +75,23 @@ export default function PlanTab() {
   );
 
   const row = (x: Template, i: number) => {
-    const n = x.exercises.filter((e) => s.exercises.has(e.exerciseId)).length;
+    // two grey lines (#32): the exercises, then muscles · sets · about how long · last done
+    const names = x.exercises.map((e) => s.exercises.get(e.exerciseId)).filter((e) => !!e).map((e) => f.exName(e));
+    const { shown, more } = namesPreview(names) as { shown: string[]; more: number };
+    const list = more ? tr('{names} & {n} more', { names: shown.join(', '), n: more }) : shown.join(', ');
+    const size = routineSize(x, s.exercises, { defaultRest: s.settings.defaultRest }) as { sets: number; minutes: number };
+    const muscles = (routineMuscles(x, s.exercises) as { label: string }[]).map((m) => tr(m.label)).join(', ');
     const at = x.example ? 0 : lastUsed(x, s.workouts);
     const when = x.example ? '' : at ? f.relDayLower(at) : tr('not done yet');
+    const facts = [muscles, f.plural(size.sets, 'set'), size.minutes ? tr('about {n} min', { n: size.minutes }) : '', when].filter(Boolean).join(' · ');
+    const subtitle = (
+      <View testID={`template-facts-${x.id}`}>
+        {!!list && <Text style={{ ...TYPE.footnote, color: t.ink2 }} numberOfLines={2}>{list}</Text>}
+        <Text style={{ ...TYPE.footnote, color: t.ink2 }}>{facts}</Text>
+      </View>
+    );
     return (
-      <ListRow key={x.id} first={i === 0} title={x.name} subtitle={[f.plural(n, 'exercise'), when].filter(Boolean).join(' · ')} chevron={x.example}
+      <ListRow key={x.id} first={i === 0} title={x.name} subtitle={subtitle} chevron={x.example}
         onPress={() => router.push({ pathname: '/template/[id]', params: { id: x.id } })} testID={`template-${x.id}`}
         right={!x.example && (
           <Pressable onPress={() => templateMenu(x, f)} hitSlop={6} accessibilityRole="button" accessibilityLabel={tr('Options for {name}', { name: x.name })}
@@ -116,7 +131,7 @@ export default function PlanTab() {
   const live = s.templates.filter((x) => !x.archived);
 
   return (
-    <TabRoot tab="plan" title={tr('Plan')} right={<><SearchButton tab="plan" />{plus}</>}>
+    <TabRoot title={tr('Plan')} right={<><SearchButton tab="plan" />{plus}</>}>
       <SectionHeader first title={tr('Routines')} action={{ symbol: 'ellipsis', label: tr('Routine options'), onPress: () => templatesMenu(f), testID: 'templates-menu' }} />
       {!live.length && !folders.size && note(tr('Save the workouts you repeat as routines: tap + and New routine, or open a finished workout and save it as a routine.'))}
       {order.map((key) => {

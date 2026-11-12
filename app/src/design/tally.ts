@@ -9,7 +9,7 @@ export const TALLY_THEME_IDS = [
   'intense-red'
 ] as const;
 export type TallyThemeId = (typeof TALLY_THEME_IDS)[number];
-export type TallyColors = { paper: string; paper2: string; paper3: string; controlOn: string; diffAdded: string; diffRemoved: string; line: string; ink: string; ink2: string; ink3: string; strokeDone: string; signal: string; onSignal: string; signalEdge: string; danger: string; glass: string; focus: string };
+export type TallyColors = { paper: string; paper2: string; paper3: string; controlOn: string; diffAdded: string; diffRemoved: string; pinnedNote: string; line: string; ink: string; ink2: string; ink3: string; strokeDone: string; primary: string; onPrimary: string; accent: string; chart: string; signal: string; onSignal: string; signalEdge: string; danger: string; glass: string; focus: string };
 export type TallyTheme = { scheme: 'light' | 'dark'; colors: TallyColors };
 
 export const TALLY_THEMES: Record<TallyThemeId, TallyTheme> = {
@@ -22,11 +22,16 @@ export const TALLY_THEMES: Record<TallyThemeId, TallyTheme> = {
       controlOn: '#ffffff',
       diffAdded: '#cdeed5',
       diffRemoved: '#fbd5d2',
+      pinnedNote: '#fbf3d0',
       line: '#e2e2dd',
       ink: '#0d0d0c',
       ink2: '#5d5d58',
       ink3: '#8a8a84',
       strokeDone: '#0d0d0c',
+      primary: '#0d0d0c',
+      onPrimary: '#ffffff',
+      accent: '#0d0d0c',
+      chart: '#0d0d0c',
       signal: '#ffd60a',
       onSignal: '#0d0d0c',
       signalEdge: '#0d0d0c',
@@ -44,11 +49,16 @@ export const TALLY_THEMES: Record<TallyThemeId, TallyTheme> = {
       controlOn: '#6e6e69',
       diffAdded: '#1e4a2a',
       diffRemoved: '#5a1f1c',
+      pinnedNote: '#2b2814',
       line: '#2b2b28',
       ink: '#f4f4f0',
       ink2: '#a6a6a0',
       ink3: '#72726c',
       strokeDone: '#f4f4f0',
+      primary: '#f4f4f0',
+      onPrimary: '#000000',
+      accent: '#f4f4f0',
+      chart: '#f4f4f0',
       signal: '#ffd60a',
       onSignal: '#0d0d0c',
       signalEdge: '#ffd60a',
@@ -60,22 +70,27 @@ export const TALLY_THEMES: Record<TallyThemeId, TallyTheme> = {
   'strawberry-matcha': {
     scheme: 'light',
     colors: {
-      paper: '#fbf8f2',
-      paper2: '#f2ebde',
-      paper3: '#e6dccb',
+      paper: '#f2ebde',
+      paper2: '#fbf8f2',
+      paper3: '#e3e7d8',
       controlOn: '#fbf8f2',
       diffAdded: '#d9e8cc',
       diffRemoved: '#f3d2cd',
-      line: '#e2d8c6',
+      pinnedNote: '#f7e4e8',
+      line: '#dcd2bf',
       ink: '#2b261f',
-      ink2: '#5c5346',
-      ink3: '#857a69',
+      ink2: '#5a5f4b',
+      ink3: '#7b8068',
       strokeDone: '#55803a',
+      primary: '#bf3f55',
+      onPrimary: '#fbf8f2',
+      accent: '#476e2b',
+      chart: '#bf3f55',
       signal: '#c94159',
       onSignal: '#ffffff',
       signalEdge: '#9e2f43',
       danger: '#b3261e',
-      glass: 'rgba(251,248,242,0.8)',
+      glass: 'rgba(227,231,216,0.85)',
       focus: '#2b261f'
     }
   },
@@ -84,15 +99,20 @@ export const TALLY_THEMES: Record<TallyThemeId, TallyTheme> = {
     colors: {
       paper: '#000000',
       paper2: '#141414',
-      paper3: '#242424',
+      paper3: '#37171a',
       controlOn: '#6e6e6e',
       diffAdded: '#1e4a2a',
       diffRemoved: '#5a1f1c',
+      pinnedNote: '#33290f',
       line: '#2a2a2a',
       ink: '#f5f5f5',
       ink2: '#bdbdbd',
       ink3: '#8c8c8c',
       strokeDone: '#e5202e',
+      primary: '#d91f2c',
+      onPrimary: '#ffffff',
+      accent: '#ff4f5a',
+      chart: '#d91f2c',
       signal: '#f2b233',
       onSignal: '#0d0d0c',
       signalEdge: '#f2b233',
@@ -121,11 +141,15 @@ export const RADIUS = {
 } as const;
 export const STROKE = {
   h: 20,
-  hHero: 32,
+  hHero: 40,
   slot: 5,
   hair: 1.5,
   gap: 4,
-  group: 10
+  group: 10,
+  slotHero: 7,
+  hairHero: 2,
+  gapHero: 5,
+  groupHero: 14
 } as const;
 export const CONTROL = {
   hitMin: 44,

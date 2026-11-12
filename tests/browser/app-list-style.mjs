@@ -1,7 +1,7 @@
 // Design todo group 4. REVIEW_BEFORE=1 captures the matching review baseline.
 import assert from 'node:assert/strict';
 import path from 'node:path';
-import { launch, devices, grantWakeLock, APP, shots } from './env.mjs';
+import { selectTab, launch, devices, grantWakeLock, APP, shots, waitStored } from './env.mjs';
 import { demoData } from './store-demo.mjs';
 import { DEFAULT_SETTINGS, MEASUREMENTS, exerciseDisplayName, translator } from '../../core/index.js';
 
@@ -112,9 +112,9 @@ try {
       const otherLanguage = lang === 'en' ? 'de' : 'en';
       await id(`language-${otherLanguage}`).click();
       assert.equal(await id(`language-${otherLanguage}`).getAttribute('role'), 'radio');
-      await page.waitForFunction(value => JSON.parse(localStorage.getItem('increment.data')).kv.settings.language === value, otherLanguage);
+      await waitStored(page, (d, value) => d.kv.settings.language === value, otherLanguage);
       await id(`language-${lang}`).click();
-      await page.waitForFunction(value => JSON.parse(localStorage.getItem('increment.data')).kv.settings.language === value, lang);
+      await waitStored(page, (d, value) => d.kv.settings.language === value, lang);
       assert.equal(await id(`theme-${theme}`).getAttribute('role'), 'radio');
       assert.equal(await id(`theme-${theme}`).locator('[aria-hidden="true"]').count(), 1, 'chosen theme retains its checkmark');
       await id('set-rest').click();
@@ -157,7 +157,9 @@ try {
       for (const [index, exercise] of routine.exercises.entries()) {
         const text = normal(await id(`template-exercise-${index}`).innerText());
         assert.ok(text.startsWith(exerciseDisplayName(lib.get(exercise.exerciseId), lang)), text);
-        assert.ok(text.includes(`${exercise.sets.length} ${tr('sets')}`), text);
+        // warm-ups aren't counted (#38)
+        const n = exercise.sets.filter((x) => x.type !== 'warmup').length;
+        assert.ok(text.includes(`${n} ${tr(n === 1 ? 'set' : 'sets')}`), text);
         for (const set of exercise.sets) assert.ok(text.includes(`${new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(set.w)} × ${set.r}`), text);
         assert.ok(text.includes(`${Math.floor(exercise.restSec / 60)}:${String(exercise.restSec % 60).padStart(2, '0')}`), text);
       }
@@ -165,7 +167,7 @@ try {
     }
 
     await go('/');
-    await id('tab-plan').click();
+    await selectTab(page, 'plan');
     const row = id(`template-${routine.id}`), menu = id(`template-menu-${routine.id}`);
     await row.waitFor();
     await shot('plan');

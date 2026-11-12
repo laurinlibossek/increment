@@ -7,16 +7,16 @@ import {
   createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode,
 } from 'react';
 import {
-  Animated, PanResponder, Pressable, StyleSheet, Text, View, type TextInputInstance,
+  Animated, AppState, Keyboard, PanResponder, Platform, Pressable, StyleSheet, Text, View, type TextInputInstance,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import {
-  checkOffSet, placeholders, restFor, isLiveRecord, sessionState, loggedFields, platesFor, parseNum,
+  checkOffSet, placeholders, restFor, sessionState, loggedFields, platesFor, parseNum,
   numToInput, digitsToSec, secToDigits, fmtDigits, weightStep, moveUnit, BODY_PART_LABEL,
 } from '@increment/core';
 
 import {
-  editActive, getState, patchActive, previousSets, startRest, stats, useAppSelector,
+  activeRecords, editActive, getState, patchActive, previousSets, startRest, useAppSelector,
 } from '@/data/store';
 import type { ActiveWorkout, Category, EntryDraft } from '@/data/types';
 import { SPACE, TYPE } from '@/design/tally';
@@ -30,11 +30,14 @@ import { lastTimeText } from './text';
 
 // ---------- logging and the keypad ----------
 export type KeypadTarget = { entryId: string; setId: string; field: Field };
+/** How a field got the keypad: tapped, reached with Next, tapped again while it had it, or the app came back to the foreground. */
+type KeypadVia = 'tap' | 'next' | 'refocus' | 'foreground';
 
 type Session = {
   /** the field the keypad types into */
   target: KeypadTarget | null;
-  open: (t: KeypadTarget) => void;
+  /** `via`: how the field got the keypad (for the diagnostic in SessionProvider) */
+  open: (t: KeypadTarget, via?: KeypadVia) => void;
   close: () => void;
   /** log a set: fills it from the ghost values, starts the rest. False (and a shake) when it can't be logged yet. */
   logSet: (entryId: string, setId: string) => boolean;
@@ -61,15 +64,39 @@ export function SessionProvider({ children, onTarget }: { children: ReactNode; o
     if (ref) refs.current.set(key, ref);
     else refs.current.delete(key);
   }, []);
-  const open = useCallback((t: KeypadTarget) => {
+  const via = useRef<KeypadVia>('tap');
+  const open = useCallback((t: KeypadTarget, how: KeypadVia = 'tap') => {
     const cur = targetRef.current;
-    if (cur && cur.setId === t.setId && cur.field === t.field) return;
+    if (cur && cur.setId === t.setId && cur.field === t.field) { via.current = 'refocus'; return; }
+    via.current = how;
     setTarget(t);
   }, []);
+  // a set field that has focus (it's the keypad's, or was a moment ago)
+  const focusedField = () => [...refs.current.values()].find((r) => r.isFocused());
   const close = useCallback(() => {
-    const cur = targetRef.current;
-    if (cur) refs.current.get(`${cur.setId}:${cur.field}`)?.blur();
+    // every set field lets go, so no phone keyboard is left behind the closed keypad (#25)
+    for (const r of refs.current.values()) if (r.isFocused()) r.blur();
     setTarget(null);
+  }, []);
+  // The set fields tell the phone to keep its keyboard down (SetField: showSoftInputOnFocus,
+  // caretHidden), but on an iPhone it sometimes opened anyway, over the keypad (#25; the
+  // trigger isn't known yet). Whatever the cause, it is closed again as it opens; the keypad
+  // stays and keeps typing into the set. A development build says how the field got focus.
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    const shown = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', (e) => {
+      // a hardware keyboard shows at most a small bar
+      if (e.endCoordinates.height < 120) return;
+      // a moment later, once a note's focus (which closes the keypad) has arrived: it has the keyboard on purpose
+      setTimeout(() => {
+        const field = focusedField();
+        if (!targetRef.current || !field) return;
+        field.blur();
+        if (__DEV__) console.warn(`#25: the phone's keyboard opened over the keypad (via ${via.current}); closed it`);
+      }, 50);
+    });
+    const app = AppState.addEventListener('change', (st) => { if (st === 'active' && targetRef.current) via.current = 'foreground'; });
+    return () => { shown.remove(); app.remove(); };
   }, []);
   // focus follows the keypad (Next → reps), so tapping the other field opens it again;
   // and the screen keeps the field in view
@@ -98,8 +125,8 @@ export function SessionProvider({ children, onTarget }: { children: ReactNode; o
       return false;
     }
     const after = getState().active!;
-    const logged = after.exercises.find((e) => e.id === entryId)!.sets[i];
-    const record = isLiveRecord(logged, ex.category, stats().bests.get(ex.id), settings);
+    // the record haptic only when this set now holds a record (an equal set doesn't, #37)
+    const record = activeRecords().has(setId);
     if (record) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     else Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     if (r.rest && r.rest > 0) startRest(r.rest, f.exName(ex), { entryId, setId });
@@ -169,7 +196,7 @@ export function KeypadHost() {
       const at = fields.indexOf(field);
       if (at >= 0 && at < fields.length - 1) {
         const next = { ...target, field: fields[at + 1] };
-        s.open(next);
+        s.open(next, 'next');
         return;
       }
       if (!set.done) s.logSet(entry.id, set.id);
@@ -211,6 +238,8 @@ export function KeypadHost() {
       };
     }
   }
+  // the routine's rep range while typing reps (#44)
+  if (field === 'r' && set.range) aside = { label: tr('Rep range'), value: `${set.range[0]}–${set.range[1]}` };
   const stepText = field === 't' ? [tr('−15 s'), tr('+15 s')] : [`−${f.num(step)}`, `+${f.num(step)}`];
   return (
     <Keypad
@@ -254,19 +283,17 @@ export function useSessionStrokes(a: ActiveWorkout, live: string | null) {
   const workouts = useAppSelector((x) => x.workouts);
   const settings = useAppSelector((x) => x.settings);
   return useMemo(() => {
-    const st = stats();
-    const now = Date.now();
+    const recs = activeRecords();
     let done = 0, total = 0, records = 0;
     const byEntry = new Map<string, StrokeState[]>();
     for (const e of a.exercises) {
-      const ex = exercises.get(e.exerciseId);
-      const bests = st.bests.get(e.exerciseId);
       byEntry.set(e.id, e.sets.map((x) => {
-        total++;
+        // warm-ups are drawn but not counted (#38)
         const warm = x.type === 'warmup';
+        if (!warm) total++;
         if (x.done) {
-          done++;
-          if (ex && isLiveRecord(x, ex.category, bests, settings, now)) { records++; return 'record'; }
+          if (!warm) done++;
+          if (recs.has(x.id)) { records++; return 'record'; }
           return warm ? 'warmup' : 'done';
         }
         if (x.id === live) return 'live';
@@ -356,8 +383,9 @@ export function UnitRows({
           sub = [part ? tr(part) : '', last ? tr('last {sets}', { sets: last }) : ''].filter(Boolean).join(' · ');
         }
         const groups = u.entries.map((e) => strokes.get(e.id) || []);
-        const done = groups.flat().filter((x) => x === 'done' || x === 'warmup' || x === 'record').length;
-        const count = groups.flat().length;
+        // warm-ups are drawn but not counted (#38)
+        const done = groups.flat().filter((x) => x === 'done' || x === 'record').length;
+        const count = groups.flat().filter((x) => x !== 'warmup' && x !== 'warmupPending').length;
         return (
           <UnitRow key={u.id} index={i} title={names.join(' + ')} sub={sub} groups={groups} first={i === 0}
             label={`${names.join(', ')}, ${tr('{done} of {total} sets', { done, total: count })}`}

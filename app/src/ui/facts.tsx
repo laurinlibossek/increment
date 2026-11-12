@@ -10,12 +10,12 @@ import {
 } from 'react-native';
 
 import {
-  CONTROL, RADIUS, SPACE, STROKE, TYPE,
+  CONTROL, RADIUS, SPACE, TYPE,
 } from '@/design/tally';
 import type { Workout } from '@/data/types';
 import { useTally } from '@/lib/theme';
 import { Icon } from '@/ui/kit';
-import { Tally, type StrokeState } from '@/ui/tally/Tally';
+import { STROKE_DIMS, Tally, type StrokeState } from '@/ui/tally/Tally';
 
 /** The screen margin every left edge lines up on. */
 export const MARGIN = SPACE.s5;
@@ -120,12 +120,16 @@ export function workoutStrokes(w: Workout, recordSets: Set<string>): StrokeState
     s.type === 'warmup' ? 'warmup' : recordSets.has(s.id) ? 'record' : 'done')));
 }
 
-/** Strokes in groups that wrap onto a new line when a long workout runs out of width; read out as one element. */
-export function WorkoutTally({ groups, label, size = 'hero', testID }: { groups: StrokeState[][]; label: string; size?: 'regular' | 'hero'; testID?: string }) {
+/**
+ * Strokes in groups that wrap onto a new line when a long workout runs out of
+ * width, inside a long exercise too, so nothing runs off the screen; read out
+ * as one element.
+ */
+export function WorkoutTally({ groups, label, size = 'hero', testID, style }: { groups: StrokeState[][]; label: string; size?: 'regular' | 'hero'; testID?: string; style?: StyleProp<ViewStyle> }) {
   return (
     <View accessible accessibilityRole="image" accessibilityLabel={label} testID={testID}
-      style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-end', columnGap: STROKE.group, rowGap: SPACE.s3 }}>
-      {groups.map((g, i) => <Tally key={i} groups={[g]} size={size} label="" />)}
+      style={[{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-end', columnGap: STROKE_DIMS[size].group, rowGap: SPACE.s2 }, style]}>
+      {groups.map((g, i) => <Tally key={i} groups={[g]} size={size} label="" wrap />)}
     </View>
   );
 }

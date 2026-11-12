@@ -5,10 +5,10 @@
 // tab on Android and older iPhones (NowLiftingDock). Tap to open the session.
 import { useMemo } from 'react';
 import { Platform, View } from 'react-native';
-import { isLiveRecord } from '@increment/core';
+import { sessionState, setTotal } from '@increment/core';
 
-import { skipRest, stats, useAppSelector, useAppState } from '@/data/store';
-import type { ActiveWorkout, Exercise, Settings } from '@/data/types';
+import { activeRecords, skipRest, useAppSelector, useAppState } from '@/data/store';
+import type { ActiveWorkout, EntryDraft, SetDraft } from '@/data/types';
 import { useFormat } from '@/lib/format';
 import { useNow } from '@/lib/useNow';
 import { openWorkout } from '@/lib/workout';
@@ -23,36 +23,35 @@ export const DOCK_SPACE = CONTROL.accessoryH + SPACE.s4;
 
 /**
  * The session as strokes (one group per exercise), the set being logged and
- * the counts: what the accessory and Today's card show.
+ * the counts: what the accessory and Today's card show. The set being logged
+ * is the session's own next set (sessionState: the exercise jumped to, supersets
+ * round by round); warm-ups are drawn but not counted (#38).
  */
-export function sessionView(a: ActiveWorkout, exercises: Map<string, Exercise>, settings: Settings, bests: Map<string, Record<string, number>>) {
-  let current: { entry: number; set: number } | null = null;
-  let done = 0, total = 0, records = 0;
-  const all: StrokeState[][] = a.exercises.map((e, i) => {
-    const cat = exercises.get(e.exerciseId)?.category;
-    return e.sets.map((s, j) => {
-      const warm = s.type === 'warmup';
-      if (!warm) total++;
-      if (s.done) {
-        if (!warm) done++;
-        if (isLiveRecord(s, cat, bests.get(e.exerciseId), settings)) { records++; return 'record'; }
-        return warm ? 'warmup' : 'done';
-      }
-      if (!current) { current = { entry: i, set: j }; return warm ? 'warmupPending' : 'live'; }
-      return warm ? 'warmupPending' : 'pending';
-    });
-  });
-  const cur = current as { entry: number; set: number } | null;
+export function sessionView(a: ActiveWorkout, records: Map<string, unknown>) {
+  const next = (sessionState(a, { current: a.current ?? null }) as { next: { entry: EntryDraft; set: SetDraft } | null }).next;
+  let done = 0, total = 0, recordCount = 0;
+  const all: StrokeState[][] = a.exercises.map((e) => e.sets.map((s) => {
+    const warm = s.type === 'warmup';
+    if (!warm) total++;
+    if (s.done) {
+      if (!warm) done++;
+      if (records.has(s.id)) { recordCount++; return 'record'; }
+      return warm ? 'warmup' : 'done';
+    }
+    if (s.id === next?.set.id) return warm ? 'warmupPending' : 'live';
+    return warm ? 'warmupPending' : 'pending';
+  }));
+  const cur = next ? { entry: a.exercises.indexOf(next.entry), set: next.entry.sets.indexOf(next.set) } : null;
   // the exercise being logged (or the last one once every set is done), for the accessory
   let last = a.exercises.length - 1;
   while (last > 0 && !all[last].length) last--;
   const exercise = all[cur ? cur.entry : last] || [];
-  return { groups: all.filter((g) => g.length), exercise, current: cur, done, total, records };
+  return { groups: all.filter((g) => g.length), exercise, current: cur, done, total, records: recordCount };
 }
 
 export function useSessionView() {
   const s = useAppState();
-  return useMemo(() => (s.active ? sessionView(s.active, s.exercises, s.settings, stats(s).bests) : null),
+  return useMemo(() => (s.active ? sessionView(s.active, activeRecords(s)) : null),
     [s.active, s.exercises, s.settings, s.workouts]); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
@@ -69,7 +68,9 @@ export function MiniBar({ placement = 'regular', surface = 'raised' }: { placeme
   const cur = view.current;
   const entry = cur ? a.exercises[cur.entry] : null;
   const title = entry
-    ? `${f.exName(exercises.get(entry.exerciseId)) || tr('Exercise')} · ${tr('set {n} of {total}', { n: cur!.set + 1, total: entry.sets.length })}`
+    ? `${f.exName(exercises.get(entry.exerciseId)) || tr('Exercise')} · ${entry.sets[cur!.set].type === 'warmup'
+      ? tr('warm-up set')
+      : tr('set {n} of {total}', { n: setTotal(entry.sets.slice(0, cur!.set + 1)), total: setTotal(entry.sets) })}`
     : a.name;
   const subtitle = rest ? tr('Rest {time}', { time: rest }) : entry ? `${a.name} · ${elapsed}` : elapsed;
   return (

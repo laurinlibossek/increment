@@ -30,6 +30,7 @@ function ExerciseReviewRow({ row, index, choice, change, problem }: {
   // the catalogue's families and the person's own (Kelso Shrug (Band) → Kelso Shrug)
   const family = exerciseFamily(familyId, customFamilies);
   const picked = choice?.kind === 'existing' && !row.suggestions.some((s) => s.id === choice.exerciseId) ? exercises.get(choice.exerciseId) : undefined;
+  const exact = row.exact ? exercises.get(row.exact) : undefined;
   const chooseExisting = async () => {
     const ids = await pickExercises({ title: tr('Use an existing exercise'), allowCreate: false,
       accepts: (ex) => row.categories.includes(ex.category) && canMergeExercises({ id: null, category: row.category }, ex) });
@@ -49,6 +50,14 @@ function ExerciseReviewRow({ row, index, choice, change, problem }: {
         <Text style={[TYPE.title3, { color: t.ink }]}>{row.name}</Text>
         <Text style={[TYPE.footnote, { color: t.ink2 }]}>{tr(row.sessions === 1 ? '1 session' : '{n} sessions', { n: row.sessions })}</Text>
       </View>
+      {/* negative weights or mixed fields: nothing can import these sets, so the only way on is leaving them out (#40) */}
+      {row.blocked ? (
+        <SettingRow first title={tr('Leave this exercise out')} checked={choice?.kind === 'skip'} onPress={() => change({ kind: 'skip' })} testID={`strong-skip-${index}`}
+          sub={row.omit.sets ? tr('{sets} in {workouts} won’t be imported', { sets: f.plural(row.omit.sets, 'set'), workouts: f.plural(row.omit.workouts, 'workout') }) : tr('Its workouts are already imported')} />
+      ) : <>
+      {exact && <Text testID={`strong-exact-${index}`} style={[TYPE.footnote, { color: t.ink2, paddingHorizontal: SPACE.s5, paddingBottom: SPACE.s2 }]}>
+        {tr('“{name}” in Increment logs other fields than these sets.', { name: f.exName(exact) })}
+      </Text>}
       {!!row.suggestions.length && <Text style={[TYPE.footnote, { color: t.ink2, paddingHorizontal: SPACE.s5, paddingVertical: SPACE.s2 }]}>{tr('Use an existing exercise')}</Text>}
       {row.suggestions.map((suggestion, i) => {
         const ex = exercises.get(suggestion.id);
@@ -70,6 +79,7 @@ function ExerciseReviewRow({ row, index, choice, change, problem }: {
         {family && <Text testID={`strong-family-${index}`} style={[TYPE.footnote, { color: t.ink2, paddingHorizontal: SPACE.s5, paddingTop: SPACE.s3 }]}>
           {tr('Joins {family}', { family: f.lang === 'de' ? family.nameDe : family.name })}
         </Text>}
+      </>}
       </>}
       {problem && <Text testID={`strong-problem-${index}`} style={[TYPE.footnote, { color: t.ink2, paddingHorizontal: SPACE.s5, paddingTop: SPACE.s2 }]}>{tr(problem)}</Text>}
     </View>
@@ -102,9 +112,13 @@ export default function StrongImportScreen() {
       const stats = await saveStrongImport(preview, choices);
       closeStrongImport(preview);
       leave();
-      notice(tr('Import from Strong'), stats.workouts ? tr('Imported {n}', { n: f.plural(stats.workouts, 'workout') })
+      const main = stats.workouts ? tr('Imported {n}', { n: f.plural(stats.workouts, 'workout') })
         : stats.notesAdded ? tr('Notes added to {n}', { n: f.plural(stats.notesAdded, 'workout') })
-          : tr('All {n} are already imported', { n: f.plural(stats.duplicates, 'workout') }));
+          : stats.omitted.sets ? tr('Nothing imported')
+            : tr('All {n} are already imported', { n: f.plural(stats.duplicates, 'workout') });
+      // what was left out, said plainly (#40)
+      const left = stats.omitted.sets ? tr('Left out: {sets} of {names}.', { sets: f.plural(stats.omitted.sets, 'set'), names: stats.omitted.exercises.join(', ') }) : '';
+      notice(tr('Import from Strong'), [main, left].filter(Boolean).join('\n\n'));
     } catch (e) {
       notice(tr('Import from Strong'), tr('Couldn’t save the import. Your data has not changed.'));
     } finally { saving.current = false; setBusy(false); }

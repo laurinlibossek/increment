@@ -18,22 +18,24 @@ import {
 } from '@increment/core';
 
 import {
-  adjustRest, discardActive, editActive, getState, patchActive, previousSets, skipRest, startRest, useAppSelector, useSettings,
+  adjustRest, discardActive, editActive, getState, patchActive, previousSets, setPinnedNote, skipRest, startRest, useAppSelector, useSettings,
 } from '@/data/store';
+import { attempt } from '@/lib/saving';
+import { PinnedNote } from '@/ui/PinnedNote';
 import type { ActiveWorkout, EntryDraft, SetDraft } from '@/data/types';
-import { SPACE, STROKE, TYPE, CONTROL } from '@/design/tally';
+import { SPACE, TYPE, CONTROL } from '@/design/tally';
 import { useFormat } from '@/lib/format';
 import { pickExercises } from '@/lib/picker';
 import { useTally } from '@/lib/theme';
-import { confirmDiscard, finishFlow } from '@/lib/workout';
+import { confirmDiscard, finishFlow, workoutReady } from '@/lib/workout';
 import { Empty, Icon } from '@/ui/kit';
 import {
-  OverlayHost, actionSheet, pickDateTime, toast,
+  OverlayHost, actionSheet, pickDateTime, prompt, toast,
 } from '@/ui/overlay';
 import { ActionBar, type ActionBarState } from '@/ui/tally/ActionBar';
 import { EffortPicker } from '@/ui/tally/EffortPicker';
 import { CapsuleButton } from '@/ui/tally/RestBar';
-import { Tally } from '@/ui/tally/Tally';
+import { WorkoutTally } from '@/ui/facts';
 import { useBlockProps } from '@/ui/workout/DraftBlocks';
 import { ExerciseBlock } from '@/ui/workout/ExerciseBlock';
 import {
@@ -50,10 +52,12 @@ type SessionAt = { units: Unit[]; unit: Unit | null; next: { entry: EntryDraft; 
 
 export default function ActiveWorkoutScreen() {
   const current = useAppSelector((s) => s.active);
-  // after Finish or Discard the workout is gone while the screen closes; keep showing it
+  const gone = useAppSelector((s) => s.activeGone);
+  // after Finish or Discard the workout is gone while the screen closes; keep showing it,
+  // unless another tab ended it (then there's nothing running here either)
   const last = useRef(current);
   if (current) last.current = current;
-  const a = current || last.current;
+  const a = current || (last.current?.id !== gone ? last.current : null);
   const { tr } = useFormat();
   const { colors: t } = useTally();
   const insets = useSafeAreaInsets();
@@ -77,6 +81,8 @@ export default function ActiveWorkoutScreen() {
 }
 
 function Running({ a, reveal }: { a: ActiveWorkout; reveal: { current: (ref: TextInputInstance | null) => void } }) {
+  // the routine's pinned note, read live, so a note saved elsewhere shows at once (#33)
+  const pinned = useAppSelector((s) => (a.templateId ? s.templates.find((x) => x.id === a.templateId)?.pinnedNote || '' : ''));
   const settings = useSettings();
   const f = useFormat();
   const { tr } = f;
@@ -101,6 +107,11 @@ function Running({ a, reveal }: { a: ActiveWorkout; reveal: { current: (ref: Tex
   const before = at > 0 ? st.units.slice(0, at) : [];
   const after = at >= 0 ? st.units.slice(at + 1) : [];
   const blockProps = useBlockProps('active', a);
+  // "Weight increase recommended" per exercise, from the routine's latest workout (#49)
+  const workouts = useAppSelector((s) => s.workouts);
+  const templates = useAppSelector((s) => s.templates);
+  const askUpdate = useAppSelector((s) => s.settings.askTemplateUpdate);
+  const ready = useMemo(() => workoutReady(a), [a, workouts, templates, askUpdate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---------- keeping the keypad's field in view ----------
   const show = (ref: TextInputInstance | null) => {
@@ -147,11 +158,14 @@ function Running({ a, reveal }: { a: ActiveWorkout; reveal: { current: (ref: Tex
   const workoutMenu = async () => {
     const cur = getState().active;
     if (!cur) return;
+    // only a workout from a routine that still exists can pin a note for next time (#33)
+    const routine = cur.templateId ? getState().templates.find((x) => x.id === cur.templateId) : null;
     const v = await actionSheet<string>({
       title: cur.name,
       actions: [
         { label: tr('Rename'), value: 'rename', icon: 'edit', testID: 'menu-rename' },
         { label: cur.showNotes || cur.notes ? tr('Remove workout note') : tr('Add workout note'), value: 'note', icon: 'note', testID: 'menu-workout-note' },
+        routine ? { label: routine.pinnedNote ? tr('Edit pinned note') : tr('Pin a note for next time'), value: 'pin', icon: 'pin', testID: 'menu-pin-note' } : null,
         { label: tr('Change start time'), value: 'time', icon: 'clock', testID: 'menu-start-time' },
         cur.rest ? null : { label: tr('Start rest timer'), value: 'rest', icon: 'timer', testID: 'menu-rest-timer' },
         { label: hasPendingSets(cur) ? tr('Finish early') : tr('Finish workout'), value: 'finish', icon: 'check', testID: 'menu-finish' },
@@ -162,6 +176,10 @@ function Running({ a, reveal }: { a: ActiveWorkout; reveal: { current: (ref: Tex
     if (v === 'note') {
       const on = !(cur.showNotes || cur.notes);
       patchActive({ showNotes: on, notes: on ? cur.notes : '' });
+    }
+    if (v === 'pin' && routine) {
+      const text = await prompt({ title: tr('Pinned note'), message: tr('Shown on {name} and the next time you do it, until you change it.', { name: routine.name }), value: routine.pinnedNote || '', multiline: true });
+      if (text !== null) await attempt(tr, setPinnedNote(routine.id, text));
     }
     if (v === 'time') changeStart();
     if (v === 'rest') {
@@ -251,14 +269,13 @@ function Running({ a, reveal }: { a: ActiveWorkout; reveal: { current: (ref: Tex
               </Pressable>
             </View>
             {strokes.total > 0 && (
-              <View accessible accessibilityRole="image" testID="session-tally"
-                accessibilityLabel={`${tr('{done} of {total} sets logged', { done: strokes.done, total: strokes.total })}${strokes.records ? `, ${countText.split(' · ')[1]}` : ''}`}
-                style={styles.hero}>
-                {a.exercises.filter((e) => e.sets.length).map((e) => <Tally key={e.id} groups={[strokes.byEntry.get(e.id) || []]} size="hero" label="" />)}
-              </View>
+              <WorkoutTally testID="session-tally" style={styles.hero}
+                label={`${tr('{done} of {total} sets logged', { done: strokes.done, total: strokes.total })}${strokes.records ? `, ${countText.split(' · ')[1]}` : ''}`}
+                groups={a.exercises.filter((e) => e.sets.length).map((e) => strokes.byEntry.get(e.id) || [])} />
             )}
-            {strokes.total > 0 && <Text style={{ ...TYPE.footnote, color: t.ink2, marginTop: SPACE.s2, fontVariant: ['tabular-nums'] }} testID="session-count">{countText}</Text>}
+            {strokes.total > 0 && <Text style={{ ...TYPE.subhead, color: t.ink2, marginTop: SPACE.s2, fontVariant: ['tabular-nums'] }} testID="session-count">{countText}</Text>}
             {!!a.templateNotes && <Text style={{ ...TYPE.subhead, color: t.ink2, marginTop: SPACE.s3 }}>{a.templateNotes}</Text>}
+            {!!pinned && <View style={{ marginTop: SPACE.s3 }}><PinnedNote text={pinned} testID="workout-pinned" /></View>}
             {(a.showNotes || !!a.notes) && (
               <TextInput value={a.notes} onChangeText={(v) => patchActive({ notes: v })} onFocus={session.close} multiline placeholder={tr('How did it go?')} placeholderTextColor={t.ink3} testID="workout-notes"
                 style={[styles.notes, { color: t.ink, backgroundColor: t.paper3 }]} />
@@ -275,7 +292,7 @@ function Running({ a, reveal }: { a: ActiveWorkout; reveal: { current: (ref: Tex
               unitY.current = e.nativeEvent.layout.y;
               if (scrollToUnit.current) { scrollToUnit.current = false; scrollRef.current?.scrollTo({ y: Math.max(0, unitY.current - SPACE.s4), animated: true }); }
             }}>
-              {st.unit.entries.map((e) => <ExerciseBlock key={e.id} {...blockProps(e)} mode="active" live={live} />)}
+              {st.unit.entries.map((e) => <ExerciseBlock key={e.id} {...blockProps(e)} mode="active" live={live} ready={ready.get(e.id) || null} />)}
             </View>
           )}
           {after.length > 0 && (
@@ -315,7 +332,7 @@ const styles = StyleSheet.create({
   head: { paddingHorizontal: SPACE.s5 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.s3 },
   name: { ...TYPE.title1, flex: 1, minWidth: 0, paddingVertical: 2, paddingHorizontal: 0 },
-  hero: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-end', columnGap: STROKE.group, rowGap: SPACE.s2, marginTop: SPACE.s3 },
+  hero: { marginTop: SPACE.s3 },
   notes: { borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10, marginTop: SPACE.s3, fontSize: 15, minHeight: 60 },
   effort: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: SPACE.s3 },
   end: { paddingHorizontal: SPACE.s5, paddingTop: SPACE.s6, gap: SPACE.s2, alignItems: 'flex-start' },

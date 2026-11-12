@@ -4,7 +4,7 @@
 // EXPO_PUBLIC_ENABLE_GERMAN, like the store and web apps.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { openSearch, launch, devices, grantWakeLock, APP, BACKUP, shots } from './env.mjs';
+import { selectTab, openSearch, launch, devices, grantWakeLock, APP, BACKUP, shots, storedData } from './env.mjs';
 
 const OUT = shots('app-english-only');
 const backup = JSON.parse(fs.readFileSync(BACKUP, 'utf8'));
@@ -12,7 +12,7 @@ assert.equal(backup.data.kv.settings.language, 'de', 'the Setlog fixture must ca
 const browser = await launch();
 let passed = 0;
 const ok = label => { passed++; console.log('PASS', label); };
-const stored = page => page.evaluate(() => JSON.parse(localStorage.getItem('increment.data')));
+const stored = page => storedData(page);
 
 async function englishAccount(page) {
   assert.match(await page.getByTestId('restore').innerText(), /Restore from backup/);
@@ -60,9 +60,11 @@ try {
     assert.equal(data.kv.settings.language, 'de', 'the dormant preference is preserved');
     assert.equal(data.kv.settings.theme, backup.data.kv.settings.theme);
     assert.equal(data.kv.settings.unit, backup.data.kv.settings.unit);
-    assert.deepEqual(data.workouts, backup.data.workouts);
-    assert.deepEqual(data.templates, backup.data.templates);
-    assert.deepEqual(data.measurements, backup.data.measurements);
+    // storage keeps no order: compare by id
+    const byId = (list) => [...list].sort((a, b) => a.id.localeCompare(b.id));
+    assert.deepEqual(byId(data.workouts), byId(backup.data.workouts));
+    assert.deepEqual(byId(data.templates), byId(backup.data.templates));
+    assert.deepEqual(byId(data.measurements), byId(backup.data.measurements));
     assert.equal(await id('theme-intense-red').getAttribute('aria-checked'), 'true');
     await page.screenshot({ path: `${OUT}/${locale}-${theme}-account-restored.png` });
     ok(`${locale}: restoring a German Setlog backup stays English and preserves settings and data`);
@@ -73,7 +75,7 @@ try {
     assert.equal((await stored(page)).kv.settings.language, 'de');
     // A reloaded modal has no Expo navigation stack to pop back to Today.
     await page.goto(APP);
-    await id('tab-progress').click();
+    await selectTab(page, 'progress');
     assert.match(await id('progress-workouts').innerText(), /Workouts/);
     assert.match(await id('progress-body').innerText(), /82,4 kg/);
     await id('progress-body').click();

@@ -9,12 +9,12 @@ import { useMemo, useState } from 'react';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { ScrollView, Text, View } from 'react-native';
 import {
-  BODY_PARTS, exerciseRecords, exerciseSeries, chartMetricsFor, hasLoadRecords, formulaLabel,
+  BODY_PARTS, exerciseRecords, exerciseSeries, chartMetricsFor, chartMetricFor, hasLoadRecords, formulaLabel,
   kgTo, kmTo, roundW, DAY, EXERCISE_RANGES, REST_CHOICES, canMergeExercises, startOfDay,
 } from '@increment/core';
 
 import {
-  allSessions, deleteExercise, exerciseUsage, getState, mergeExercise, stats, updateExercise, useAppState,
+  allSessions, deleteExercise, exerciseUsage, getState, mergeExercise, setChartMetric, stats, updateExercise, useAppState,
 } from '@/data/store';
 import type { Category, Exercise, Workout } from '@/data/types';
 import { SPACE, TYPE } from '@/design/tally';
@@ -33,6 +33,7 @@ import { ExerciseFamilyChips } from '@/ui/exerciseFamilyChips';
 import {
   actionSheet, ask, prompt, toast,
 } from '@/ui/overlay';
+import { attempt } from '@/lib/saving';
 
 type Rec = { value: number; at: number; w?: number; r?: number; workoutId?: string } | null;
 type Records = Record<string, Rec> & { repMax: Map<number, { w: number; at: number; workoutId: string }> };
@@ -56,7 +57,8 @@ function ExercisePage({ id }: { id: string }) {
   const category = (ex?.category || 'barbell') as Category;
   const formula = s.settings.formula;
   const metrics = chartMetricsFor(category) as Metric[];
-  const [metricId, setMetricId] = useState(metrics[0].id);
+  // the chart chosen for this exercise, remembered (and in backups), else its default (#27)
+  const metricId = chartMetricFor(category, s.chartMetrics[id]) as string;
   const [chosenRange, setRange] = useState<string | null>(null);
   const [limit, setLimit] = useState(10);
   const m = metrics.find((x) => x.id === metricId) || metrics[0];
@@ -126,12 +128,15 @@ function ExercisePage({ id }: { id: string }) {
   const pickMetric = async () => {
     const v = await actionSheet<string>({
       title: tr('Chart'),
+      // above 12 reps every formula gives way to Epley (#41)
       message: metrics.some((x) => x.id === 'e1rm') ? (formula === 'average'
-        ? tr('Estimated 1RM uses the average of all formulas on your best working set of each session. Change it in Account.')
-        : tr('Estimated 1RM uses the {name} formula on your best working set of each session. Change it in Account.', { name: formulaLabel(formula) })) : undefined,
+        ? tr('Estimated 1RM uses the average of all formulas on your best working set of each session, and Epley above 12 reps. Change it in Account.')
+        : formula === 'epley'
+          ? tr('Estimated 1RM uses the {name} formula on your best working set of each session. Change it in Account.', { name: formulaLabel(formula) })
+          : tr('Estimated 1RM uses the {name} formula on your best working set of each session, and Epley above 12 reps. Change it in Account.', { name: formulaLabel(formula) })) : undefined,
       actions: metrics.map((x) => ({ label: tr(x.label), value: x.id, checked: x.id === m.id, testID: `metric-${x.id}` })),
     });
-    if (v) setMetricId(v);
+    if (v) setChartMetric(id, v);
   };
   const menu = () => exerciseMenu(ex, every.length, f);
 
@@ -267,19 +272,23 @@ async function exerciseMenu(ex: Exercise, sessions: number, f: ReturnType<typeof
     if (!ok) return;
     // to the target's page first, so this one never shows "not found"
     router.replace({ pathname: '/exercise/[id]', params: { id: into } });
-    await mergeExercise(ex.id, into);
-    toast(tr('Exercises merged'));
+    if (await attempt(tr, mergeExercise(ex.id, into).then(() => true))) toast(tr('Exercises merged'));
   }
   if (c === 'hide') {
-    await updateExercise(ex.id, { hidden: !ex.hidden });
-    toast(ex.hidden ? tr('Visible again') : tr('Hidden from lists'));
+    if (await attempt(tr, updateExercise(ex.id, { hidden: !ex.hidden }).then(() => true))) toast(ex.hidden ? tr('Visible again') : tr('Hidden from lists'));
   }
   if (c === 'delete') {
     const u = exerciseUsage(ex.id);
     if (u.sessions > 0 || u.inActive) {
+      // only in the running workout: say so, not "it's in 0 workouts" (#42)
+      const n = f.plural(u.sessions, 'workout');
       const ok = await ask({
-        title: tr('This exercise has history'),
-        message: tr('It’s in {n}. Deleting it would break those workouts, so hide it from lists instead — your history stays.', { n: f.plural(u.sessions, 'workout') }),
+        title: u.sessions ? tr('This exercise has history') : tr('This exercise is in your workout'),
+        message: !u.sessions
+          ? tr('It’s in the workout you’re doing now. Remove it there first to delete it, or hide it from lists instead.')
+          : u.inActive
+            ? tr('It’s in {n} and in the workout you’re doing now. Deleting it would break them, so hide it from lists instead — your history stays.', { n })
+            : tr('It’s in {n}. Deleting it would break those workouts, so hide it from lists instead — your history stays.', { n }),
         ok: tr('Hide it'), cancel: tr('Cancel'),
       });
       if (ok) updateExercise(ex.id, { hidden: true });
@@ -292,7 +301,6 @@ async function exerciseMenu(ex: Exercise, sessions: number, f: ReturnType<typeof
     });
     if (!ok) return;
     if (router.canGoBack()) router.back();
-    await deleteExercise(ex.id);
-    toast(tr('Exercise deleted'));
+    if (await attempt(tr, deleteExercise(ex.id).then(() => true))) toast(tr('Exercise deleted'));
   }
 }

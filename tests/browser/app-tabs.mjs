@@ -6,7 +6,7 @@
 // not templates, in English and German; a wide window (the centred column);
 // dark segmented controls and switches. 14 checks.
 import assert from 'node:assert/strict';
-import { openSearch, devices, launch, grantWakeLock, APP as BASE, shots } from './env.mjs';
+import { selectTab, openSearch, devices, launch, grantWakeLock, APP as BASE, shots, storedData } from './env.mjs';
 import * as core from '../../core/index.js';
 import { demoData } from './store-demo.mjs';
 
@@ -31,7 +31,7 @@ async function newPage({ lang = 'en', scheme = 'light' } = {}) {
 }
 const id = (page, t) => page.getByTestId(t);
 const wait = (page, ms = 300) => page.waitForTimeout(ms);
-const store = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('increment.data')));
+const store = (page) => storedData(page);
 const text = (page) => page.locator('body').innerText();
 async function discard(page) {
   await id(page, 'discard-workout').click();
@@ -82,7 +82,10 @@ async function discard(page) {
   const first = sug.template.exercises[0];
   const firstName = lib.get(first.exerciseId).name;
   const bar = await id(page, 'mini-bar').innerText();
-  assert.ok(bar.includes(`${firstName} · set 3 of ${first.sets.length}`), bar);
+  // the third set, numbered among the working sets: warm-ups aren't counted (#38)
+  const working = (sets) => sets.filter((x) => x.type !== 'warmup').length;
+  const third = first.sets[2].type === 'warmup' ? 'warm-up set' : `set ${working(first.sets.slice(0, 3))} of ${working(first.sets)}`;
+  assert.ok(bar.includes(`${firstName} · ${third}`), bar);
   assert.match(bar, /Rest \d:\d\d/);
   const now = await id(page, 'now-card').innerText();
   assert.match(now, /In progress · since/);
@@ -95,7 +98,7 @@ async function discard(page) {
   assert.match(await id(page, 'mini-bar').innerText(), new RegExp(`${sug.template.name} · \\d+:\\d\\d`));
   // One accessory on every root; Search sits above the roots and has none.
   for (const tab of ['index', 'plan', 'progress']) {
-    await id(page, `tab-${tab}`).click();
+    await selectTab(page, tab);
     await page.waitForURL(BASE + (tab === 'index' ? '/' : `/${tab}`));
     await page.locator('[data-testid="mini-bar"]:visible').waitFor();
     assert.equal(await page.locator('[data-testid="mini-bar"]:visible').count(), 1);
@@ -114,9 +117,17 @@ async function discard(page) {
   ok('Now Lifting: rest and Skip, exactly one on each tab root, none on pushed Search, restored after Back; opens the workout');
 
   // Plan: the templates as rows, + starts an empty workout
-  await id(page, 'tab-plan').click();
+  await selectTab(page, 'plan');
   await wait(page);
-  for (const t of data.templates) assert.match(await id(page, `template-${t.id}`).innerText(), new RegExp(`${t.name}\\n${t.exercises.length} exercises · `));
+  // each row previews the routine (#32): its exercises, then muscles · sets · about how long · last done
+  for (const t of data.templates) {
+    const text = await id(page, `template-${t.id}`).innerText();
+    const sz = core.routineSize(t, lib, { defaultRest: settings.defaultRest });
+    const names = t.exercises.map((e) => lib.get(e.exerciseId)?.name).filter(Boolean);
+    assert.ok(text.startsWith(`${t.name}\n${names[0]}`), text);
+    if (names.length > 3) assert.ok(text.includes(` & ${names.length - 3} more`), text);
+    assert.ok(text.includes(`${sz.sets} sets · about ${sz.minutes} min · `), text);
+  }
   await id(page, 'plan-add').click();
   await id(page, 'new-template').waitFor();
   await id(page, 'new-folder').waitFor();
@@ -129,7 +140,7 @@ async function discard(page) {
   ok('Plan: the routines as rows; + has Empty workout (starts one), New routine and New folder');
 
   // Progress: last 30 days and the four pages
-  await id(page, 'tab-progress').click();
+  await selectTab(page, 'progress');
   await wait(page);
   const since = Date.now() - 30 * DAY;
   const recent = data.workouts.filter((w) => w.startedAt >= since).length;
@@ -166,7 +177,7 @@ async function discard(page) {
 
   // Every root has a plain Search control with a full hit area. Back preserves the origin.
   for (const tab of ['index', 'plan', 'progress']) {
-    await id(page, `tab-${tab}`).click();
+    await selectTab(page, tab);
     await page.waitForURL(BASE + (tab === 'index' ? '/' : `/${tab}`));
     const icon = id(page, `open-search-${tab}`);
     await icon.waitFor();
@@ -215,7 +226,7 @@ async function discard(page) {
   ok('a reload on Search still has Back, which leads to Today and the tab bar');
 
   // Account: from the avatar, Done closes it
-  await id(page, 'tab-index').click();
+  await selectTab(page, 'index');
   await id(page, 'open-account').click();
   await id(page, 'account-done').waitFor();
   assert.match(await id(page, 'set-name').innerText(), /Not set/);
@@ -236,7 +247,7 @@ async function discard(page) {
   const today = await text(page);
   for (const s of ['Heute', 'Als Nächstes', 'Starten', 'Diese Woche', 'Einheiten', 'Sätze pro Muskel', 'Letzte 7 Tage']) assert.ok(today.includes(s), s);
   await page.screenshot({ path: `${OUT}/06-today-de-dark.png` });
-  await id(page, 'tab-progress').click();
+  await selectTab(page, 'progress');
   await wait(page);
   const progress = await text(page);
   for (const s of ['Fortschritt', 'Letzte 30 Tage', 'Trainings', 'Übungen', 'Rekorde', 'Körper', 'Trainings pro Woche']) assert.ok(progress.includes(s), s);
@@ -258,7 +269,7 @@ for (const lang of ['en', 'de']) {
     for (const t of texts) assert.ok(body.includes(t), `${where}: “${t}”`);
   };
   const t = data.templates[0];
-  await id(page, 'tab-plan').click();
+  await selectTab(page, 'plan');
   await wait(page);
   await says('Plan', de ? 'Routinen' : 'Routines');
   await id(page, 'plan-add').click();
@@ -288,13 +299,13 @@ for (const lang of ['en', 'de']) {
   await says('the editor', de ? 'Routine' : 'routine');
   await id(page, 'tpl-cancel').click();
   await wait(page, 500);
-  await id(page, 'tab-index').click();
+  await selectTab(page, 'index');
   await id(page, 'open-account').click();
   await id(page, 'set-ask-template').waitFor();
   await says('Account', de ? 'Routinen nach dem Training aktualisieren' : 'Update routines after workouts', de ? 'Beispielroutinen' : 'Example routines');
   await page.goBack();
   await wait(page, 400);
-  await id(page, 'tab-progress').click();
+  await selectTab(page, 'progress');
   await id(page, 'progress-workouts').click();
   await page.locator('[data-testid^="workout-"]').first().click();
   await id(page, 'workout-options').click();

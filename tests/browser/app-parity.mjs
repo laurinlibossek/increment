@@ -4,7 +4,7 @@
 // link directly (the web build reads it from the page address, the phone
 // through +native-intent.tsx), and the German exercise names.
 import assert from 'node:assert/strict';
-import { openSearch, devices, launch, grantWakeLock, APP as BASE, BACKUP, shots } from './env.mjs';
+import { selectTab, openSearch, devices, launch, grantWakeLock, APP as BASE, BACKUP, shots, storedData } from './env.mjs';
 import * as core from '../../core/index.js';
 
 const OUT = shots('app-parity');
@@ -30,9 +30,9 @@ const id = (page, t) => page.getByTestId(t);
 const wait = (page, ms = 300) => page.waitForTimeout(ms);
 const toastText = async (page) => { await id(page, 'toast').waitFor(); return id(page, 'toast').innerText(); };
 const visibleText = (page) => page.locator('body').innerText();
-const store = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('increment.data')));
+const store = (page) => storedData(page);
 async function restore(page, dialogs) {
-  await id(page, 'tab-index').click();
+  await selectTab(page, 'index');
   await id(page, 'open-account').click();
   const [chooser] = await Promise.all([page.waitForEvent('filechooser'), id(page, 'restore').click()]);
   await chooser.setFiles(BACKUP);
@@ -43,12 +43,12 @@ async function restore(page, dialogs) {
 }
 /** Account (the avatar on Today) has the settings. */
 async function openSettings(page) {
-  await id(page, 'tab-index').click();
+  await selectTab(page, 'index');
   await id(page, 'open-account').click();
   await id(page, 'set-name').waitFor();
 }
 async function openWorkouts(page) {
-  await id(page, 'tab-progress').click();
+  await selectTab(page, 'progress');
   await id(page, 'progress-workouts').click();
 }
 async function openExercise(page, exId, q) {
@@ -153,7 +153,7 @@ function startOfDayOf(t) { const d = new Date(t); d.setHours(0, 0, 0, 0); return
   assert.match(await visibleText(page), new RegExp(`All ${pull} sessions of “Snatch Pull \\(Barbell\\)” move to “Snatch \\(Barbell\\)”`));
   await page.screenshot({ path: `${OUT}/04-merge-confirm.png` });
   await id(page, 'confirm-merge').click();
-  assert.equal(await toastText(page), 'Exercises merged');
+  await id(page, 'toast').filter({ hasText: 'Exercises merged' }).waitFor(); // the earlier toast may still show while the merge saves
   await wait(page, 300);
   assert.ok(page.url().includes(`/exercise/${SNATCH}`), 'the target’s page is open');
   data = await store(page);
@@ -202,7 +202,7 @@ function startOfDayOf(t) { const d = new Date(t); d.setHours(0, 0, 0, 0); return
   // ⋯ → Add warm-up sets follows the new scheme
   await page.goBack();
   await wait(page, 300);
-  await id(page, 'tab-index').click();
+  await selectTab(page, 'index');
   await id(page, 'start-empty').click();
   await id(page, 'add-exercises').click();
   await id(page, 'pick-search').fill('bench bb');
@@ -273,7 +273,7 @@ function startOfDayOf(t) { const d = new Date(t); d.setHours(0, 0, 0, 0); return
   await wait(page, 200);
   await page.screenshot({ path: `${OUT}/10-delete-all-type.png` });
   await id(page, 'prompt-ok').click();
-  assert.equal(await toastText(page), 'All data deleted');
+  await id(page, 'toast').filter({ hasText: 'All data deleted' }).waitFor();
   await wait(page, 300);
   const after = await store(page);
   assert.deepEqual([after.workouts.length, after.templates.length, after.measurements.length], [0, 0, 0]);
@@ -308,7 +308,7 @@ function startOfDayOf(t) { const d = new Date(t); d.setHours(0, 0, 0, 0); return
   assert.match(text, /These exercises are new to you and will be created: Landmine Press/);
   await page.screenshot({ path: `${OUT}/11-template-link.png` });
   await id(page, 'confirm-add-shared').click();
-  assert.equal(await toastText(page), '“Shared Push” added to your routines');
+  await id(page, 'toast').filter({ hasText: '“Shared Push” added to your routines' }).waitFor();
   await wait(page, 300);
   let data = await store(page);
   const added = data.templates.find((x) => x.name === 'Shared Push');

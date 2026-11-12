@@ -1,7 +1,7 @@
 // Design todo group 6. REVIEW_BEFORE=1 captures the unchanged review baseline.
 import assert from 'node:assert/strict';
 import path from 'node:path';
-import { launch, devices, grantWakeLock, APP, shots } from './env.mjs';
+import { selectTab, launch, devices, grantWakeLock, APP, shots } from './env.mjs';
 import { demoData } from './store-demo.mjs';
 import {
   DAY, PR_LABEL, buildStats, exerciseDisplayName, exerciseBaseName, kgTo, kmTo, roundW, translator, workoutVolume,
@@ -158,7 +158,7 @@ try {
 
     await page.setViewportSize({ width: 390, height: 844 });
     await go('/');
-    await id('tab-progress').click();
+    await selectTab(page, 'progress');
     await id('last-30').waitFor();
     await shot('progress');
     if (!before) {
@@ -222,7 +222,7 @@ try {
     await go('/history');
     assert.equal(normal(await id('history-records-noise-new').innerText()), lang === 'de' ? '3 Rekorde' : '3 records');
     await go('/');
-    await id('tab-progress').click();
+    await selectTab(page, 'progress');
     await id('last-30').waitFor();
     assert.ok(normal(await id('last-30').innerText()).endsWith(`${translator(lang)('Records')} 3`), await id('last-30').innerText());
     ok(`${lang}: Progress's 30-day records and the Workouts row both count 3 record sets, not 2 exercises`);

@@ -103,3 +103,19 @@ export function routineSize(template, exercises, { defaultRest = 120 } = {}) {
   const minutes = all ? Math.max(5, Math.round(sec / 60 / 5) * 5) : 0;
   return { exercises: entries.length, sets, minutes };
 }
+
+/**
+ * A routine's muscle groups for its row in Plan (#32): the body parts of its
+ * exercises that are muscles, each once, in Sets per muscle's order, as
+ * [{ muscle, label }]. Exercises missing from the library are left out.
+ */
+export function routineMuscles(template, exercises) {
+  const get = lookup(exercises);
+  const parts = new Set(template.exercises.map((e) => get(e.exerciseId)?.bodyPart).filter((p) => MUSCLES.includes(p)));
+  return BODY_PARTS.filter((b) => parts.has(b.id)).map((b) => ({ muscle: b.id, label: b.label }));
+}
+
+/** The first `max` names and how many more there are, for "Bench Press, Squat & 2 more" (#32). */
+export function namesPreview(names, max = 3) {
+  return { shown: names.slice(0, max), more: Math.max(0, names.length - max) };
+}

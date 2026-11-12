@@ -27,34 +27,6 @@ test('core uses no browser APIs and imports only core files', () => {
   }
 });
 
-// ---------- tab swipe decisions ----------
-test('tab swipes: deliberate horizontal distance or fling, scrolling and web edges win; no wrapping', () => {
-  const swipe = core.tabSwipeDirection;
-  assert.equal(swipe({ dx: -80, dy: 3 }), 1);
-  assert.equal(swipe({ dx: 80, dy: -3 }), -1);
-  assert.equal(swipe({ dx: -30, dy: 2, velocityX: -800 }), 1);
-  assert.equal(swipe({ dx: 30, velocityX: 800 }), -1);
-  assert.equal(swipe({ dx: -24, velocityX: -2000 }), 0, 'a fast tiny drag is still too short');
-  assert.equal(swipe({ dx: 40, dy: 2 }), 0, 'a short slow drag is not a swipe');
-  assert.equal(swipe({ dx: 30, dy: 12, velocityX: 800 }), 0, 'short diagonal');
-  assert.equal(swipe({ dx: 100, dy: 15 }), 0);
-  assert.equal(swipe({ dx: 100, dy: 0, maxY: 25 }), 0, 'vertical then horizontal, returning to start Y');
-  assert.equal(swipe({ dx: -30, velocityX: 800 }), 0, 'fling must agree with displacement');
-  assert.equal(core.tabSwipeAtEdge(23, 390), true);
-  assert.equal(core.tabSwipeAtEdge(367, 390), true);
-  assert.equal(core.tabSwipeAtEdge(24, 390), false);
-  assert.equal(core.tabSwipeAtEdge(366, 390), false);
-  const tabs = ['today', 'plan', 'progress'];
-  assert.equal(core.adjacentTab(tabs, 'today', 1), 'plan');
-  assert.equal(core.adjacentTab(tabs, 'plan', 1), 'progress');
-  assert.equal(core.adjacentTab(tabs, 'progress', -1), 'plan');
-  assert.equal(core.adjacentTab(tabs, 'plan', -1), 'today');
-  assert.equal(core.adjacentTab(tabs, 'today', -1), null);
-  assert.equal(core.adjacentTab(tabs, 'progress', 1), null);
-  assert.equal(core.adjacentTab(tabs, 'missing', 1), null);
-  assert.equal(core.adjacentTab(tabs, 'plan', 0), null);
-});
-
 // ---------- units ----------
 test('numbers: decimal commas, input strings, plates, typed times', () => {
   assert.equal(core.parseNum('62,5'), 62.5);
@@ -857,7 +829,7 @@ test('Strong review counts sessions, requires decisions and body parts, and limi
   assert.deepEqual(core.strongImportCategories([{ w: 0, r: 8 }]), ['reps']);
   assert.deepEqual(core.strongImportCategories([{ d: 1, t: 50 }]), ['cardio']);
   assert.deepEqual(core.strongImportCategories([{ t: 60 }]), ['duration']);
-  assert.deepEqual(core.strongImportCategories([{ w: -10, r: 8 }]), ['barbell', 'dumbbell', 'machine', 'weighted_bw', 'assisted_bw']);
+  assert.deepEqual(core.strongImportCategories([{ w: -10, r: 8 }]), [], 'no exercise logs a negative load (#40)');
   assert.deepEqual(core.strongImportCategories([{ w: 20, t: 60 }]), [], 'cannot discard fields from mixed sets');
   const choices = Object.fromEntries(preview.review.map((r) => [r.name, { kind: 'new', name: r.name, category: r.category, bodyPart: r.bodyPart || 'other' }]));
   choices['Kenan Flaps'] = { kind: 'existing', exerciseId: 'x-keenan-flap-cable' };
@@ -905,6 +877,190 @@ test('Strong choices survive a backup, silently match newer exports, skip duplic
   }
 });
 
+test('Strong import (#40): exact names pass the field check, negative weights and mixed sets can only be left out', () => {
+  const csv = strongFile([
+    ['Bench Press (Barbell)', -20, 8], ['Bench Press (Barbell)', 60, 8], // negative: even an exact name goes to review
+    ['Pull Up', 10, 8], // exact name, but Increment's Pull Up logs reps only
+    ['Pull Up (Assisted)', 20, 8], // Strong's help is positive: stays assistance
+    ['Moon Hold', 20, 8], ['Moon Hold', 0, 0, 0, 30], // weight and time mixed
+    ['Squat (Barbell)', 100, 5, 0, 0, '2026-10-02 12:00:00'], ['Moon Hold', 0, 0, 0, 40, '2026-10-03 12:00:00'],
+  ]);
+  const preview = core.parseStrongCSV(csv, { exercises: core.SEED_EXERCISES, aliases: { 'Bench Press (Barbell)': 'x-bench-press-barbell' } });
+  const row = (name) => preview.review.find((r) => r.name === name);
+  assert.equal(preview.matches['Pull Up (Assisted)'], 'x-pull-up-assisted');
+  assert.equal(preview.matches['Squat (Barbell)'], 'x-squat-barbell');
+  assert.equal(row('Bench Press (Barbell)').blocked, 'negative', 'neither the exact name nor a remembered choice takes a negative weight');
+  assert.equal(row('Moon Hold').blocked, 'mixed');
+  assert.deepEqual(row('Moon Hold').omit, { sets: 3, workouts: 2 });
+  assert.deepEqual(row('Bench Press (Barbell)').omit, { sets: 2, workouts: 1 });
+  const pull = row('Pull Up');
+  assert.equal(pull.exact, 'x-pull-up');
+  assert.equal(pull.blocked, undefined);
+  assert.ok(!pull.suggestions.some((x) => x.id === 'x-pull-up'), 'the reps-only exercise is not offered');
+  assert.ok(pull.suggestions.some((x) => x.id === 'x-pull-up-weighted'), 'a compatible sibling is');
+  // blocked rows take nothing but Leave out
+  const choices = { 'Pull Up': { kind: 'existing', exerciseId: 'x-pull-up-weighted' }, 'Moon Hold': { kind: 'new', name: 'Moon Hold', category: 'duration', bodyPart: 'core' }, 'Bench Press (Barbell)': { kind: 'existing', exerciseId: 'x-bench-press-barbell' } };
+  const problems = core.strongImportProblems(preview, choices, core.SEED_EXERCISES);
+  assert.match(problems.find((x) => x.name === 'Bench Press (Barbell)').problem, /negative weight/);
+  assert.match(problems.find((x) => x.name === 'Moon Hold').problem, /combine fields/);
+  assert.throws(() => core.resolveStrongImport(preview, choices, { exercises: core.SEED_EXERCISES }), /negative weight/);
+  choices['Bench Press (Barbell)'] = { kind: 'skip' };
+  choices['Moon Hold'] = { kind: 'skip' };
+  const r = core.resolveStrongImport(preview, choices, { exercises: core.SEED_EXERCISES });
+  assert.deepEqual(r.workouts.map((w) => w.exercises.map((e) => e.exerciseId)), [['x-pull-up-weighted', 'x-pull-up-assisted'], ['x-squat-barbell']], 'the rest imports; a workout with nothing left is not made');
+  assert.equal(r.workouts[0].exercises[1].sets[0].w, 20, 'assistance as Strong wrote it');
+  assert.deepEqual(r.stats.omitted, { sets: 5, workouts: 1, exercises: ['Bench Press (Barbell)', 'Moon Hold'] });
+  assert.equal(r.stats.sets, 3);
+  assert.equal(r.exercises.length, 0, 'no exercise is made for left-out sets');
+  assert.equal(r.aliases['Moon Hold'], undefined, 'a skip is not remembered');
+  assert.equal(r.aliases['Pull Up'], 'x-pull-up-weighted');
+  // everything left out: nothing is made, and the stats say so
+  const lone = core.parseStrongCSV(strongFile([['Moon Hold', 20, 8], ['Moon Hold', 0, 0, 0, 30]]), { exercises: core.SEED_EXERCISES });
+  const none = core.resolveStrongImport(lone, { 'Moon Hold': { kind: 'skip' } }, { exercises: core.SEED_EXERCISES });
+  assert.deepEqual([none.workouts.length, none.exercises.length, none.stats.omitted.sets, none.stats.omitted.workouts], [0, 0, 2, 1]);
+  // the remembered choice for Pull Up matches silently next time, past the incompatible exact name
+  const again = core.parseStrongCSV(strongFile([['Pull Up', 12, 6, 0, 0, '2026-10-05 12:00:00']]), { exercises: core.SEED_EXERCISES, aliases: r.aliases });
+  assert.deepEqual([again.review.length, again.matches['Pull Up']], [0, 'x-pull-up-weighted']);
+});
+
+test('logging times (#43): set by logging, gone on uncheck, kept by edits and backups, never copied into routines or new sessions', () => {
+  const st = core.withDefaults({ unit: 'kg', distUnit: 'km' });
+  const bench = core.SEED_EXERCISES.find((e) => e.id === 'x-bench-press-barbell');
+  const exercises = new Map([[bench.id, bench]]);
+  const draft = core.newActiveWorkout({ template: { id: 't', name: 'Push', exercises: [E(bench.id, [S('normal', 60, 8), S('normal', 60, 8), S('normal', 60, 8)])] }, settings: st, now: 1000 });
+  const entry = draft.exercises[0];
+  assert.ok(entry.sets.every((x) => !('doneAt' in x)), 'a new session has none');
+  // a set that can't be logged yet gets no time
+  assert.ok(core.checkOffSet(draft, entry, 0, { category: 'barbell', ph: {}, rest: 0, settings: st, now: 5000 }).problem);
+  assert.equal(entry.sets[0].doneAt, undefined);
+  const ph = { w: '60', r: '8' };
+  core.checkOffSet(draft, entry, 0, { category: 'barbell', ph, rest: 0, settings: st, now: 5000 });
+  assert.equal(entry.sets[0].doneAt, 5000);
+  core.uncheckSet(entry.sets[0]);
+  assert.deepEqual([entry.sets[0].done, 'doneAt' in entry.sets[0]], [false, false]);
+  core.checkOffSet(draft, entry, 0, { category: 'barbell', ph, rest: 0, settings: st, now: 7000 });
+  assert.equal(entry.sets[0].doneAt, 7000, 'logging again takes the new time');
+  // Save them as done: pending sets get the Finish time, a time already there stays
+  entry.sets[1].w = '62.5';
+  entry.sets[2].w = '65';
+  entry.sets[2].doneAt = 6000; // e.g. logged, then edited back to pending by an older version
+  core.logPendingSets(draft, new Map([[entry.sets[1].id, { w: '62.5', r: '8' }], [entry.sets[2].id, { w: '65', r: '8' }]]), 9000);
+  assert.deepEqual(entry.sets.map((x) => x.doneAt), [7000, 9000, 6000]);
+  const workout = core.finishWorkout(draft, { settings: st, exercises, now: 10000, mode: 'done' });
+  assert.deepEqual(workout.exercises[0].sets.map((x) => x.doneAt), [7000, 9000, 6000]);
+  // Edit workout and backups keep them; an old set without one stays without
+  const old = { ...workout, exercises: [{ ...workout.exercises[0], sets: [...workout.exercises[0].sets, { id: 'old', type: 'normal', w: 50, r: 5 }] }] };
+  const edited = core.workoutFromEditDraft(core.workoutEditDraft(old, st), { settings: st, exercises }).workout;
+  assert.deepEqual(edited.exercises[0].sets.map((x) => x.doneAt), [7000, 9000, 6000, undefined]);
+  assert.equal('doneAt' in edited.exercises[0].sets[3], false);
+  const restored = core.parseBackup(core.makeBackup({ exercises: [bench], workouts: [old], templates: [], measurements: [], kv: {} }, 't')).data.workouts[0];
+  assert.deepEqual(restored, old);
+  // routines, copies, links and new sessions never take them
+  const noTimes = (list) => list.every((e) => e.sets.every((x) => !('doneAt' in x)));
+  const saveAs = core.templateFromDraft(core.templateDraft({ workout, settings: st }), { settings: st, exercises }).template;
+  assert.ok(noTimes(saveAs.exercises), 'Save as routine');
+  assert.ok(noTimes(core.applyWorkoutToTemplate(saveAs.exercises, workout)), 'Update routine');
+  assert.ok(noTimes(core.applyWorkoutToTemplate(saveAs.exercises, workout, { valuesOnly: true })), 'Update routine values');
+  assert.ok(noTimes(core.progressTemplate(saveAs.exercises, workout, () => 'barbell').exercises), 'progression');
+  assert.ok(noTimes(core.cleanTemplateExercises(workout.exercises)), 'cleaned routine');
+  assert.ok(noTimes(core.copyTemplateRecord(saveAs, { hasExercise: () => true }).exercises), 'Duplicate');
+  assert.doesNotMatch(core.encodeTemplate(saveAs, exercises), /doneAt/);
+  assert.ok(noTimes(core.newActiveWorkout({ fromWorkout: workout, settings: st, now: 20000 }).exercises), 'Do this workout again');
+  assert.ok(noTimes(core.newActiveWorkout({ template: saveAs, settings: st, now: 20000 }).exercises), 'start the routine');
+});
+
+// ---------- export and backup contracts (#28) ----------
+const fixture = (name) => fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), 'fixtures', name), 'utf8');
+/** Run with the timezone pinned (CSV dates are local time). */
+function withTZ(tz, fn) {
+  const before = process.env.TZ;
+  process.env.TZ = tz;
+  try { return fn(); } finally { if (before === undefined) delete process.env.TZ; else process.env.TZ = before; }
+}
+const { EXPORT_EXERCISES, EXPORT_WORKOUTS } = await import('./fixtures/strong-export-workouts.mjs');
+const exportMap = (list = EXPORT_EXERCISES) => new Map(list.map((e) => [e.id, e]));
+
+test('CSV export is Strong’s 12-column style, pinned by golden files (kg/km and lb/mi)', () => {
+  withTZ('UTC', () => {
+    for (const [file, unit, distUnit] of [['strong-export-kg.csv', 'kg', 'km'], ['strong-export-lb.csv', 'lb', 'mi']]) {
+      const csv = core.exportCSV({ workouts: EXPORT_WORKOUTS, exercises: exportMap(), unit, distUnit });
+      assert.equal(csv, fixture(file), file);
+      assert.ok(csv.endsWith('",\n') || csv.endsWith(',\n'), 'one final newline');
+      assert.equal(csv.split('\n')[0], 'Date,Workout Name,Duration,Exercise Name,Set Order,Weight,Reps,Distance,Seconds,Notes,Workout Notes,RPE');
+    }
+    // the order of the workouts doesn't matter, the export is oldest first
+    assert.equal(core.exportCSV({ workouts: [...EXPORT_WORKOUTS].reverse(), exercises: exportMap() }), fixture('strong-export-kg.csv'));
+  });
+});
+
+test('app-only fields never add CSV columns or change the values', () => {
+  // sides, set times, pinned notes, families, hidden exercises, chart settings and fields from later versions
+  const extra = (o) => ({ ...o, futureField: { any: 1 } });
+  const workouts = EXPORT_WORKOUTS.map((w) => extra({ ...w, exercises: w.exercises.map((e) => extra({ ...e, supersetId: 'g1', focus: 'tempo',
+    sets: e.sets.map((x, i) => extra({ ...x, side: i % 2 ? 'left' : 'right', doneAt: w.startedAt + i * 60000, done: true })) })) }));
+  const exercises = EXPORT_EXERCISES.map((e) => extra({ ...e, pinnedNote: 'Brace', family: 'fc-mine', hidden: true, restSec: 90, chartMetric: 'heaviest' }));
+  withTZ('UTC', () => assert.equal(core.exportCSV({ workouts, exercises: exportMap(exercises) }), fixture('strong-export-kg.csv')));
+});
+
+test('CSV export → Strong import keeps the training data (stated rounding; RIR becomes RPE)', () => {
+  withTZ('UTC', () => {
+    for (const [unit, distUnit, wTol, dTol] of [['kg', 'km', 0.005, 0.0005], ['lb', 'mi', 0.05 * core.KG_PER_LB, 0.001 * core.KM_PER_MI]]) {
+      const csv = core.exportCSV({ workouts: EXPORT_WORKOUTS, exercises: exportMap(), unit, distUnit });
+      const preview = core.parseStrongCSV(csv, { exercises: EXPORT_EXERCISES, weightUnit: unit, distUnit });
+      assert.deepEqual(preview.review, [], `${unit}: every exercise matches by name`);
+      const back = core.resolveStrongImport(preview, {}, { exercises: EXPORT_EXERCISES }).workouts;
+      assert.equal(back.length, EXPORT_WORKOUTS.length);
+      EXPORT_WORKOUTS.forEach((w, i) => {
+        const b = back[i];
+        assert.equal(b.name, w.name);
+        assert.equal(b.notes, w.notes);
+        assert.equal(b.startedAt, Math.floor(w.startedAt / 1000) * 1000, 'to the second');
+        assert.equal(Math.round((b.endedAt - b.startedAt) / 60000), Math.round((w.endedAt - w.startedAt) / 60000), 'duration to the minute');
+        w.exercises.forEach((e, j) => {
+          const be = b.exercises[j];
+          assert.equal(be.exerciseId, e.exerciseId);
+          assert.equal(be.notes || '', e.notes || '');
+          e.sets.forEach((x, k) => {
+            const bs = be.sets[k];
+            assert.equal(bs.type, x.type);
+            assert.ok(Math.abs((bs.w || 0) - (x.w || 0)) <= wTol, `${unit} weight ${x.w} → ${bs.w}`);
+            assert.equal(bs.r || 0, x.r || 0);
+            assert.ok(Math.abs((bs.d || 0) - (x.d || 0)) <= dTol, `${distUnit} distance ${x.d} → ${bs.d}`);
+            assert.equal(bs.t || 0, x.t || 0);
+            // CSV knows RPE only: reps in reserve come back as 10 − RIR
+            assert.equal(bs.rpe ?? null, x.rpe ?? core.rpeFromRir(x.rir));
+          });
+        });
+      });
+    }
+  });
+});
+
+test('Setlog-format backups: structure pinned, user data kept, only documented normalization', () => {
+  const text = fixture('setlog-backup.json');
+  const file = JSON.parse(text);
+  const { data } = core.parseBackup(text, core.SEED_EXERCISES);
+  // user data comes back as it was
+  for (const list of ['workouts', 'templates', 'measurements']) assert.deepEqual(data[list], file.data[list], list);
+  for (const ex of file.data.exercises) assert.deepEqual(data.exercises.find((e) => e.id === ex.id), ex, ex.id);
+  assert.deepEqual(data.kv.settings, file.data.kv.settings);
+  assert.deepEqual(data.kv.profile, file.data.kv.profile);
+  assert.deepEqual(data.kv.strongAliases, file.data.kv.strongAliases);
+  assert.deepEqual(data.kv.futureKey, file.data.kv.futureKey, 'unknown kv data is kept');
+  // documented normalization: the built-in library is added, the backup counts as one, empty families go
+  assert.ok(data.exercises.length > file.data.exercises.length);
+  assert.equal(data.kv.meta.lastBackupAt, Date.parse(file.exportedAt));
+  assert.deepEqual({ ...data.kv.meta, lastBackupAt: 0 }, { ...file.data.kv.meta, lastBackupAt: 0 });
+  assert.deepEqual(data.kv.customFamilies, { 'fc-moon': 'Moon Lift' });
+  // a backup made from it reads the same (not byte for byte: exportedAt and appVersion change)
+  const again = JSON.parse(core.makeBackup(data, '2.0.0', new Date('2026-11-11T00:00:00Z')));
+  assert.deepEqual([again.app, again.schema, Object.keys(again).sort()], ['setlog', 1, ['app', 'appVersion', 'data', 'exportedAt', 'schema']]);
+  assert.deepEqual(Object.keys(again.data).sort(), ['exercises', 'kv', 'measurements', 'templates', 'workouts']);
+  const twice = core.parseBackup(JSON.stringify(again), core.SEED_EXERCISES).data;
+  for (const list of ['exercises', 'workouts', 'templates', 'measurements']) assert.deepEqual(twice[list], data[list], list);
+  assert.deepEqual({ ...twice.kv, meta: { ...twice.kv.meta, lastBackupAt: 0 } }, { ...data.kv, meta: { ...data.kv.meta, lastBackupAt: 0 } });
+});
+
 test('Strong shipped spellings resolve to existing identities, and new family membership is exact', () => {
   const names = Object.keys(core.STRONG_EXERCISE_ALIASES);
   const preview = core.parseStrongCSV(strongFile(names.map((name) => [name])), { exercises: core.SEED_EXERCISES });
@@ -934,6 +1090,69 @@ test('backups round-trip, count as the latest backup and restore the built-in li
   try { core.parseBackup(JSON.stringify({ app: 'setlog', data: { workouts: 3 } }), []); assert.fail(); } catch (e) {
     assert.equal(e.message, 'The backup is damaged ({part}).');
     assert.deepEqual(e.vars, { part: 'workouts' });
+  }
+});
+
+test('a backup never brings a running workout along; other kv keys stay', () => {
+  const active = { id: 'a', kind: 'workout', name: 'Old', startedAt: 1, exercises: [] };
+  const data = { exercises: [], workouts: [], templates: [], measurements: [], kv: { settings: { unit: 'lb' }, active, later: 1 } };
+  const kv = core.parseBackup(core.makeBackup(data, '1.6.0'), []).data.kv;
+  assert.equal('active' in kv, false);
+  assert.deepEqual(kv.settings, { unit: 'lb' });
+  assert.equal(kv.later, 1, 'a key the app doesn’t know is kept');
+});
+
+test('recovery backups carry the running workout beside the data; old files restore as before', () => {
+  const active = { id: 'a1', kind: 'workout', name: 'Push', startedAt: 10, exercises: [{ id: 'e', exerciseId: 'x', sets: [] }], updatedAt: 20 };
+  const data = { exercises: [], workouts: [{ id: 'w' }], templates: [], measurements: [], kv: { settings: { unit: 'kg' } } };
+  const file = JSON.parse(core.makeBackup(data, '1.0.0', new Date(0), { active }));
+  assert.deepEqual(file.recovery, { active }, 'the running workout is beside data, not in kv');
+  assert.equal('active' in file.data.kv, false);
+  const back = core.parseBackup(JSON.stringify(file), []);
+  assert.deepEqual(back.recovery, { active });
+  assert.equal(back.data.workouts.length, 1);
+  assert.equal(core.parseBackup(core.makeBackup(data, 'old'), []).recovery, null, 'a file without recovery restores normally');
+  assert.equal('recovery' in JSON.parse(core.makeBackup(data, '1.0.0')), false);
+  try { core.parseBackup(JSON.stringify({ ...file, recovery: { active: { id: 1 } } }), []); assert.fail(); } catch (e) {
+    assert.deepEqual(e.vars, { part: 'recovery' });
+  }
+  assert.equal(core.runningWorkoutChoice(null, active), 'restore', 'a fresh install gets the draft back');
+  assert.equal(core.runningWorkoutChoice(active, null), 'keep');
+  assert.equal(core.runningWorkoutChoice({ ...active }, active), 'keep', 'the same workout: nothing to ask');
+  assert.equal(core.runningWorkoutChoice({ ...active, name: 'Pull' }, active), 'ask');
+});
+
+test('pending writes: the latest value per key, and conflicts hold whole batches', () => {
+  const w = (id, value = { id }) => ({ store: 'workouts', id, value });
+  const kv = (key, value) => ({ kv: key, value });
+  assert.equal(core.writeKey(w('a')), 'workouts/a');
+  assert.equal(core.writeKey(kv('active', null)), 'kv/active');
+  const b1 = { ops: [w('a', { id: 'a', n: 1 }), kv('active', { id: 'x' })] };
+  const b2 = { ops: [kv('active', null), w('b')] };
+  const b3 = { ops: [kv('settings', { unit: 'lb' })] };
+  const ops = core.coalesceWrites([b1, b2, b3]);
+  assert.deepEqual(ops.map(core.writeKey), ['workouts/a', 'kv/active', 'workouts/b', 'kv/settings']);
+  assert.equal(ops[1].value, null, 'the later write wins');
+  // a conflict on workouts/b holds b2, and with it b1, which shares kv/active
+  const split = core.splitBlocked([b1, b2, b3], ['workouts/b']);
+  assert.deepEqual(split.blocked, [b1, b2]);
+  assert.deepEqual(split.rest, [b3]);
+  assert.deepEqual([...split.keys].sort(), ['kv/active', 'workouts/a', 'workouts/b']);
+  assert.deepEqual(core.splitBlocked([b1, b2, b3], []).rest, [b1, b2, b3]);
+});
+
+test('stored data: checked before the move, compared record by record', () => {
+  const raw = { exercises: [{ id: 'e', name: 'A' }], workouts: [{ id: 'w', n: 1 }, { id: 'w', n: 2 }], templates: [], kv: { settings: { b: 1, a: 2 }, active: null } };
+  const d = core.storedDataFrom(raw);
+  assert.deepEqual(d.workouts, [{ id: 'w', n: 2 }], 'a document saved twice keeps its later copy');
+  assert.deepEqual(d.measurements, []);
+  assert.equal('active' in d.kv, false, 'empty values are not stored');
+  assert.deepEqual([...core.recordsOf(d).keys()], ['exercises/e', 'workouts/w', 'kv/settings']);
+  assert.ok(core.sameStoredData(d, { ...d, kv: { settings: { a: 2, b: 1 } } }), 'key order does not matter');
+  assert.ok(!core.sameStoredData(d, { ...d, workouts: [] }));
+  assert.ok(!core.sameStoredData(d, { ...d, kv: { settings: { a: 2, b: 3 } } }));
+  for (const bad of [null, [], 'x', { workouts: {} }, { workouts: [{ name: 'no id' }] }, { kv: [] }]) {
+    assert.throws(() => core.storedDataFrom(bad), undefined, JSON.stringify(bad));
   }
 });
 
@@ -1710,4 +1929,392 @@ test('backups keep set sides unchanged while Strong CSV export drops only the si
   const untagged = { ...workout, exercises: workout.exercises.map((e) => ({ ...e, sets: e.sets.map(({ side, ...s }) => s) })) };
   const exercises = new Map([[ex.id, ex]]);
   assert.equal(core.exportCSV({ workouts: [workout], exercises }), core.exportCSV({ workouts: [untagged], exercises }));
+});
+
+test('records in a running workout (#37): one set per exercise and metric, as in the summary', () => {
+  const st = core.withDefaults({ unit: 'kg', distUnit: 'km' });
+  const bench = core.SEED_EXERCISES.find((e) => e.id === 'x-bench-press-barbell');
+  const exercises = new Map([[bench.id, bench]]);
+  const before = { id: 'old', startedAt: 1000, endedAt: 2000, exercises: [{ id: 'oe', exerciseId: bench.id, sets: [{ id: 'o1', type: 'normal', w: 95, r: 5 }] }] };
+  const { bests } = core.buildStats([before], exercises, st.formula);
+  /** A running workout with these entries of bench press, sets as [type, w, r, done]. */
+  const running = (...entries) => {
+    const a = core.newActiveWorkout({ settings: st, now: 5000 });
+    a.exercises = entries.map((sets, i) => ({ ...core.newEntryDraft(bench.id), id: `e${i}`,
+      sets: sets.map(([type, w, r, done = true], j) => ({ ...core.newSetDraft(type, { w: String(w), r: String(r) }), id: `e${i}s${j}`, done })) }));
+    return a;
+  };
+  const recs = (a, b = bests) => Object.fromEntries([...core.liveRecordSets(a, b, exercises, st)].map(([id, m]) => [id, [...m].sort()]));
+  const ALL = ['e1rm', 'volume', 'weight'];
+  // the summary of the same workout names the same sets
+  const summary = (a, b = bests) => new Set(core.prsForNewWorkout(core.finishWorkout(a, { settings: st, exercises, mode: 'done' }), { bests: b }, exercises, st.formula).map((p) => p.setId));
+  const same = (a) => assert.deepEqual(new Set(core.liveRecordSets(a, bests, exercises, st).keys()), summary(a));
+
+  // three equal sets above the old best: one record, the first; one set beating three metrics counts once
+  let a = running([['normal', 100, 5], ['normal', 100, 5], ['normal', 100, 5]]);
+  assert.deepEqual(recs(a), { e0s0: ALL });
+  same(a);
+  // a later, better set takes over; an equal one doesn't
+  a = running([['normal', 100, 5], ['normal', 102.5, 5], ['normal', 102.5, 5]]);
+  assert.deepEqual(recs(a), { e0s1: ALL });
+  same(a);
+  // different winning sets count separately: the heavy set keeps weight and 1RM, the long one takes volume
+  a = running([['normal', 100, 5], ['normal', 90, 8]]);
+  assert.deepEqual(recs(a), { e0s0: ['e1rm', 'weight'], e0s1: ['volume'] });
+  same(a);
+  // matching the old best isn't a record; warm-ups and unchecked sets can't set one
+  assert.deepEqual(recs(running([['normal', 95, 5], ['warmup', 200, 5], ['normal', 120, 5, false]])), {});
+  // two entries of the same exercise are compared together
+  a = running([['normal', 100, 5]], [['normal', 100, 5]]);
+  assert.deepEqual(recs(a), { e0s0: ALL });
+  a = running([['normal', 100, 5]], [['normal', 105, 5]]);
+  assert.deepEqual(recs(a), { e1s0: ALL });
+  same(a);
+  // unchecking (or deleting) the winner gives the record back to the earlier set
+  a = running([['normal', 100, 5], ['normal', 102.5, 5]]);
+  core.uncheckSet(a.exercises[0].sets[1]);
+  assert.deepEqual(recs(a), { e0s0: ALL });
+  a.exercises[0].sets.splice(0, 1);
+  assert.deepEqual(recs(a), {});
+  // an exercise's first session is its baseline: no records
+  assert.deepEqual(recs(running([['normal', 100, 5]]), new Map()), {});
+});
+
+test('set totals (#38): warm-ups are never counted; failure and drop sets are; sides count row by row', () => {
+  const rows = [S('warmup', 40, 10), S('warmup', 60, 5), S('normal', 80, 5), S('failure', 80, 4), S('drop', 60, 8)];
+  assert.equal(core.setTotal(rows), 3);
+  assert.equal(core.setTotal([S('warmup', 40, 10)]), 0, 'a warm-up-only exercise has no sets');
+  assert.equal(core.setTotal([]), 0);
+  // changing a set's type changes the total
+  const changed = rows.map((x, i) => (i === 0 ? { ...x, type: 'normal' } : x));
+  assert.equal(core.setTotal(changed), 4);
+  // left and right rows are two rows here (the paired totals are #54)
+  assert.equal(core.setTotal([S('normal', 20, 10, { side: 'left' }), S('normal', 20, 10, { side: 'right' })]), 2);
+  const w = { exercises: [E('a', rows), E('b', [S('warmup', 20, 10)]), E('c', [S('normal', 10, 10)])] };
+  assert.equal(core.workoutSetCount(w), 4);
+});
+
+test('removing an exercise from a superset (#39): a group left with one dissolves, Undo restores it, other groups stay', () => {
+  const list = () => [
+    { id: 'a', exerciseId: 'xa', supersetId: 'g1', sets: [] }, { id: 'b', exerciseId: 'xb', supersetId: 'g1', sets: [] },
+    { id: 'c', exerciseId: 'xc', supersetId: 'g2', sets: [] }, { id: 'd', exerciseId: 'xd', supersetId: 'g2', sets: [] }, { id: 'e', exerciseId: 'xe', supersetId: 'g2', sets: [] },
+    { id: 'f', exerciseId: 'xf', supersetId: null, sets: [{ type: 'normal', w: '1' }] },
+  ];
+  const shape = (l) => l.map((e) => `${e.id}:${e.supersetId || '-'}`).join(' ');
+  // two members: the partner is on its own at once
+  let l = list();
+  const r = core.removeEntry(l, 'a');
+  assert.equal(shape(l), 'b:- c:g2 d:g2 e:g2 f:-');
+  assert.equal(core.supersetLetters(l).size, 1, 'only one group still has a letter');
+  core.restoreEntry(l, r);
+  assert.equal(shape(l), shape(list()), 'Undo: the entry, its place and the group are back');
+  core.restoreEntry(l, r);
+  assert.equal(l.length, 6, 'a second Undo does nothing');
+  // three members: the other two stay a superset
+  l = list();
+  const r2 = core.removeEntry(l, 'd');
+  assert.equal(shape(l), 'a:g1 b:g1 c:g2 e:g2 f:-');
+  core.restoreEntry(l, r2);
+  assert.equal(shape(l), shape(list()));
+  // a partner that joined another group in between stays there
+  l = list();
+  const r3 = core.removeEntry(l, 'b');
+  core.joinSuperset(l, l.find((e) => e.id === 'a'), l.find((e) => e.id === 'f'));
+  const joined = l.find((e) => e.id === 'a').supersetId;
+  core.restoreEntry(l, r3);
+  assert.equal(l.find((e) => e.id === 'a').supersetId, joined);
+  // the removed entry's sets come back as they were; unknown ids change nothing
+  l = list();
+  const r4 = core.removeEntry(l, 'f');
+  core.restoreEntry(l, r4);
+  assert.deepEqual(l.find((e) => e.id === 'f').sets, [{ type: 'normal', w: '1' }]);
+  assert.equal(core.removeEntry(l, 'zz'), null);
+  // a stored routine without a deleted exercise: no lone superset, the input untouched
+  const stored = list().map(({ id, ...e }) => e);
+  const left = core.withoutExercise(stored, 'xa');
+  assert.deepEqual(left.map((e) => e.supersetId ?? '-'), ['-', 'g2', 'g2', 'g2', '-']);
+  assert.ok(!('supersetId' in left[0]));
+  assert.equal(stored[1].supersetId, 'g1');
+});
+
+test('estimated 1RM (#41): the chosen formula up to 12 reps, Epley above, for every setting', () => {
+  const epley = (w, r) => w * (1 + r / 30);
+  const near = (a, b) => Math.abs(a - b) < 1e-9;
+  for (const { id } of core.FORMULAS) {
+    // 13 reps and the reported high-rep sets: Epley, Average of all included
+    for (const r of [13, 30, 33, 36, 37]) assert.ok(near(core.est1RM(20, r, id), epley(20, r)), `${id} at ${r} reps`);
+    // one rep and nonsense stay as they were
+    assert.equal(core.est1RM(100, 1, id), 100);
+    assert.equal(core.est1RM(0, 5, id), 0);
+    assert.equal(core.est1RM(100, 0, id), 0);
+  }
+  // at 12 reps each formula is still its own
+  assert.ok(near(core.est1RM(100, 12, 'brzycki'), 100 * 36 / 25));
+  assert.ok(near(core.est1RM(100, 12, 'epley'), 140));
+  assert.ok(!near(core.est1RM(100, 12, 'average'), 140), 'Average of all still averages at 12');
+  assert.ok(core.est1RM(20, 36, 'brzycki') < 50, 'no 720 kg from 20 kg × 36');
+  // records go through the same estimate
+  const bench = core.SEED_EXERCISES.find((e) => e.id === 'x-bench-press-barbell');
+  const w = { id: 'w', startedAt: 1, exercises: [{ exerciseId: bench.id, sets: [{ id: 's', type: 'normal', w: 20, r: 36 }] }] };
+  const rec = core.exerciseRecords(core.buildStats([w], new Map([[bench.id, bench]]), 'brzycki').byExercise.get(bench.id), 'barbell', 'brzycki');
+  assert.ok(near(rec.e1rm.value, epley(20, 36)));
+});
+
+test('exercise charts (#27): Heaviest weight by default, the chosen chart per exercise, cleaned and kept in backups', () => {
+  const defaults = Object.fromEntries(core.CATEGORIES.map((c) => [c.id || c, core.defaultChartMetric(c.id || c)]));
+  assert.deepEqual(defaults, { barbell: 'weight', dumbbell: 'weight', machine: 'weight', weighted_bw: 'weight', assisted_bw: 'reps', reps: 'reps', cardio: 'distance', duration: 'time' });
+  // a chosen metric the category has is kept; anything else falls back to the default
+  assert.equal(core.chartMetricFor('barbell', 'e1rm'), 'e1rm');
+  assert.equal(core.chartMetricFor('barbell', 'distance'), 'weight');
+  assert.equal(core.chartMetricFor('reps', undefined), 'reps');
+  assert.equal(core.chartMetricFor('cardio', 42), 'distance');
+  // the map keeps only existing exercises with a metric they still have
+  const bench = core.SEED_EXERCISES.find((e) => e.id === 'x-bench-press-barbell');
+  const run = core.SEED_EXERCISES.find((e) => e.category === 'cardio');
+  const map = { [bench.id]: 'e1rm', [run.id]: 'weight', gone: 'weight', [bench.id + 'x']: 'e1rm' };
+  assert.deepEqual(core.cleanChartMetrics(map, core.SEED_EXERCISES), { [bench.id]: 'e1rm' });
+  assert.deepEqual(core.cleanChartMetrics(map, new Map([[bench.id, bench]])), { [bench.id]: 'e1rm' });
+  assert.deepEqual(core.cleanChartMetrics(null, core.SEED_EXERCISES), {});
+  // backups carry it (cleaned); older backups without it restore as before
+  const data = { exercises: [], workouts: [], templates: [], measurements: [], kv: { chartMetrics: map } };
+  const back = core.parseBackup(core.makeBackup(data, '1.0.0', new Date()), core.SEED_EXERCISES);
+  assert.deepEqual(back.data.kv.chartMetrics, { [bench.id]: 'e1rm' });
+  const old = core.parseBackup(core.makeBackup({ ...data, kv: {} }, '1.0.0', new Date()), core.SEED_EXERCISES);
+  assert.equal(old.data.kv.chartMetrics, undefined);
+  // the Strong CSV doesn't change: it has no place for it
+  const w = { id: 'w', name: 'Push', startedAt: Date.UTC(2026, 10, 3, 9), endedAt: Date.UTC(2026, 10, 3, 10), exercises: [E(bench.id, [S('normal', 80, 8)])] };
+  const exercises = new Map([[bench.id, bench]]);
+  assert.equal(core.exportCSV({ workouts: [w], exercises, kv: { chartMetrics: map } }), core.exportCSV({ workouts: [w], exercises }));
+});
+
+test('Plan rows (#32): a routine\'s muscle groups once each in order, and names with how many more', () => {
+  const lib = new Map(core.SEED_EXERCISES.map((e) => [e.id, e]));
+  const t = { exercises: [E('x-squat-barbell', []), E('x-bench-press-barbell', []), E('x-pull-up', []), E('x-incline-bench-press-barbell', []), E('gone', [])] };
+  assert.deepEqual(core.routineMuscles(t, lib).map((m) => m.label), ['Chest', 'Back', 'Legs']);
+  assert.deepEqual(core.routineMuscles({ exercises: [] }, lib), []);
+  assert.deepEqual(core.namesPreview(['A', 'B', 'C', 'D', 'E']), { shown: ['A', 'B', 'C'], more: 2 });
+  assert.deepEqual(core.namesPreview(['A', 'B']), { shown: ['A', 'B'], more: 0 });
+});
+
+test('a routine\'s pinned note (#33): set, replaced and removed; kept by the editor, Duplicate, links and backups', () => {
+  const st = core.withDefaults({ unit: 'kg', distUnit: 'km' });
+  const exercises = new Map(core.SEED_EXERCISES.map((e) => [e.id, e]));
+  const t = { id: 't', name: 'Push', notes: 'Heavy day', exercises: [E('x-bench-press-barbell', [S('normal', 80, 5)])] };
+  // set, replaced, removed (blank removes it)
+  const pinned = core.withPinnedNote(t, '  Go up 2.5 kg  ');
+  assert.equal(pinned.pinnedNote, 'Go up 2.5 kg');
+  assert.equal(core.withPinnedNote(pinned, 'Seat 4').pinnedNote, 'Seat 4');
+  assert.ok(!('pinnedNote' in core.withPinnedNote(pinned, '   ')));
+  assert.equal(t.pinnedNote, undefined, 'the original is untouched');
+  // the routine editor shows it and saves it; Cancel never reaches templateFromDraft
+  const draft = core.templateDraft({ template: pinned, settings: st });
+  assert.equal(draft.pinnedNote, 'Go up 2.5 kg');
+  assert.equal(core.templateFromDraft(draft, { settings: st, exercises, existing: pinned }).template.pinnedNote, 'Go up 2.5 kg');
+  assert.equal(core.templateFromDraft({ ...draft, pinnedNote: 'Paused reps' }, { settings: st, exercises, existing: pinned }).template.pinnedNote, 'Paused reps');
+  assert.ok(!('pinnedNote' in core.templateFromDraft({ ...draft, pinnedNote: '' }, { settings: st, exercises, existing: pinned }).template));
+  // Duplicate keeps it; a routine without one has none
+  assert.equal(core.copyTemplateRecord(pinned).pinnedNote, 'Go up 2.5 kg');
+  assert.ok(!('pinnedNote' in core.copyTemplateRecord(t)));
+  // a shared link carries it like Notes; links without it still read
+  const opts = { categories: core.CATEGORIES.map((c) => c.id), bodyParts: core.BODY_PARTS.map((b) => b.id) };
+  const link = (x) => `#template=${core.encodeTemplate(x, exercises)}`;
+  assert.equal(core.decodeTemplate(link(pinned), opts).pinnedNote, 'Go up 2.5 kg');
+  const old = core.decodeTemplate(link(t), opts);
+  assert.equal(old.name, 'Push');
+  assert.ok(!('pinnedNote' in old));
+  // backups keep it as it is
+  const back = core.parseBackup(core.makeBackup({ exercises: [], workouts: [], templates: [pinned], measurements: [], kv: {} }, '1.0.0', new Date()), core.SEED_EXERCISES);
+  assert.equal(back.data.templates[0].pinnedNote, 'Go up 2.5 kg');
+});
+test('rep ranges (#44): parsed in the editor, fixed bounds, a target that moves inside them', () => {
+  // what the editor accepts
+  assert.equal(core.parseRepsInput('8'), null);
+  assert.equal(core.parseRepsInput(''), null);
+  assert.deepEqual(core.parseRepsInput('8-10'), { range: [8, 10] });
+  assert.deepEqual(core.parseRepsInput(' 8 – 10 '), { range: [8, 10] });
+  assert.deepEqual(core.parseRepsInput('8–8'), { r: 8 }, 'equal bounds are one target');
+  for (const bad of ['8-', '–10', '10–8', '0–5', '8.5–10', '8–10–12', 'a–b']) assert.deepEqual(core.parseRepsInput(bad), { problem: true }, bad);
+  // stored as rMin/rMax next to the target r
+  assert.deepEqual(core.repRange({ r: 9, rMin: 8, rMax: 10 }), [8, 10]);
+  for (const s of [{ r: 8 }, { rMin: 10, rMax: 8 }, { rMin: 8, rMax: 8 }, { rMin: 0, rMax: 5 }, { rMin: 8.5, rMax: 10 }]) assert.equal(core.repRange(s), null);
+  assert.deepEqual(core.withRepRange({ type: 'normal', w: 80 }, [8, 10]), { type: 'normal', w: 80, r: 8, rMin: 8, rMax: 10 });
+  assert.deepEqual(core.withRepRange({ w: 80, r: 12 }, [8, 10]), { w: 80, r: 10, rMin: 8, rMax: 10 });
+  assert.deepEqual(core.withRepRange({ w: 80, r: 9, rMin: 8, rMax: 10 }, null), { w: 80, r: 9 });
+  assert.equal(core.repsText({ r: 9, rMin: 8, rMax: 10 }), '8–10');
+  assert.equal(core.repsText({ r: 9 }), 9);
+  assert.deepEqual(core.entryRepRange(E('a', [S('warmup', 40, 10), S('normal', 80, 8, { rMin: 8, rMax: 10 }), S('normal', 80, 8, { rMin: 8, rMax: 10 })])), [8, 10]);
+  assert.equal(core.entryRepRange(E('a', [S('normal', 80, 8, { rMin: 8, rMax: 10 }), S('normal', 80, 6, { rMin: 6, rMax: 8 })])), null);
+  assert.equal(core.entryRepRange(E('a', [S('normal', 80, 8)])), null);
+
+  // the routine editor: shown as "8–10", saved with the target kept; refused when broken
+  const st = core.withDefaults({ unit: 'kg', distUnit: 'km' });
+  const exercises = new Map(core.SEED_EXERCISES.map((e) => [e.id, e]));
+  const BENCH = 'x-bench-press-barbell';
+  const t = { id: 't', name: 'Push', exercises: [E(BENCH, [S('warmup', 40, 10), S('normal', 80, 9, { rMin: 8, rMax: 10 }), S('normal', 80, 5)])] };
+  const draft = core.templateDraft({ template: t, settings: st });
+  assert.deepEqual(draft.exercises[0].sets.map((x) => x.r), ['10', '8–10', '5']);
+  const save = (d) => core.templateFromDraft(d, { settings: st, exercises, existing: t });
+  assert.deepEqual(save(draft).template.exercises[0].sets, t.exercises[0].sets, 'untouched: the same bounds and target');
+  const edit = (r) => { const d = JSON.parse(JSON.stringify(draft)); d.exercises[0].sets[1].r = r; return save(d); };
+  assert.deepEqual(edit('10-12').template.exercises[0].sets[1], S('normal', 80, 10, { rMin: 10, rMax: 12 }), 'a new range keeps the target inside it');
+  assert.deepEqual(edit('6–8').template.exercises[0].sets[1], S('normal', 80, 8, { rMin: 6, rMax: 8 }));
+  assert.deepEqual(edit('9').template.exercises[0].sets[1], S('normal', 80, 9), 'a single number is an ordinary target');
+  assert.deepEqual(edit('10–10').template.exercises[0].sets[1], S('normal', 80, 10));
+  for (const bad of ['10–8', '8–', '0–4']) assert.deepEqual(edit(bad), { problem: core.EDIT_MESSAGES.repRange }, bad);
+  // a new range on a set without one starts at its low bound
+  const d2 = JSON.parse(JSON.stringify(draft)); d2.exercises[0].sets[2].r = '5-8';
+  assert.deepEqual(save(d2).template.exercises[0].sets[2], S('normal', 80, 5, { rMin: 5, rMax: 8 }));
+
+  // the running workout: the range sits beside the set; the ghost is last time's reps, else the target; the workout stores no range
+  const a = core.newActiveWorkout({ template: t, settings: st, now: 1000 });
+  const set = a.exercises[0].sets[1];
+  assert.deepEqual(set.range, [8, 10]);
+  assert.equal(set.tpl.r, 9);
+  assert.equal(core.placeholders(a.exercises[0], [], st)[1].ph.r, '9');
+  assert.equal(core.placeholders(a.exercises[0], [S('warmup', 40, 10), S('normal', 80, 7)], st)[1].ph.r, '7');
+  core.addSet(a.exercises[0]);
+  assert.equal(a.exercises[0].sets[3].range, undefined, 'a set after an unranged one has none');
+  const b = core.newActiveWorkout({ template: { ...t, exercises: [E(BENCH, [S('normal', 80, 9, { rMin: 8, rMax: 10 })])] }, settings: st, now: 1000 });
+  core.addSet(b.exercises[0]);
+  assert.deepEqual(b.exercises[0].sets[1].range, [8, 10], 'Add set carries the range on');
+  Object.assign(b.exercises[0].sets[0], { w: '80', r: '9', done: true });
+  const entries = core.draftEntries(b, st, exercises, { onlyDone: true });
+  assert.deepEqual(Object.keys(entries[0].sets[0]).sort(), ['id', 'r', 'type', 'w']);
+});
+
+test('rep ranges (#44): progression moves the target inside the bounds, never the bounds', () => {
+  const cat = () => 'barbell';
+  const R = (w, r, extra) => S('normal', w, r, { rMin: 8, rMax: 10, ...extra });
+  const run = (tpl, sets, o) => core.progressTemplate([E('a', tpl)], { exercises: [E('a', sets)] }, cat, o);
+  // 8 → 9 → 10, then 12 reps: the target stops at 10 and the bounds stay 8–10
+  let tpl = [R(80, 8)];
+  for (const [r, want, raised] of [[9, 9, 1], [10, 10, 1], [12, 10, 0], [11, 10, 0]]) {
+    const out = run(tpl, [S('normal', 80, r)]);
+    assert.deepEqual(out.exercises[0].sets, [R(80, want)], `${r} reps`);
+    assert.equal(out.raised, raised, `${r} reps raised`);
+    tpl = out.exercises[0].sets;
+  }
+  // more weight still counts (no automatic increase): 82.5 × 6 becomes 82.5 × 8, the low bound
+  assert.deepEqual(run([R(80, 10)], [S('normal', 82.5, 6)]).exercises[0].sets, [R(82.5, 8)]);
+  // fewer reps at the same weight: kept
+  assert.deepEqual(run([R(80, 9)], [S('normal', 80, 6)]).exercises[0].sets, [R(80, 9)]);
+  // mixed ranged and plain sets, warm-ups and a skipped last set keep their own
+  const mixed = [S('warmup', 40, 10), R(80, 8), S('normal', 70, 12), R(80, 8)];
+  assert.deepEqual(run(mixed, [S('warmup', 40, 10), S('normal', 80, 11), S('normal', 70, 14)]).exercises[0].sets,
+    [S('warmup', 40, 10), R(80, 10), S('normal', 70, 14), R(80, 8)]);
+  // sides pair per side and keep their range
+  const sided = [R(20, 8, { side: 'left' }), R(20, 8, { side: 'right' })];
+  assert.deepEqual(run(sided, [S('normal', 20, 9, { side: 'right' }), S('normal', 20, 12, { side: 'left' })]).exercises[0].sets,
+    [R(20, 10, { side: 'left' }), R(20, 9, { side: 'right' })]);
+  // the layout: paired sets keep their range, a new set takes the range of the set before it (same type and side), a drop set doesn't
+  const lay = run([R(80, 8), R(80, 8)], [S('normal', 80, 9), S('normal', 80, 12), S('normal', 80, 9), S('drop', 60, 10)], { layout: true });
+  assert.deepEqual(lay.exercises[0].sets, [R(80, 9), R(80, 10), R(80, 9), S('drop', 60, 10)]);
+  // Update values only (applyWorkoutToTemplate) keeps the range too
+  assert.deepEqual(core.applyWorkoutToTemplate([E('a', [R(80, 8)])], { exercises: [E('a', [S('normal', 80, 12)])] }, { valuesOnly: true })[0].sets, [R(80, 10)]);
+  // the layout diff ignores ranges: same sets, same structure
+  assert.equal(core.templateChanges({ exercises: [E('a', [R(80, 8)])] }, { exercises: [E('a', [S('normal', 80, 9)])] }).structure, false);
+});
+
+test('rep ranges (#44): Duplicate, shared links and backups keep bounds and target; old data still reads', () => {
+  const exercises = new Map(core.SEED_EXERCISES.map((e) => [e.id, e]));
+  const opts = { categories: core.CATEGORIES.map((c) => c.id), bodyParts: core.BODY_PARTS.map((b) => b.id) };
+  const ranged = S('normal', 80, 9, { rMin: 8, rMax: 10 });
+  const t = { id: 't', name: 'Push', exercises: [E('x-bench-press-barbell', [S('warmup', 40, 10), ranged, S('normal', 80, 9, { side: 'left', rMin: 8, rMax: 10 }), S('normal', 70, 12)]), E('x-plank', [{ type: 'normal', t: 60 }])] };
+  assert.deepEqual(core.copyTemplateRecord(t).exercises[0].sets, t.exercises[0].sets);
+  const link = (x) => `#template=${core.encodeTemplate(x, exercises)}`;
+  assert.deepEqual(core.decodeTemplate(link(t), opts).exercises[0].sets, t.exercises[0].sets);
+  // an old link (no range) reads as before; a range on a time-only exercise or a broken one is dropped
+  const old = core.decodeTemplate(link({ ...t, exercises: [E('x-bench-press-barbell', [S('normal', 80, 9)])] }), opts);
+  assert.deepEqual(old.exercises[0].sets, [S('normal', 80, 9)]);
+  const forged = (row, c = 'barbell') => core.decodeTemplate(`#template=${Buffer.from(JSON.stringify({ v: 1, n: 'X', e: [{ n: 'Bench Press', c, b: 'chest', s: [row] }] })).toString('base64url')}`, opts).exercises[0].sets[0];
+  assert.deepEqual(forged(['n', 80, 9, null, null, null, [10, 8]]), S('normal', 80, 9));
+  assert.deepEqual(forged(['n', null, null, null, 60, null, [8, 10]], 'duration'), { type: 'normal', t: 60 });
+  assert.deepEqual(forged(['n', 80, 14, null, null, null, [8, 10]]), S('normal', 80, 10, { rMin: 8, rMax: 10 }));
+  // a broken range in stored data is cleaned away on Duplicate
+  assert.deepEqual(core.copyTemplateRecord({ ...t, exercises: [E('x-bench-press-barbell', [S('normal', 80, 9, { rMin: 10, rMax: 8 })])] }).exercises[0].sets, [S('normal', 80, 9)]);
+  const back = core.parseBackup(core.makeBackup({ exercises: [], workouts: [], templates: [t], measurements: [], kv: {} }, '1.0.0', new Date()), core.SEED_EXERCISES);
+  assert.deepEqual(back.data.templates[0].exercises[0].sets, t.exercises[0].sets);
+});
+
+test('weight increase recommended (#49): every prescribed working set at the top of its range in one workout', () => {
+  const cats = { a: 'barbell', b: 'assisted_bw', c: 'reps', d: 'dumbbell' };
+  const cat = (id) => cats[id];
+  const R = (w, extra) => S('normal', w, 8, { rMin: 8, rMax: 10, ...extra });
+  const tpl = (sets, more = []) => ({ id: 't', exercises: [E('a', sets), ...more] });
+  const wo = (sets, more = [], extra = {}) => ({ id: 'w', templateId: 't', startedAt: 5000, exercises: [E('a', sets), ...more], ...extra });
+  const done = (w, r, extra) => S('normal', w, r, extra);
+  const ready = (t, w) => core.routineReadiness(t, w, cat);
+  const three = tpl([S('warmup', 40, 10), R(80), R(80), R(80)]);
+  // 10/10/10 qualifies; 10/10/9 or a missing set doesn't
+  assert.deepEqual(ready(three, wo([S('warmup', 40, 10), done(80, 10), done(80, 10), done(80, 10)])), ['weight']);
+  assert.deepEqual(ready(three, wo([done(80, 10), done(80, 10), done(80, 9)])), [null]);
+  assert.deepEqual(ready(three, wo([done(80, 10), done(80, 10)])), [null], 'a skipped set');
+  assert.deepEqual(ready(three, wo([done(80, 12), done(80, 11), done(82.5, 10)])), ['weight'], 'more reps or weight is fine');
+  assert.deepEqual(ready(three, wo([done(80, 10), done(80, 10), done(77.5, 10)])), [null], 'less weight');
+  // warm-ups, drop sets and extra sets neither count nor prevent it
+  assert.deepEqual(ready(three, wo([done(80, 10), done(80, 10), done(80, 10), S('drop', 60, 6), done(70, 5)])), ['weight']);
+  assert.deepEqual(ready(three, wo([S('warmup', 40, 3), done(80, 10), done(80, 10), done(80, 10)])), ['weight']);
+  // each set against its own weight and range
+  const mixed = tpl([R(80), S('failure', 70, 12, { rMin: 12, rMax: 15 })]);
+  assert.deepEqual(ready(mixed, wo([done(80, 10), S('failure', 70, 15)])), ['weight']);
+  assert.deepEqual(ready(mixed, wo([done(80, 10), S('failure', 70, 14)])), [null]);
+  // a set without a range: no mark until every working set has one
+  assert.deepEqual(ready(tpl([R(80), S('normal', 80, 10)]), wo([done(80, 10), done(80, 10)])), [null]);
+  // both sides must qualify; a missing right side never passes
+  const sided = tpl([R(20, { side: 'left' }), R(20, { side: 'right' })]);
+  assert.deepEqual(ready(sided, wo([done(20, 10, { side: 'right' }), done(20, 10, { side: 'left' })])), ['weight']);
+  assert.deepEqual(ready(sided, wo([done(20, 10, { side: 'left' }), done(20, 12, { side: 'left' })])), [null]);
+  assert.deepEqual(ready(sided, wo([done(20, 10), done(20, 10)])), [null], 'sets without sides don’t stand in for them');
+  // repeated entries pair by occurrence; assisted means less assistance; reps only gets no prompt
+  const multi = { id: 't', exercises: [E('a', [R(80)]), E('b', [R(30)]), E('a', [R(60)]), E('c', [S('normal', null, 8, { rMin: 8, rMax: 12 })])] };
+  const multiDone = (aw2, bw) => ({ id: 'w', templateId: 't', startedAt: 5000,
+    exercises: [E('a', [done(80, 10)]), E('b', [done(bw, 10)]), E('a', [done(aw2, 10)]), E('c', [S('normal', null, 12)])] });
+  assert.deepEqual(ready(multi, multiDone(60, 25)), ['weight', 'assistance', 'weight', null]);
+  assert.deepEqual(ready(multi, multiDone(57.5, 35)), ['weight', null, null, null]);
+  // only a workout from this routine, after the prescription last changed
+  assert.deepEqual(ready(three, { ...wo([done(80, 10), done(80, 10), done(80, 10)]), templateId: null }), [null]);
+  assert.deepEqual(ready({ ...three, prescribedAt: 6000 }, wo([done(80, 10), done(80, 10), done(80, 10)])), [null]);
+  assert.deepEqual(ready({ ...three, prescribedAt: 4000 }, wo([done(80, 10), done(80, 10), done(80, 10)])), ['weight']);
+  assert.deepEqual(ready(three, null), [null]);
+  // more weight next time: progression raises the routine, and the old workout no longer qualifies
+  const after = core.progressTemplate(three.exercises, wo([done(82.5, 8), done(82.5, 8), done(82.5, 8)]), cat).exercises;
+  assert.deepEqual(ready({ ...three, exercises: after }, wo([done(82.5, 8), done(82.5, 8), done(82.5, 8)])), [null]);
+});
+
+test('weight increase recommended (#49): the editor stamps a changed prescription, not a rename or a moved target', () => {
+  const st = core.withDefaults({ unit: 'kg', distUnit: 'km' });
+  const exercises = new Map(core.SEED_EXERCISES.map((e) => [e.id, e]));
+  const t = { id: 't', name: 'Push', exercises: [E('x-bench-press-barbell', [S('normal', 80, 9, { rMin: 8, rMax: 10 }), S('normal', 70, 12)])] };
+  const save = (edit) => { const d = core.templateDraft({ template: t, settings: st }); edit(d); return core.templateFromDraft(d, { settings: st, exercises, existing: t, now: 9000 }).template; };
+  assert.equal(save((d) => { d.name = 'Push A'; }).prescribedAt, undefined);
+  assert.equal(save((d) => { d.exercises[0].sets[0].w = '82.5'; }).prescribedAt, 9000);
+  assert.equal(save((d) => { d.exercises[0].sets[0].r = '8-12'; }).prescribedAt, 9000);
+  assert.equal(save((d) => { d.exercises[0].sets[1].r = '10'; }).prescribedAt, 9000);
+  assert.equal(save((d) => { d.exercises[0].sets.pop(); }).prescribedAt, 9000);
+  assert.equal(core.prescriptionKey(t.exercises), core.prescriptionKey([E('x-bench-press-barbell', [S('normal', 80, 10, { rMin: 8, rMax: 10 }), S('normal', 70, 12)])]), 'a moved target is no change');
+});
+
+test('setChange (#48): the value that decided the change since last time, and by how much', () => {
+  const c = (p, d, cat) => core.setChange(p, d, cat);
+  // weight decides first, then reps; up or down
+  assert.deepEqual(c({ w: 80, r: 8 }, { w: 82.5, r: 6 }, 'barbell'), { dir: 1, key: 'w', diff: 2.5 });
+  assert.deepEqual(c({ w: 80, r: 8 }, { w: 80, r: 10 }, 'dumbbell'), { dir: 1, key: 'r', diff: 2 });
+  assert.deepEqual(c({ w: 80, r: 8 }, { w: 80, r: 7 }, 'machine'), { dir: -1, key: 'r', diff: -1 });
+  assert.deepEqual(c({ w: 80, r: 8 }, { w: 77.5, r: 12 }, 'barbell'), { dir: -1, key: 'w', diff: -2.5 });
+  // the same set: nothing to say; a first time or an empty set: nothing either
+  assert.equal(c({ w: 80, r: 8 }, { w: 80, r: 8 }, 'barbell'), null);
+  assert.equal(c(null, { w: 80, r: 8 }, 'barbell'), null);
+  assert.equal(c({ w: 80, r: 8 }, {}, 'barbell'), null);
+  // assisted: less assistance is better, so its diff is negative and dir 1
+  assert.deepEqual(c({ w: 30, r: 8 }, { w: 25, r: 8 }, 'assisted_bw'), { dir: 1, key: 'w', diff: -5 });
+  assert.deepEqual(c({ w: 30, r: 8 }, { w: 35, r: 12 }, 'assisted_bw'), { dir: -1, key: 'w', diff: 5 });
+  // reps only, time only
+  assert.deepEqual(c({ r: 10 }, { r: 12 }, 'reps'), { dir: 1, key: 'r', diff: 2 });
+  assert.deepEqual(c({ t: 60 }, { t: 45 }, 'duration'), { dir: -1, key: 't', diff: -15 });
+  // cardio: further decides by distance; the same distance faster by time
+  assert.deepEqual(c({ d: 5, t: 1500 }, { d: 5.5, t: 1700 }, 'cardio'), { dir: 1, key: 'd', diff: 0.5 });
+  assert.deepEqual(c({ d: 5, t: 1500 }, { d: 5, t: 1440 }, 'cardio'), { dir: 1, key: 't', diff: -60 });
+  assert.deepEqual(c({ t: 1200 }, { t: 1500 }, 'cardio'), { dir: 1, key: 't', diff: 300 });
+  // floating-point noise doesn't leak into the text
+  assert.deepEqual(c({ w: 0.1, r: 8 }, { w: 0.3, r: 8 }, 'barbell'), { dir: 1, key: 'w', diff: 0.2 });
 });

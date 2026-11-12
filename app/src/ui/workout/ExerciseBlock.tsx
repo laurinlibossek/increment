@@ -11,8 +11,8 @@ import {
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import {
-  placeholders, restFor, addSet, joinSuperset, leaveSuperset, replaceExercise, addWarmups, rateSet, setRir, setSetType,
-  isLiveRecord, loggedFields, usesWeight, usesDistance, numToInput, parseNum, focusOptions, focusValues,
+  placeholders, restFor, addSet, joinSuperset, leaveSuperset, removeEntry, restoreEntry, replaceExercise, addWarmups, rateSet, setRir, setSetType,
+  loggedFields, usesWeight, usesDistance, numToInput, parseNum, focusOptions, focusValues, uncheckSet, parseRepsInput, readinessKind, setChange, draftToSet,
   REST_CHOICES, RPE_CHOICES, RIR_CHOICES, SET_TYPES, FOCUS_LABEL, BODY_PART_LABEL,
 } from '@increment/core';
 
@@ -28,11 +28,12 @@ import { pickExercises } from '@/lib/picker';
 import { useTally } from '@/lib/theme';
 import { Icon } from '@/ui/kit';
 import { actionSheet, prompt, toast } from '@/ui/overlay';
-import { SetRow, Times, type Chip } from '@/ui/tally/SetRow';
-import type { StrokeState } from '@/ui/tally/Tally';
-import { CAPTION_H, SetField, type Field } from './SetRow';
+import { SetHeader, SetRow, Times, type SetNote, type TickState } from '@/ui/tally/SetRow';
+import { SetField, fieldWidth, type Field } from './SetRow';
 import { useSession } from './Session';
-import { effortText, lastTimeText, setValueText } from './text';
+import { effortText, lastTimeText, rirText, setValueText } from './text';
+import { readyText, type Readiness } from '@/lib/workout';
+import { Highlight } from '@/ui/tally/Highlight';
 
 export type EditorMode = 'active' | 'edit' | 'template';
 
@@ -42,20 +43,22 @@ type Props = {
   entry: EntryDraft;
   ex: Exercise | undefined;
   prevSets: WorkSet[] | null;
-  bests: Record<string, number> | undefined;
+  /** running workout: the ids of this entry's record sets, space-separated (a string, so blocks whose records didn't change don't render again) */
+  recordSets: string;
   settings: Settings;
   superset?: { index: number; letter: string };
   /** running workout: the id of the set being logged */
   live?: string | null;
+  /** running workout: "Weight increase recommended" (or less assistance) from the routine's latest workout (#49) */
+  ready?: Readiness;
 };
 
 const SET_TYPE_NAME: Record<SetType, string> = { normal: 'Normal', warmup: 'Warm-up', drop: 'Drop set', failure: 'Failure' };
-const SET_TYPE_CHIP: Record<SetType, string> = { normal: '', warmup: 'Warm-up', drop: 'Drop', failure: 'Failure' };
 
 type FocusKey = keyof typeof FOCUS_LABEL;
 
 export const ExerciseBlock = memo(function ExerciseBlock({
-  draftKey, mode, entry, ex, prevSets, bests, settings, superset, live = null,
+  draftKey, mode, entry, ex, prevSets, recordSets, settings, superset, live = null, ready = null,
 }: Props) {
   const f = useFormat();
   const { tr } = f;
@@ -69,13 +72,13 @@ export const ExerciseBlock = memo(function ExerciseBlock({
   const labels = setLabels(entry.sets);
   const active = mode === 'active';
   const edit = (fn: (e: EntryDraft) => void) => editDraft(draftKey, (_a, e) => fn(e), entry.id);
-  const now = Date.now();
+  const records = recordSets ? recordSets.split(' ') : [];
   const name = f.exName(ex);
 
   // ---------- sets ----------
   const toggle = (i: number) => {
     const set = entry.sets[i];
-    if (set.done) { edit((e) => { e.sets[i].done = false; }); return; }
+    if (set.done) { edit((e) => { uncheckSet(e.sets[i]); }); return; }
     session?.logSet(entry.id, set.id);
   };
   const removeSet = (i: number) => {
@@ -220,11 +223,11 @@ export const ExerciseBlock = memo(function ExerciseBlock({
       }
     }
     if (choice === 'remove') {
-      const i = a.exercises.findIndex((e) => e.id === entry.id);
-      const removed = a.exercises[i];
-      editDraft(draftKey, (d) => { d.exercises.splice(i, 1); });
+      // a superset left with one exercise dissolves; Undo puts both back (#39)
+      let removed: unknown = null;
+      editDraft(draftKey, (d) => { removed = removeEntry(d.exercises, entry.id); });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
-      toast(tr('{name} removed', { name }), { label: tr('Undo'), fn: () => editDraft(draftKey, (d) => { d.exercises.splice(Math.min(i, d.exercises.length), 0, removed); }) });
+      toast(tr('{name} removed', { name }), { label: tr('Undo'), fn: () => editDraft(draftKey, (d) => { restoreEntry(d.exercises, removed); }) });
     }
   };
 
@@ -253,54 +256,80 @@ export const ExerciseBlock = memo(function ExerciseBlock({
     edit((e) => { e.focus = v === focus ? null : v; });
   };
 
-  const fieldNames: Record<Field, string> = { w: tr('Weight'), r: tr('Reps'), d: tr('Distance'), t: tr('Time') };
   const last = lastTimeText(prevSets, cat, f, tr);
   const part = BODY_PART_LABEL[ex.bodyPart as keyof typeof BODY_PART_LABEL];
   const facts = [active ? f.exEquipment(ex) : '', part ? tr(part) : '', last ? tr('last time {sets}', { sets: last }) : ''].filter(Boolean).join(' · ');
   const target = session?.target;
+  // the routine editor: "Weight increase recommended" needs a range on every working set (#49)
+  const kind = mode === 'template' ? readinessKind(cat) as Readiness : null;
+  const working = kind ? entry.sets.filter((x) => x.type === 'normal' || x.type === 'failure') : [];
+  const ranged = working.filter((x) => parseRepsInput(x.r)?.range).length;
+  const rangeHint = ranged > 0 && ranged < working.length
+    ? tr(kind === 'assistance' ? 'Less assistance is recommended once every working set has a rep range' : 'Weight increases are recommended once every working set has a rep range')
+    : '';
+
+  // the columns: "Set", then each field's name over its numbers (#48)
+  const fieldNames: Record<Field, string> = { w: tr('Weight'), r: tr('Reps'), d: tr('Distance'), t: tr('Time') };
+  const columnNames: Record<Field, string> = { w: f.unit, r: tr('Reps'), d: f.dUnit, t: tr('Time') };
+  const single = fields.length === 1;
+  // the routine editor: the reps column widens for every set once one holds a range (#44)
+  const wide = mode === 'template' && entry.sets.some((x) => String(x.r ?? '').includes('–'));
+  const columns = [{ text: tr('Set'), width: 0 }, ...fields.map((k) => ({ text: columnNames[k], width: fieldWidth(k, single, wide && k === 'r') }))];
+  // a set's name for screen readers: "Set 2", "Set 3, failure", "Warm-up set", "Drop set"
+  let n = 0;
+  const setNames = entry.sets.map((x) => {
+    if (x.type === 'warmup') return tr('Warm-up set');
+    if (x.type === 'drop') return tr('Drop set');
+    n++;
+    return x.type === 'failure' ? tr('Set {n}, failure', { n }) : tr('Set {label}', { label: n });
+  });
+  /** "+2.5 kg", "−1 rep", "+0:15", "+0.5 km": the value that decided the change since last time */
+  const changeText = (c: { key: string; diff: number }) => {
+    const a = Math.abs(c.diff);
+    const v = c.key === 'w' ? `${f.w(a)} ${f.unit}` : c.key === 'r' ? f.plural(a, 'rep') : c.key === 't' ? f.clock(a) : f.dist(a);
+    return `${c.diff > 0 ? '+' : '−'}${v}`;
+  };
 
   const row = (set: SetDraft, i: number) => {
     const ph = rows[i]?.ph || {};
-    const record = active && isLiveRecord(set, cat, bests, settings, now);
+    const record = active && set.done && records.includes(set.id);
     const warm = set.type === 'warmup';
     const isLive = active && set.id === live;
-    const state: StrokeState = set.done ? (record ? 'record' : warm ? 'warmup' : 'done') : isLive ? 'live' : warm ? 'warmupPending' : 'pending';
-    const chips: Chip[] = [];
-    const side = set.side ? set.side === 'left' ? tr('Left side') : tr('Right side') : '';
-    if (side) chips.push({ text: side });
-    if (set.type !== 'normal') chips.push({ text: tr(SET_TYPE_CHIP[set.type]) });
+    const tick: TickState = set.done ? (record ? 'record' : 'done') : isLive ? 'live' : 'pending';
+    const notes: SetNote[] = [];
+    // logged: the change since last time's paired set, or Record (no comparison for warm-ups or a first time)
+    const change = active && set.done && !warm && !record ? setChange(rows[i]?.prev, draftToSet(set, settings), cat) as { dir: number; key: string; diff: number } | null : null;
+    if (record) notes.push({ text: tr('Record'), tone: 'up' });
+    else if (change) notes.push({ text: changeText(change), tone: change.dir > 0 ? 'up' : 'down' });
     const rir = setRir(set) as number | null;
-    // a failure set's chip already says 0 left
-    if (mode === 'template') { if (set.rpe) chips.push({ text: `RPE ${set.rpe}` }); } else if (rir !== null && set.type !== 'failure' && (set.done || !active)) chips.push({ text: effortText(rir, tr) });
-    if (record) chips.push({ text: tr('Record'), record: true });
+    // a failure set's F already says 0 in reserve
+    if (mode === 'template') { if (set.rpe) notes.push({ text: `RPE ${set.rpe}` }); } else if (rir !== null && set.type !== 'failure' && (set.done || !active)) notes.push({ text: rirText(rir, tr) });
+    const side = set.side ? set.side === 'left' ? tr('Left') : tr('Right') : '';
+    if (side) notes.push({ text: side });
+    // the routine's rep range, apart from the ghost (last time's reps) (#44)
+    if (set.range && mode !== 'template') notes.push({ text: tr('{range} reps', { range: `${set.range[0]}–${set.range[1]}` }) });
     const shown = Object.fromEntries(fields.map((k) => [k, set[k] || ph[k] || ''])) as Record<Field, string>;
-    const setName = tr('Set {label}', { label: labels[i] });
+    const setName = setNames[i];
     const value = setValueText(shown, cat, f, tr);
-    const rowLabel = [setName, side ? side.toLocaleLowerCase(f.lang) : '', value, set.done ? tr('logged') : tr('not logged')].filter(Boolean).join(', ');
-    // field boxes (with their captions) on the set being logged, the set the keypad types into, and every set in an editor
+    const sideLabel = set.side ? (set.side === 'left' ? tr('Left side') : tr('Right side')).toLocaleLowerCase(f.lang) : '';
+    const rowLabel = [setName, sideLabel, value, active ? (set.done ? tr('logged') : tr('not logged')) : ''].filter(Boolean).join(', ');
+    // field boxes on the set being logged, the set the keypad types into, and every set in an editor
     const boxed = !active || isLive || (!!target && target.setId === set.id);
     const inputs = fields.map((k) => (
-      <SetField key={k} field={k} value={set[k]} ghost={ph[k] || ''} single={fields.length === 1}
-        boxed={boxed} caption={fieldNames[k]} editing={!!target && target.setId === set.id && target.field === k}
+      <SetField key={k} field={k} value={set[k]} ghost={ph[k] || ''} single={single} range={mode === 'template' && k === 'r'} wide={wide && k === 'r'}
+        boxed={boxed} editing={!!target && target.setId === set.id && target.field === k}
         label={`${fieldNames[k]}, ${setName}`} testID={`in-${k}-${set.id}`}
         onChange={(v) => edit((e) => { e.sets[i][k] = v; })}
         onKeypad={session ? () => session.open({ entryId: entry.id, setId: set.id, field: k }) : undefined}
         register={session ? (r) => session.register(`${set.id}:${k}`, r) : undefined} />
     ));
     return (
-      <SetRow key={set.id} testID={`set-${set.id}`} label={rowLabel} first={i === 0} chips={chips}
-        stroke={active ? {
-          state, checked: set.done, testID: `check-${set.id}`, onPress: () => toggle(i),
-          label: rowLabel,
-        } : undefined}
-        lead={active ? undefined : { text: labels[i], label: tr('Set {label}, change type', { label: labels[i] }), onPress: () => setMenu(i) }}
-        meta={{
-          label: tr('Set {label}, change type', { label: labels[i] }), testID: `label-${set.id}`, onPress: () => setMenu(i),
-          more: { label: tr('Options for {name}', { name: setName }), testID: `set-menu-${set.id}` },
-        }}
+      <SetRow key={set.id} testID={`set-${set.id}`} label={rowLabel} first={i === 0} notes={notes} notesTestID={`notes-${set.id}`}
+        lead={{ text: labels[i], label: tr('Options for {name}', { name: setName }), testID: `label-${set.id}`, onPress: () => setMenu(i) }}
+        tick={active ? { state: tick, checked: set.done, testID: `check-${set.id}`, onPress: () => toggle(i), label: rowLabel } : undefined}
         deleteLabel={tr('Delete')} onDelete={() => removeSet(i)}
         shake={session?.shake && session.shake.id === set.id ? session.shake.n : 0}>
-        <Times lower={boxed ? CAPTION_H : 0}>{inputs.length === 2 ? [inputs[0], inputs[1]] : inputs[0]}</Times>
+        <Times>{inputs.length === 2 ? [inputs[0], inputs[1]] : inputs[0]}</Times>
       </SetRow>
     );
   };
@@ -326,6 +355,8 @@ export const ExerciseBlock = memo(function ExerciseBlock({
           </Pressable>
         </View>
         {!!facts && <Text style={{ ...TYPE.footnote, color: t.ink2 }} testID={`last-${ex.id}`}>{facts}</Text>}
+        {!!ready && active && <View style={{ marginTop: SPACE.s1 }}><Highlight chip testID={`ready-${ex.id}`}>{readyText(ready, tr)}</Highlight></View>}
+        {!!rangeHint && <Text style={{ ...TYPE.footnote, color: t.ink2 }} testID={`range-hint-${ex.id}`}>{rangeHint}</Text>}
         {(superset || (active && rest > 0)) && (
           <Text style={{ ...TYPE.footnote, color: t.ink2 }}>
             {superset ? <Text>{tr('Superset {letter}', { letter: superset.letter })}</Text> : null}
@@ -333,10 +364,11 @@ export const ExerciseBlock = memo(function ExerciseBlock({
             {active && rest > 0 ? <Text testID={`rest-tag-${ex.id}`} style={{ fontVariant: ['tabular-nums'] }}>{tr('Rest {time}', { time: f.clock(rest) })}</Text> : null}
           </Text>
         )}
+        {/* the exercise's notes come before its sets: the pinned note first, highlighted, then this time's note (#48) */}
         {!!ex.pinnedNote && (
-          <View style={styles.pinned}>
-            <Icon name="pin" size={14} color={t.ink2} />
-            <Text style={{ ...TYPE.subhead, color: t.ink, flex: 1 }}>{ex.pinnedNote}</Text>
+          <View style={[styles.pinned, { backgroundColor: t.pinnedNote }]} testID={`pinned-${ex.id}`}>
+            <Icon name="pin" size={14} color={t.ink} />
+            <Text style={{ ...TYPE.subhead, fontWeight: '600', color: t.ink, flex: 1 }}>{ex.pinnedNote}</Text>
           </View>
         )}
         {entry.showNotes && (
@@ -344,7 +376,10 @@ export const ExerciseBlock = memo(function ExerciseBlock({
             style={[styles.note, { color: t.ink, backgroundColor: t.paper3 }]} testID={`ex-note-${ex.id}`} />
         )}
       </View>
-      <View style={{ marginTop: SPACE.s2 }}>{entry.sets.map(row)}</View>
+      <View style={{ marginTop: SPACE.s3 }}>
+        {entry.sets.length > 0 && <SetHeader columns={columns} testID={`sets-head-${ex.id}`} />}
+        {entry.sets.map(row)}
+      </View>
       <Pressable onPress={() => edit((e) => addSet(e))} accessibilityRole="button" testID={`add-set-${ex.id}`}
         style={({ pressed }) => [styles.addSet, { opacity: pressed ? 0.6 : 1 }]}>
         <Icon name="plus" size={17} color={t.ink2} />
@@ -359,7 +394,7 @@ const styles = StyleSheet.create({
   head: { paddingHorizontal: SPACE.s5, gap: 2 },
   more: { width: CONTROL.hitMin, height: CONTROL.hitMin, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginRight: -12 },
   focus: { height: 30, minWidth: 30, maxWidth: 140, borderRadius: 15, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
-  pinned: { flexDirection: 'row', gap: SPACE.s2, marginTop: SPACE.s2, alignItems: 'flex-start' },
+  pinned: { flexDirection: 'row', gap: SPACE.s2, marginTop: SPACE.s2, alignItems: 'flex-start', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10 },
   note: { marginTop: SPACE.s2, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15, minHeight: 44 },
   addSet: { flexDirection: 'row', alignItems: 'center', gap: SPACE.s2, alignSelf: 'flex-start', minHeight: CONTROL.hitMin, paddingHorizontal: SPACE.s5 },
 });

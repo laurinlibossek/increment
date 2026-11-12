@@ -25,6 +25,7 @@ import {
 } from '@/ui/kit';
 import { OverlayHost, ask, toast } from '@/ui/overlay';
 import { ListRow } from '@/ui/tally/ListRow';
+import { couldntSave } from '@/lib/saving';
 
 export default function ExerciseForm() {
   const f = useFormat();
@@ -104,8 +105,8 @@ export default function ExerciseForm() {
       } else {
         close(await addExercise({ name: n, category, bodyPart, notes }, selection));
       }
-    } catch {
-      toast(tr('Couldn’t save to storage. Make a backup in Settings to be safe.'));
+    } catch (e) {
+      couldntSave(tr, e);
     } finally {
       savingRef.current = false; setSaving(false);
     }

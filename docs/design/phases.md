@@ -1,8 +1,8 @@
 # Building Tally into the app, phase by phase
 
-The store app (`app/`) moves to Tally in pull requests into `expo-app`, one phase each. Phase 1 lays the foundation; phases 2 to 5 can then run in parallel sessions, because each owns different screens. Read `README.md` here first, then the parts of `components.md`, `navigation.md` and `motion.md` your phase names. `screens.html` shows the target look; open it in a browser or screenshot it with Playwright.
+The store app (`app/`) moves to Tally in pull requests into `main` (`expo-app` in the Setlog repository until 5 Nov 2026), one phase each. Phase 1 lays the foundation; phases 2 to 5 can then run in parallel sessions, because each owns different screens. Read `README.md` here first, then the parts of `components.md`, `navigation.md` and `motion.md` your phase names. `screens.html` shows the target look; open it in a browser or screenshot it with Playwright.
 
-Every phase follows `CLAUDE.md`: German for every new text, browser suites green (update a suite where a screen changes on purpose, and say so in the PR), before/after screenshots in light and dark, and `docs/dev/backlog.md` updated. Keep existing `testID`s where the element survives; a suite that has to change gets the new flow, not a weaker check. Colours come from `useTally()` in new code; `useColors()` is the bridge for screens not rebuilt yet.
+Every phase follows `AGENTS.md`: German for every new text, browser suites green (update a suite where a screen changes on purpose, and say so in the PR), before/after screenshots in light and dark, and `docs/dev/backlog.md` updated. Keep existing `testID`s where the element survives; a suite that has to change gets the new flow, not a weaker check. Colours come from `useTally()` in new code; `useColors()` is the bridge for screens not rebuilt yet.
 
 ## 1. Foundation (done in `claude/tally-foundation`)
 
@@ -32,7 +32,7 @@ Built as planned, with these choices: the web build keeps JS tabs (`(tabs)/_layo
 
 Owns: `src/app/active.tsx`, `src/ui/workout/`, a new `src/ui/tally/Keypad.tsx`.
 
-- Set rows as in `components.md` → SetRow: stroke, weight × reps with ghost values from last time, chips for set type and reps left; no PREVIOUS column, no header row, no field boxes except on the set being logged.
+- Set rows as in `components.md` → SetRow: stroke, weight × reps with ghost values from last time, chips for set type and reps left; no PREVIOUS column, no header row, no field boxes except on the set being logged. (Since #48, 12 Nov 2026: one header row, a label per set that opens its menu, one tick at the end and notes per set instead of the stroke and chips.)
 - Header: minimize, ⋯, workout name, elapsed time, the hero tally of the whole session, "4 of 22 sets · 1 record".
 - Up next: the remaining exercises with full variation names and their own tally; drag to reorder. Only the current exercise header splits its last equipment bracket onto the equipment · body-part line.
 - Action bar: Log (logs the next set with its shown values) → Rest (countdown, −15, +15, Skip, drain bar, "Reps left?" 0 · 1 · 2+, since 4 Nov 2026) → "Finish workout" after the last set. Finish leaves the top corner.
@@ -46,7 +46,7 @@ Owns: `src/app/active.tsx`, `src/ui/workout/`, a new `src/ui/tally/Keypad.tsx`.
 
 Owns: `src/app/summary/[id].tsx`, `src/app/exercise/[id].tsx`, `src/app/workout/[id].tsx`.
 
-- Summary: Done, date eyebrow, name, Stat strip (Time, Volume, Sets), hero tally, Records with the highlight, Notes slot, and the routine question as a switch row ("Save changes to Push A" with one line of what changes) instead of the dialog. Undo stays.
+- Summary: Done, date eyebrow, name, Stat strip (Time, Volume, Sets), hero tally, Records with the highlight, Notes slot, and the routine question as a switch row ("Save changes to Push A" with one line of what changes) instead of the dialog. Undo stays. (Replaced on 4 and 5 Nov 2026: better numbers go into the routine by themselves and a changed layout asks in a small popup; see `docs/dev/backlog.md` → "How finishing a workout from a routine works".)
 - Exercise page: one scroll, no inner tabs: name, equipment and muscle, estimated 1RM as the hero number with its change, range control, the line chart with record dots, Stat strip, Rep maxes, History, How to.
 - Exercise families (after #13): Search and the picker browse families while query results keep exact variation names. The exercise page splits its header into base name and equipment · body part, with movement/equipment chips that replace the selected exercise in place. These are sibling choices, not inner section tabs. Charts, records, previous sets and progression stay per exercise id; every standalone exercise line, including Workouts, keeps the full variation.
 - Tests: `app-logging` (template question), `app-editing` (exercise charts).

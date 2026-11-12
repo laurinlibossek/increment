@@ -7,20 +7,22 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as WebBrowser from 'expo-web-browser';
 import { File } from 'expo-file-system';
 import {
-  DEFAULT_WARMUP, FORMULAS, REST_CHOICES, WEB_APP_URL, exportCSV, parsePlates, privacyPage, startOfDay,
+  DEFAULT_WARMUP, FORMULAS, REST_CHOICES, WEB_APP_URL, exportCSV, parsePlates, privacyPage, runningWorkoutChoice, startOfDay,
 } from '@increment/core';
 
 import {
-  deleteAllData, readBackup, readStrong, restoreBackup, setProfile, setSetting, strongNothingNew, useAppState,
+  backupText, deleteAllData, getState, readBackup, readStrong, restoreBackup, setProfile, setSetting, strongNothingNew, useAppState,
 } from '@/data/store';
+import type { ActiveWorkout } from '@/data/types';
 import type { LanguageSetting, Settings, ThemeSetting } from '@/data/types';
-import { appVersion, backupNow } from '@/lib/backup';
+import { appVersion, backupNow, storageNote } from '@/lib/backup';
 import { dateStamp, saveTextFile } from '@/lib/files';
 import { useFormat } from '@/lib/format';
 import { ENABLE_GERMAN } from '@/lib/i18n';
 import { reviewStrongImport } from '@/lib/strongImport';
 import { bodyUnit, lengthUnit } from '@/lib/measure';
 import { confirm, notice } from '@/lib/notice';
+import { attempt } from '@/lib/saving';
 import { RADIUS, SPACE, TYPE } from '@/design/tally';
 import { useTally } from '@/lib/theme';
 import { HeaderButton, Txt } from '@/ui/kit';
@@ -29,7 +31,7 @@ import { SymbolIcon } from '@/ui/tally/ListRow';
 import { SectionHeader } from '@/ui/tally/SectionHeader';
 import { SettingRow, SwitchSettingRow } from '@/ui/tally/SettingRow';
 import {
-  actionSheet, ask, pickDateTime, prompt, toast,
+  actionSheet, ask, choose, pickDateTime, prompt, toast,
 } from '@/ui/overlay';
 
 /** Let the user pick a file and read it as text (null if they cancel). */
@@ -61,7 +63,9 @@ export default function AccountSheet() {
   const doDeleteAll = async () => {
     const ok = await ask({
       title: tr('Delete all data?'),
-      message: tr('Every workout, routine, measurement and custom exercise on this phone will be erased. Your settings, name, folders and changes to built-in exercises are reset too.'),
+      message: Platform.OS === 'web'
+        ? tr('Every workout, routine, measurement and custom exercise on this device will be erased. Your settings, name, folders and changes to built-in exercises are reset too.')
+        : tr('Every workout, routine, measurement and custom exercise on this phone will be erased. Your settings, name, folders and changes to built-in exercises are reset too.'),
       ok: tr('Continue'), cancel: tr('Cancel'), destructive: true, testID: 'confirm-delete-all',
     });
     if (!ok) return;
@@ -69,7 +73,7 @@ export default function AccountSheet() {
     const v = await prompt({ title: tr('Type {word} to confirm', { word }), placeholder: word, ok: tr('Delete everything') });
     if ((v || '').trim().toUpperCase() !== word.toUpperCase()) { if (v !== null) toast(tr('Nothing was deleted')); return; }
     setBusy(true);
-    try { await deleteAllData(); toast(tr('All data deleted')); } finally { setBusy(false); }
+    try { if (await attempt(tr, deleteAllData().then(() => true))) toast(tr('All data deleted')); } finally { setBusy(false); }
   };
   const doBackup = () => backupNow(tr);
   const doCSV = async () => {
@@ -89,8 +93,33 @@ export default function AccountSheet() {
       workouts: f.plural(counts.workouts, 'workout'), templates: f.plural(counts.templates, 'routine'), measurements: f.plural(counts.measurements, 'measurement'),
     }), tr('Replace'), tr('Cancel'), true);
     if (!ok) return;
+    // a backup made during a workout carries it (#34): a fresh install gets it back; if a
+    // different one is running, the person picks, and the one replaced is saved to a file first
+    let active: ActiveWorkout | null = getState().active || preview.active;
+    if (runningWorkoutChoice(getState().active, preview.active) === 'ask') {
+      const pick = await choose<'app' | 'backup'>({
+        title: tr('Which running workout?'),
+        message: tr('The backup was made during a workout, and a different one is running now.'),
+        options: [
+          { label: tr('Keep the one running now'), value: 'app', tone: 'primary', testID: 'restore-keep-running' },
+          { label: tr('Use the one from the backup'), sub: tr('The one running now is saved to a file first'), value: 'backup', tone: 'plain', testID: 'restore-use-backup-workout' },
+        ],
+        cancel: tr('Cancel'),
+      });
+      if (!pick) return;
+      if (pick === 'backup') {
+        const r = await saveTextFile(`increment-backup-${dateStamp()}.json`, backupText(appVersion()), 'application/json', 'public.json', tr('Back up now'));
+        if (r === 'failed') { notice(tr('Restore from backup'), tr('Couldn’t make the backup')); return; }
+        active = preview.active;
+      }
+    }
     setBusy(true);
-    try { await restoreBackup(preview); notice(tr('Backup restored'), tr('{n} stored', { n: f.plural(counts.workouts, 'workout') })); } finally { setBusy(false); }
+    try {
+      await restoreBackup(preview, active);
+      notice(tr('Backup restored'), tr('{n} stored', { n: f.plural(counts.workouts, 'workout') }));
+    } catch {
+      notice(tr('Restore from backup'), tr('Couldn’t restore the backup. Nothing was changed.'));
+    } finally { setBusy(false); }
   };
 
   const doStrong = async () => {
@@ -168,20 +197,20 @@ export default function AccountSheet() {
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={[TYPE.title2, { color: s.profile.name.trim() ? t.ink : t.ink2 }]} numberOfLines={1}>{s.profile.name.trim() || tr('Not set')}</Text>
-          <Text style={[TYPE.footnote, { color: t.ink2 }]}>{tr('Your name')}</Text>
+          <Text style={[TYPE.subhead, { color: t.ink2 }]}>{tr('Your name')}</Text>
         </View>
         <SymbolIcon name="chevron.right" size={13} color={t.ink3} />
       </Pressable>
 
       <SectionHeader title={tr('Units')} />
       <View style={{ gap: SPACE.s2, paddingHorizontal: SPACE.s5 }}>
-        <Txt tone="ink2" style={TYPE.footnote}>{tr('Lifting weight')}</Txt>
+        <Txt tone="ink2" style={TYPE.subhead}>{tr('Lifting weight')}</Txt>
         <SegmentedControl testID="set-unit" label={tr('Lifting weight')} value={st.unit} onChange={(v) => set('unit', v)} options={[{ value: 'kg', label: 'kg' }, { value: 'lb', label: 'lb' }]} />
-        <Txt tone="ink2" style={[TYPE.footnote, { marginTop: SPACE.s1 }]}>{tr('Distance')}</Txt>
+        <Txt tone="ink2" style={[TYPE.subhead, { marginTop: SPACE.s1 }]}>{tr('Distance')}</Txt>
         <SegmentedControl label={tr('Distance')} value={st.distUnit} onChange={(v) => set('distUnit', v)} options={[{ value: 'km', label: 'km' }, { value: 'mi', label: 'mi' }]} />
-        <Txt tone="ink2" style={[TYPE.footnote, { marginTop: SPACE.s1 }]}>{tr('Body weight')}</Txt>
+        <Txt tone="ink2" style={[TYPE.subhead, { marginTop: SPACE.s1 }]}>{tr('Body weight')}</Txt>
         <SegmentedControl label={tr('Body weight')} value={bodyUnit(st)} onChange={(v) => set('bodyUnit', v)} options={[{ value: 'kg', label: 'kg' }, { value: 'lb', label: 'lb' }]} />
-        <Txt tone="ink2" style={[TYPE.footnote, { marginTop: SPACE.s1 }]}>{tr('Body measurements')}</Txt>
+        <Txt tone="ink2" style={[TYPE.subhead, { marginTop: SPACE.s1 }]}>{tr('Body measurements')}</Txt>
         <SegmentedControl label={tr('Body measurements')} value={lengthUnit(st)} onChange={(v) => set('sizeUnit', v)} options={[{ value: 'cm', label: 'cm' }, { value: 'in', label: 'in' }]} />
       </View>
 
@@ -247,13 +276,13 @@ export default function AccountSheet() {
         <SettingRow symbol="arrow.left.arrow.right" title={tr('Import from Strong')} sub={tr('In Strong: Settings → Export Workouts, then pick that CSV here')} onPress={busy ? undefined : doStrong} testID="strong-import" />
         <SettingRow symbol="tablecells" title={tr('Export as CSV')} sub={tr('Spreadsheet-friendly, Strong column format')} onPress={doCSV} testID="export-csv" />
       </View>
-      <Txt tone="ink2" style={[TYPE.footnote, { marginTop: SPACE.s2, paddingHorizontal: SPACE.s5 }]}>{tr('Which units did Strong use?')}</Txt>
+      <Txt tone="ink2" style={[TYPE.subhead, { marginTop: SPACE.s2, paddingHorizontal: SPACE.s5 }]}>{tr('Which units did Strong use?')}</Txt>
       <View style={{ gap: SPACE.s2, marginTop: SPACE.s2, paddingHorizontal: SPACE.s5 }}>
         <SegmentedControl label={tr('Which units did Strong use?')} value={strongUnits.weightUnit} onChange={(v) => setStrongUnits({ ...strongUnits, weightUnit: v })} options={[{ value: 'kg', label: tr('Kilograms') }, { value: 'lb', label: tr('Pounds') }]} />
         <SegmentedControl label={tr('Which units did Strong use?')} value={strongUnits.distUnit} onChange={(v) => setStrongUnits({ ...strongUnits, distUnit: v })} options={[{ value: 'km', label: tr('Kilometres') }, { value: 'mi', label: tr('Miles') }]} />
       </View>
-      <Txt tone="ink2" style={[TYPE.footnote, { marginTop: SPACE.s3, paddingHorizontal: SPACE.s5 }]}>
-        {tr('Everything stays on this phone. Nothing is uploaded anywhere — back up regularly and keep the file in iCloud Drive or another safe place.')}
+      <Txt tone="ink2" style={[TYPE.subhead, { marginTop: SPACE.s3, paddingHorizontal: SPACE.s5 }]}>
+        {storageNote(tr)}
       </Txt>
 
       <View style={{ marginTop: SPACE.s6 }}>
@@ -264,7 +293,7 @@ export default function AccountSheet() {
         <SettingRow first title={tr('Privacy policy')} onPress={openPrivacy} testID="privacy" />
       </View>
 
-      <Txt tone="ink2" style={[TYPE.footnote, { textAlign: 'center', marginTop: SPACE.s6, paddingHorizontal: SPACE.s5 }]}>
+      <Txt tone="ink2" style={[TYPE.subhead, { textAlign: 'center', marginTop: SPACE.s6, paddingHorizontal: SPACE.s5 }]}>
         {`Increment ${appVersion()} · ${tr('{n} stored', { n: f.plural(s.workouts.length, 'workout') })}`}
       </Txt>
     </ScrollView>

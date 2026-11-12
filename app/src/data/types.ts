@@ -17,6 +17,8 @@ export interface WorkSet {
   rpe?: number;
   /** reps left in reserve: 0–3 (3 = "3+"); older sets may have RPE instead */
   rir?: number;
+  /** when the person logged it (ms; #43): set by the tick, Log or Next, gone on uncheck; older and imported sets have none */
+  doneAt?: number;
 }
 
 export interface Entry {
@@ -40,7 +42,12 @@ export interface Workout {
   source?: string;
 }
 
-export type TemplateSet = Omit<WorkSet, 'id'>;
+/** A routine's set: a target, so nothing that only a performed set has (id, logging time). */
+export type TemplateSet = Omit<WorkSet, 'id' | 'doneAt'> & {
+  /** a rep range's fixed bounds (#44, core/rep-range.js): whole numbers, rMin < rMax; `r` is the current target inside them */
+  rMin?: number;
+  rMax?: number;
+};
 export interface TemplateEntry extends Omit<Entry, 'id' | 'sets'> {
   sets: TemplateSet[];
 }
@@ -50,6 +57,8 @@ export interface Template {
   name: string;
   folder?: string;
   notes?: string;
+  /** a note for next time, shown on the routine and its running workout until changed (#33) */
+  pinnedNote?: string;
   exercises: TemplateEntry[];
   archived?: boolean;
   lastUsedAt?: number;
@@ -123,8 +132,14 @@ export interface SetDraft {
   /** reps left in reserve, rated after the set (0–3) */
   rir?: number;
   done: boolean;
+  /** when it was logged (ms; #43) */
+  doneAt?: number;
   /** template target, shown as the placeholder */
   tpl?: { w: number | null; r: number | null; d: number | null; t: number | null };
+  /** running workout: the routine's rep range for this set, shown beside it (#44) */
+  range?: [number, number];
+  /** routine editor: the current target behind a range typed as "8–10" (#44) */
+  rNow?: number;
   /** stored numbers behind untouched text */
   orig?: Record<string, [string, number]>;
 }
@@ -181,6 +196,8 @@ interface DraftBase {
 export interface TemplateDraft extends DraftBase {
   kind: 'template';
   folder: string;
+  /** the routine's pinned note for next time (#33) */
+  pinnedNote: string;
 }
 export interface WorkoutEditDraft extends DraftBase {
   kind: 'edit';
@@ -188,6 +205,8 @@ export interface WorkoutEditDraft extends DraftBase {
   durationMin: string;
   templateId: string | null;
   source?: string;
+  /** the routine's pinned note for next time, when the workout's routine still exists (#33) */
+  pinnedNote?: string;
 }
 export type EditDraft = TemplateDraft | WorkoutEditDraft;
 export type AnyDraft = ActiveWorkout | EditDraft;
@@ -208,6 +227,8 @@ export interface Kv {
   strongAliases?: Record<string, string>;
   /** Names of this person’s custom exercise families, keyed by fc- id. */
   customFamilies?: Record<string, string>;
+  /** The chart each exercise page shows, when the person chose one: exercise id → metric id (#27). */
+  chartMetrics?: Record<string, string>;
 }
 
 /** Everything that is stored; also the `data` part of a backup file. */

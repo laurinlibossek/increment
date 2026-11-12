@@ -1,16 +1,16 @@
 // Template actions: the ⋯ menu on a template (card and preview), folders,
 // the Templates ⋯ menu, sharing a template as a link and adding one someone
-// shared. Template links open the Setlog web app, which reads the same code;
+// shared. Template links open the Increment web app, which reads the same code;
 // a link that opens this app goes through lib/incoming.ts to offerSharedTemplate().
 import { Share } from 'react-native';
 import { router } from 'expo-router';
 import {
-  encodeTemplate, decodeTemplate, usesWeight, CATEGORIES, BODY_PARTS, WEB_APP_URL,
+  encodeTemplate, decodeTemplate, setTotal, usesWeight, CATEGORIES, BODY_PARTS, WEB_APP_URL,
 } from '@increment/core';
 
 import {
   addExercise, addFolder, copyTemplate, deleteTemplate, findExercise, getState, patchTemplate, removeFolder, renameFolder,
-  saveTemplate, setSetting, templateFolders,
+  saveTemplate, setPinnedNote, setSetting, templateFolders,
 } from '@/data/store';
 import type { Category, Template, TemplateEntry } from '@/data/types';
 import {
@@ -18,6 +18,7 @@ import {
 } from '@/ui/overlay';
 import { setLabels, type Format } from './format';
 import type { Tr } from './i18n';
+import { attempt } from './saving';
 
 type F = Format & { tr: Tr };
 
@@ -44,11 +45,11 @@ export function templateShareText(t: Template, f: F) {
     const labels = setLabels(x.sets);
     const sets = x.sets.map((st, i) => {
       let v = '';
-      if (st.w === undefined && st.r && usesWeight(ex.category)) v = `${st.r} ${tr(st.r === 1 ? 'rep' : 'reps')}`;
+      if (st.w === undefined && st.r && usesWeight(ex.category)) v = f.reps(st);
       else if (st.w || st.r || st.d || st.t) v = f.setText(st, ex.category);
       return v && labels[i] === 'W' ? `W ${v}` : v;
     }).filter(Boolean);
-    lines.push(`• ${f.exName(ex)}: ${f.plural(x.sets.length, 'set')}${sets.length ? ` (${sets.join(', ')})` : ''}`);
+    lines.push(`• ${f.exName(ex)}: ${f.plural(setTotal(x.sets), 'set')}${sets.length ? ` (${sets.join(', ')})` : ''}`);
   }
   lines.push('', tr('Add it to Increment: open this link, or copy it and choose Routines ⋯ → Add shared routine in the app.'),
     `${WEB_APP_URL}#template=${encodeTemplate(t, s.exercises)}`);
@@ -83,6 +84,7 @@ export async function templateMenu(t: Template, f: F): Promise<string | undefine
     actions: [
       { label: tr('Edit routine'), value: 'edit', icon: 'edit', testID: 'tpl-menu-edit' },
       { label: tr('Rename'), value: 'rename', icon: 'edit', testID: 'tpl-menu-rename' },
+      { label: t.pinnedNote ? tr('Edit pinned note') : tr('Pin a note for next time'), value: 'pin', icon: 'pin', testID: 'tpl-menu-pin' },
       { label: tr('Duplicate'), value: 'dup', icon: 'copy', testID: 'tpl-menu-dup' },
       { label: tr('Move to folder'), value: 'folder', icon: 'folder', testID: 'tpl-menu-folder' },
       { label: t.archived ? tr('Unarchive') : tr('Archive'), value: 'archive', icon: 'archive', testID: 'tpl-menu-archive' },
@@ -95,11 +97,16 @@ export async function templateMenu(t: Template, f: F): Promise<string | undefine
     const v = await prompt({ title: tr('Rename routine'), value: t.name });
     if (v && v.trim()) await patchTemplate(t.id, { name: v.trim() });
   }
-  if (c === 'dup') { await copyTemplate(t, { name: tr('{name} (copy)', { name: t.name }) }); toast(tr('Routine duplicated')); }
+  if (c === 'pin') {
+    // its own Save: the note is stored at once, and a running workout from this routine shows it (#33)
+    const v = await prompt({ title: tr('Pinned note'), message: tr('Shown on {name} and the next time you do it, until you change it.', { name: t.name }), value: t.pinnedNote || '', multiline: true });
+    if (v !== null) await attempt(tr, setPinnedNote(t.id, v));
+  }
+  if (c === 'dup' && await attempt(tr, copyTemplate(t, { name: tr('{name} (copy)', { name: t.name }) }))) toast(tr('Routine duplicated'));
   if (c === 'folder') await moveToFolder(t, f);
   if (c === 'archive') {
     const archived = !t.archived;
-    await patchTemplate(t.id, { archived });
+    if (!(await attempt(tr, patchTemplate(t.id, { archived }).then(() => true)))) return c;
     toast(archived ? tr('“{name}” archived', { name: t.name }) : tr('“{name}” is back in your routines', { name: t.name }),
       archived ? { label: tr('Undo'), fn: () => { patchTemplate(t.id, { archived: false }); } } : undefined);
   }
@@ -109,7 +116,7 @@ export async function templateMenu(t: Template, f: F): Promise<string | undefine
       title: tr('Delete “{name}”?', { name: t.name }), message: tr('Past workouts stay in your history.'), ok: tr('Delete'), cancel: tr('Cancel'), destructive: true, testID: 'confirm-delete',
     });
     if (!ok) return undefined;
-    const gone = await deleteTemplate(t.id);
+    const gone = await attempt(tr, deleteTemplate(t.id));
     if (gone) toast(tr('Routine deleted'), { label: tr('Undo'), fn: () => { saveTemplate(gone); } });
     return 'deleted';
   }
@@ -180,7 +187,7 @@ export async function templatesMenu(f: F) {
 }
 
 type Shared = {
-  name: string; notes: string;
+  name: string; notes: string; pinnedNote?: string;
   exercises: { id: string | null; name: string; family?: string; category: Category; bodyPart: string; sets: TemplateEntry['sets']; restSec: number | null; notes: string; group: number | null; focus: string | null }[];
 };
 
@@ -212,7 +219,8 @@ export async function offerSharedTemplate(text: string, f: F): Promise<boolean> 
     if (x.focus) e.focus = x.focus;
     exercises.push(e);
   }
-  const t = await copyTemplate({ id: '', name: p.name, notes: p.notes, exercises });
+  const t = await attempt(tr, copyTemplate({ id: '', name: p.name, notes: p.notes, ...(p.pinnedNote ? { pinnedNote: p.pinnedNote } : {}), exercises }));
+  if (!t) return true;
   toast(tr('“{name}” added to your routines', { name: t.name }));
   return true;
 }

@@ -1,4 +1,6 @@
-// Account settings use the same full-width row as the other Tally lists.
+// Account settings use the same full-width row as the other Tally lists, one
+// step larger than other lists (Laurin, 11 Nov 2026): titles in Title 3 at
+// regular weight, values in Body, subtitles in Subheadline.
 // Titles wrap freely; values shorten first when a setting needs more room.
 import type { ReactNode } from 'react';
 import { Switch, Text } from 'react-native';
@@ -25,14 +27,14 @@ export function SettingRow({ title, sub, value, symbol, onPress, first, danger, 
   const { colors: t } = useTally();
   return (
     <ListRow
-      title={<Text style={[TYPE.body, { color: danger ? t.danger : t.ink }]}>{title}</Text>}
-      subtitle={sub ? <Text style={[TYPE.footnote, { color: t.ink2 }]} numberOfLines={2}>{sub}</Text> : undefined}
+      title={<Text style={[TYPE.title3, { fontWeight: '400', color: danger ? t.danger : t.ink }]}>{title}</Text>}
+      subtitle={sub ? <Text style={[TYPE.subhead, { color: t.ink2 }]} numberOfLines={3}>{sub}</Text> : undefined}
       symbol={symbol} onPress={onPress} first={first} checked={checked} testID={testID}
       chevron={!!onPress && chevron && checked === undefined}
       right={<>
-        {!!value && <Text style={[TYPE.subhead, { color: t.ink2, fontVariant: ['tabular-nums'], flexShrink: 1, maxWidth: '45%' }]} numberOfLines={1}>{value}</Text>}
+        {!!value && <Text style={[TYPE.body, { color: t.ink2, fontVariant: ['tabular-nums'], flexShrink: 1, maxWidth: '55%' }]} numberOfLines={1}>{value}</Text>}
         {right}
-        {checked && <SymbolIcon name="checkmark" size={17} color={t.ink} />}
+        {checked && <SymbolIcon name="checkmark" size={20} color={t.ink} />}
       </>}
     />
   );

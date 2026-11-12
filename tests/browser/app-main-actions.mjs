@@ -1,7 +1,7 @@
 // Design todo group 5. REVIEW_BEFORE=1 captures the matching review baseline.
 import assert from 'node:assert/strict';
 import path from 'node:path';
-import { launch, devices, grantWakeLock, APP, shots } from './env.mjs';
+import { launch, devices, grantWakeLock, APP, shots, storedData, waitStored, writeStored } from './env.mjs';
 import { demoData } from './store-demo.mjs';
 import { EXAMPLE_TEMPLATES, MEASUREMENTS, translator } from '../../core/index.js';
 
@@ -10,7 +10,7 @@ const OUT = shots(before ? 'before' : 'after');
 const browser = await launch();
 let passed = 0;
 const ok = label => { passed++; console.log('PASS', label); };
-const store = page => page.evaluate(() => JSON.parse(localStorage.getItem('increment.data')));
+const store = page => storedData(page);
 
 async function scenario(lang, theme, desktop = false) {
   const data = demoData(lang);
@@ -157,7 +157,7 @@ try {
       await id('number-dialog').waitFor();
       await id('number-input').fill(lang === 'de' ? '81,9' : '81.9');
       await id('number-ok').click();
-      await page.waitForFunction(count => JSON.parse(localStorage.getItem('increment.data')).measurements.length === count + 1, count);
+      await waitStored(page, (d, count) => d.measurements.length === count + 1, count);
       const latest = (await store(page)).measurements.filter(m => m.type === 'bodyweight').sort((a, b) => b.at - a.at)[0];
       assert.equal(latest.value, 81.9);
       await scroll(id('measure-bodyweight'), 0);
@@ -183,7 +183,7 @@ try {
     routine.name = lang === 'de' ? 'Oberkörper A mit zusätzlichem Schulter- und Armtraining' : 'Upper body A with extra shoulder and arm work';
     routine.exercises = data.templates.slice(0, 3).flatMap(t => t.exercises);
     await go('/');
-    await page.evaluate(data => localStorage.setItem('increment.data', JSON.stringify(data)), data);
+    await writeStored(page, data);
     await go(`/template/${routine.id}`);
     await id('start-template').waitFor();
     await shot('routine-long-title');
@@ -201,7 +201,7 @@ try {
     if (!before && lang === 'en') {
       await id('add-example').scrollIntoViewIfNeeded();
       await id('add-example').click();
-      await page.waitForFunction(count => JSON.parse(localStorage.getItem('increment.data')).templates.length === count + 1, data.templates.length);
+      await waitStored(page, (d, count) => d.templates.length === count + 1, data.templates.length);
       await id('template-options').waitFor();
       await dock(page, 'template-action-bar', 'start-template');
       ok('example routine keeps a reachable Add to my routines action and opens the saved copy');

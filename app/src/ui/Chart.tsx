@@ -30,9 +30,9 @@ function Tip({ left, width, value, sub }: { left: number; width: number; value: 
   const half = SPACE.s8 * 2;
   const x = Math.min(Math.max(left, half), width - half);
   return (
-    <View pointerEvents="none" style={[styles.tip, { left: x - half, backgroundColor: c.ink }]} testID="chart-tip">
-      <Text style={[TYPE.headline, { color: c.bg, textAlign: 'center' }]} numberOfLines={1}>{value}</Text>
-      <Text style={[TYPE.caption, { color: c.bg, textAlign: 'center' }]} numberOfLines={1}>{sub}</Text>
+    <View pointerEvents="none" style={[styles.tip, { left: x - half, backgroundColor: c.chart }]} testID="chart-tip">
+      <Text style={[TYPE.headline, { color: c.primaryInk, textAlign: 'center' }]} numberOfLines={1}>{value}</Text>
+      <Text style={[TYPE.caption, { color: c.primaryInk, textAlign: 'center' }]} numberOfLines={1}>{sub}</Text>
     </View>
   );
 }
@@ -88,7 +88,7 @@ export function BarChart({
   const pick = (px: number) => setSel(Math.max(0, Math.min(lastI, Math.floor((px - padL) / band))));
   const sb = sel !== null ? bars[sel] : null;
   return (
-    <View onLayout={onLayout} style={{ marginTop: SPACE.s3 }} testID={testID}
+    <View onLayout={onLayout} style={{ marginTop: SPACE.s3, ...(Platform.OS === 'web' ? { touchAction: 'pan-y' } : {}) }} testID={testID}
       accessible accessibilityRole="image" accessibilityLabel={`${label}: ${bars.length ? fmtVal(bars[lastI].value) : ''}`}
       onStartShouldSetResponder={() => true} onResponderGrant={(e) => pick(e.nativeEvent.locationX)} onResponderMove={(e) => pick(e.nativeEvent.locationX)}
       onResponderRelease={() => setTimeout(() => setSel(null), 1600)} onResponderTerminationRequest={() => true}>
