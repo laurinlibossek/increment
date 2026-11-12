@@ -87,6 +87,9 @@ export const SetField = memo(function SetField({
         onFocus={onKeypad}
         // the keypad is the keyboard; the phone's stays down
         showSoftInputOnFocus={keypad ? false : undefined} caretHidden={keypad && Platform.OS !== 'web'} contextMenuHidden={keypad}
+        // web: showSoftInputOnFocus becomes virtualkeyboardpolicy, which Safari ignores, so the iPhone's keyboard
+        // opened over the keypad (#25); inputmode="none" keeps it down there while a hardware keyboard still types
+        inputMode={keypad && Platform.OS === 'web' ? 'none' : undefined}
         // a range needs a dash: the number pads have none (iPhone: numbers and punctuation; Android: the phone pad)
         keyboardType={range ? (Platform.OS === 'ios' ? 'numbers-and-punctuation' : 'phone-pad') : field === 'r' || isTime ? 'number-pad' : 'decimal-pad'} selectTextOnFocus={!keypad}
         inputAccessoryViewID={!keypad && Platform.OS === 'ios' ? KEYBOARD_BAR : undefined}
