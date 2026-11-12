@@ -1,8 +1,9 @@
 // Dragging the keypad down (#31): from the handle or the title the whole
 // keypad follows the finger; a long enough drag or a flick closes it, a short
 // one springs back; a drag that starts on the keys never closes it; a tap on
-// the handle and a mouse drag still work. Touch is real browser input (CDP
-// Input.dispatchTouchEvent), as in app-tab-swipe.
+// the handle and a mouse drag still work. Its fields keep Safari's keyboard
+// down (inputmode none, #25); Tools keeps its number keyboards. Touch is real
+// browser input (CDP Input.dispatchTouchEvent), as in app-tab-swipe.
 import assert from 'node:assert/strict';
 import { launch, devices, grantWakeLock, APP, shots } from './env.mjs';
 import { SEED_EXERCISES, SEED_VERSION } from '../../core/index.js';
@@ -53,6 +54,8 @@ for (const theme of ['light', 'dark']) {
 
   await page.goto(`${APP}/active`);
   await id(`block-${BENCH}`).waitFor();
+  // the phone's own keyboard stays down: Safari only honours inputmode="none" (#25)
+  assert.deepEqual(await page.locator('[data-testid^="in-"]').evaluateAll((els) => els.map((e) => e.getAttribute('inputmode'))), ['none', 'none']);
   await openPad();
 
   // a short drag follows the finger and springs back
@@ -97,6 +100,15 @@ for (const theme of ['light', 'dark']) {
   await page.mouse.up();
   await keypad.waitFor({ state: 'detached' });
   ok(`${theme}: a drag over the keys leaves it open; a tap on the handle and a mouse drag close it`);
+
+  // the editors and Tools keep their number keyboards
+  if (theme === 'light') {
+    await page.goto(`${APP}/tools`);
+    await id('tools-tabs-rm').click();
+    assert.equal(await id('rm-w').getAttribute('inputmode'), 'decimal');
+    assert.equal(await id('rm-r').getAttribute('inputmode'), 'numeric');
+    ok('the keypad\'s fields keep the phone\'s keyboard down (inputmode none); Tools keeps its number keyboards');
+  }
 
   assert.deepEqual(errors, []);
   await ctx.close();
