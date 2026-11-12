@@ -604,3 +604,26 @@ export const EXERCISE_CATALOGUE = [
     ["Warm Up", T, "other"],
   ]),
 ];
+
+// Variations done one side at a time (#54): their sets can say left or
+// right, and summaries count complete left/right pairs. The default belongs to
+// the variation, not its family (Chest Fly (Cable) is two-sided, Single Arm
+// Chest Fly (Cable) one-sided); an exercise's own `unilateral` overrides it.
+export const UNILATERAL_NAMES = Object.freeze([
+  'Single Arm Chest Fly (Cable)', 'Single Arm Pullover (Cable)',
+  'Single Leg Romanian Deadlift (Dumbbell)', 'Single Leg Romanian Deadlift (Kettlebell)',
+  'Bent Over One Arm Row (Dumbbell)', 'Kroc Row (Dumbbell)', 'Meadows Row (Barbell)', 'Single Arm Row (Cable)',
+  'Lat Pulldown (Single Arm)', 'Single Arm Lat Pulldown (Machine)', 'Cuffed Single Arm Lat Pullover (Cable)',
+  'Single Arm Overhead Press (Dumbbell)', 'Concentration Curl (Dumbbell)',
+  'Single Arm Triceps Pushdown (Cable)', 'Single Arm Overhead Triceps Extension (Cable)',
+  'Pistol Squat', 'Single Leg Press (Machine)',
+  'Split Squat (Barbell)', 'Split Squat (Dumbbell)', 'Split Squat (Smith Machine)',
+  'Bulgarian Split Squat (Dumbbell)', 'Bulgarian Split Squat (Barbell)', 'Bulgarian Split Squat (Smith Machine)', 'Bulgarian Split Squat',
+  'Front Foot Elevated Split Squat (Dumbbell)',
+  'Single Leg Extension (Machine)', 'Single Leg Curl (Machine)', 'Standing Leg Curl (Machine)',
+  'Single Leg Hip Thrust', 'Single Leg Hip Thrust (Dumbbell)', 'Single Leg Glute Bridge',
+  'Glute Kickback (Cable)', 'Glute Kickback (Machine)', 'Glute Kickback (Band)',
+  'Copenhagen Plank', 'Single Leg Calf Raise (Dumbbell)', 'Side Plank',
+  'Turkish Get Up (Kettlebell)', 'Turkish Get Up (Dumbbell)',
+]);
+export const UNILATERAL_IDS = new Set(UNILATERAL_NAMES.map((name) => 'x-' + slug(name)));

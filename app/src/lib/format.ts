@@ -62,6 +62,10 @@ export function makeFormat(settings: Settings, locale: string, lang: 'en' | 'de'
   /** "3 sets" / "3 Sätze" */
   const plural = (n: number, one: string, many?: string) => `${num(n, 0)} ${n === 1 ? tr(one) : tr(many || one + 's')}`;
 
+  /** A set total (#54): "6 sets", with the rows a left/right pairing left out, "2 sets · 1 unpaired". */
+  const setsText = (c: { sets: number; unpaired?: number }) => (c.unpaired
+    ? `${plural(c.sets, 'set')} · ${tr('{n} unpaired', { n: num(c.unpaired, 0) })}` : plural(c.sets, 'set'));
+
   /** A routine set's reps on their own: "8 reps", or its range, "8–10 reps" (#44) */
   const reps = (s: { r?: number; rMin?: number; rMax?: number }) => (repRange(s) ? `${repsText(s)} ${tr('reps')}` : plural(s.r ?? 0, 'rep'));
 
@@ -132,7 +136,7 @@ export function makeFormat(settings: Settings, locale: string, lang: 'en' | 'de'
   /** Split header/chip name; all standalone exercise lines use exName. */
   const exBase = (ex: { id: string; name: string } | null | undefined) => exerciseBaseName(ex, lang);
   const exEquipment = (ex: { id: string; name: string } | null | undefined) => exerciseEquipment({ name: exName(ex) });
-  return { unit, dUnit, num, w, wu, e1rm, volume, totalVolume, dist, pace, setText, plural, reps, dur, date, relDay, relDayLower, clock: fmtClock, exName, exBase, exEquipment };
+  return { unit, dUnit, num, w, wu, e1rm, volume, totalVolume, dist, pace, setText, setsText, plural, reps, dur, date, relDay, relDayLower, clock: fmtClock, exName, exBase, exEquipment };
 }
 
 export type Format = ReturnType<typeof makeFormat>;

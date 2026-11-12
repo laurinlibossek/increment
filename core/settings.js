@@ -20,6 +20,7 @@ export const DEFAULT_SETTINGS = {
   templateSort: 'name',
   formula: 'epley',
   dumbbellTwice: false,
+  pairSides: true, // set totals of routines and workouts count left/right pairs of one-side exercises (#54)
   bwWeighted: false,
   bwAssisted: false,
   historyStart: null, // ms; workouts before it are ignored for previous values, records and charts

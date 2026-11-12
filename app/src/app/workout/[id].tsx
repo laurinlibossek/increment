@@ -8,7 +8,7 @@ import {
   Pressable, ScrollView, StyleSheet, Text, View,
 } from 'react-native';
 import {
-  workoutSetCount, workoutVolume, est1RM, hasLoadRecords, kgTo, PR_LABEL,
+  entriesSetCount, workoutVolume, est1RM, hasLoadRecords, kgTo, PR_LABEL,
 } from '@increment/core';
 
 import {
@@ -59,10 +59,10 @@ export default function WorkoutDetail() {
   const vol = workoutVolume(w, s.exercises) as number;
   const prs = st.prsByWorkout.get(w.id) || [];
   const recordSets = new Set<string>(prs.map((p: { setId: string }) => p.setId));
-  const sets = workoutSetCount(w) as number;
+  const sets = entriesSetCount(w.exercises, s.exercises, { pair: s.settings.pairSides !== false }) as { sets: number; unpaired: number };
   const shown = kgTo(vol || 0, f.unit);
   const label = (k: string) => tr((PR_LABEL as Record<string, string>)[k] || k);
-  const tallyLine = [f.plural(sets, 'set'), recordSets.size ? f.plural(recordSets.size, 'record') : ''].filter(Boolean).join(' · ');
+  const tallyLine = [f.setsText(sets), recordSets.size ? f.plural(recordSets.size, 'record') : ''].filter(Boolean).join(' · ');
   const menu = async () => {
     const c = await actionSheet<string>({
       title: w.name,
@@ -103,7 +103,7 @@ export default function WorkoutDetail() {
         <StatStrip style={{ marginTop: SPACE.s5 }} stats={[
           { label: tr('Time'), value: hm(w.endedAt - w.startedAt), testID: 'workout-time' },
           vol ? { label: tr('Volume'), value: f.num(shown, 0), unit: f.unit, testID: 'workout-volume' } : { label: tr('Volume'), value: '—' },
-          { label: tr('Sets'), value: f.num(sets, 0) },
+          { label: tr('Sets'), value: f.num(sets.sets, 0), testID: 'workout-sets' },
         ]} />
         <View style={{ marginTop: SPACE.s5 }}>
           <WorkoutTally groups={workoutStrokes(w, recordSets)} size="regular" label={tallyLine} testID="workout-tally" />

@@ -1,0 +1,202 @@
+// Left/right sets (#54): only exercises done one side at a time offer Side
+// (a set already tagged keeps it to change or clear); the exercise form's
+// "One side at a time" overrides the catalogue's default and survives a
+// reload; routine and workout totals count complete left/right pairs and show
+// the rest as unpaired, or every row with Account's "Count left/right sets
+// together" off; Sets per muscle always counts pairs. Light, dark and German.
+import assert from 'node:assert/strict';
+import { launch, devices, grantWakeLock, APP, shots, selectTab, openSearch, storedData, waitStored } from './env.mjs';
+import { SEED_EXERCISES, SEED_VERSION, DAY } from '../../core/index.js';
+
+const OUT = shots('app-paired-sets');
+const CURL = 'x-concentration-curl-dumbbell', LEGX = 'x-single-leg-extension-machine', BENCH = 'x-bench-press-barbell';
+const PLANK = 'x-side-plank', EXT = 'x-leg-extension-machine';
+const browser = await launch();
+let passed = 0;
+const ok = (label) => { passed++; console.log('PASS', label); };
+
+const S = (side, type = 'normal') => ({ type, w: 20, r: 8, ...(side ? { side } : {}) });
+const rows = (sides) => [...sides].map((x) => S(x === 'L' ? 'left' : x === 'R' ? 'right' : undefined));
+const at = Date.now() - DAY;
+// the routine: curl L R L R (2 pairs), single-leg extension L L L (no pair), bench 3 (with a warm-up)
+const routine = { id: 'pairs', name: 'Pairs', exercises: [
+  { exerciseId: CURL, sets: rows('LRLR') }, { exerciseId: LEGX, sets: rows('LLL') }, { exerciseId: BENCH, sets: [S(null, 'warmup'), ...rows('---')] },
+] };
+// yesterday: curl L R L R and a warm-up (2), extension L L L R (1 pair, 2 unpaired), bench 3
+const done = { id: 'done', name: 'Pairs', templateId: 'pairs', startedAt: at, endedAt: at + 3600000, exercises: [
+  [CURL, [S(null, 'warmup'), ...rows('LRLR')]], [LEGX, rows('LLLR')], [BENCH, rows('---')],
+].map(([exerciseId, sets], i) => ({ id: `e${i}`, exerciseId, sets: sets.map((x, j) => ({ id: `s${i}${j}`, ...x })) })) };
+// a two-sided exercise with an old side tag on its first set
+const legacy = { id: 'legacy', name: 'Legacy', exercises: [{ exerciseId: BENCH, sets: [S('left'), S()] }] };
+const data = (language) => ({
+  exercises: SEED_EXERCISES, workouts: [done], measurements: [], templates: [routine, legacy],
+  kv: { settings: { language, showExamples: false, appKeepAwake: false, defaultRest: 0, askTemplateUpdate: false }, meta: { seedVersion: SEED_VERSION, createdAt: 1000, lastBackupAt: Date.now() } },
+});
+
+async function open(language, theme) {
+  const ctx = await browser.newContext({ ...devices['iPhone 13'], viewport: { width: 375, height: 812 }, locale: language === 'de' ? 'de-DE' : 'en-US', colorScheme: theme });
+  await ctx.addInitScript(grantWakeLock);
+  await ctx.addInitScript((json) => { if (!localStorage.getItem('increment.data')) localStorage.setItem('increment.data', json); }, JSON.stringify(data(language)));
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  page.on('dialog', (d) => d.accept().catch(() => {}));
+  const id = (t) => page.getByTestId(t);
+  const text = async (t) => (await id(t).innerText()).replace(/\s+/g, ' ').trim();
+  const shot = async (name) => { await page.waitForTimeout(250); await page.screenshot({ path: `${OUT}/${language}-${theme}-${name}.png` }); };
+  return { ctx, page, errors, id, text, shot };
+}
+const firstSet = async (page, ex) => (await page.getByTestId(`block-${ex}`).locator('[data-testid^="label-"]').first().getAttribute('data-testid')).slice('label-'.length);
+async function hasSide(page, setId) {
+  await page.getByTestId(`label-${setId}`).click();
+  await page.getByTestId('type-normal').waitFor();
+  const n = await page.getByTestId('set-side').count();
+  await page.getByTestId('sheet-cancel').click();
+  await page.getByTestId('type-normal').waitFor({ state: 'hidden' });
+  return n > 0;
+}
+async function editExercise(page, ex) {
+  await page.goto(`${APP}/exercise/${ex}`);
+  await page.getByTestId('exercise-options').click();
+  await page.getByTestId('ex-edit').click();
+  await page.getByTestId('exercise-name').waitFor();
+  return page.getByTestId('exercise-unilateral').getByRole('switch');
+}
+async function setPairing(page, on) {
+  await page.goto(`${APP}/account`);
+  const toggle = page.getByTestId('set-pair-sides');
+  await toggle.scrollIntoViewIfNeeded();
+  if ((await toggle.getByRole('switch').isChecked()) !== on) await toggle.click();
+  await waitStored(page, (d, v) => (d.kv.settings.pairSides !== false) === v, on);
+}
+
+for (const theme of ['light', 'dark']) {
+  const { ctx, page, errors, id, text, shot } = await open('en', theme);
+  await page.goto(APP);
+  // Sets per muscle: pairs within the workout, warm-ups out
+  for (const [m, n] of [['chest', 3], ['arms', 2], ['legs', 1]]) assert.match(await text(`muscle-${m}`), new RegExp(` ${n}$`), m);
+  // Plan: the routine's prescribed rows, paired; the rest unpaired
+  await selectTab(page, 'plan');
+  await id('template-pairs').waitFor();
+  assert.match(await text('template-facts-pairs'), /· 5 sets · 3 unpaired ·/);
+  await shot('plan');
+  ok(`${theme}: Sets per muscle counts pairs (arms 2, legs 1, chest 3); Plan says “5 sets · 3 unpaired”`);
+
+  await page.goto(`${APP}/template/pairs`);
+  assert.match(await text('template-exercise-0'), /2 sets/);
+  assert.match(await text('template-exercise-1'), /0 sets · 3 unpaired/);
+  assert.match(await text('template-exercise-2'), /3 sets/);
+  await shot('routine');
+  // the workout: its page and its summary
+  await page.goto(`${APP}/workout/done`);
+  await id('workout-title').waitFor();
+  assert.equal(await text('workout-sets'), 'Sets 6');
+  assert.ok(await page.getByText('6 sets · 2 unpaired', { exact: true }).count(), 'the line under the tally');
+  await shot('workout');
+  await page.goto(`${APP}/summary/done`);
+  await id('summary-title').waitFor();
+  assert.equal(await text('summary-sets'), 'Sets 6');
+  assert.ok(await page.getByText(/^6 sets · 2 unpaired · /).count());
+  await page.goto(APP);
+  await selectTab(page, 'plan');
+  ok(`${theme}: the routine page says “2 sets”, “0 sets · 3 unpaired”, “3 sets”; the workout and its summary “6 sets · 2 unpaired”`);
+
+  // Side: offered on the one-side exercise, not on bench; an old tag on bench still opens it
+  await page.goto(`${APP}/template/pairs`);
+  await id('start-template').click();
+  await page.getByTestId(`block-${CURL}`).waitFor();
+  assert.equal(await hasSide(page, await firstSet(page, CURL)), true);
+  await id(`jump-${BENCH}`).click();
+  await page.getByTestId(`block-${BENCH}`).waitFor();
+  const benchIds = await page.getByTestId(`block-${BENCH}`).locator('[data-testid^="label-"]').evaluateAll((els) => els.map((e) => e.dataset.testid.slice('label-'.length)));
+  assert.equal(await hasSide(page, benchIds[1]), false, 'two-sided: no Side');
+  await id('workout-menu').click();
+  await id('menu-discard').click();
+  await id('confirm-discard').click().catch(() => {});
+  await page.goto(`${APP}/template-edit?id=legacy`);
+  await page.getByTestId(`block-${BENCH}`).waitFor();
+  const legacyIds = await page.getByTestId(`block-${BENCH}`).locator('[data-testid^="label-"]').evaluateAll((els) => els.map((e) => e.dataset.testid.slice('label-'.length)));
+  assert.equal(await hasSide(page, legacyIds[0]), true, 'the tagged set can still change or clear its side');
+  assert.equal(await hasSide(page, legacyIds[1]), false);
+  ok(`${theme}: Side in the running workout for Concentration Curl, not for Bench Press; the routine editor keeps it on bench's tagged set only`);
+
+  // switching the preference changes the summaries, never Sets per muscle
+  await setPairing(page, false);
+  await shot('account');
+  await page.goto(APP);
+  for (const [m, n] of [['chest', 3], ['arms', 2], ['legs', 1]]) assert.match(await text(`muscle-${m}`), new RegExp(` ${n}$`), m);
+  await selectTab(page, 'plan');
+  assert.match(await text('template-facts-pairs'), /· 10 sets ·/);
+  assert.doesNotMatch(await text('template-facts-pairs'), /unpaired/);
+  await page.goto(`${APP}/template/pairs`);
+  assert.match(await text('template-exercise-1'), /3 sets/);
+  await page.goto(`${APP}/workout/done`);
+  assert.equal(await text('workout-sets'), 'Sets 11');
+  const stored = await storedData(page);
+  assert.equal(stored.workouts[0].exercises[1].sets.length, 4, 'the stored rows stay');
+  await setPairing(page, true);
+  ok(`${theme}: “Count left/right sets together” off counts rows (Plan 10, workout 11, extension 3); Sets per muscle stays 3 / 2 / 1`);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+}
+
+// the exercise form: a built-in's default, its override, a custom exercise
+{
+  const { ctx, page, errors, id, shot } = await open('en', 'light');
+  await page.goto(APP);
+  let toggle = await editExercise(page, EXT);
+  assert.equal(await toggle.isChecked(), false, 'Leg Extension (Machine) is two-sided by default');
+  await id('exercise-unilateral').click();
+  await shot('form');
+  await id('exercise-save').click();
+  await waitStored(page, (d) => d.exercises.find((e) => e.id === EXT)?.unilateral === true);
+  await page.reload();
+  toggle = await editExercise(page, EXT);
+  assert.equal(await toggle.isChecked(), true, 'the override survives a reload');
+  await id('exercise-cancel').click();
+  toggle = await editExercise(page, PLANK);
+  assert.equal(await toggle.isChecked(), true, 'Side Plank is one side at a time by default');
+  await id('exercise-unilateral').click();
+  await id('exercise-save').click();
+  await waitStored(page, (d) => d.exercises.find((e) => e.id === PLANK)?.unilateral === false);
+  toggle = await editExercise(page, PLANK);
+  await id('exercise-unilateral').click();
+  await id('exercise-save').click();
+  await waitStored(page, (d) => !Object.hasOwn(d.exercises.find((e) => e.id === PLANK), 'unilateral'));
+  ok('the form: Leg Extension turned one-sided survives a reload; Side Plank turned two-sided is stored, and back to its default stores nothing');
+
+  await page.goto(APP);
+  await openSearch(page);
+  await id('exercise-search').fill('Zebra Reach');
+  await id('new-exercise').click();
+  await id('exercise-name').waitFor();
+  await id('exercise-unilateral').click();
+  await id('exercise-save').click();
+  const d = await waitStored(page, (x) => x.exercises.some((e) => e.name === 'Zebra Reach'));
+  assert.equal(d.exercises.find((e) => e.name === 'Zebra Reach').unilateral, true);
+  ok('a new custom exercise can be one side at a time');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+}
+
+// German
+{
+  const { ctx, page, errors, id, text, shot } = await open('de', 'light');
+  await page.goto(APP);
+  await selectTab(page, 'plan');
+  await id('template-pairs').waitFor();
+  assert.match(await text('template-facts-pairs'), /· 5 Sätze · 3 ohne Paar ·/);
+  await shot('plan');
+  await page.goto(`${APP}/account`);
+  await id('set-pair-sides').scrollIntoViewIfNeeded();
+  assert.ok(await page.getByText('Links und rechts zusammen zählen', { exact: true }).count());
+  await shot('account');
+  await editExercise(page, PLANK);
+  assert.ok(await page.getByText('Einseitig', { exact: true }).count());
+  await shot('form');
+  ok('German: “5 Sätze · 3 ohne Paar”, “Links und rechts zusammen zählen”, “Einseitig”');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+}
+await browser.close();
+console.log(`\n${passed} checks passed`);

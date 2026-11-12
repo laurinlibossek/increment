@@ -151,10 +151,10 @@ export function workoutVolume(w, exById) {
 }
 
 /**
- * How many sets a number of sets shows (#38): every row but warm-ups, which
+ * How many rows a number of sets shows (#38): every row but warm-ups, which
  * are logged and drawn (W rows, short strokes) but never counted. Normal,
- * failure and drop sets count. Rows with a side count one by one here; the
- * per-muscle and routine totals pair them (workingSetCount, #54).
+ * failure and drop sets count. Rows with a side count one by one here, as
+ * logging progress does; the summaries pair them (entriesSetCount, #54).
  */
 export function setTotal(sets) {
   let n = 0;
@@ -162,7 +162,7 @@ export function setTotal(sets) {
   return n;
 }
 
-/** A workout's sets, warm-ups left out (setTotal). */
+/** A workout's rows, warm-ups left out (setTotal); its set total is entriesSetCount (#54). */
 export function workoutSetCount(w) {
   let n = 0;
   for (const e of w.exercises) n += setTotal(e.sets);

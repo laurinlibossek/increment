@@ -713,18 +713,21 @@ async function saveExerciseFamily(ex: Exercise, selection?: string | null): Prom
   return exercises.get(ex.id)!;
 }
 
+/** Change an exercise; a field set to undefined is removed (an override back at its default, #54). */
 export async function updateExercise(id: string, patch: Partial<Exercise>, familySelection?: string | null) {
   return mutateExercises(async () => {
     const ex = state.exercises.get(id);
     if (!ex) return;
-    await saveExerciseFamily({ ...ex, ...patch }, familySelection);
+    const next: Exercise = { ...ex, ...patch };
+    for (const k of Object.keys(patch) as (keyof Exercise)[]) if (patch[k] === undefined) delete next[k];
+    await saveExerciseFamily(next, familySelection);
   });
 }
 
 export const findExercise = (name: string): Exercise | null => findExerciseByName(state.exercises, name) as Exercise | null;
 
 /** Create a custom exercise. Family choices stay in the form until this save. */
-export async function addExercise(o: { name: string; category: Exercise['category']; bodyPart: string; notes?: string; family?: string | null }, familySelection?: string | null): Promise<Exercise> {
+export async function addExercise(o: { name: string; category: Exercise['category']; bodyPart: string; notes?: string; family?: string | null; unilateral?: boolean }, familySelection?: string | null): Promise<Exercise> {
   return mutateExercises(async () => {
     const ex = newExerciseRecord(o, { hasId: (id: string) => state.exercises.has(id) }) as Exercise;
     if (o.family !== undefined) ex.family = o.family;

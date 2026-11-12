@@ -692,7 +692,7 @@ test('Today: working sets per muscle in the last 7 days, and a routine’s size'
     { exerciseId: 'gone', sets: sets(3) },
   ] };
   // bench: 2 × (30 + 60) + 3 × (45 + 120); row: 3 × (45 + 90) minus the last rest
-  assert.deepEqual(core.routineSize(t, lib, { defaultRest: 120 }), { exercises: 2, sets: 6, minutes: 15 });
+  assert.deepEqual(core.routineSize(t, lib, { defaultRest: 120 }), { exercises: 2, sets: 6, unpaired: 0, minutes: 15 });
   assert.equal(core.routineSize({ exercises: [] }, lib).minutes, 0);
   assert.equal(core.routineSize({ exercises: [{ exerciseId: 'bench', sets: sets(1) }] }, lib).minutes, 5, 'at least 5 minutes');
 });
@@ -1340,7 +1340,13 @@ test('catalogue preserves all v1 ids, English names, categories, body parts and 
   assert.equal(seedV1.exercises.length, 190);
   const current = new Map(core.SEED_EXERCISES.map((e) => [e.id, e]));
   for (const old of seedV1.exercises) assert.deepEqual(current.get(old.id), old);
-  assert.deepEqual(core.EXAMPLE_TEMPLATES, seedV1.examples);
+  // one-side exercises carry each set as a left and a right row (#54); folded back, the examples are v1's
+  const fold = (t) => ({ ...t, exercises: t.exercises.map((e) => ({ ...e, sets: e.sets.filter((x) => x.side !== 'right').map(({ side, ...x }) => x) })) });
+  assert.deepEqual(core.EXAMPLE_TEMPLATES.map(fold), seedV1.examples);
+  for (const t of core.EXAMPLE_TEMPLATES) for (const e of t.exercises) {
+    const want = core.isUnilateral({ id: e.exerciseId }) ? e.sets.map((_, i) => (i % 2 ? 'right' : 'left')) : e.sets.map(() => undefined);
+    assert.deepEqual(e.sets.map((x) => x.side), want, e.exerciseId);
+  }
   assert.ok(core.SEED_VERSION > 1);
   assert.ok(core.SEED_EXERCISES.length >= 360, 'a substantial, curated expansion');
 });
@@ -1888,21 +1894,73 @@ test('routine comparison and both update paths pair sides, detect changes and re
   assert.equal(JSON.stringify({ T, W }), before);
 });
 
-test('muscle and routine set counts use the larger side count per exercise; minutes count every row', () => {
+test('one side at a time (#54): catalogue defaults per variation, the exercise’s own choice wins', () => {
+  const byName = new Map(core.SEED_EXERCISES.map((e) => [e.name, e]));
+  for (const name of core.UNILATERAL_NAMES) assert.ok(byName.has(name), `${name} is in the catalogue`);
+  assert.equal(core.isUnilateral(byName.get('Single Arm Chest Fly (Cable)')), true);
+  assert.equal(core.isUnilateral(byName.get('Chest Fly (Cable)')), false, 'the family’s other variations stay two-sided');
+  assert.equal(core.isUnilateral(byName.get('Side Plank')), true);
+  assert.equal(core.isUnilateral(byName.get('Bench Press (Barbell)')), false);
+  assert.equal(core.isUnilateral({ ...byName.get('Side Plank'), unilateral: false }), false, 'an override to two-sided');
+  assert.equal(core.isUnilateral({ ...byName.get('Leg Extension (Machine)'), unilateral: true }), true, 'an override to one side');
+  assert.equal(core.unilateralDefault({ ...byName.get('Side Plank'), unilateral: false }), true);
+  assert.equal(core.isUnilateral({ id: 'c-x', name: 'Mine' }), false, 'a custom exercise is two-sided unless it says so');
+  assert.equal(core.isUnilateral(core.newExerciseRecord({ name: 'One arm thing', category: 'dumbbell', bodyPart: 'arms', unilateral: true })), true);
+  assert.equal('unilateral' in core.newExerciseRecord({ name: 'Two arm thing', category: 'dumbbell', bodyPart: 'arms' }), false);
+  assert.equal(core.isUnilateral(undefined), false);
+});
+
+test('set totals pair one-sided rows (#54): the table cases, warm-ups, rows without a side, the preference', () => {
+  const rows = (sides) => [...sides].map((x) => sided(x === 'L' ? 'left' : x === 'R' ? 'right' : undefined));
+  const cases = [['LRLR', 2, 4], ['LLL', 0, 3], ['LLLR', 1, 4], ['LLLRRR', 3, 6], ['LRL', 1, 3]];
+  for (const [sides, paired, separate] of cases) {
+    assert.deepEqual(core.exerciseSetCount(rows(sides), true), { sets: paired, unpaired: separate - 2 * paired }, `${sides} paired`);
+    assert.deepEqual(core.exerciseSetCount(rows(sides), true, { pair: false }), { sets: separate, unpaired: 0 }, `${sides} separate`);
+    assert.deepEqual(core.exerciseSetCount(rows(sides), false), { sets: separate, unpaired: 0 }, `${sides} on a two-sided exercise: rows`);
+  }
+  // warm-ups never count, with or without a side; rows without a side prove no pair
+  const warm = [sided(undefined, 10, 'warmup'), sided(undefined, 10, 'warmup'), ...rows('LR')];
+  assert.deepEqual(core.exerciseSetCount(warm, true), { sets: 1, unpaired: 0 });
+  assert.deepEqual(core.exerciseSetCount(rows('LR--'), true), { sets: 1, unpaired: 2 });
+  assert.deepEqual(core.exerciseSetCount(rows('---'), true), { sets: 0, unpaired: 3 }, 'zero pairs, three rows of work');
+  assert.deepEqual(core.exerciseSetCount(rows('---'), true, { pair: false }), { sets: 3, unpaired: 0 });
+  assert.deepEqual(core.exerciseSetCount([], true), { sets: 0, unpaired: 0 });
+  // failure and drop sets are working rows on their side
+  assert.deepEqual(core.exerciseSetCount([sided('left', 20, 'failure'), sided('right', 20, 'drop')], true), { sets: 1, unpaired: 0 });
+});
+
+test('muscle and routine totals (#54): pairs within one exercise and one workout, repeated entries together; minutes count every row', () => {
   const now = Date.now();
-  const lib = new Map([['curl', { bodyPart: 'arms', category: 'dumbbell' }], ['plank', { bodyPart: 'core', category: 'duration' }]]);
+  const lib = new Map([
+    ['curl', { bodyPart: 'arms', category: 'dumbbell', unilateral: true }], ['plank', { bodyPart: 'core', category: 'duration', unilateral: true }],
+    ['row', { bodyPart: 'back', category: 'dumbbell', unilateral: true }], ['bench', { bodyPart: 'chest', category: 'barbell' }],
+  ]);
   const paired = ['left', 'right', 'left', 'right', 'left', 'right'].map((s) => sided(s));
-  const entries = [E('curl', paired), E('plank', [sided('left'), sided('right'), sided('left'), sided()])];
-  const counts = core.setsPerMuscle([{ startedAt: now, exercises: entries }], lib, { now });
-  assert.deepEqual(counts.map((m) => [m.muscle, m.sets]), [['arms', 3], ['core', 3]]);
-  assert.equal(core.routineSize({ exercises: entries }, lib).sets, 6);
+  const entries = [E('curl', paired), E('plank', [sided('left'), sided('right'), sided('left'), sided()]), E('bench', [sided('left'), sided('right'), sided()])];
+  const muscles = (ws, o = {}) => core.setsPerMuscle(ws, lib, { now, ...o }).map((m) => [m.muscle, m.sets]);
+  // two-sided bench counts its rows, old side tags and all
+  assert.deepEqual(muscles([{ startedAt: now, exercises: entries }]), [['chest', 3], ['arms', 3], ['core', 1]]);
+  assert.deepEqual(core.routineSize({ exercises: entries }, lib), { exercises: 3, sets: 7, unpaired: 2, minutes: core.routineSize({ exercises: entries }, lib).minutes });
+  assert.deepEqual(core.routineSize({ exercises: entries }, lib, { pair: false }).sets, 13, 'separate: every working row');
+  assert.equal(core.routineSize({ exercises: entries }, lib, { pair: false }).unpaired, 0);
   const normal = entries.map((e) => ({ ...e, sets: e.sets.map(({ side, ...s }) => s) }));
   assert.equal(core.routineSize({ exercises: entries }, lib).minutes, core.routineSize({ exercises: normal }, lib).minutes);
-  assert.equal(core.routineSize({ exercises: [E('curl', [sided('left'), sided('right'), sided('left')])] }, lib).sets, 2);
-  assert.equal(core.routineSize({ exercises: [E('curl', [...paired, sided(), sided('left', 10, 'warmup')])] }, lib).sets, 4);
-  const repeated = [E('curl', paired.filter((s) => s.side === 'left')), E('curl', paired.filter((s) => s.side === 'right'))];
-  assert.equal(core.routineSize({ exercises: repeated }, lib).sets, 3);
-  assert.equal(core.setsPerMuscle([{ startedAt: now, exercises: repeated }], lib, { now })[0].sets, 3);
+  assert.equal(core.routineSize({ exercises: [E('curl', [...paired, sided(), sided('left', 10, 'warmup')])] }, lib).sets, 3);
+  // repeated entries of one exercise pair with each other in one workout ...
+  const repeated = [E('curl', paired.filter((s) => s.side === 'left')), E('bench', [sided()]), E('curl', paired.filter((s) => s.side === 'right'))];
+  assert.equal(core.routineSize({ exercises: repeated }, lib).sets, 4);
+  assert.deepEqual(muscles([{ startedAt: now, exercises: repeated }]), [['chest', 1], ['arms', 3]]);
+  // ... but never across exercises or workouts
+  assert.deepEqual(muscles([{ startedAt: now, exercises: [E('curl', [sided('left')]), E('row', [sided('right')])] }]), []);
+  const lefts = { startedAt: now, exercises: [E('curl', [sided('left'), sided('left')])] };
+  const rights = { startedAt: now - 1000, exercises: [E('curl', [sided('right'), sided('right')])] };
+  assert.deepEqual(muscles([lefts, rights]), [], 'left in one workout, right in another: no pair');
+  assert.deepEqual(core.entriesSetCount(lefts.exercises, lib), { sets: 0, unpaired: 2 });
+  assert.deepEqual(core.entriesSetCount(lefts.exercises, Object.fromEntries(lib), { pair: false }), { sets: 2, unpaired: 0 });
+  // the preference never changes muscle totals
+  assert.deepEqual(muscles([{ startedAt: now, exercises: entries }], { pair: false }), muscles([{ startedAt: now, exercises: entries }]));
+  // an exercise missing from the library counts its rows
+  assert.deepEqual(core.entriesSetCount([E('gone', [sided('left'), sided('left')])], lib), { sets: 2, unpaired: 0 });
 });
 
 test('routine links preserve optional sixth-value sides, keep preceding nulls and read old links', () => {
@@ -1917,6 +1975,15 @@ test('routine links preserve optional sixth-value sides, keep preceding nulls an
   assert.deepEqual(decoded.exercises[0].sets, [{ type: 'normal', w: 24, r: 8 }, { type: 'warmup', w: 10, r: 10 }]);
   raw.e[0].s[0][5] = 'unknown';
   assert.equal('side' in core.decodeTemplate('#template=' + Buffer.from(JSON.stringify(raw)).toString('base64url')).exercises[0].sets[0], false);
+  // a custom exercise done one side at a time stays so (#54); a built-in keeps the receiver's choice
+  const mine = { id: 'c-one', name: 'One arm thing', category: 'dumbbell', bodyPart: 'arms', unilateral: true };
+  const both = { id: 'c-two', name: 'Two arm thing', category: 'dumbbell', bodyPart: 'arms' };
+  const plank = { ...core.SEED_EXERCISES.find((e) => e.id === 'x-side-plank'), unilateral: false };
+  const lib = new Map([[mine.id, mine], [both.id, both], [plank.id, plank]]);
+  const link = core.encodeTemplate({ name: 'Mine', exercises: [E(mine.id, [sided('left')]), E(both.id, [sided()]), E(plank.id, [sided()])] }, lib);
+  const got = core.decodeTemplate('#template=' + link).exercises;
+  assert.deepEqual(got.map((e) => e.unilateral), [true, undefined, undefined]);
+  assert.deepEqual(JSON.parse(Buffer.from(link, 'base64url').toString()).e.map((e) => e.u), [1, undefined, undefined]);
 });
 
 test('backups keep set sides unchanged while Strong CSV export drops only the side metadata', () => {
@@ -1929,6 +1996,12 @@ test('backups keep set sides unchanged while Strong CSV export drops only the si
   const untagged = { ...workout, exercises: workout.exercises.map((e) => ({ ...e, sets: e.sets.map(({ side, ...s }) => s) })) };
   const exercises = new Map([[ex.id, ex]]);
   assert.equal(core.exportCSV({ workouts: [workout], exercises }), core.exportCSV({ workouts: [untagged], exercises }));
+  // the one-side choice and Count left/right sets together survive a backup (#54)
+  const chosen = { ...data, exercises: [{ ...ex, unilateral: true }], kv: { settings: { pairSides: false } } };
+  const back = core.parseBackup(core.makeBackup(chosen, 'test')).data;
+  assert.equal(back.exercises.find((e) => e.id === ex.id).unilateral, true);
+  assert.equal(back.kv.settings.pairSides, false);
+  assert.equal(core.withDefaults({}).pairSides, true, 'on by default');
 });
 
 test('records in a running workout (#37): one set per exercise and metric, as in the summary', () => {

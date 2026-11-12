@@ -125,6 +125,12 @@ export default {
   'Left side': 'Links',
   'Right side': 'Rechts',
   'Sides changed': 'Seiten geändert',
+  // one side at a time (#54)
+  'One side at a time': 'Einseitig',
+  'Sets can say left or right; a left and a right set count as one set': 'Sätze können links oder rechts sein; ein linker und ein rechter Satz zählen als ein Satz',
+  'Count left/right sets together': 'Links und rechts zusammen zählen',
+  'For exercises done one side at a time: a left and a right set count as one in routine and workout totals': 'Bei einseitigen Übungen zählen ein linker und ein rechter Satz in den Summen von Routinen und Trainings als einer',
+  '{n} unpaired': '{n} ohne Paar',
   'Add RPE': 'RPE hinzufügen',
   'Delete set': 'Satz löschen',
   'Rate of perceived exertion': 'Gefühlte Anstrengung (RPE)',

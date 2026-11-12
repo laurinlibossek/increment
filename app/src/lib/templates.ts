@@ -188,7 +188,7 @@ export async function templatesMenu(f: F) {
 
 type Shared = {
   name: string; notes: string; pinnedNote?: string;
-  exercises: { id: string | null; name: string; family?: string; category: Category; bodyPart: string; sets: TemplateEntry['sets']; restSec: number | null; notes: string; group: number | null; focus: string | null }[];
+  exercises: { id: string | null; name: string; family?: string; unilateral?: boolean; category: Category; bodyPart: string; sets: TemplateEntry['sets']; restSec: number | null; notes: string; group: number | null; focus: string | null }[];
 };
 
 /** Ask to add the template in a shared link. Returns false if the text holds none. */
@@ -211,7 +211,7 @@ export async function offerSharedTemplate(text: string, f: F): Promise<boolean> 
   const exercises: TemplateEntry[] = [];
   for (const x of p.exercises) {
     let id = x.id && getState().exercises.has(x.id) ? x.id : findExercise(x.name)?.id;
-    if (!id) id = (await addExercise({ name: x.name, category: x.category, bodyPart: x.bodyPart, family: x.family })).id;
+    if (!id) id = (await addExercise({ name: x.name, category: x.category, bodyPart: x.bodyPart, family: x.family, unilateral: x.unilateral })).id;
     const e: TemplateEntry = { exerciseId: id, sets: x.sets };
     if (x.restSec !== null) e.restSec = x.restSec;
     if (x.notes) e.notes = x.notes;

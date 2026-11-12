@@ -3,18 +3,9 @@
 import { startOfDay, startOfWeek, addDays } from './units.js';
 import { BODY_PARTS } from './seed.js';
 import { restFor } from './workout.js';
-import { workingSetCount } from './set-sides.js';
+import { entriesSetCount, exerciseSetCount, isUnilateral, setsByExercise } from './set-sides.js';
 
 const lookup = (exercises) => (exercises instanceof Map ? (id) => exercises.get(id) : (id) => exercises?.[id]);
-// Repeated entries of one exercise still share its left/right working-set count.
-function setsByExercise(entries) {
-  const groups = new Map();
-  for (const e of entries) {
-    if (!groups.has(e.exerciseId)) groups.set(e.exerciseId, []);
-    groups.get(e.exerciseId).push(...e.sets);
-  }
-  return groups;
-}
 
 /** Index of the day a time falls on in a list of day starts, or -1. */
 function dayIndex(days, t) {
@@ -58,8 +49,10 @@ const MUSCLES = ['chest', 'back', 'shoulders', 'arms', 'legs', 'core', 'full'];
 
 /**
  * Working sets per muscle (the exercise's body part) over the last `days`
- * days including today. Warm-ups and cardio don't count. Only muscles with
- * sets, in a fixed order: [{ muscle, label, sets }].
+ * days including today. Warm-ups and cardio don't count. An exercise done one
+ * side at a time counts its complete left/right pairs within each workout
+ * (#54), whatever Account's "Count left/right sets together" says. Only
+ * muscles with sets, in a fixed order: [{ muscle, label, sets }].
  */
 export function setsPerMuscle(workouts, exercises, { days = 7, now = Date.now() } = {}) {
   const get = lookup(exercises);
@@ -68,9 +61,9 @@ export function setsPerMuscle(workouts, exercises, { days = 7, now = Date.now() 
   for (const w of workouts) {
     if (w.startedAt < since || w.startedAt > now) continue;
     for (const [id, sets] of setsByExercise(w.exercises)) {
-      const part = get(id)?.bodyPart;
+      const ex = get(id), part = ex?.bodyPart;
       if (!MUSCLES.includes(part)) continue;
-      const n = workingSetCount(sets);
+      const n = exerciseSetCount(sets, isUnilateral(ex)).sets;
       if (n) counts.set(part, (counts.get(part) || 0) + n);
     }
   }
@@ -83,12 +76,15 @@ const WORK_SEC = 45, WARMUP_SEC = 30, WARMUP_REST_SEC = 60;
 /**
  * A routine's size for its card: exercises, working sets and about how many
  * minutes it takes (each set's work plus the rest after it, the last set
- * without; rounded to 5 minutes). Exercises missing from the library are left out.
+ * without; rounded to 5 minutes). Sets are the prescribed rows' entriesSetCount
+ * (#54): `pair` (Account → "Count left/right sets together") counts complete
+ * left/right pairs, and `unpaired` the rows left out. Minutes count every row.
+ * Exercises missing from the library are left out.
  */
-export function routineSize(template, exercises, { defaultRest = 120 } = {}) {
+export function routineSize(template, exercises, { defaultRest = 120, pair = true } = {}) {
   const get = lookup(exercises);
   const entries = template.exercises.filter((e) => get(e.exerciseId));
-  const sets = [...setsByExercise(entries).values()].reduce((n, rows) => n + workingSetCount(rows), 0);
+  const { sets, unpaired } = entriesSetCount(entries, exercises, { pair });
   let sec = 0, all = 0, lastRest = 0;
   for (const e of entries) {
     const rest = restFor(e, get(e.exerciseId), defaultRest) || 0;
@@ -101,7 +97,7 @@ export function routineSize(template, exercises, { defaultRest = 120 } = {}) {
   }
   sec -= lastRest; // nothing to rest for after the last set
   const minutes = all ? Math.max(5, Math.round(sec / 60 / 5) * 5) : 0;
-  return { exercises: entries.length, sets, minutes };
+  return { exercises: entries.length, sets, unpaired, minutes };
 }
 
 /**

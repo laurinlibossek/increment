@@ -178,12 +178,14 @@ export function findExerciseByName(exercises, name) {
  * @param {{ hasId?: (id: string) => boolean, now?: number }} [opts]
  */
 export function newExerciseRecord({
-  name, category, bodyPart, notes = '',
+  name, category, bodyPart, notes = '', unilateral,
 }, { hasId = () => false, now = Date.now() } = {}) {
   let id = 'c-' + slug(name);
   if (!id || id === 'c-' || hasId(id)) id = 'c-' + uid();
   return {
     id, name: String(name).trim(), category, bodyPart, notes, createdAt: now,
+    // one side at a time (#54); left out, a custom exercise is two-sided
+    ...(unilateral ? { unilateral: true } : {}),
   };
 }
 
