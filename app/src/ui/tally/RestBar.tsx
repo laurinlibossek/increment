@@ -1,11 +1,12 @@
 // The rest between sets, in the Action bar (components.md, ActionBar → Resting):
 // the countdown, −15, +15, Skip, the drain bar and "Reps left?" for the set
 // just logged. The drain bar is one linear animation run by Reanimated on the
-// UI thread; the countdown text changes once a second, on the second.
+// UI thread; the countdown text changes once a second, on the second. RestLine
+// is the same rest under the set it follows (#53).
 import { useEffect, useState, type ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import Animated, {
-  Easing, ReduceMotion, cancelAnimation, useAnimatedStyle, useSharedValue, withTiming,
+  Easing, ReduceMotion, cancelAnimation, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming,
 } from 'react-native-reanimated';
 
 import { CONTROL, RADIUS, SPACE, TYPE } from '@/design/tally';
@@ -66,6 +67,40 @@ export function DrainBar({ end, total }: { end: number; total: number }) {
   return (
     <View style={{ height: 4, borderRadius: 2, backgroundColor: t.paper3, overflow: 'hidden' }} importantForAccessibility="no-hide-descendants">
       <Animated.View style={[{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, borderRadius: 2, backgroundColor: t.ink, transformOrigin: 'left' }, fill]} />
+    </View>
+  );
+}
+
+/**
+ * The rest under the set it follows (#53): a line along the divider that
+ * drains from right to left until `end`, with the time left at its end. It
+ * reads the same timer as the Action bar. With Reduce Motion it steps once a
+ * second instead of gliding; only this line re-renders each second.
+ */
+export function RestLine({ end, total, clock, label, testID }: {
+  end: number; total: number; clock: (secs: number) => string; label: (secs: number) => string; testID?: string;
+}) {
+  const { colors: t } = useTally();
+  const secs = useSecondsLeft(end);
+  const reduced = useReducedMotion();
+  const p = useSharedValue(1);
+  useEffect(() => {
+    const ms = Math.max(0, end - Date.now());
+    cancelAnimation(p);
+    p.value = Math.max(0, Math.min(1, ms / 1000 / Math.max(1, total)));
+    if (!reduced) p.value = withTiming(0, { duration: ms, easing: Easing.linear });
+  }, [end, total, reduced, p]);
+  useEffect(() => {
+    if (reduced) p.value = Math.max(0, Math.min(1, secs / Math.max(1, total)));
+  }, [reduced, secs, total, p]);
+  const fill = useAnimatedStyle(() => ({ transform: [{ scaleX: p.value }] }));
+  return (
+    <View testID={testID} accessible accessibilityLabel={label(secs)}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: SPACE.s2, minHeight: 22, paddingLeft: SPACE.s5, paddingRight: SPACE.s5 }}>
+      <View style={{ flex: 1, height: 2, borderRadius: 1, backgroundColor: t.line, overflow: 'hidden' }}>
+        <Animated.View style={[{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: t.ink, transformOrigin: 'left' }, fill]} />
+      </View>
+      <Text style={{ ...TYPE.footnote, fontWeight: '600', color: t.ink2, fontVariant: ['tabular-nums'] }} testID={testID ? `${testID}-left` : undefined}>{clock(secs)}</Text>
     </View>
   );
 }
