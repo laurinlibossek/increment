@@ -2,7 +2,7 @@
 // exercises go by id, custom ones by name, category and body part, so the
 // receiver gets matching exercises (or new custom ones) without any server.
 import { FAMILY_BY_ID, familyOf } from './exercise-families.js';
-import { sideOf } from './set-sides.js';
+import { isUnilateral, sideOf } from './set-sides.js';
 import { repRange, withRepRange } from './rep-range.js';
 import { loggedFields } from './calc.js';
 
@@ -28,6 +28,8 @@ export function encodeTemplate(t, exercises) {
     const o = { n: ex.name, c: ex.category, b: ex.bodyPart };
     if (ex.builtin) o.i = ex.id;
     else if (Object.hasOwn(FAMILY_BY_ID, familyOf(ex))) o.f = familyOf(ex);
+    // a custom unilateral exercise stays so for the receiver (#54); built-ins keep the receiver's choice
+    if (!ex.builtin && isUnilateral(ex)) o.u = 1;
     o.s = x.sets.map((st) => {
       const row = [TYPE_CODE[st.type || 'normal'] || 'n', st.w ?? null, st.r ?? null, st.d ?? null, st.t ?? null];
       row.push(sideOf(st) ? (st.side === 'left' ? 'l' : 'r') : null);
@@ -86,6 +88,7 @@ export function decodeTemplate(text, { categories = [], bodyParts = [] } = {}) {
       id: typeof o.i === 'string' && /^x-[a-z0-9-]+$/.test(o.i) ? o.i : null,
       name,
       ...(typeof o.f === 'string' && Object.hasOwn(FAMILY_BY_ID, o.f) ? { family: o.f } : {}),
+      ...(o.u === 1 ? { unilateral: true } : {}),
       category: cats.has(o.c) ? o.c : 'barbell',
       bodyPart: parts.has(o.b) ? o.b : 'other',
       sets: sets.length ? sets : [{ type: 'normal' }],

@@ -3,7 +3,7 @@
 // import lines up with these entries automatically.
 // Labels and example names are English; they double as translation keys in the apps.
 import { slug } from './units.js';
-import { EXERCISE_CATALOGUE } from './exercise-catalogue.js';
+import { EXERCISE_CATALOGUE, UNILATERAL_IDS } from './exercise-catalogue.js';
 
 export const CATEGORIES = [
   { id: 'barbell', label: 'Barbell' },
@@ -48,12 +48,17 @@ export const SEED_EXERCISES = EXERCISE_CATALOGUE.flatMap((f) =>
   f.members.map((e) => ({ ...e, builtin: true })));
 
 // Example templates. Sets: [type, reps] — weights stay empty so the app shows
-// your own previous numbers once you have them.
-const ex = (name, sets, reps, restSec) => ({
-  exerciseId: 'x-' + slug(name),
-  restSec,
-  sets: Array.from({ length: sets }, () => ({ type: 'normal', r: reps })),
-});
+// your own previous numbers once you have them. An exercise done one side at a
+// time gets each set as a left and a right row (#54), so 3 sets are 3 pairs.
+const ex = (name, sets, reps, restSec) => {
+  const exerciseId = 'x-' + slug(name);
+  const sides = UNILATERAL_IDS.has(exerciseId) ? ['left', 'right'] : [null];
+  return {
+    exerciseId,
+    restSec,
+    sets: Array.from({ length: sets }, () => sides.map((side) => ({ type: 'normal', r: reps, ...(side ? { side } : {}) }))).flat(),
+  };
+};
 
 export const EXAMPLE_TEMPLATES = [
   {

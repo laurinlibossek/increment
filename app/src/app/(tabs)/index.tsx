@@ -66,14 +66,14 @@ export default function TodayTab() {
   } else if (sug) {
     const tpl = sug.template as Template;
     const entries = tpl.exercises.filter((e) => s.exercises.has(e.exerciseId));
-    const size = routineSize(tpl, s.exercises, { defaultRest: s.settings.defaultRest }) as { exercises: number; sets: number; minutes: number };
+    const size = routineSize(tpl, s.exercises, { defaultRest: s.settings.defaultRest, pair: s.settings.pairSides !== false }) as { exercises: number; sets: number; unpaired: number; minutes: number };
     const groups: StrokeState[][] = entries.map((e) => e.sets.map((x) => (x.type === 'warmup' ? 'warmupPending' : 'pending')));
     card = (
       <RoutineCard testID="up-next" context={`${tr('Up next')} · ${why(sug.why)}`} name={tpl.name}
         // with the range a routine prescribes for an exercise (#44): "Bench Press × 8–10"
         exercises={entries.map((e) => { const r = entryRepRange(e); return `${f.exName(s.exercises.get(e.exerciseId))}${r ? ` × ${r[0]}–${r[1]}` : ''}`; })}
-        tally={{ groups, label: f.plural(size.sets, 'set') }}
-        facts={[f.plural(size.exercises, 'exercise'), f.plural(size.sets, 'set'), size.minutes ? tr('about {n} min', { n: size.minutes }) : ''].filter(Boolean).join(' · ')}
+        tally={{ groups, label: f.setsText(size) }}
+        facts={[f.plural(size.exercises, 'exercise'), f.setsText(size), size.minutes ? tr('about {n} min', { n: size.minutes }) : ''].filter(Boolean).join(' · ')}
         onPress={() => router.push({ pathname: '/template/[id]', params: { id: tpl.id } })}
         start={{ title: tr('Start'), onPress: () => beginWorkout({ template: tpl }, f), testID: 'start-suggested' }} />
     );

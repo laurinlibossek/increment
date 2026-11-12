@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { kgTo, PR_LABEL, workoutSetCount, workoutVolume } from '@increment/core';
+import { entriesSetCount, kgTo, PR_LABEL, workoutVolume } from '@increment/core';
 
 import { finishResult, stats, useAppSelector } from '@/data/store';
 import type { Category, WorkSet } from '@/data/types';
@@ -33,6 +33,7 @@ export default function Summary() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const workouts = useAppSelector((s) => s.workouts);
   const exercises = useAppSelector((s) => s.exercises);
+  const pairSides = useAppSelector((s) => s.settings.pairSides !== false);
   const f = useFormat();
   const { tr } = f;
   const { locale } = useLang();
@@ -70,7 +71,8 @@ export default function Summary() {
   const prs = (r ? r.prs : stats().prsByWorkout.get(w.id) || []) as Pr[];
   const number = r ? r.number : workouts.filter((x) => x.startedAt <= w.startedAt).length;
   const volume = r ? r.volume : workoutVolume(w, exercises) as number;
-  const sets = workoutSetCount(w) as number;
+  // left/right pairs of one-side exercises count as one set (#54); the rest stay visible as unpaired
+  const sets = entriesSetCount(w.exercises, exercises, { pair: pairSides }) as { sets: number; unpaired: number };
   const recordSets = new Set(prs.map((p) => p.setId).filter((x): x is string => !!x));
   const setById = new Map<string, WorkSet>();
   for (const e of w.exercises) for (const s of e.sets) setById.set(s.id, s);
@@ -94,7 +96,7 @@ export default function Summary() {
 
   const kgShown = kgTo(volume || 0, f.unit);
   const strokes = workoutStrokes(w, recordSets);
-  const tallyLine = [f.plural(sets, 'set'), recordSets.size ? f.plural(recordSets.size, 'record') : '', tr('workout #{n}', { n: number })].filter(Boolean).join(' · ');
+  const tallyLine = [f.setsText(sets), recordSets.size ? f.plural(recordSets.size, 'record') : '', tr('workout #{n}', { n: number })].filter(Boolean).join(' · ');
   const routineText = routineLine(routine, f);
 
   const viewInHistory = () => {
@@ -111,7 +113,7 @@ export default function Summary() {
           <StatStrip style={{ marginTop: SPACE.s5 }} stats={[
             { label: tr('Time'), value: hm(w.endedAt - w.startedAt), testID: 'summary-time' },
             volume ? { label: tr('Volume'), value: f.num(kgShown, 0), unit: f.unit, testID: 'summary-volume' } : { label: tr('Volume'), value: '—' },
-            { label: tr('Sets'), value: f.num(sets, 0), testID: 'summary-sets' },
+            { label: tr('Sets'), value: f.num(sets.sets, 0), testID: 'summary-sets' },
           ]} />
           <View style={{ marginTop: SPACE.s6 }}>
             <WorkoutTally groups={strokes} label={tallyLine} testID="summary-tally" />
