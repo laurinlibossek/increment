@@ -178,7 +178,7 @@ One set: its label, weight × reps (or the exercise's own fields: reps only, tim
 - The tick at the trailing end logs and un-logs the set: outlined while pending (`ink-3`; `ink` on the set being logged), filled `ink` once logged, `signal` for a record. Its label reads like "Set 3, left side, 82.5 kg × 8, not logged". The editors have no tick. Rows have no strokes; the session header, Up next, Now Lifting and Today keep their tallies.
 - Pending sets show the target as ghost text (`ink-3`); a value with nothing to show is a faint dash. The set being logged and the Keypad's set show `paper-3` field boxes, as do all sets in the editors; tapping a field opens the Keypad; logging with untouched fields logs the ghost values. A row is as tall with boxes as without, so nothing moves.
 - Notes on a set, between the values and the tick, wrapping when they don't fit: the change since last time's paired set on a logged set ("+2.5 kg", "+1 rep"; the value that decided it, by the same rule that moves a routine on) in `signal`, or in grey when it went down; "Record" in `signal` instead of the change; "1 RIR" or "2+ RIR" (a failure set's F already says 0); "Left" or "Right"; a routine's rep range ("8–10 reps"). Warm-ups and a first time get no change and no record.
-- Written notes belong to the exercise, above the header: the pinned note first, on `paper-3` with its pin, then this time's note. Sets have no written notes.
+- Written notes belong to the exercise, above the header: the pinned note first, on `pinned-note` (a faint tint of signal) with its pin, then this time's note. Sets have no written notes.
 - Swipe left to delete, with Undo.
 - `row-h` tall, hairline between rows, values aligned on the screen margin.
 

@@ -366,7 +366,7 @@ export const ExerciseBlock = memo(function ExerciseBlock({
         )}
         {/* the exercise's notes come before its sets: the pinned note first, highlighted, then this time's note (#48) */}
         {!!ex.pinnedNote && (
-          <View style={[styles.pinned, { backgroundColor: t.paper3 }]} testID={`pinned-${ex.id}`}>
+          <View style={[styles.pinned, { backgroundColor: t.pinnedNote }]} testID={`pinned-${ex.id}`}>
             <Icon name="pin" size={14} color={t.ink} />
             <Text style={{ ...TYPE.subhead, fontWeight: '600', color: t.ink, flex: 1 }}>{ex.pinnedNote}</Text>
           </View>

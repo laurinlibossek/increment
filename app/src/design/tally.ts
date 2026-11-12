@@ -9,7 +9,7 @@ export const TALLY_THEME_IDS = [
   'intense-red'
 ] as const;
 export type TallyThemeId = (typeof TALLY_THEME_IDS)[number];
-export type TallyColors = { paper: string; paper2: string; paper3: string; controlOn: string; diffAdded: string; diffRemoved: string; line: string; ink: string; ink2: string; ink3: string; strokeDone: string; primary: string; onPrimary: string; accent: string; chart: string; signal: string; onSignal: string; signalEdge: string; danger: string; glass: string; focus: string };
+export type TallyColors = { paper: string; paper2: string; paper3: string; controlOn: string; diffAdded: string; diffRemoved: string; pinnedNote: string; line: string; ink: string; ink2: string; ink3: string; strokeDone: string; primary: string; onPrimary: string; accent: string; chart: string; signal: string; onSignal: string; signalEdge: string; danger: string; glass: string; focus: string };
 export type TallyTheme = { scheme: 'light' | 'dark'; colors: TallyColors };
 
 export const TALLY_THEMES: Record<TallyThemeId, TallyTheme> = {
@@ -22,6 +22,7 @@ export const TALLY_THEMES: Record<TallyThemeId, TallyTheme> = {
       controlOn: '#ffffff',
       diffAdded: '#cdeed5',
       diffRemoved: '#fbd5d2',
+      pinnedNote: '#fbf3d0',
       line: '#e2e2dd',
       ink: '#0d0d0c',
       ink2: '#5d5d58',
@@ -48,6 +49,7 @@ export const TALLY_THEMES: Record<TallyThemeId, TallyTheme> = {
       controlOn: '#6e6e69',
       diffAdded: '#1e4a2a',
       diffRemoved: '#5a1f1c',
+      pinnedNote: '#2b2814',
       line: '#2b2b28',
       ink: '#f4f4f0',
       ink2: '#a6a6a0',
@@ -74,6 +76,7 @@ export const TALLY_THEMES: Record<TallyThemeId, TallyTheme> = {
       controlOn: '#fbf8f2',
       diffAdded: '#d9e8cc',
       diffRemoved: '#f3d2cd',
+      pinnedNote: '#f7e4e8',
       line: '#dcd2bf',
       ink: '#2b261f',
       ink2: '#5a5f4b',
@@ -100,6 +103,7 @@ export const TALLY_THEMES: Record<TallyThemeId, TallyTheme> = {
       controlOn: '#6e6e6e',
       diffAdded: '#1e4a2a',
       diffRemoved: '#5a1f1c',
+      pinnedNote: '#33290f',
       line: '#2a2a2a',
       ink: '#f5f5f5',
       ink2: '#bdbdbd',
