@@ -18,8 +18,10 @@ import {
 } from '@increment/core';
 
 import {
-  adjustRest, discardActive, editActive, getState, patchActive, previousSets, skipRest, startRest, useAppSelector, useSettings,
+  adjustRest, discardActive, editActive, getState, patchActive, previousSets, setPinnedNote, skipRest, startRest, useAppSelector, useSettings,
 } from '@/data/store';
+import { attempt } from '@/lib/saving';
+import { PinnedNote } from '@/ui/PinnedNote';
 import type { ActiveWorkout, EntryDraft, SetDraft } from '@/data/types';
 import { SPACE, TYPE, CONTROL } from '@/design/tally';
 import { useFormat } from '@/lib/format';
@@ -28,7 +30,7 @@ import { useTally } from '@/lib/theme';
 import { confirmDiscard, finishFlow } from '@/lib/workout';
 import { Empty, Icon } from '@/ui/kit';
 import {
-  OverlayHost, actionSheet, pickDateTime, toast,
+  OverlayHost, actionSheet, pickDateTime, prompt, toast,
 } from '@/ui/overlay';
 import { ActionBar, type ActionBarState } from '@/ui/tally/ActionBar';
 import { EffortPicker } from '@/ui/tally/EffortPicker';
@@ -79,6 +81,8 @@ export default function ActiveWorkoutScreen() {
 }
 
 function Running({ a, reveal }: { a: ActiveWorkout; reveal: { current: (ref: TextInputInstance | null) => void } }) {
+  // the routine's pinned note, read live, so a note saved elsewhere shows at once (#33)
+  const pinned = useAppSelector((s) => (a.templateId ? s.templates.find((x) => x.id === a.templateId)?.pinnedNote || '' : ''));
   const settings = useSettings();
   const f = useFormat();
   const { tr } = f;
@@ -149,11 +153,14 @@ function Running({ a, reveal }: { a: ActiveWorkout; reveal: { current: (ref: Tex
   const workoutMenu = async () => {
     const cur = getState().active;
     if (!cur) return;
+    // only a workout from a routine that still exists can pin a note for next time (#33)
+    const routine = cur.templateId ? getState().templates.find((x) => x.id === cur.templateId) : null;
     const v = await actionSheet<string>({
       title: cur.name,
       actions: [
         { label: tr('Rename'), value: 'rename', icon: 'edit', testID: 'menu-rename' },
         { label: cur.showNotes || cur.notes ? tr('Remove workout note') : tr('Add workout note'), value: 'note', icon: 'note', testID: 'menu-workout-note' },
+        routine ? { label: routine.pinnedNote ? tr('Edit pinned note') : tr('Pin a note for next time'), value: 'pin', icon: 'pin', testID: 'menu-pin-note' } : null,
         { label: tr('Change start time'), value: 'time', icon: 'clock', testID: 'menu-start-time' },
         cur.rest ? null : { label: tr('Start rest timer'), value: 'rest', icon: 'timer', testID: 'menu-rest-timer' },
         { label: hasPendingSets(cur) ? tr('Finish early') : tr('Finish workout'), value: 'finish', icon: 'check', testID: 'menu-finish' },
@@ -164,6 +171,10 @@ function Running({ a, reveal }: { a: ActiveWorkout; reveal: { current: (ref: Tex
     if (v === 'note') {
       const on = !(cur.showNotes || cur.notes);
       patchActive({ showNotes: on, notes: on ? cur.notes : '' });
+    }
+    if (v === 'pin' && routine) {
+      const text = await prompt({ title: tr('Pinned note'), message: tr('Shown on {name} and the next time you do it, until you change it.', { name: routine.name }), value: routine.pinnedNote || '', multiline: true });
+      if (text !== null) await attempt(tr, setPinnedNote(routine.id, text));
     }
     if (v === 'time') changeStart();
     if (v === 'rest') {
@@ -259,6 +270,7 @@ function Running({ a, reveal }: { a: ActiveWorkout; reveal: { current: (ref: Tex
             )}
             {strokes.total > 0 && <Text style={{ ...TYPE.subhead, color: t.ink2, marginTop: SPACE.s2, fontVariant: ['tabular-nums'] }} testID="session-count">{countText}</Text>}
             {!!a.templateNotes && <Text style={{ ...TYPE.subhead, color: t.ink2, marginTop: SPACE.s3 }}>{a.templateNotes}</Text>}
+            {!!pinned && <View style={{ marginTop: SPACE.s3 }}><PinnedNote text={pinned} testID="workout-pinned" /></View>}
             {(a.showNotes || !!a.notes) && (
               <TextInput value={a.notes} onChangeText={(v) => patchActive({ notes: v })} onFocus={session.close} multiline placeholder={tr('How did it go?')} placeholderTextColor={t.ink3} testID="workout-notes"
                 style={[styles.notes, { color: t.ink, backgroundColor: t.paper3 }]} />

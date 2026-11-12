@@ -53,6 +53,8 @@ export interface Template {
   name: string;
   folder?: string;
   notes?: string;
+  /** a note for next time, shown on the routine and its running workout until changed (#33) */
+  pinnedNote?: string;
   exercises: TemplateEntry[];
   archived?: boolean;
   lastUsedAt?: number;
@@ -186,6 +188,8 @@ interface DraftBase {
 export interface TemplateDraft extends DraftBase {
   kind: 'template';
   folder: string;
+  /** the routine's pinned note for next time (#33) */
+  pinnedNote: string;
 }
 export interface WorkoutEditDraft extends DraftBase {
   kind: 'edit';
@@ -193,6 +197,8 @@ export interface WorkoutEditDraft extends DraftBase {
   durationMin: string;
   templateId: string | null;
   source?: string;
+  /** the routine's pinned note for next time, when the workout's routine still exists (#33) */
+  pinnedNote?: string;
 }
 export type EditDraft = TemplateDraft | WorkoutEditDraft;
 export type AnyDraft = ActiveWorkout | EditDraft;

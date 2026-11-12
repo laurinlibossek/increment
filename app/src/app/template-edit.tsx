@@ -88,6 +88,7 @@ export default function TemplateEditScreen() {
             </ScrollView>
           )}
           <Field value={d.notes} onChange={(v) => patchDraft('edit', { notes: v })} placeholder={tr('Notes (optional)')} multiline testID="tpl-notes" />
+          <Field value={d.pinnedNote} onChange={(v) => patchDraft('edit', { pinnedNote: v })} placeholder={tr('Pin a note for next time (optional)')} multiline testID="tpl-pinned" />
         </View>
         <DraftBlocks draftKey="edit" mode="template" draft={d} />
         {!d.exercises.length && <Empty title={tr('Build your routine')} text={tr('Add the exercises and sets you want to repeat.')} />}

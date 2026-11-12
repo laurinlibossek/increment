@@ -8,6 +8,7 @@ import type { Template } from '@/data/types';
 import { SPACE, TYPE } from '@/design/tally';
 import { useFormat } from '@/lib/format';
 import { useTally } from '@/lib/theme';
+import { PinnedNote } from '@/ui/PinnedNote';
 import { templateMenu } from '@/lib/templates';
 import { beginWorkout } from '@/lib/workout';
 import {
@@ -60,6 +61,7 @@ export default function TemplatePreview() {
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: SPACE.s3, paddingBottom: barHeight + SPACE.s5 }} contentInsetAdjustmentBehavior="automatic" testID="template-scroll">
         <Text style={[TYPE.title1, { color: colors.ink, paddingHorizontal: SPACE.s5 }]} accessibilityRole="header" testID="template-title">{t.name}</Text>
         <Text style={[TYPE.footnote, { color: colors.ink2, paddingHorizontal: SPACE.s5, marginTop: SPACE.s1 }]}>{info}</Text>
+        {!!t.pinnedNote && !t.example && <View style={{ paddingHorizontal: SPACE.s5, marginTop: SPACE.s4 }}><PinnedNote text={t.pinnedNote} testID="template-pinned" /></View>}
         {!!t.notes && <>
           <SectionHeader title={tr('Notes')} />
           <Text style={[TYPE.subhead, { color: colors.ink, paddingHorizontal: SPACE.s5 }]} testID="template-notes">{t.notes}</Text>

@@ -29,6 +29,8 @@ export function templateDraft({
     name: src?.name || '',
     folder: (template && template.folder) || '',
     notes: (template && template.notes) || '',
+    // the routine's pinned note for next time (#33), edited here and saved with the routine
+    pinnedNote: (template && template.pinnedNote) || '',
     exercises: src ? remapSupersets(src.exercises.filter((e) => hasExercise(e.exerciseId))
       .map((e) => entryToDraft({ ...e, notes: template ? e.notes : '' }, settings))) : [],
   };
@@ -47,7 +49,7 @@ export function templateFromDraft(draft, {
   if (!name) return { problem: EDIT_MESSAGES.templateName };
   if (!draft.exercises.length) return { problem: EDIT_MESSAGES.templateEmpty };
   return {
-    template: {
+    template: withPinnedNote({
       ...(existing || { createdAt: now }),
       id: draft.id,
       name,
@@ -58,8 +60,19 @@ export function templateFromDraft(draft, {
         // a routine's sets are targets: no set ids, no logging times (#43)
         sets: e.sets.map(({ id: _id, doneAt: _doneAt, ...rest }) => rest),
       })),
-    },
+    }, draft.pinnedNote ?? existing?.pinnedNote),
   };
+}
+
+/**
+ * A routine with its pinned note for next time set, or removed when empty
+ * (#33): one optional note, apart from the routine's Notes and the sessions'
+ * notes, until it is edited or removed. A new one replaces the old.
+ */
+export function withPinnedNote(template, note) {
+  const { pinnedNote: _old, ...rest } = template;
+  const text = typeof note === 'string' ? note.trim() : '';
+  return text ? { ...rest, pinnedNote: text } : rest;
 }
 
 /**
@@ -120,6 +133,7 @@ export function copyTemplateRecord(src, { patch = {}, hasExercise = () => true, 
     name: src.name,
     folder: src.folder || '',
     notes: src.notes || '',
+    ...(src.pinnedNote ? { pinnedNote: src.pinnedNote } : {}),
     exercises: cleanTemplateExercises(src.exercises, hasExercise),
     createdAt: now,
     ...patch,

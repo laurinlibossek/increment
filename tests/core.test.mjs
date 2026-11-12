@@ -2095,3 +2095,34 @@ test('Plan rows (#32): a routine\'s muscle groups once each in order, and names 
   assert.deepEqual(core.namesPreview(['A', 'B', 'C', 'D', 'E']), { shown: ['A', 'B', 'C'], more: 2 });
   assert.deepEqual(core.namesPreview(['A', 'B']), { shown: ['A', 'B'], more: 0 });
 });
+
+test('a routine\'s pinned note (#33): set, replaced and removed; kept by the editor, Duplicate, links and backups', () => {
+  const st = core.withDefaults({ unit: 'kg', distUnit: 'km' });
+  const exercises = new Map(core.SEED_EXERCISES.map((e) => [e.id, e]));
+  const t = { id: 't', name: 'Push', notes: 'Heavy day', exercises: [E('x-bench-press-barbell', [S('normal', 80, 5)])] };
+  // set, replaced, removed (blank removes it)
+  const pinned = core.withPinnedNote(t, '  Go up 2.5 kg  ');
+  assert.equal(pinned.pinnedNote, 'Go up 2.5 kg');
+  assert.equal(core.withPinnedNote(pinned, 'Seat 4').pinnedNote, 'Seat 4');
+  assert.ok(!('pinnedNote' in core.withPinnedNote(pinned, '   ')));
+  assert.equal(t.pinnedNote, undefined, 'the original is untouched');
+  // the routine editor shows it and saves it; Cancel never reaches templateFromDraft
+  const draft = core.templateDraft({ template: pinned, settings: st });
+  assert.equal(draft.pinnedNote, 'Go up 2.5 kg');
+  assert.equal(core.templateFromDraft(draft, { settings: st, exercises, existing: pinned }).template.pinnedNote, 'Go up 2.5 kg');
+  assert.equal(core.templateFromDraft({ ...draft, pinnedNote: 'Paused reps' }, { settings: st, exercises, existing: pinned }).template.pinnedNote, 'Paused reps');
+  assert.ok(!('pinnedNote' in core.templateFromDraft({ ...draft, pinnedNote: '' }, { settings: st, exercises, existing: pinned }).template));
+  // Duplicate keeps it; a routine without one has none
+  assert.equal(core.copyTemplateRecord(pinned).pinnedNote, 'Go up 2.5 kg');
+  assert.ok(!('pinnedNote' in core.copyTemplateRecord(t)));
+  // a shared link carries it like Notes; links without it still read
+  const opts = { categories: core.CATEGORIES.map((c) => c.id), bodyParts: core.BODY_PARTS.map((b) => b.id) };
+  const link = (x) => `#template=${core.encodeTemplate(x, exercises)}`;
+  assert.equal(core.decodeTemplate(link(pinned), opts).pinnedNote, 'Go up 2.5 kg');
+  const old = core.decodeTemplate(link(t), opts);
+  assert.equal(old.name, 'Push');
+  assert.ok(!('pinnedNote' in old));
+  // backups keep it as it is
+  const back = core.parseBackup(core.makeBackup({ exercises: [], workouts: [], templates: [pinned], measurements: [], kv: {} }, '1.0.0', new Date()), core.SEED_EXERCISES);
+  assert.equal(back.data.templates[0].pinnedNote, 'Go up 2.5 kg');
+});

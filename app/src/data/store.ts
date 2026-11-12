@@ -5,7 +5,7 @@ import { useSyncExternalStore } from 'react';
 import { AppState } from 'react-native';
 import {
   SEED_EXERCISES, SEED_VERSION, withDefaults, cleanChartMetrics, buildStats, sessionsByExercise, configureCalc, bodyweightFrom,
-  parseBackup, parseStrongCSV, resolveStrongImport, STRONG_EXERCISE_ALIASES, suggestTemplate, previousSetsFrom, newActiveWorkout, finishWorkout, prsForNewWorkout, liveRecordSets, withoutExercise,
+  parseBackup, parseStrongCSV, resolveStrongImport, STRONG_EXERCISE_ALIASES, suggestTemplate, previousSetsFrom, newActiveWorkout, finishWorkout, prsForNewWorkout, liveRecordSets, withoutExercise, withPinnedNote,
   workoutVolume, makeBackup, uid, seedExerciseChanges,
   templateFromDraft, workoutFromEditDraft, copyTemplateRecord, folderNames, findExerciseByName, newExerciseRecord,
   exerciseInDraft, patchDraftExercise, changeSetting, convertDraftUnits, mergeExercisePatch, moveExerciseEntries,
@@ -810,9 +810,22 @@ export async function mergeExercise(fromId: string, intoId: string) {
 }
 
 // ---------- workouts ----------
-export async function saveWorkout(w: Workout) {
-  setState({ workouts: [...state.workouts.filter((x) => x.id !== w.id), w].sort(byNewest) });
-  await save([docOp('workouts', w)]);
+/** Save a finished workout, and its routine with it when Edit workout changed the routine's pinned note (one transaction, #33). */
+export async function saveWorkout(w: Workout, routine: Template | null = null) {
+  setState({
+    workouts: [...state.workouts.filter((x) => x.id !== w.id), w].sort(byNewest),
+    ...(routine ? { templates: state.templates.map((x) => (x.id === routine.id ? routine : x)) } : {}),
+  });
+  await save([docOp('workouts', w), ...(routine ? [docOp('templates', routine)] : [])]);
+}
+
+/** Set or remove a routine's pinned note for next time (#33); a running workout from it shows the new one at once. */
+export async function setPinnedNote(templateId: string, note: string) {
+  const t = state.templates.find((x) => x.id === templateId);
+  if (!t) return;
+  const next = withPinnedNote(t, note) as Template;
+  setState({ templates: state.templates.map((x) => (x.id === templateId ? next : x)) });
+  await save([docOp('templates', next)]);
 }
 
 /** Delete a finished workout. Returns it, for undo. */
@@ -1032,7 +1045,11 @@ export async function saveWorkoutEdit(defaultName: string): Promise<{ problem?: 
   const r = workoutFromEditDraft(d, { settings: state.settings, exercises: state.exercises, defaultName }) as { problem?: string; workout?: Workout };
   if (r.problem || !r.workout) return { problem: r.problem };
   checkEditBase(d);
-  await saveWorkout(r.workout);
+  // the routine's pinned note, edited here, is saved with the workout (#33)
+  const routine = d.templateId ? state.templates.find((x) => x.id === d.templateId) : null;
+  const pinned = routine && d.pinnedNote !== undefined && (d.pinnedNote.trim() || undefined) !== routine.pinnedNote
+    ? withPinnedNote(routine, d.pinnedNote) as Template : null;
+  await saveWorkout(r.workout, pinned);
   await applyExercisePatches(d);
   setState({ edit: { ...d, dirty: false } });
   return { workout: r.workout };

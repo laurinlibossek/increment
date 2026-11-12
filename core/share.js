@@ -43,6 +43,8 @@ export function encodeTemplate(t, exercises) {
   });
   const data = { v: 1, n: t.name, e };
   if (t.notes) data.f = t.notes;
+  // the pinned note for next time travels like Notes (#33); older links have none
+  if (t.pinnedNote) data.p = t.pinnedNote;
   return b64urlEncode(JSON.stringify(data));
 }
 
@@ -90,6 +92,7 @@ export function decodeTemplate(text, { categories = [], bodyParts = [] } = {}) {
   }).filter(Boolean);
   const name = str(d.n, 80);
   if (!name || !exercises.length) return null;
-  return { name, notes: str(d.f, 1000), exercises };
+  const pinnedNote = str(d.p, 1000);
+  return { name, notes: str(d.f, 1000), exercises, ...(pinnedNote ? { pinnedNote } : {}) };
 }
 
