@@ -16,7 +16,8 @@ const data = {
   exercises: SEED_EXERCISES, templates: [], measurements: [],
   workouts: [{ id: 'w', name: 'Push', startedAt: at, endedAt: at + 3600000, templateId: null,
     exercises: [{ id: 'e', exerciseId: BENCH, sets: [{ id: 's1', type: 'normal', w: 20, r: 36 }] }] }],
-  kv: { settings: { language: 'en', showExamples: false, appKeepAwake: false, formula: 'brzycki' }, meta: { seedVersion: SEED_VERSION, createdAt: 1000, lastBackupAt: at } },
+  kv: { settings: { language: 'en', showExamples: false, appKeepAwake: false, formula: 'brzycki' }, meta: { seedVersion: SEED_VERSION, createdAt: 1000, lastBackupAt: at },
+    chartMetrics: { [BENCH]: 'e1rm' } },
 };
 
 const ctx = await browser.newContext({ ...devices['iPhone 13'], viewport: { width: 390, height: 844 }, locale: 'en-US' });

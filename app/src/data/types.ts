@@ -213,6 +213,8 @@ export interface Kv {
   strongAliases?: Record<string, string>;
   /** Names of this person’s custom exercise families, keyed by fc- id. */
   customFamilies?: Record<string, string>;
+  /** The chart each exercise page shows, when the person chose one: exercise id → metric id (#27). */
+  chartMetrics?: Record<string, string>;
 }
 
 /** Everything that is stored; also the `data` part of a backup file. */

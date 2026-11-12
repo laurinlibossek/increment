@@ -407,6 +407,36 @@ export function chartMetricsFor(cat) {
   return [{ id: 'time', label: 'Total time', kind: 'time' }];
 }
 
+/**
+ * The chart an exercise page opens with (#27): Heaviest weight where there is
+ * one, Most reps for bodyweight and assisted exercises, Distance for cardio,
+ * Time for timed ones.
+ */
+export function defaultChartMetric(cat) {
+  const ids = chartMetricsFor(cat).map((m) => m.id);
+  return ['weight', 'reps', 'distance', 'time'].find((id) => ids.includes(id)) || ids[0];
+}
+
+/** The chart chosen for an exercise if it still has that metric, else its default. */
+export function chartMetricFor(cat, chosen) {
+  return chartMetricsFor(cat).some((m) => m.id === chosen) ? chosen : defaultChartMetric(cat);
+}
+
+/**
+ * The remembered charts (exercise id -> metric id, kept in kv and in backups)
+ * without exercises that are gone or metrics they no longer have.
+ */
+export function cleanChartMetrics(map, exercises) {
+  const get = exercises instanceof Map ? (id) => exercises.get(id) : (id) => (exercises || []).find((e) => e.id === id);
+  /** @type {Record<string, string>} */
+  const out = {};
+  for (const [id, metric] of Object.entries(map && typeof map === 'object' ? map : {})) {
+    const ex = get(id);
+    if (ex && typeof metric === 'string' && chartMetricsFor(ex.category).some((m) => m.id === metric)) out[id] = metric;
+  }
+  return out;
+}
+
 // ---------- plates & warm-ups ----------
 /** Plates per side for a target total. Returns { plates: [..], remainder } */
 export function platesFor(total, bar, available) {

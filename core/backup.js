@@ -1,6 +1,7 @@
 // Backup files: everything in the app as one JSON file, and reading it back.
 import { withSeedExercises } from './seed-sync.js';
 import { cleanCustomFamilies } from './exercise-families.js';
+import { cleanChartMetrics } from './calc.js';
 import { sameRecord } from './pending-writes.js';
 
 // The file says app 'setlog' on purpose: Increment reads and writes the same
@@ -63,6 +64,8 @@ export function parseBackup(text, seedExercises = []) {
   // keep the built-in library even if the backup predates it
   const exercises = withSeedExercises(d.exercises || [], seedExercises);
   kv.customFamilies = cleanCustomFamilies(kv.customFamilies, exercises);
+  // the chart each exercise page shows (#27); older backups have none
+  if (kv.chartMetrics !== undefined) kv.chartMetrics = cleanChartMetrics(kv.chartMetrics, exercises);
   // the running workout of a recovery backup comes back only when asked for (runningWorkoutChoice)
   const recovered = obj.recovery?.active;
   if (recovered !== undefined && recovered !== null && !isRunningWorkout(recovered)) throw fail('The backup is damaged ({part}).', { part: 'recovery' });
