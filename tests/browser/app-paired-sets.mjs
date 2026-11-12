@@ -213,6 +213,29 @@ for (const theme of ['light', 'dark']) {
   assert.deepEqual(d1.templates.find((t) => t.id === 'split').exercises[0].sets.map((x) => x.side), ['left', 'right', 'left', 'right']);
   assert.deepEqual(d1.kv.active.exercises[0].sets.map((x) => x.side), ['left', 'right', 'left', 'right']);
   await shot('split');
+  // logging counts a set once both its sides are (#72): two pairs are two working sets, not four
+  const tick = async (i) => { await id(`check-${ids[i]}`).click(); await page.waitForTimeout(300); };
+  assert.equal(await text('session-count'), '0 of 2 working sets · 0%');
+  await tick(0);
+  assert.match(await text('session-count'), /^0 of 2 working sets · 0%/, 'one side alone is not a set yet');
+  assert.match(await id('session-tally').getAttribute('aria-label'), /^0 of 2 working sets logged, 0%/);
+  await tick(1);
+  assert.match(await text('session-count'), /^1 of 2 working sets · 50%/);
+  await waitStored(page, (d) => d.kv.active.exercises[0].sets.filter((x) => x.done).length === 2);
+  await page.goto(APP);
+  await id('now-card').waitFor();
+  assert.match(await text('now-card'), /1 of 2 working sets · 50%/);
+  assert.match(await id('mini-bar').first().innerText(), /Single Leg Curl \(Machine\) · set 2 of 2 · Left/, 'Now Lifting numbers the pair and names the side');
+  await id('resume-workout').click();
+  await id(`block-${LEGCURL}`).waitFor();
+  await tick(2); await tick(3);
+  assert.match(await text('session-count'), /^2 of 2 working sets · 100%/);
+  await id('workout-menu').click();
+  await id('menu-finish').click();
+  await id('confirm-finish').waitFor();
+  assert.match(await page.locator('body').innerText(), /2 sets logged in/, 'Finish counts as the summary will: two pairs, two sets');
+  await id('dialog-cancel').click();
+  ok('a left/right pair is one working set: 0 of 2 after one side, 1 of 2 · 50% after both, in the session, on Today and in Now Lifting (“set 2 of 2 · Left”); Finish asks about 2 sets');
   await id(`label-${ids[0]}`).click();
   await id('set-side').click();
   assert.equal(await id('side-clear').count(), 0, 'a unilateral working set keeps a side');
@@ -220,6 +243,7 @@ for (const theme of ['light', 'dark']) {
   await id(`add-set-${LEGCURL}`).click();
   await waitStored(page, (d) => d.kv.active.exercises[0].sets.length === 5);
   assert.equal((await storedData(page)).kv.active.exercises[0].sets[4].side, 'left');
+  assert.match(await text('session-count'), /^2 of 3 working sets · 66%/, 'a lone left is a set of its own while logging');
   ok('starting it splits each set into Left and Right (saved in the routine) with last time’s numbers on both; no Clear; Add set goes on Left');
   await id('workout-menu').click(); await id('menu-discard').click(); await id('confirm-discard').click().catch(() => {});
 

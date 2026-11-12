@@ -8,7 +8,7 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { moveItem, setTotal } from '@increment/core';
+import { exerciseSetCount, isUnilateral, moveItem } from '@increment/core';
 
 import { editDraft, getDraft, useAppSelector } from '@/data/store';
 import type { DraftKey, EntryDraft } from '@/data/types';
@@ -24,6 +24,7 @@ export default function Reorder() {
   const key: DraftKey = draft === 'edit' ? 'edit' : 'active';
   const a = useAppSelector((s) => getDraft(key, s));
   const exercises = useAppSelector((s) => s.exercises);
+  const pair = useAppSelector((s) => s.settings.pairSides !== false);
   const f = useFormat();
   const { tr } = f;
   const c = useColors();
@@ -90,7 +91,7 @@ export default function Reorder() {
       <ScrollView scrollEnabled={!drag} contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 24 }}>
         <View style={[styles.group, { backgroundColor: c.surface }]}>
           {list.map((e, i) => (
-            <Row key={e.id} entry={e} index={i} name={f.exName(exercises.get(e.exerciseId)) || ''} sub={f.plural(setTotal(e.sets), 'set') + (e.supersetId ? ` · ${tr('superset')}` : '')}
+            <Row key={e.id} entry={e} index={i} name={f.exName(exercises.get(e.exerciseId)) || ''} sub={f.setsText(exerciseSetCount(e.sets, isUnilateral(exercises.get(e.exerciseId)), { pair })) + (e.supersetId ? ` · ${tr('superset')}` : '')}
               lifted={drag?.from === i} shift={shift(i)} dy={dy} api={apiRef} first={i === 0} moveLabel={tr('Move {name}', { name: f.exName(exercises.get(e.exerciseId)) || '' })} />
           ))}
         </View>

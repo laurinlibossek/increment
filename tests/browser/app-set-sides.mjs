@@ -89,8 +89,9 @@ try {
     const expected = language === 'de' ? /Satz 1, links, 30 × 5, eingetragen/ : /Set 1, left side, 30 × 5, logged/;
     assert.match(await p.getByTestId(`check-${ids[0]}`).getAttribute('aria-label'), expected);
     assert.match(await p.getByTestId(`set-${ids[0]}`).getAttribute('aria-label'), expected);
-    assert.match(await p.getByTestId('session-count').innerText(), /3/);
-    ok(`${language}/${theme}: the set says its side, row and tick read the side, and three rows stay three tally strokes`);
+    // a left/right pair and a lone left: two sets, both logged (#72)
+    assert.match(await p.getByTestId('session-count').innerText(), language === 'de' ? /^2 von 2 Arbeitssätzen · 100 %/ : /^2 of 2 working sets · 100%/);
+    ok(`${language}/${theme}: the set says its side, row and tick read the side; a pair and a lone left count 2 of 2`);
     await shot(p, language, theme, 'running');
     if (await p.getByTestId('rest-skip').count()) await p.getByTestId('rest-skip').click();
     await p.getByTestId('workout-menu').click(); await p.getByTestId('menu-finish').click();

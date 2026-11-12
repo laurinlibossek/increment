@@ -1,7 +1,7 @@
 // When storage refuses a change (#34) or another tab changed the same record
 // (#35): the message after an explicit save, and the review of a conflict that
 // the warning at the top of the screen opens (ui/SaveWarning.tsx).
-import { setTotal } from '@increment/core';
+import { exerciseSetCount, isUnilateral } from '@increment/core';
 
 import { getState, keepMine, takeSaved, type ConflictItem } from '@/data/store';
 import { Conflict } from '@/data/storage-types';
@@ -52,11 +52,12 @@ function lines(key: string, v: unknown, f: F): string[] {
   if (!v) return [f.tr('Deleted')];
   const rec = v as Record<string, unknown> & { exercises?: (EntryDraft | TemplateEntry)[] };
   if (key === 'kv/active' || key.startsWith('templates/') || key.startsWith('workouts/')) {
-    const ex = getState().exercises;
+    const { exercises: ex, settings } = getState();
     const out = rec.name ? [String(rec.name)] : [];
     for (const e of rec.exercises || []) {
       const exercise = ex.get(e.exerciseId);
-      out.push(`${exercise ? f.exName(exercise) : f.tr('Unknown exercise')}: ${f.plural(setTotal(e.sets), 'set')}`);
+      const count = exerciseSetCount(e.sets, isUnilateral(exercise), { pair: settings.pairSides !== false });
+      out.push(`${exercise ? f.exName(exercise) : f.tr('Unknown exercise')}: ${f.setsText(count)}`);
     }
     return out;
   }
