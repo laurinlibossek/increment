@@ -10,7 +10,7 @@ import {
 
 import { setMeta, stats, useAppState } from '@/data/store';
 import { SPACE, TYPE } from '@/design/tally';
-import { backupNow } from '@/lib/backup';
+import { backupNow, backupWhy } from '@/lib/backup';
 import { useFormat } from '@/lib/format';
 import { fmtMeasure, measureDef } from '@/lib/measure';
 import { useTally } from '@/lib/theme';
@@ -18,6 +18,7 @@ import { BarChart } from '@/ui/Chart';
 import { ListRow } from '@/ui/tally/ListRow';
 import { SectionHeader } from '@/ui/tally/SectionHeader';
 import { StatStrip } from '@/ui/tally/StatStrip';
+import { AccountButton } from '@/ui/tally/AccountButton';
 import { SearchButton } from '@/ui/tally/SearchButton';
 import { TabRoot } from '@/ui/tally/TabRoot';
 import { useToday } from '@/lib/useNow';
@@ -56,12 +57,12 @@ export default function ProgressTab() {
     && (!s.meta.backupSnoozedAt || Date.now() - (s.meta.backupSnoozedAt as number) > 7 * DAY);
 
   return (
-    <TabRoot title={tr('Progress')} right={<SearchButton tab="progress" />}>
+    <TabRoot title={tr('Progress')} right={<><SearchButton tab="progress" /><AccountButton tab="progress" /></>}>
       {needsBackup && (
         <View testID="backup-banner" style={{ paddingHorizontal: SPACE.s5, marginBottom: SPACE.s6, gap: SPACE.s2 }}>
           <Text style={[TYPE.subhead, { color: t.ink }]}>
             <Text style={{ fontWeight: '600' }}>{tr('Back up your training log.')}</Text>
-            {` ${tr('It lives only on this phone — a backup file in iCloud Drive protects it if the phone is lost or reset.')}`}
+            {` ${backupWhy(tr)}`}
           </Text>
           <View style={{ flexDirection: 'row', gap: SPACE.s5 }}>
             <Pressable onPress={() => backupNow(tr)} accessibilityRole="button" hitSlop={8}><Text style={[TYPE.headline, { color: t.ink }]}>{tr('Back up now')}</Text></Pressable>

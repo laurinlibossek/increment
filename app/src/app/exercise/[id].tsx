@@ -279,9 +279,15 @@ async function exerciseMenu(ex: Exercise, sessions: number, f: ReturnType<typeof
   if (c === 'delete') {
     const u = exerciseUsage(ex.id);
     if (u.sessions > 0 || u.inActive) {
+      // only in the running workout: say so, not "it's in 0 workouts" (#42)
+      const n = f.plural(u.sessions, 'workout');
       const ok = await ask({
-        title: tr('This exercise has history'),
-        message: tr('It’s in {n}. Deleting it would break those workouts, so hide it from lists instead — your history stays.', { n: f.plural(u.sessions, 'workout') }),
+        title: u.sessions ? tr('This exercise has history') : tr('This exercise is in your workout'),
+        message: !u.sessions
+          ? tr('It’s in the workout you’re doing now. Remove it there first to delete it, or hide it from lists instead.')
+          : u.inActive
+            ? tr('It’s in {n} and in the workout you’re doing now. Deleting it would break them, so hide it from lists instead — your history stays.', { n })
+            : tr('It’s in {n}. Deleting it would break those workouts, so hide it from lists instead — your history stays.', { n }),
         ok: tr('Hide it'), cancel: tr('Cancel'),
       });
       if (ok) updateExercise(ex.id, { hidden: true });
