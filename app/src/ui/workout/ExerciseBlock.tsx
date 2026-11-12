@@ -4,7 +4,7 @@
 // set rows and "Add set". Only this exercise re-renders when one of its sets
 // changes (see editDraft in the store). Logging, the keypad and live records
 // belong to the running workout only (Session.tsx).
-import { memo, useMemo } from 'react';
+import { Fragment, memo, useMemo } from 'react';
 import {
   Platform, Pressable, StyleSheet, Text, TextInput, View,
 } from 'react-native';
@@ -17,7 +17,7 @@ import {
 } from '@increment/core';
 
 import {
-  changeExercise, editDraft, getDraft, getState,
+  changeExercise, editDraft, getDraft, getState, useAppSelector,
 } from '@/data/store';
 import type {
   DraftKey, EntryDraft, Exercise, SetDraft, Settings, SetType, WorkSet,
@@ -34,6 +34,7 @@ import { useSession } from './Session';
 import { effortText, lastTimeText, rirText, setValueText } from './text';
 import { readyText, type Readiness } from '@/lib/workout';
 import { Highlight } from '@/ui/tally/Highlight';
+import { RestLine } from '@/ui/tally/RestBar';
 
 export type EditorMode = 'active' | 'edit' | 'template';
 
@@ -65,6 +66,8 @@ export const ExerciseBlock = memo(function ExerciseBlock({
   const { colors: t } = useTally();
   const session = useSession();
   const rows = useMemo(() => placeholders(entry, prevSets, settings) as { prev: WorkSet | null; ph: Record<string, string> }[], [entry, prevSets, settings]);
+  // the set the running rest follows (#53): this block re-renders only when that changes, never each second
+  const restSetId = useAppSelector((s) => (mode === 'active' && s.active?.rest?.entryId === entry.id ? s.active.rest.setId || null : null));
   if (!ex) return null;
   const cat = ex.category;
   const fields = loggedFields(cat) as Field[];
@@ -152,6 +155,16 @@ export const ExerciseBlock = memo(function ExerciseBlock({
   };
 
   // ---------- the exercise ----------
+  /** The exercise's rest timer: from its menu, or a tap on "Rest 2:00" under the name (#53). */
+  const pickRest = async () => {
+    const v = await actionSheet<string>({
+      title: `${tr('Rest timer')} · ${name}`, message: tr('Starts when you check off a set. Saved for this exercise.'),
+      actions: (REST_CHOICES as number[]).map((sec) => ({ label: sec ? f.clock(sec) : tr('Off'), value: String(sec), checked: rest === sec, testID: `rest-${sec}` })),
+    });
+    if (v === undefined) return;
+    edit((e) => { e.restSec = Number(v); });
+    changeExercise(draftKey, ex.id, { restSec: Number(v) });
+  };
   const menu = async () => {
     const a = getDraft(draftKey);
     if (!a) return;
@@ -195,15 +208,7 @@ export const ExerciseBlock = memo(function ExerciseBlock({
       editDraft(draftKey, (d) => joinSuperset(d.exercises, d.exercises.find((e) => e.id === entry.id), d.exercises.find((e) => e.id === target)));
     }
     if (choice === 'unsuperset') editDraft(draftKey, (d) => leaveSuperset(d.exercises, d.exercises.find((e) => e.id === entry.id)));
-    if (choice === 'rest') {
-      const v = await actionSheet<string>({
-        title: `${tr('Rest timer')} · ${name}`, message: tr('Starts when you check off a set. Saved for this exercise.'),
-        actions: (REST_CHOICES as number[]).map((sec) => ({ label: sec ? f.clock(sec) : tr('Off'), value: String(sec), checked: rest === sec, testID: `rest-${sec}` })),
-      });
-      if (v === undefined) return;
-      edit((e) => { e.restSec = Number(v); });
-      changeExercise(draftKey, ex.id, { restSec: Number(v) });
-    }
+    if (choice === 'rest') await pickRest();
     if (choice === 'warmup') {
       let r: { added?: number; problem?: string } = {};
       edit((e) => { r = addWarmups(e, rows, cat, settings); });
@@ -260,7 +265,10 @@ export const ExerciseBlock = memo(function ExerciseBlock({
 
   const last = lastTimeText(prevSets, cat, f, tr);
   const part = BODY_PART_LABEL[ex.bodyPart as keyof typeof BODY_PART_LABEL];
-  const facts = [active ? f.exEquipment(ex) : '', part ? tr(part) : '', last ? tr('last time {sets}', { sets: last }) : ''].filter(Boolean).join(' · ');
+  const facts = [active ? f.exEquipment(ex) : '', part ? tr(part) : ''].filter(Boolean);
+  const lastText = last ? tr('last time {sets}', { sets: last }) : '';
+  // the exercise's rest, once, in the same line (#53): "Machine · Legs · Rest 2:00"; tapping it changes it
+  const restText = active && rest > 0 ? tr('Rest {time}', { time: f.clock(rest) }) : '';
   const target = session?.target;
   // the routine editor: "Weight increase recommended" needs a range on every working set (#49)
   const kind = mode === 'template' ? readinessKind(cat) as Readiness : null;
@@ -356,16 +364,20 @@ export const ExerciseBlock = memo(function ExerciseBlock({
             <Icon name="more" size={20} color={t.ink} />
           </Pressable>
         </View>
-        {!!facts && <Text style={{ ...TYPE.footnote, color: t.ink2 }} testID={`last-${ex.id}`}>{facts}</Text>}
-        {!!ready && active && <View style={{ marginTop: SPACE.s1 }}><Highlight chip testID={`ready-${ex.id}`}>{readyText(ready, tr)}</Highlight></View>}
-        {!!rangeHint && <Text style={{ ...TYPE.footnote, color: t.ink2 }} testID={`range-hint-${ex.id}`}>{rangeHint}</Text>}
-        {(superset || (active && rest > 0)) && (
-          <Text style={{ ...TYPE.footnote, color: t.ink2 }}>
-            {superset ? <Text>{tr('Superset {letter}', { letter: superset.letter })}</Text> : null}
-            {superset && active && rest > 0 ? ' · ' : ''}
-            {active && rest > 0 ? <Text testID={`rest-tag-${ex.id}`} style={{ fontVariant: ['tabular-nums'] }}>{tr('Rest {time}', { time: f.clock(rest) })}</Text> : null}
+        {(facts.length > 0 || !!restText || !!lastText) && (
+          <Text style={{ ...TYPE.footnote, color: t.ink2 }} testID={`last-${ex.id}`}>
+            {facts.join(' · ')}
+            {restText ? <>
+              {facts.length ? ' · ' : ''}
+              <Text onPress={pickRest} accessibilityRole="button" accessibilityLabel={tr('Rest timer: {time}', { time: f.clock(rest) })}
+                testID={`rest-tag-${ex.id}`} style={{ fontVariant: ['tabular-nums'] }}>{restText}</Text>
+            </> : null}
+            {lastText ? `${facts.length || restText ? ' · ' : ''}${lastText}` : ''}
           </Text>
         )}
+        {!!ready && active && <View style={{ marginTop: SPACE.s1 }}><Highlight chip testID={`ready-${ex.id}`}>{readyText(ready, tr)}</Highlight></View>}
+        {!!rangeHint && <Text style={{ ...TYPE.footnote, color: t.ink2 }} testID={`range-hint-${ex.id}`}>{rangeHint}</Text>}
+        {superset && <Text style={{ ...TYPE.footnote, color: t.ink2 }}>{tr('Superset {letter}', { letter: superset.letter })}</Text>}
         {/* the exercise's notes come before its sets: the pinned note first, highlighted, then this time's note (#48) */}
         {!!ex.pinnedNote && (
           <View style={[styles.pinned, { backgroundColor: t.pinnedNote }]} testID={`pinned-${ex.id}`}>
@@ -380,7 +392,9 @@ export const ExerciseBlock = memo(function ExerciseBlock({
       </View>
       <View style={{ marginTop: SPACE.s3 }}>
         {entry.sets.length > 0 && <SetHeader columns={columns} testID={`sets-head-${ex.id}`} />}
-        {entry.sets.map(row)}
+        {entry.sets.map((set, i) => (set.id === restSetId
+          ? <Fragment key={set.id}>{row(set, i)}<SetRest setId={set.id} /></Fragment>
+          : row(set, i)))}
       </View>
       <Pressable onPress={() => edit((e) => addSet(e))} accessibilityRole="button" testID={`add-set-${ex.id}`}
         style={({ pressed }) => [styles.addSet, { opacity: pressed ? 0.6 : 1 }]}>
@@ -390,6 +404,15 @@ export const ExerciseBlock = memo(function ExerciseBlock({
     </View>
   );
 });
+
+/** The running rest under the set it follows (#53): the same timer as the Action bar; gone when it's skipped or over. */
+function SetRest({ setId }: { setId: string }) {
+  const r = useAppSelector((s) => s.active?.rest || null);
+  const f = useFormat();
+  if (!r || r.setId !== setId) return null;
+  return <RestLine end={r.end} total={r.total} clock={f.clock} testID={`set-rest-${setId}`}
+    label={(secs) => f.tr('Rest timer, {n} seconds left', { n: secs })} />;
+}
 
 const styles = StyleSheet.create({
   block: { marginTop: SPACE.s6 },
