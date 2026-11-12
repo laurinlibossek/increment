@@ -225,7 +225,8 @@ for (const theme of ['light', 'dark']) {
   await page.goto(APP);
   await id('now-card').waitFor();
   assert.match(await text('now-card'), /1 of 2 working sets · 50%/);
-  assert.match(await id('mini-bar').first().innerText(), /Single Leg Curl \(Machine\) · set 2 of 2 · Left/, 'Now Lifting numbers the pair and names the side');
+  const bar = (await id('mini-bar').first().innerText()).replace(/\s+/g, ' ');
+  assert.match(bar, /Single Leg Curl \(Machine\) · set 2 of 2 Left · From Strong/, 'Now Lifting numbers the pair and names the side first on the second line');
   await id('resume-workout').click();
   await id(`block-${LEGCURL}`).waitFor();
   await tick(2); await tick(3);
@@ -235,7 +236,7 @@ for (const theme of ['light', 'dark']) {
   await id('confirm-finish').waitFor();
   assert.match(await page.locator('body').innerText(), /2 sets logged in/, 'Finish counts as the summary will: two pairs, two sets');
   await id('dialog-cancel').click();
-  ok('a left/right pair is one working set: 0 of 2 after one side, 1 of 2 · 50% after both, in the session, on Today and in Now Lifting (“set 2 of 2 · Left”); Finish asks about 2 sets');
+  ok('a left/right pair is one working set: 0 of 2 after one side, 1 of 2 · 50% after both, in the session, on Today and in Now Lifting (“set 2 of 2”, “Left · From Strong”); Finish asks about 2 sets');
   await id(`label-${ids[0]}`).click();
   await id('set-side').click();
   assert.equal(await id('side-clear').count(), 0, 'a unilateral working set keeps a side');

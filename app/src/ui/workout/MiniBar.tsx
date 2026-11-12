@@ -66,16 +66,17 @@ export function MiniBar({ placement = 'regular', surface = 'raised' }: { placeme
   const cur = view.current;
   const entry = cur ? a.exercises[cur.entry] : null;
   const title = entry ? `${f.exName(exercises.get(entry.exerciseId)) || tr('Exercise')} · ${setText(entry, cur!.set)}` : a.name;
-  // the set's number counts a left and a right as one set (#72): "set 2 of 3 · Right"
+  // the set's number counts a left and a right as one set (#72): "set 2 of 3"; its side leads the
+  // second line, since a long exercise name cuts the first one short: "Right · Legs · 25:01"
   function setText(e: EntryDraft, index: number) {
     const set = e.sets[index];
     if (set.type === 'warmup') return tr('warm-up set');
     const slots = setSlots(e.sets, isUnilateral(exercises.get(e.exerciseId)), { pair }) as SetDraft[][];
-    const n = tr('set {n} of {total}', { n: slots.findIndex((slot) => slot.includes(set)) + 1, total: slots.length });
-    const side = sideOf(set);
-    return side ? `${n} · ${tr(side === 'left' ? 'Left' : 'Right')}` : n;
+    return tr('set {n} of {total}', { n: slots.findIndex((slot) => slot.includes(set)) + 1, total: slots.length });
   }
-  const subtitle = rest ? tr('Rest {time}', { time: rest }) : entry ? `${a.name} · ${elapsed}` : elapsed;
+  const side = entry && entry.sets[cur!.set].type !== 'warmup' ? sideOf(entry.sets[cur!.set]) : undefined;
+  const sideWord = side ? tr(side === 'left' ? 'Left' : 'Right') : '';
+  const subtitle = rest ? tr('Rest {time}', { time: rest }) : entry ? [sideWord, a.name, elapsed].filter(Boolean).join(' · ') : elapsed;
   return (
     <NowLifting placement={placement} surface={surface} testID="mini-bar"
       tally={[view.exercise]} tallyLabel={f.progressText(view).label}
