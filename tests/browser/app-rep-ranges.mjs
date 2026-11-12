@@ -78,11 +78,13 @@ for (const theme of ['light', 'dark']) {
 
   // log everything (the first working set at last time's 9, the second at 12) and finish
   for (const ex of [BENCH, SQUAT]) {
-    // the session shows one exercise at a time: Squat comes up once Bench Press is done
+    // the session shows one exercise at a time: Squat comes up with Next once Bench Press is done
     await checks(ex).first().waitFor();
     if (ex === SQUAT) assert.doesNotMatch(await id(`set-${await setId(SQUAT, 0)}`).innerText(), /reps/, 'Squat has no range');
     const n = await checks(ex).count();
     for (let i = 0; i < n; i++) { await checks(ex).nth(i).click(); await page.waitForTimeout(150); if (await id('rest-skip').count()) await id('rest-skip').click(); }
+    // a finished exercise stays on screen until Next (#60)
+    if (await id('next-exercise').count()) await id('next-exercise').click();
   }
   await id('workout-menu').click();
   await id('menu-finish').click();
