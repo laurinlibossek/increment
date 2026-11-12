@@ -238,6 +238,8 @@ export function KeypadHost() {
       };
     }
   }
+  // the routine's rep range while typing reps (#44)
+  if (field === 'r' && set.range) aside = { label: tr('Rep range'), value: `${set.range[0]}–${set.range[1]}` };
   const stepText = field === 't' ? [tr('−15 s'), tr('+15 s')] : [`−${f.num(step)}`, `+${f.num(step)}`];
   return (
     <Keypad

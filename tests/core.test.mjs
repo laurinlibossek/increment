@@ -2126,3 +2126,112 @@ test('a routine\'s pinned note (#33): set, replaced and removed; kept by the edi
   const back = core.parseBackup(core.makeBackup({ exercises: [], workouts: [], templates: [pinned], measurements: [], kv: {} }, '1.0.0', new Date()), core.SEED_EXERCISES);
   assert.equal(back.data.templates[0].pinnedNote, 'Go up 2.5 kg');
 });
+test('rep ranges (#44): parsed in the editor, fixed bounds, a target that moves inside them', () => {
+  // what the editor accepts
+  assert.equal(core.parseRepsInput('8'), null);
+  assert.equal(core.parseRepsInput(''), null);
+  assert.deepEqual(core.parseRepsInput('8-10'), { range: [8, 10] });
+  assert.deepEqual(core.parseRepsInput(' 8 – 10 '), { range: [8, 10] });
+  assert.deepEqual(core.parseRepsInput('8–8'), { r: 8 }, 'equal bounds are one target');
+  for (const bad of ['8-', '–10', '10–8', '0–5', '8.5–10', '8–10–12', 'a–b']) assert.deepEqual(core.parseRepsInput(bad), { problem: true }, bad);
+  // stored as rMin/rMax next to the target r
+  assert.deepEqual(core.repRange({ r: 9, rMin: 8, rMax: 10 }), [8, 10]);
+  for (const s of [{ r: 8 }, { rMin: 10, rMax: 8 }, { rMin: 8, rMax: 8 }, { rMin: 0, rMax: 5 }, { rMin: 8.5, rMax: 10 }]) assert.equal(core.repRange(s), null);
+  assert.deepEqual(core.withRepRange({ type: 'normal', w: 80 }, [8, 10]), { type: 'normal', w: 80, r: 8, rMin: 8, rMax: 10 });
+  assert.deepEqual(core.withRepRange({ w: 80, r: 12 }, [8, 10]), { w: 80, r: 10, rMin: 8, rMax: 10 });
+  assert.deepEqual(core.withRepRange({ w: 80, r: 9, rMin: 8, rMax: 10 }, null), { w: 80, r: 9 });
+  assert.equal(core.repsText({ r: 9, rMin: 8, rMax: 10 }), '8–10');
+  assert.equal(core.repsText({ r: 9 }), 9);
+  assert.deepEqual(core.entryRepRange(E('a', [S('warmup', 40, 10), S('normal', 80, 8, { rMin: 8, rMax: 10 }), S('normal', 80, 8, { rMin: 8, rMax: 10 })])), [8, 10]);
+  assert.equal(core.entryRepRange(E('a', [S('normal', 80, 8, { rMin: 8, rMax: 10 }), S('normal', 80, 6, { rMin: 6, rMax: 8 })])), null);
+  assert.equal(core.entryRepRange(E('a', [S('normal', 80, 8)])), null);
+
+  // the routine editor: shown as "8–10", saved with the target kept; refused when broken
+  const st = core.withDefaults({ unit: 'kg', distUnit: 'km' });
+  const exercises = new Map(core.SEED_EXERCISES.map((e) => [e.id, e]));
+  const BENCH = 'x-bench-press-barbell';
+  const t = { id: 't', name: 'Push', exercises: [E(BENCH, [S('warmup', 40, 10), S('normal', 80, 9, { rMin: 8, rMax: 10 }), S('normal', 80, 5)])] };
+  const draft = core.templateDraft({ template: t, settings: st });
+  assert.deepEqual(draft.exercises[0].sets.map((x) => x.r), ['10', '8–10', '5']);
+  const save = (d) => core.templateFromDraft(d, { settings: st, exercises, existing: t });
+  assert.deepEqual(save(draft).template.exercises[0].sets, t.exercises[0].sets, 'untouched: the same bounds and target');
+  const edit = (r) => { const d = JSON.parse(JSON.stringify(draft)); d.exercises[0].sets[1].r = r; return save(d); };
+  assert.deepEqual(edit('10-12').template.exercises[0].sets[1], S('normal', 80, 10, { rMin: 10, rMax: 12 }), 'a new range keeps the target inside it');
+  assert.deepEqual(edit('6–8').template.exercises[0].sets[1], S('normal', 80, 8, { rMin: 6, rMax: 8 }));
+  assert.deepEqual(edit('9').template.exercises[0].sets[1], S('normal', 80, 9), 'a single number is an ordinary target');
+  assert.deepEqual(edit('10–10').template.exercises[0].sets[1], S('normal', 80, 10));
+  for (const bad of ['10–8', '8–', '0–4']) assert.deepEqual(edit(bad), { problem: core.EDIT_MESSAGES.repRange }, bad);
+  // a new range on a set without one starts at its low bound
+  const d2 = JSON.parse(JSON.stringify(draft)); d2.exercises[0].sets[2].r = '5-8';
+  assert.deepEqual(save(d2).template.exercises[0].sets[2], S('normal', 80, 5, { rMin: 5, rMax: 8 }));
+
+  // the running workout: the range sits beside the set; the ghost is last time's reps, else the target; the workout stores no range
+  const a = core.newActiveWorkout({ template: t, settings: st, now: 1000 });
+  const set = a.exercises[0].sets[1];
+  assert.deepEqual(set.range, [8, 10]);
+  assert.equal(set.tpl.r, 9);
+  assert.equal(core.placeholders(a.exercises[0], [], st)[1].ph.r, '9');
+  assert.equal(core.placeholders(a.exercises[0], [S('warmup', 40, 10), S('normal', 80, 7)], st)[1].ph.r, '7');
+  core.addSet(a.exercises[0]);
+  assert.equal(a.exercises[0].sets[3].range, undefined, 'a set after an unranged one has none');
+  const b = core.newActiveWorkout({ template: { ...t, exercises: [E(BENCH, [S('normal', 80, 9, { rMin: 8, rMax: 10 })])] }, settings: st, now: 1000 });
+  core.addSet(b.exercises[0]);
+  assert.deepEqual(b.exercises[0].sets[1].range, [8, 10], 'Add set carries the range on');
+  Object.assign(b.exercises[0].sets[0], { w: '80', r: '9', done: true });
+  const entries = core.draftEntries(b, st, exercises, { onlyDone: true });
+  assert.deepEqual(Object.keys(entries[0].sets[0]).sort(), ['id', 'r', 'type', 'w']);
+});
+
+test('rep ranges (#44): progression moves the target inside the bounds, never the bounds', () => {
+  const cat = () => 'barbell';
+  const R = (w, r, extra) => S('normal', w, r, { rMin: 8, rMax: 10, ...extra });
+  const run = (tpl, sets, o) => core.progressTemplate([E('a', tpl)], { exercises: [E('a', sets)] }, cat, o);
+  // 8 → 9 → 10, then 12 reps: the target stops at 10 and the bounds stay 8–10
+  let tpl = [R(80, 8)];
+  for (const [r, want, raised] of [[9, 9, 1], [10, 10, 1], [12, 10, 0], [11, 10, 0]]) {
+    const out = run(tpl, [S('normal', 80, r)]);
+    assert.deepEqual(out.exercises[0].sets, [R(80, want)], `${r} reps`);
+    assert.equal(out.raised, raised, `${r} reps raised`);
+    tpl = out.exercises[0].sets;
+  }
+  // more weight still counts (no automatic increase): 82.5 × 6 becomes 82.5 × 8, the low bound
+  assert.deepEqual(run([R(80, 10)], [S('normal', 82.5, 6)]).exercises[0].sets, [R(82.5, 8)]);
+  // fewer reps at the same weight: kept
+  assert.deepEqual(run([R(80, 9)], [S('normal', 80, 6)]).exercises[0].sets, [R(80, 9)]);
+  // mixed ranged and plain sets, warm-ups and a skipped last set keep their own
+  const mixed = [S('warmup', 40, 10), R(80, 8), S('normal', 70, 12), R(80, 8)];
+  assert.deepEqual(run(mixed, [S('warmup', 40, 10), S('normal', 80, 11), S('normal', 70, 14)]).exercises[0].sets,
+    [S('warmup', 40, 10), R(80, 10), S('normal', 70, 14), R(80, 8)]);
+  // sides pair per side and keep their range
+  const sided = [R(20, 8, { side: 'left' }), R(20, 8, { side: 'right' })];
+  assert.deepEqual(run(sided, [S('normal', 20, 9, { side: 'right' }), S('normal', 20, 12, { side: 'left' })]).exercises[0].sets,
+    [R(20, 10, { side: 'left' }), R(20, 9, { side: 'right' })]);
+  // the layout: paired sets keep their range, a new set takes the range of the set before it (same type and side), a drop set doesn't
+  const lay = run([R(80, 8), R(80, 8)], [S('normal', 80, 9), S('normal', 80, 12), S('normal', 80, 9), S('drop', 60, 10)], { layout: true });
+  assert.deepEqual(lay.exercises[0].sets, [R(80, 9), R(80, 10), R(80, 9), S('drop', 60, 10)]);
+  // Update values only (applyWorkoutToTemplate) keeps the range too
+  assert.deepEqual(core.applyWorkoutToTemplate([E('a', [R(80, 8)])], { exercises: [E('a', [S('normal', 80, 12)])] }, { valuesOnly: true })[0].sets, [R(80, 10)]);
+  // the layout diff ignores ranges: same sets, same structure
+  assert.equal(core.templateChanges({ exercises: [E('a', [R(80, 8)])] }, { exercises: [E('a', [S('normal', 80, 9)])] }).structure, false);
+});
+
+test('rep ranges (#44): Duplicate, shared links and backups keep bounds and target; old data still reads', () => {
+  const exercises = new Map(core.SEED_EXERCISES.map((e) => [e.id, e]));
+  const opts = { categories: core.CATEGORIES.map((c) => c.id), bodyParts: core.BODY_PARTS.map((b) => b.id) };
+  const ranged = S('normal', 80, 9, { rMin: 8, rMax: 10 });
+  const t = { id: 't', name: 'Push', exercises: [E('x-bench-press-barbell', [S('warmup', 40, 10), ranged, S('normal', 80, 9, { side: 'left', rMin: 8, rMax: 10 }), S('normal', 70, 12)]), E('x-plank', [{ type: 'normal', t: 60 }])] };
+  assert.deepEqual(core.copyTemplateRecord(t).exercises[0].sets, t.exercises[0].sets);
+  const link = (x) => `#template=${core.encodeTemplate(x, exercises)}`;
+  assert.deepEqual(core.decodeTemplate(link(t), opts).exercises[0].sets, t.exercises[0].sets);
+  // an old link (no range) reads as before; a range on a time-only exercise or a broken one is dropped
+  const old = core.decodeTemplate(link({ ...t, exercises: [E('x-bench-press-barbell', [S('normal', 80, 9)])] }), opts);
+  assert.deepEqual(old.exercises[0].sets, [S('normal', 80, 9)]);
+  const forged = (row, c = 'barbell') => core.decodeTemplate(`#template=${Buffer.from(JSON.stringify({ v: 1, n: 'X', e: [{ n: 'Bench Press', c, b: 'chest', s: [row] }] })).toString('base64url')}`, opts).exercises[0].sets[0];
+  assert.deepEqual(forged(['n', 80, 9, null, null, null, [10, 8]]), S('normal', 80, 9));
+  assert.deepEqual(forged(['n', null, null, null, 60, null, [8, 10]], 'duration'), { type: 'normal', t: 60 });
+  assert.deepEqual(forged(['n', 80, 14, null, null, null, [8, 10]]), S('normal', 80, 10, { rMin: 8, rMax: 10 }));
+  // a broken range in stored data is cleaned away on Duplicate
+  assert.deepEqual(core.copyTemplateRecord({ ...t, exercises: [E('x-bench-press-barbell', [S('normal', 80, 9, { rMin: 10, rMax: 8 })])] }).exercises[0].sets, [S('normal', 80, 9)]);
+  const back = core.parseBackup(core.makeBackup({ exercises: [], workouts: [], templates: [t], measurements: [], kv: {} }, '1.0.0', new Date()), core.SEED_EXERCISES);
+  assert.deepEqual(back.data.templates[0].exercises[0].sets, t.exercises[0].sets);
+});

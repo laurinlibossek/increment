@@ -368,7 +368,10 @@ export function addSet(entry) {
   const last = entry.sets[entry.sets.length - 1];
   const side = sideOf(last), before = sideOf(entry.sets[entry.sets.length - 2]);
   const next = side && (side === before ? side : side === 'left' ? 'right' : 'left');
-  entry.sets.push(newSetDraft(last && last.type === 'drop' ? 'drop' : 'normal', next ? { side: next } : {}));
+  const type = last && last.type === 'drop' ? 'drop' : 'normal';
+  // a routine's rep range carries on to a set like the one above (#44)
+  const range = last && (last.type || 'normal') === type && last.range ? { range: last.range } : {};
+  entry.sets.push(newSetDraft(type, { ...(next ? { side: next } : {}), ...range }));
 }
 
 /** Move an item of a list from one place to another. */

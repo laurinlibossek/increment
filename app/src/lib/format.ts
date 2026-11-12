@@ -2,7 +2,7 @@
 // web app's format.js and util.js, built on the shared unit helpers.
 import { useMemo } from 'react';
 import {
-  kgTo, kmTo, roundW, fmtClock, usesWeight, startOfDay, DAY, exerciseDisplayName, exerciseBaseName, exerciseEquipment,
+  kgTo, kmTo, roundW, fmtClock, usesWeight, startOfDay, DAY, exerciseDisplayName, exerciseBaseName, exerciseEquipment, repsText, repRange,
 } from '@increment/core';
 
 import { useSettings } from '@/data/store';
@@ -44,10 +44,12 @@ export function makeFormat(settings: Settings, locale: string, lang: 'en' | 'de'
     if (usesWeight(cat)) {
       const sign = cat === 'assisted_bw' && s.w ? '-' : cat === 'weighted_bw' && s.w ? '+' : '';
       const wt = s.w || s.w === 0 ? `${sign}${w(s.w)}` : '—';
-      const txt = short ? `${wt} × ${s.r ?? '—'}` : `${wt} ${unit} × ${s.r ?? '—'}`;
+      // a routine set's rep range reads "8–10" (#44)
+      const reps = repsText(s) ?? '—';
+      const txt = short ? `${wt} × ${reps}` : `${wt} ${unit} × ${reps}`;
       return s.rpe ? `${txt} @${num(s.rpe, 1)}` : txt;
     }
-    if (cat === 'reps') return `${s.r ?? '—'} ${tr(s.r === 1 ? 'rep' : 'reps')}${s.rpe ? ` @${num(s.rpe, 1)}` : ''}`;
+    if (cat === 'reps') return `${repsText(s) ?? '—'} ${tr(s.r === 1 && !repRange(s) ? 'rep' : 'reps')}${s.rpe ? ` @${num(s.rpe, 1)}` : ''}`;
     if (cat === 'cardio') {
       const parts = [];
       if (s.d) parts.push(dist(s.d));
@@ -59,6 +61,9 @@ export function makeFormat(settings: Settings, locale: string, lang: 'en' | 'de'
 
   /** "3 sets" / "3 Sätze" */
   const plural = (n: number, one: string, many?: string) => `${num(n, 0)} ${n === 1 ? tr(one) : tr(many || one + 's')}`;
+
+  /** A routine set's reps on their own: "8 reps", or its range, "8–10 reps" (#44) */
+  const reps = (s: { r?: number; rMin?: number; rMax?: number }) => (repRange(s) ? `${repsText(s)} ${tr('reps')}` : plural(s.r ?? 0, 'rep'));
 
   /** ms -> "1h 5m" / "1 h 5 min" */
   const dur = (ms: number) => {
@@ -127,7 +132,7 @@ export function makeFormat(settings: Settings, locale: string, lang: 'en' | 'de'
   /** Split header/chip name; all standalone exercise lines use exName. */
   const exBase = (ex: { id: string; name: string } | null | undefined) => exerciseBaseName(ex, lang);
   const exEquipment = (ex: { id: string; name: string } | null | undefined) => exerciseEquipment({ name: exName(ex) });
-  return { unit, dUnit, num, w, wu, e1rm, volume, totalVolume, dist, pace, setText, plural, dur, date, relDay, relDayLower, clock: fmtClock, exName, exBase, exEquipment };
+  return { unit, dUnit, num, w, wu, e1rm, volume, totalVolume, dist, pace, setText, plural, reps, dur, date, relDay, relDayLower, clock: fmtClock, exName, exBase, exEquipment };
 }
 
 export type Format = ReturnType<typeof makeFormat>;

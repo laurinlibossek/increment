@@ -6,6 +6,7 @@ import {
 } from './units.js';
 import { setIsValid, normRir } from './calc.js';
 import { sideOf } from './set-sides.js';
+import { repRange, withRepRange, parseRepsInput } from './rep-range.js';
 
 export function newSetDraft(type = 'normal', extra = {}) {
   return { id: uid(), type, w: '', r: '', d: '', t: '', rpe: '', done: false, ...extra };
@@ -33,6 +34,10 @@ export function setToDraft(s, st, keepId = true) {
   const rir = normRir(s.rir);
   if (rir !== null) d.rir = rir;
   if (sideOf(s)) d.side = sideOf(s);
+  // a routine's rep range (#44) is edited as "8–10"; `rNow` keeps the current
+  // target inside it, which the field doesn't show
+  const range = repRange(s);
+  if (range) { d.r = `${range[0]}–${range[1]}`; if (Number.isFinite(s.r)) d.rNow = s.r; }
   // when a performed set was logged (#43): kept by Edit workout and backups, never by routines
   if (Number.isFinite(s.doneAt)) d.doneAt = s.doneAt;
   const orig = {};
@@ -47,9 +52,12 @@ const kept = (sd, k) => (sd.orig && sd.orig[k] && sd.orig[k][0] === sd[k] ? sd.o
 
 export function draftToSet(sd, st) {
   const out = { id: sd.id || uid(), type: sd.type || 'normal' };
-  const w = parseNum(sd.w), r = parseNum(sd.r), d = parseNum(sd.d), t = digitsToSec(sd.t), rpe = parseNum(sd.rpe);
+  // "8–10" in a routine's reps is a range (#44); a broken one ("10–8") leaves no reps here, and the editor refuses it
+  const typed = parseRepsInput(sd.r);
+  const w = parseNum(sd.w), r = typed ? typed.r ?? null : parseNum(sd.r), d = parseNum(sd.d), t = digitsToSec(sd.t), rpe = parseNum(sd.rpe);
   if (w !== null) out.w = kept(sd, 'w') ?? toKg(w, st.unit);
-  if (r !== null) out.r = Math.max(0, Math.round(r));
+  if (typed?.range) Object.assign(out, withRepRange({ r: sd.rNow }, typed.range));
+  else if (r !== null) out.r = Math.max(0, Math.round(r));
   if (d !== null) out.d = kept(sd, 'd') ?? toKm(d, st.distUnit);
   if (t !== null && t > 0) out.t = t;
   if (rpe !== null && rpe > 0) out.rpe = Math.min(10, rpe);
@@ -74,6 +82,8 @@ export function entryToDraft(e, st, { asTemplateTargets = false } = {}) {
         tpl: { w: s.w ?? null, r: s.r ?? null, d: s.d ?? null, t: s.t ?? null },
         rpe: s.rpe ? numToInput(s.rpe, 1) : '',
         ...(sideOf(s) ? { side: sideOf(s) } : {}),
+        // the routine's rep range, shown beside the set (#44); the ghost stays last time's reps or the target
+        ...(repRange(s) ? { range: repRange(s) } : {}),
       })
       : setToDraft(s, st))),
   };

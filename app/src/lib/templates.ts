@@ -45,7 +45,7 @@ export function templateShareText(t: Template, f: F) {
     const labels = setLabels(x.sets);
     const sets = x.sets.map((st, i) => {
       let v = '';
-      if (st.w === undefined && st.r && usesWeight(ex.category)) v = `${st.r} ${tr(st.r === 1 ? 'rep' : 'reps')}`;
+      if (st.w === undefined && st.r && usesWeight(ex.category)) v = f.reps(st);
       else if (st.w || st.r || st.d || st.t) v = f.setText(st, ex.category);
       return v && labels[i] === 'W' ? `W ${v}` : v;
     }).filter(Boolean);

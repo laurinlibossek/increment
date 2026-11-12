@@ -43,7 +43,11 @@ export interface Workout {
 }
 
 /** A routine's set: a target, so nothing that only a performed set has (id, logging time). */
-export type TemplateSet = Omit<WorkSet, 'id' | 'doneAt'>;
+export type TemplateSet = Omit<WorkSet, 'id' | 'doneAt'> & {
+  /** a rep range's fixed bounds (#44, core/rep-range.js): whole numbers, rMin < rMax; `r` is the current target inside them */
+  rMin?: number;
+  rMax?: number;
+};
 export interface TemplateEntry extends Omit<Entry, 'id' | 'sets'> {
   sets: TemplateSet[];
 }
@@ -132,6 +136,10 @@ export interface SetDraft {
   doneAt?: number;
   /** template target, shown as the placeholder */
   tpl?: { w: number | null; r: number | null; d: number | null; t: number | null };
+  /** running workout: the routine's rep range for this set, shown beside it (#44) */
+  range?: [number, number];
+  /** routine editor: the current target behind a range typed as "8–10" (#44) */
+  rNow?: number;
   /** stored numbers behind untouched text */
   orig?: Record<string, [string, number]>;
 }

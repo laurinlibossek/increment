@@ -2,6 +2,7 @@
 // writing it back, and cleaning template data. Plain data in, plain data out.
 import { remapSupersets } from './drafts.js';
 import { sideOf } from './set-sides.js';
+import { repRange, withRepRange, clampReps } from './rep-range.js';
 
 const VALUE_KEYS = ['w', 'r', 'd', 't'];
 const setType = (s) => s.type || 'normal';
@@ -53,11 +54,12 @@ function sameValues(a, b) {
   }
   return true;
 }
-function templateSet(type, from, sideFrom = from) {
+/** A routine set of `type` with the numbers of `from`; side and rep range (#44) come from `meta`. */
+function templateSet(type, from, meta = from) {
   const o = { type };
   for (const k of [...VALUE_KEYS, 'rpe']) if (from[k] !== null && from[k] !== undefined) o[k] = from[k];
-  if (sideOf(sideFrom)) o.side = sideOf(sideFrom);
-  return o;
+  if (sideOf(meta)) o.side = sideOf(meta);
+  return withRepRange(o, repRange(meta));
 }
 /** Superset grouping as "key → first key of its group", over the given keys only. */
 function supersetLeaders(entries, keys, only) {
@@ -229,13 +231,23 @@ export function compareSets(routineSet, doneSet, category) {
   return 0;
 }
 
-/** The routine set with the done set's numbers; its own type and targets (RPE) stay. */
+/** The routine set with the done set's numbers; its own type, targets (RPE) and rep range stay. */
 function raisedSet(routineSet, doneSet, type = setType(routineSet), sideFrom = routineSet) {
   const o = { ...routineSet, type };
   delete o.side;
   if (sideOf(sideFrom)) o.side = sideOf(sideFrom);
   for (const k of VALUE_KEYS) if (doneSet[k] !== null && doneSet[k] !== undefined && doneSet[k] !== '') o[k] = doneSet[k];
-  return o;
+  return withRepRange(o, repRange(routineSet));
+}
+
+/**
+ * The done set as the routine set can take it: its reps moved inside the
+ * routine set's rep range (#44), so 80 × 12 against 8–10 counts as 80 × 10
+ * and 82.5 × 6 as 82.5 × 8. The workout keeps what was done.
+ */
+function withinRange(routineSet, doneSet) {
+  const range = repRange(routineSet);
+  return range && Number.isFinite(doneSet.r) ? { ...doneSet, r: clampReps(doneSet.r, range) } : doneSet;
 }
 
 /**
@@ -248,6 +260,9 @@ function raisedSet(routineSet, doneSet, type = setType(routineSet), sideFrom = r
  * exercises keep theirs. With `layout`, the routine takes the workout's
  * exercises and sets instead: paired sets still only go up, new sets take
  * what was done, and the routine's own exercise notes stay.
+ * Rep ranges (#44) stay as they are: a ranged set's target only moves inside
+ * its bounds, never the bounds themselves, and with `layout` a new set takes
+ * the range of the set before it of the same type and side.
  * `categoryOf(exerciseId)` gives each exercise's category.
  * Returns { exercises, raised }: `raised` counts the sets whose numbers went up.
  */
@@ -265,9 +280,9 @@ export function progressTemplate(templateExercises, workout, categoryOf, { layou
       return {
         ...e,
         sets: e.sets.map((s, i) => {
-          if (sp[i] < 0 || !better(s, ws[sp[i]], e.exerciseId)) return s;
+          if (sp[i] < 0 || !better(s, withinRange(s, ws[sp[i]]), e.exerciseId)) return s;
           raised++;
-          return raisedSet(s, ws[sp[i]]);
+          return raisedSet(s, withinRange(s, ws[sp[i]]));
         }),
       };
     });
@@ -282,12 +297,16 @@ export function progressTemplate(templateExercises, workout, categoryOf, { layou
     else {
       const routineOf = new Map();
       pairSets(te.sets, we.sets).forEach((j, i) => { if (j >= 0) routineOf.set(j, te.sets[i]); });
+      const rangeBefore = new Map(); // "type:side" → the range of the set before
       sets = we.sets.map((s, j) => {
         const r = routineOf.get(j);
-        if (!r) return templateSet(setType(s), s);
-        if (!better(r, s, we.exerciseId)) return raisedSet(r, {}, setType(s), s);
-        raised++;
-        return raisedSet(r, s, setType(s), s);
+        const key = `${setType(s)}:${sideOf(s) || ''}`;
+        let out;
+        if (!r) out = withRepRange(templateSet(setType(s), s), rangeBefore.get(key) || null);
+        else if (!better(r, withinRange(r, s), we.exerciseId)) out = raisedSet(r, {}, setType(s), s);
+        else { raised++; out = raisedSet(r, withinRange(r, s), setType(s), s); }
+        rangeBefore.set(key, repRange(out));
+        return out;
       });
     }
     const out = { exerciseId: we.exerciseId, sets };
