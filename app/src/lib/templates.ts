@@ -10,7 +10,7 @@ import {
 
 import {
   addExercise, addFolder, copyTemplate, deleteTemplate, findExercise, getState, patchTemplate, removeFolder, renameFolder,
-  saveTemplate, setSetting, templateFolders,
+  saveTemplate, setPinnedNote, setSetting, templateFolders,
 } from '@/data/store';
 import type { Category, Template, TemplateEntry } from '@/data/types';
 import {
@@ -84,6 +84,7 @@ export async function templateMenu(t: Template, f: F): Promise<string | undefine
     actions: [
       { label: tr('Edit routine'), value: 'edit', icon: 'edit', testID: 'tpl-menu-edit' },
       { label: tr('Rename'), value: 'rename', icon: 'edit', testID: 'tpl-menu-rename' },
+      { label: t.pinnedNote ? tr('Edit pinned note') : tr('Pin a note for next time'), value: 'pin', icon: 'pin', testID: 'tpl-menu-pin' },
       { label: tr('Duplicate'), value: 'dup', icon: 'copy', testID: 'tpl-menu-dup' },
       { label: tr('Move to folder'), value: 'folder', icon: 'folder', testID: 'tpl-menu-folder' },
       { label: t.archived ? tr('Unarchive') : tr('Archive'), value: 'archive', icon: 'archive', testID: 'tpl-menu-archive' },
@@ -95,6 +96,11 @@ export async function templateMenu(t: Template, f: F): Promise<string | undefine
   if (c === 'rename') {
     const v = await prompt({ title: tr('Rename routine'), value: t.name });
     if (v && v.trim()) await patchTemplate(t.id, { name: v.trim() });
+  }
+  if (c === 'pin') {
+    // its own Save: the note is stored at once, and a running workout from this routine shows it (#33)
+    const v = await prompt({ title: tr('Pinned note'), message: tr('Shown on {name} and the next time you do it, until you change it.', { name: t.name }), value: t.pinnedNote || '', multiline: true });
+    if (v !== null) await attempt(tr, setPinnedNote(t.id, v));
   }
   if (c === 'dup' && await attempt(tr, copyTemplate(t, { name: tr('{name} (copy)', { name: t.name }) }))) toast(tr('Routine duplicated'));
   if (c === 'folder') await moveToFolder(t, f);
@@ -181,7 +187,7 @@ export async function templatesMenu(f: F) {
 }
 
 type Shared = {
-  name: string; notes: string;
+  name: string; notes: string; pinnedNote?: string;
   exercises: { id: string | null; name: string; family?: string; category: Category; bodyPart: string; sets: TemplateEntry['sets']; restSec: number | null; notes: string; group: number | null; focus: string | null }[];
 };
 
@@ -213,7 +219,7 @@ export async function offerSharedTemplate(text: string, f: F): Promise<boolean> 
     if (x.focus) e.focus = x.focus;
     exercises.push(e);
   }
-  const t = await attempt(tr, copyTemplate({ id: '', name: p.name, notes: p.notes, exercises }));
+  const t = await attempt(tr, copyTemplate({ id: '', name: p.name, notes: p.notes, ...(p.pinnedNote ? { pinnedNote: p.pinnedNote } : {}), exercises }));
   if (!t) return true;
   toast(tr('“{name}” added to your routines', { name: t.name }));
   return true;

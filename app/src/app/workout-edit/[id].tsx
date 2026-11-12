@@ -30,7 +30,10 @@ export default function WorkoutEditScreen() {
   const { draft: d, leave } = useEditor<WorkoutEditDraft>(() => {
     const s = getState();
     const w = s.workouts.find((x) => x.id === id);
-    return w ? workoutEditDraft(w, s.settings, (x: string) => s.exercises.has(x)) as WorkoutEditDraft : null;
+    if (!w) return null;
+    // the routine's pinned note can be edited here too, saved with the workout (#33)
+    const routine = w.templateId ? s.templates.find((x) => x.id === w.templateId) : null;
+    return { ...workoutEditDraft(w, s.settings, (x: string) => s.exercises.has(x)), ...(routine ? { pinnedNote: routine.pinnedNote || '' } : {}) } as WorkoutEditDraft;
   });
 
   const save = async () => {
@@ -82,6 +85,9 @@ export default function WorkoutEditScreen() {
             </View>
           </View>
           <Field value={d.notes} onChange={(v) => patchDraft('edit', { notes: v })} placeholder={tr('Workout note')} multiline testID="edit-notes" />
+          {d.pinnedNote !== undefined && (
+            <Field value={d.pinnedNote} onChange={(v) => patchDraft('edit', { pinnedNote: v })} placeholder={tr('Pin a note for next time (optional)')} multiline testID="edit-pinned" />
+          )}
         </View>
         <DraftBlocks draftKey="edit" mode="edit" draft={d} />
         <View style={{ marginTop: 16 }}>
