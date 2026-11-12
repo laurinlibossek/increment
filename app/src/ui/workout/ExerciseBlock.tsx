@@ -99,7 +99,7 @@ export const ExerciseBlock = memo(function ExerciseBlock({
       actions: [
         ...(SET_TYPES as SetType[]).map((x) => ({ label: tr(SET_TYPE_NAME[x]), value: x, checked: set.type === x, testID: `type-${x}` })),
         effort,
-        // only exercises done one side at a time offer it (#54); a set that already has a side can still change or clear it
+        // only unilateral exercises offer it (#54); a set that already has a side can still change or clear it
         !usesDistance(cat) && (isUnilateral(ex) || set.side)
           ? { label: set.side ? `${tr('Side')} · ${set.side === 'left' ? tr('Left') : tr('Right')}` : tr('Side'), value: 'side', testID: 'set-side' } : null,
         { label: tr('Delete set'), value: 'delete', destructive: true, testID: 'set-delete' },

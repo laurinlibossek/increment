@@ -28,7 +28,7 @@ export function encodeTemplate(t, exercises) {
     const o = { n: ex.name, c: ex.category, b: ex.bodyPart };
     if (ex.builtin) o.i = ex.id;
     else if (Object.hasOwn(FAMILY_BY_ID, familyOf(ex))) o.f = familyOf(ex);
-    // a custom exercise done one side at a time stays so for the receiver (#54); built-ins keep the receiver's choice
+    // a custom unilateral exercise stays so for the receiver (#54); built-ins keep the receiver's choice
     if (!ex.builtin && isUnilateral(ex)) o.u = 1;
     o.s = x.sets.map((st) => {
       const row = [TYPE_CODE[st.type || 'normal'] || 'n', st.w ?? null, st.r ?? null, st.d ?? null, st.t ?? null];

@@ -79,7 +79,7 @@ export interface Exercise {
   notes?: string;
   pinnedNote?: string;
   restSec?: number;
-  /** One side at a time (#54); left out, the catalogue's default (isUnilateral in core). */
+  /** Turned unilateral by the person (#54); the unilateral exercises we ship are always so (isUnilateral in core). */
   unilateral?: boolean;
   imported?: boolean;
   createdAt?: number;

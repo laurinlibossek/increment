@@ -46,13 +46,13 @@ export function SettingRow({ title, sub, value, symbol, onPress, first, danger, 
  * paper-3 track whose knob is paper in light themes and ink-2 in dark ones, so
  * a switch that's off is the dimmer one there.
  */
-export function SwitchSettingRow({ title, sub, value, onChange, first, testID }: { title: string; sub?: string; value: boolean; onChange: (v: boolean) => void; first?: boolean; testID?: string }) {
+export function SwitchSettingRow({ title, sub, value, onChange, first, disabled, testID }: { title: string; sub?: string; value: boolean; onChange: (v: boolean) => void; first?: boolean; disabled?: boolean; testID?: string }) {
   const { colors: t, scheme } = useTally();
   const onKnob = scheme === 'dark' ? t.controlOn : t.paper;
   const offKnob = scheme === 'dark' ? t.ink2 : t.paper;
   return (
     <SettingRow title={title} sub={sub} first={first} right={
-      <Switch value={value} onValueChange={onChange} accessibilityLabel={title} testID={testID}
+      <Switch value={value} onValueChange={onChange} disabled={disabled} accessibilityLabel={title} testID={testID}
         trackColor={{ true: t.ink, false: t.paper3 }} thumbColor={value ? onKnob : offKnob} ios_backgroundColor={t.paper3}
         {...({ activeThumbColor: onKnob, activeTrackColor: t.ink } as object)} />
     } />

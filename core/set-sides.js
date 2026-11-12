@@ -1,25 +1,25 @@
-// Sides (#54). An exercise is done one side at a time (unilateral) by the
-// catalogue's default for its variation, or by its own `unilateral` choice.
-// Every set stays its own row: records, volume, readiness, the CSV and logging
-// progress count rows. Set totals count a unilateral exercise's complete
-// left/right pairs.
+// Sides (#54). Exercises are bilateral unless unilateral: the unilateral ones
+// we ship are always unilateral (UNILATERAL_NAMES), and any other exercise,
+// built-in or custom, is unilateral when the person turns it on (its
+// `unilateral: true`). Every set stays its own row: records, volume,
+// readiness, the CSV and logging progress count rows. Set totals count a
+// unilateral exercise's complete left/right pairs.
 import { UNILATERAL_IDS } from './exercise-catalogue.js';
 
 export const sideOf = (set) => set?.side === 'left' || set?.side === 'right' ? set.side : undefined;
 
-/** The catalogue's default for an exercise: one side at a time or not (custom exercises: not). */
-export const unilateralDefault = (ex) => !!ex && UNILATERAL_IDS.has(ex.id);
+/** A unilateral exercise we ship: always unilateral, the person can't turn it off. */
+export const shippedUnilateral = (ex) => !!ex && UNILATERAL_IDS.has(ex.id);
 
-/** Whether an exercise is done one side at a time: its own choice, else the catalogue's default. */
+/** Whether an exercise is unilateral: one we ship as unilateral, or one the person turned on; otherwise bilateral. */
 export function isUnilateral(ex) {
-  if (typeof ex?.unilateral === 'boolean') return ex.unilateral;
-  return unilateralDefault(ex);
+  return shippedUnilateral(ex) || ex?.unilateral === true;
 }
 
 /**
  * The sets one exercise counts in one workout or routine (#54), warm-ups left
- * out. Two-sided exercises count every working row. One side at a time, they
- * count complete pairs, min(left, right); with `pair` off (Account → "Count
+ * out. Bilateral exercises count every working row. Unilateral ones count
+ * complete pairs, min(left, right); with `pair` off (Account → "Count
  * left/right sets together") every working row. `unpaired` is what a paired
  * count leaves out: one side's extra rows and rows without a side, which prove
  * no pair. Returns { sets, unpaired }.

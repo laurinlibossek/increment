@@ -1,7 +1,7 @@
-// Left/right sets (#54): only exercises done one side at a time offer Side
-// (a set already tagged keeps it to change or clear); the exercise form's
-// "One side at a time" overrides the catalogue's default and survives a
-// reload; routine and workout totals count complete left/right pairs and show
+// Left/right sets (#54): only unilateral exercises offer Side (a set already
+// tagged keeps it to change or clear); the exercise form's Unilateral switch
+// is on and locked for the unilateral exercises we ship, and turns any other
+// exercise (built-in or custom) unilateral and back, surviving a reload; routine and workout totals count complete left/right pairs and show
 // the rest as unpaired, or every row with Account's "Count left/right sets
 // together" off; Sets per muscle always counts pairs. Light, dark and German.
 import assert from 'node:assert/strict';
@@ -26,7 +26,7 @@ const routine = { id: 'pairs', name: 'Pairs', exercises: [
 const done = { id: 'done', name: 'Pairs', templateId: 'pairs', startedAt: at, endedAt: at + 3600000, exercises: [
   [CURL, [S(null, 'warmup'), ...rows('LRLR')]], [LEGX, rows('LLLR')], [BENCH, rows('---')],
 ].map(([exerciseId, sets], i) => ({ id: `e${i}`, exerciseId, sets: sets.map((x, j) => ({ id: `s${i}${j}`, ...x })) })) };
-// a two-sided exercise with an old side tag on its first set
+// a bilateral exercise with an old side tag on its first set
 const legacy = { id: 'legacy', name: 'Legacy', exercises: [{ exerciseId: BENCH, sets: [S('left'), S()] }] };
 const data = (language) => ({
   exercises: SEED_EXERCISES, workouts: [done], measurements: [], templates: [routine, legacy],
@@ -109,7 +109,7 @@ for (const theme of ['light', 'dark']) {
   await id(`jump-${BENCH}`).click();
   await page.getByTestId(`block-${BENCH}`).waitFor();
   const benchIds = await page.getByTestId(`block-${BENCH}`).locator('[data-testid^="label-"]').evaluateAll((els) => els.map((e) => e.dataset.testid.slice('label-'.length)));
-  assert.equal(await hasSide(page, benchIds[1]), false, 'two-sided: no Side');
+  assert.equal(await hasSide(page, benchIds[1]), false, 'bilateral: no Side');
   await id('workout-menu').click();
   await id('menu-discard').click();
   await id('confirm-discard').click().catch(() => {});
@@ -140,30 +140,34 @@ for (const theme of ['light', 'dark']) {
   await ctx.close();
 }
 
-// the exercise form: a built-in's default, its override, a custom exercise
+// the exercise form: a shipped unilateral exercise is locked; any other built-in and a custom one toggle
 {
   const { ctx, page, errors, id, shot } = await open('en', 'light');
   await page.goto(APP);
-  let toggle = await editExercise(page, EXT);
-  assert.equal(await toggle.isChecked(), false, 'Leg Extension (Machine) is two-sided by default');
+  let toggle = await editExercise(page, PLANK);
+  assert.equal(await toggle.isChecked(), true, 'Side Plank is unilateral');
+  assert.equal(await toggle.isDisabled(), true, 'and can’t be turned off');
+  assert.ok(await page.getByText('Always on for this exercise', { exact: true }).count());
+  await id('exercise-unilateral').scrollIntoViewIfNeeded();
+  await shot('form-locked');
+  await id('exercise-save').click();
+  await page.waitForTimeout(300);
+  assert.equal(Object.hasOwn((await storedData(page)).exercises.find((e) => e.id === PLANK), 'unilateral'), false, 'nothing stored for it');
+  toggle = await editExercise(page, EXT);
+  assert.equal(await toggle.isChecked(), false, 'Leg Extension (Machine) is bilateral');
+  assert.equal(await toggle.isDisabled(), false);
   await id('exercise-unilateral').click();
+  await id('exercise-unilateral').scrollIntoViewIfNeeded();
   await shot('form');
   await id('exercise-save').click();
   await waitStored(page, (d) => d.exercises.find((e) => e.id === EXT)?.unilateral === true);
   await page.reload();
   toggle = await editExercise(page, EXT);
-  assert.equal(await toggle.isChecked(), true, 'the override survives a reload');
-  await id('exercise-cancel').click();
-  toggle = await editExercise(page, PLANK);
-  assert.equal(await toggle.isChecked(), true, 'Side Plank is one side at a time by default');
+  assert.equal(await toggle.isChecked(), true, 'Unilateral survives a reload');
   await id('exercise-unilateral').click();
   await id('exercise-save').click();
-  await waitStored(page, (d) => d.exercises.find((e) => e.id === PLANK)?.unilateral === false);
-  toggle = await editExercise(page, PLANK);
-  await id('exercise-unilateral').click();
-  await id('exercise-save').click();
-  await waitStored(page, (d) => !Object.hasOwn(d.exercises.find((e) => e.id === PLANK), 'unilateral'));
-  ok('the form: Leg Extension turned one-sided survives a reload; Side Plank turned two-sided is stored, and back to its default stores nothing');
+  await waitStored(page, (d) => !Object.hasOwn(d.exercises.find((e) => e.id === EXT), 'unilateral'));
+  ok('the form: Side Plank’s Unilateral is on and locked; Leg Extension turns unilateral (survives a reload) and back to bilateral (nothing stored)');
 
   await page.goto(APP);
   await openSearch(page);
@@ -174,7 +178,7 @@ for (const theme of ['light', 'dark']) {
   await id('exercise-save').click();
   const d = await waitStored(page, (x) => x.exercises.some((e) => e.name === 'Zebra Reach'));
   assert.equal(d.exercises.find((e) => e.name === 'Zebra Reach').unilateral, true);
-  ok('a new custom exercise can be one side at a time');
+  ok('a new custom exercise can be unilateral');
   assert.deepEqual(errors, []);
   await ctx.close();
 }
@@ -192,9 +196,11 @@ for (const theme of ['light', 'dark']) {
   assert.ok(await page.getByText('Links und rechts zusammen zählen', { exact: true }).count());
   await shot('account');
   await editExercise(page, PLANK);
-  assert.ok(await page.getByText('Einseitig', { exact: true }).count());
+  assert.ok(await page.getByText('Unilateral', { exact: true }).count());
+  assert.ok(await page.getByText('Bei dieser Übung immer an', { exact: true }).count());
+  await id('exercise-unilateral').scrollIntoViewIfNeeded();
   await shot('form');
-  ok('German: “5 Sätze · 3 ohne Paar”, “Links und rechts zusammen zählen”, “Einseitig”');
+  ok('German: “5 Sätze · 3 ohne Paar”, “Links und rechts zusammen zählen”, “Unilateral”');
   assert.deepEqual(errors, []);
   await ctx.close();
 }

@@ -8,8 +8,8 @@ import {
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-  BODY_PARTS, CATEGORIES, CATEGORY_HELP, exerciseBaseName, exerciseFamily, familyOf, isUnilateral, loggedFields, suggestExerciseFamily,
-  unilateralDefault, usesDistance,
+  BODY_PARTS, CATEGORIES, CATEGORY_HELP, exerciseBaseName, exerciseFamily, familyOf, isUnilateral, loggedFields, shippedUnilateral, suggestExerciseFamily,
+  usesDistance,
 } from '@increment/core';
 
 import {
@@ -41,7 +41,8 @@ export default function ExerciseForm() {
   const [category, setCategory] = useState<Category>(ex?.category || 'machine');
   const [bodyPart, setBodyPart] = useState(ex?.bodyPart || 'chest');
   const [notes, setNotes] = useState(ex?.notes || '');
-  // one side at a time (#54): a built-in starts at the catalogue's default; only a different choice is stored
+  // unilateral (#54): the ones we ship stay so; any other exercise is bilateral until turned on
+  const locked = shippedUnilateral(ex);
   const [unilateral, setUnilateral] = useState(() => isUnilateral(ex));
   // Undefined means the person has not chosen; null is an explicit None.
   const [familySelection, setFamilySelection] = useState<string | null | undefined>();
@@ -103,10 +104,10 @@ export default function ExerciseForm() {
         }
       }
       if (currentForm() !== form) return;
-      // a choice equal to the catalogue's default isn't stored, so a later catalogue default still reaches it; old side tags stay
-      const sides = usesDistance(category) ? isUnilateral(ex) : unilateral; // cardio has no sides: the choice stays as it was
+      // only `unilateral: true` is stored (bilateral is the default); cardio has no sides, so its choice stays; old side tags stay
+      const sides = usesDistance(category) ? isUnilateral(ex) : unilateral;
       if (ex) {
-        await updateExercise(ex.id, { name: n, category, bodyPart, notes, unilateral: sides === unilateralDefault(ex) ? undefined : sides }, selection);
+        await updateExercise(ex.id, { name: n, category, bodyPart, notes, ...(locked ? {} : { unilateral: sides || undefined }) }, selection);
         close(getState().exercises.get(ex.id) || null);
       } else {
         close(await addExercise({ name: n, category, bodyPart, notes, unilateral: sides }, selection));
@@ -157,8 +158,9 @@ export default function ExerciseForm() {
           })}
         </View>
         {!usesDistance(category) && <View style={{ marginTop: SPACE.s6, marginHorizontal: -SPACE.s5 }}>
-          <SwitchSettingRow first title={tr('One side at a time')} sub={tr('Sets can say left or right; a left and a right set count as one set')}
-            value={unilateral} onChange={setUnilateral} testID="exercise-unilateral" />
+          <SwitchSettingRow first title={tr('Unilateral')}
+            sub={locked ? tr('Always on for this exercise') : tr('Sets can say left or right; a left and a right set count as one set')}
+            value={unilateral} onChange={setUnilateral} disabled={locked} testID="exercise-unilateral" />
         </View>}
         <View style={{ marginTop: SPACE.s6 }}>
           <Field label={tr('Notes')} value={notes} onChange={setNotes} placeholder={tr('Setup, cues, seat height…')} multiline testID="exercise-notes" />

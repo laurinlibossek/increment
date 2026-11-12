@@ -605,10 +605,11 @@ export const EXERCISE_CATALOGUE = [
   ]),
 ];
 
-// Variations done one side at a time (#54): their sets can say left or
-// right, and summaries count complete left/right pairs. The default belongs to
-// the variation, not its family (Chest Fly (Cable) is two-sided, Single Arm
-// Chest Fly (Cable) one-sided); an exercise's own `unilateral` overrides it.
+// The unilateral variations we ship (#54), always unilateral: their sets can
+// say left or right, and summaries count complete left/right pairs. It belongs
+// to the variation, not its family (Chest Fly (Cable) is bilateral, Single Arm
+// Chest Fly (Cable) unilateral). Any other exercise is bilateral until the
+// person turns Unilateral on (its `unilateral: true`).
 export const UNILATERAL_NAMES = Object.freeze([
   'Single Arm Chest Fly (Cable)', 'Single Arm Pullover (Cable)',
   'Single Leg Romanian Deadlift (Dumbbell)', 'Single Leg Romanian Deadlift (Kettlebell)',

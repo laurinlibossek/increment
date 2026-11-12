@@ -224,7 +224,7 @@ export default function AccountSheet() {
         <SettingRow title={tr('Previous values')} testID="set-previous-values" value={st.prevSource === 'template' ? tr('Same routine') : tr('Any workout')}
           onPress={() => pick(tr('Previous values'), [{ value: 'any', label: tr('Any workout') }, { value: 'template', label: tr('Same routine') }], st.prevSource, (v) => set('prevSource', v as Settings['prevSource']))} />
         <SettingRow title={tr('Warm-up sets')} value={warmupText} onPress={() => router.push('/warmup')} testID="set-warmup" />
-        <SwitchSettingRow title={tr('Count left/right sets together')} sub={tr('For exercises done one side at a time: a left and a right set count as one in routine and workout totals')}
+        <SwitchSettingRow title={tr('Count left/right sets together')} sub={tr('For unilateral exercises: a left and a right set count as one in routine and workout totals')}
           value={st.pairSides !== false} onChange={(v) => set('pairSides', v)} testID="set-pair-sides" />
         <SwitchSettingRow title={tr('Update routines after workouts')} sub={tr('Better numbers go in by themselves; you’re asked when exercises or sets changed')} value={st.askTemplateUpdate !== false}
           onChange={(v) => set('askTemplateUpdate', v)} testID="set-ask-template" />
