@@ -59,8 +59,8 @@ export default function TodayTab() {
     const a = s.active;
     card = (
       <RoutineCard testID="now-card" context={tr('In progress · since {time}', { time: f.date.time(a.startedAt) })} name={a.name}
-        tally={{ groups: session.groups, label: tr('{done} of {total} sets logged', { done: session.done, total: session.total }) }}
-        facts={tr('{done} of {total} sets', { done: session.done, total: session.total }) + (session.records ? ` · ${f.plural(session.records, 'record')}` : '')}
+        tally={{ groups: session.groups, label: f.progressText(session).label }}
+        facts={f.progressText(session).text}
         start={{ title: tr('Resume workout'), onPress: openWorkout, testID: 'resume-workout' }} />
     );
   } else if (sug) {

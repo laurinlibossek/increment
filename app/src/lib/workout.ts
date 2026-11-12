@@ -6,7 +6,7 @@
 import { useSyncExternalStore } from 'react';
 import { router } from 'expo-router';
 import {
-  progressOf, workoutNameKey, pendingSets, logPendingSets, templateChanges, progressTemplate, setTotal, routineReadiness, entryKeys,
+  progressOf, workoutNameKey, pendingSets, logPendingSets, templateChanges, progressTemplate, entriesSetCount, routineReadiness, entryKeys,
 } from '@increment/core';
 
 import {
@@ -27,6 +27,13 @@ type F = Format & { tr: Tr };
 export function openWorkout() { router.push('/active'); }
 
 /** One question for every way of throwing a running workout away. */
+/** The logged sets as the summary will count them (entriesSetCount): a left and a right are one set (#72). */
+function loggedSets(a: ActiveWorkout) {
+  const { exercises, settings } = getState();
+  const done = a.exercises.map((e) => ({ ...e, sets: e.sets.filter((x) => x.done) }));
+  return (entriesSetCount(done, exercises, { pair: settings.pairSides !== false }) as { sets: number }).sets;
+}
+
 export function confirmDiscard(a: ActiveWorkout, title: string, tr: Tr) {
   const { done, typed } = progressOf(a);
   return ask({
@@ -97,7 +104,8 @@ export async function finishFlow(f: F) {
     }
   } else {
     const ok = await ask({
-      title: tr('Finish workout?'), message: tr('{sets} logged in {time}.', { sets: f.plural(a.exercises.reduce((n, e) => n + setTotal(e.sets.filter((x) => x.done)), 0), 'set'), time: f.dur(Date.now() - a.startedAt) }),
+      // the summary's count: a left and a right are one set (#72)
+      title: tr('Finish workout?'), message: tr('{sets} logged in {time}.', { sets: f.plural(loggedSets(a), 'set'), time: f.dur(Date.now() - a.startedAt) }),
       ok: tr('Finish'), cancel: tr('Cancel'), testID: 'confirm-finish',
     });
     if (!ok) return;

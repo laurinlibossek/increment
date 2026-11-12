@@ -121,8 +121,8 @@ async function pick(page, names) {
   await wait(page, 200);
   assert.equal(await inputs(page, BENCH, 'w').nth(1).inputValue(), '80');
   assert.equal(await checked(checks(page, BENCH).nth(1)), true);
-  assert.match(await id(page, 'session-count').innerText(), /^2 of 3 sets/);
-  ok('a new set shows the row above as ghost values under the “Set kg Reps” header; logging it saves them (2 of 3 sets under the hero tally)');
+  assert.match(await id(page, 'session-count').innerText(), /^2 of 3 working sets · 66%/);
+  ok('a new set shows the row above as ghost values under the “Set kg Reps” header; logging it saves them (2 of 3 working sets · 66% under the hero tally)');
 
   // the rest bar: ±15 s, "Reps left?" for the set just logged, Skip
   const before = await id(page, 'rest-left').innerText();

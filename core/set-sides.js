@@ -74,6 +74,53 @@ export function entriesSetCount(entries, exercises, { pair = true } = {}) {
 const OTHER = { left: 'right', right: 'left' };
 
 /**
+ * One exercise's set slots while logging (#72), warm-ups left out: each slot
+ * is one set the way the totals count it (exerciseSetCount). A unilateral
+ * exercise's k-th left row and k-th right row make one slot once its rows
+ * have sides and pairs are on; every other row is a slot of its own
+ * (bilateral, pairs off, rows without a side, one side's extra rows). Slots
+ * come in the order of their first row: L R L R and R R L L both give
+ * [L1, R1], [L2, R2].
+ */
+export function setSlots(sets, unilateral, { pair = true } = {}) {
+  const rows = sets.filter((s) => s.type !== 'warmup');
+  if (!unilateral || !pair || !rows.some((s) => sideOf(s))) return rows.map((s) => [s]);
+  const lefts = rows.filter((s) => sideOf(s) === 'left'), rights = rows.filter((s) => sideOf(s) === 'right');
+  const partner = new Map();
+  for (let k = 0; k < Math.min(lefts.length, rights.length); k++) {
+    partner.set(lefts[k], rights[k]);
+    partner.set(rights[k], lefts[k]);
+  }
+  const slots = [], placed = new Set();
+  for (const s of rows) {
+    if (placed.has(s)) continue;
+    const slot = partner.has(s) ? [s, partner.get(s)] : [s];
+    for (const x of slot) placed.add(x);
+    slots.push(slot);
+  }
+  return slots;
+}
+
+/**
+ * How far a running workout is (#72): working sets logged of all of them,
+ * counted in set slots (setSlots), so a unilateral set counts as logged once
+ * both its sides are; an exercise's repeated entries pair with each other.
+ * `percent` is rounded down, so it reads 100 only when every working set is
+ * logged; null without working sets. Returns { done, total, percent }.
+ */
+export function sessionProgress(entries, exercises, { pair = true } = {}) {
+  const get = lookup(exercises);
+  let done = 0, total = 0;
+  for (const [id, rows] of setsByExercise(entries)) {
+    for (const slot of setSlots(rows, isUnilateral(get(id)), { pair })) {
+      total++;
+      if (slot.every((s) => s.done)) done++;
+    }
+  }
+  return { done, total, percent: total ? Math.floor((100 * done) / total) : null };
+}
+
+/**
  * The side of a set added to a unilateral exercise (#54): every working set
  * has one. A drop set stays on the side of the set before it; otherwise the
  * pattern goes on: after one side the other (L, R, L, R), after the same side

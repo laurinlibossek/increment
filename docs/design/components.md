@@ -214,16 +214,18 @@ A row of strokes, one per set: hairline while pending, a solid stem once logged.
 
 **Use it** wherever sets are counted: the session header, exercise rows in Up next, routine cards, the summary, the week strip (one stroke per session) and Sets per muscle.
 
-**You provide** the list of sets, each with a state (`pending`, `done`, `warmup`, `warmupPending`, `live`, `record`, `skipped`), how to group them (by exercise, or in fives) and a size (`small` 14, `regular` `stroke-h`, `hero` `stroke-h-hero`, 40, with the wider `stroke-*-hero` slot, hairline and gaps).
+**You provide** the list of sets, each with a state (`pending`, `done`, `warmup`, `warmupPending`, `warmupLive`, `live`, `record`, `skipped`), how to group them (by exercise, or in fives) and a size (`small` 14, `regular` `stroke-h`, `hero` `stroke-h-hero`, 40, with the wider `stroke-*-hero` slot, hairline and gaps).
 
 **Rules**
 - Strokes keep their slot (`stroke-slot`) whatever their state, so nothing shifts when a set is logged.
 - Groups are separated by `stroke-group`: per exercise in a session, per five when counting.
 - A whole workout's tally (session header, summary, History) wraps onto new lines, inside a long exercise too, so it never runs off the screen. It grows a line per screen width of strokes: about 29 hero strokes per line on an iPhone; 1000 sets make a block about 1900 pt tall, two and a half screens.
 - `record` is the only coloured state. `live` marks the one set being logged; there is never more than one.
+- Warm-ups are half height (0.55) in every state: pending (`warmupPending`), being logged (`warmupLive`, the `live` outline at warm-up height) and logged (`warmup`). So nothing changes height when a warm-up is logged; only the outline turns into a solid stem.
+- Strokes are one per row, so a unilateral exercise's Left and Right are two strokes. The count beside them counts sets the way the totals do: a Left and a Right make one set, logged once both are (#72).
 - Never use strokes for weight, time or other continuous numbers.
 
-**Native**: a row of `View`s with fixed widths; animate the logged stem's width with Reanimated (160 ms). Describe the whole tally to screen readers as one element ("4 of 22 sets logged, 1 record").
+**Native**: a row of `View`s with fixed widths; animate the logged stem's width with Reanimated (160 ms). Describe the whole tally to screen readers as one element ("4 of 22 working sets logged, 18%, 1 record" in a running workout).
 
 ## WeekStrip
 

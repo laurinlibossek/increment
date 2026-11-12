@@ -91,7 +91,7 @@ async function discard(page) {
   assert.match(bar, /Rest \d:\d\d/);
   const now = await id(page, 'now-card').innerText();
   assert.match(now, /In progress · since/);
-  assert.ok(now.includes(`1 of ${size.sets} sets`), now);
+  assert.ok(now.includes(`1 of ${size.sets} working sets · ${Math.floor(100 / size.sets)}%`), now);
   await page.screenshot({ path: `${OUT}/02-now-lifting.png` });
   await id(page, 'mini-skip-rest').click();
   await wait(page, 300);

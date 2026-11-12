@@ -3,6 +3,8 @@
 // Up next, Today's card, Now Lifting) or after Finish (summary, Workouts row,
 // workout page). Now Lifting names the set the session shows next, also after
 // jumping to another exercise, and says "warm-up set" during a warm-up.
+// The count says "working sets" and the percent logged, rounded down (#72), and
+// a warm-up's stroke is half height in every state, the live one too.
 import assert from 'node:assert/strict';
 import { launch, devices, grantWakeLock, APP, shots, selectTab } from './env.mjs';
 import { SEED_EXERCISES, SEED_VERSION } from '../../core/index.js';
@@ -42,22 +44,48 @@ const wait = (ms = 300) => page.waitForTimeout(ms);
 const today = async () => { await id('minimize').click(); await selectTab(page, 'index'); await id('now-card').waitFor(); };
 const nowLifting = () => id('mini-bar').first().innerText();
 
+// the stroke heights in a tally: the outlined (live) one, logged stems and pending hairlines
+const strokes = (testID) => id(testID).first().evaluate((el) => {
+  const marks = [...el.querySelectorAll('div')].filter((d) => !d.children.length && d.getBoundingClientRect().height > 4);
+  // the live stroke is an outline: a border and no fill (the browser may round its 1.5 pt border down)
+  const outline = (d) => parseFloat(getComputedStyle(d).borderTopWidth) > 0 && getComputedStyle(d).backgroundColor === 'rgba(0, 0, 0, 0)';
+  const h = (d) => Math.round(d.getBoundingClientRect().height);
+  return {
+    live: marks.filter(outline).map(h),
+    solid: marks.filter((d) => !outline(d) && d.getBoundingClientRect().width > 2).map(h),
+    hair: marks.filter((d) => !outline(d) && d.getBoundingClientRect().width <= 2).map(h),
+  };
+});
+
 await page.goto(APP);
 await id('now-card').waitFor();
-assert.match(await id('now-card').innerText(), /0 of 5 sets/);
+assert.match(await id('now-card').innerText(), /0 of 5 working sets · 0%/);
 assert.match(await nowLifting(), /Bench Press \(Barbell\) · warm-up set/);
+const mini = await strokes('mini-bar');
+assert.equal(mini.live.length, 1, 'Now Lifting outlines the warm-up being logged');
+assert.ok(mini.live[0] < Math.max(...mini.hair) * 0.6, 'at warm-up height');
 await id('resume-workout').click();
 await id(`block-${BENCH}`).waitFor();
-assert.match(await id('session-count').innerText(), /^0 of 5 sets/);
-for (let i = 0; i < 4; i++) { await checks(BENCH).nth(i).click(); await wait(150); }
+assert.equal(await id('session-count').innerText(), '0 of 5 working sets · 0%');
+// the warm-up being logged is outlined at warm-up height, before and after the one before it is logged
+const full = (await strokes('session-tally')).live;
+assert.equal(full.length, 1, 'one live stroke');
+await checks(BENCH).nth(0).click();
 await wait();
-assert.match(await id('session-count').innerText(), /^0 of 5 sets/, 'logged warm-ups count for nothing');
-assert.match(await id('session-tally').getAttribute('aria-label'), /^0 of 5 sets logged/);
+const afterOne = await strokes('session-tally');
+assert.deepEqual(afterOne.live, full, 'the next warm-up is live at the same height');
+assert.deepEqual(afterOne.solid, full, 'the logged warm-up keeps that height');
+for (let i = 1; i < 4; i++) { await checks(BENCH).nth(i).click(); await wait(150); }
+await wait();
+const working = (await strokes('session-tally')).live[0];
+assert.ok(full[0] < working * 0.6 && full[0] > working * 0.5, `a live warm-up is about half a working set's height (${full[0]} of ${working})`);
+assert.equal(await id('session-count').innerText(), '0 of 5 working sets · 0%', 'logged warm-ups count for nothing');
+assert.equal(await id('session-tally').getAttribute('aria-label'), '0 of 5 working sets logged, 0%');
 await page.screenshot({ path: `${OUT}/warm-ups-logged.png` });
 await today();
-assert.match(await id('now-card').innerText(), /0 of 5 sets/);
+assert.match(await id('now-card').innerText(), /0 of 5 working sets · 0%/);
 assert.match(await nowLifting(), /Bench Press \(Barbell\) · set 1 of 3/);
-ok('four warm-ups logged: 0 of 5 in the session, on Today and in Now Lifting, which is at working set 1 of 3');
+ok('four warm-ups logged: 0 of 5 working sets · 0% in the session, on Today and in Now Lifting, which is at working set 1 of 3; a live warm-up stroke is half height');
 
 // jumping to another exercise: Now Lifting follows the session, not the first set left
 await id('resume-workout').click();
@@ -75,9 +103,12 @@ for (let i = 0; i < 2; i++) { await checks(SQUAT).nth(i).click(); await wait(150
 assert.equal((await id('next-exercise').innerText()).trim(), 'Next: Bench Press (Barbell)');
 await id('next-exercise').click();
 await id(`block-${BENCH}`).waitFor();
-for (let i = 4; i < 7; i++) { await checks(BENCH).nth(i).click(); await wait(150); }
+for (let i = 4; i < 6; i++) { await checks(BENCH).nth(i).click(); await wait(150); }
 await wait();
-assert.match(await id('session-count').innerText(), /^5 of 5 sets/);
+assert.equal(await id('session-count').innerText(), '4 of 5 working sets · 80%');
+await checks(BENCH).nth(6).click();
+await wait();
+assert.equal(await id('session-count').innerText(), '5 of 5 working sets · 100%', '100% with the last working set');
 await id('workout-menu').click();
 await id('menu-finish').click();
 await id('confirm-finish').waitFor();

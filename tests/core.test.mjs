@@ -2017,6 +2017,38 @@ test('set totals pair unilateral rows (#54): the table cases, warm-ups, rows wit
   assert.deepEqual(core.exerciseSetCount([sided('left', 20, 'failure'), sided('right', 20, 'drop')], true), { sets: 1, unpaired: 0 });
 });
 
+test('logging progress (#72): set slots pair a left with a right; a set is logged once both sides are; percent rounds down', () => {
+  const rows = (sides, done = '') => [...sides].map((x, i) => ({ ...sided(x === 'L' ? 'left' : x === 'R' ? 'right' : undefined), id: `s${i}`, done: done[i] === 'x' }));
+  const ids = (slots) => slots.map((slot) => slot.map((s) => s.id).join('+'));
+  // L R L R and R R L L both pair the k-th left with the k-th right, in the order of their first row
+  assert.deepEqual(ids(core.setSlots(rows('LRLR'), true)), ['s0+s1', 's2+s3']);
+  assert.deepEqual(ids(core.setSlots(rows('RRLL'), true)), ['s0+s2', 's1+s3']);
+  // an extra side and a row without a side among sided ones are slots of their own; warm-ups none
+  assert.deepEqual(ids(core.setSlots(rows('LRL-'), true)), ['s0+s1', 's2', 's3']);
+  assert.deepEqual(ids(core.setSlots([sided(undefined, 10, 'warmup'), ...rows('LR')], true)), ['s0+s1']);
+  // bilateral, pairs off, or no side at all (Strong): every row
+  assert.deepEqual(ids(core.setSlots(rows('LRLR'), false)), ['s0', 's1', 's2', 's3']);
+  assert.deepEqual(ids(core.setSlots(rows('LRLR'), true, { pair: false })), ['s0', 's1', 's2', 's3']);
+  assert.deepEqual(ids(core.setSlots(rows('---'), true)), ['s0', 's1', 's2']);
+
+  const lib = new Map([['curl', { category: 'dumbbell', unilateral: true }], ['bench', { category: 'barbell' }]]);
+  const progress = (entries, o) => core.sessionProgress(entries, lib, o);
+  // 3 curl pairs and 2 bench sets: one side logged is not a set yet
+  assert.deepEqual(progress([E('curl', rows('LRLRLR', 'x')), E('bench', rows('--'))]), { done: 0, total: 5, percent: 0 });
+  assert.deepEqual(progress([E('curl', rows('LRLRLR', 'xx')), E('bench', rows('--', 'x'))]), { done: 2, total: 5, percent: 40 });
+  assert.deepEqual(progress([E('curl', rows('RRLL', 'xxx'))]), { done: 1, total: 2, percent: 50 }, 'R R L: the first pair is complete');
+  // pairs off: each side is a set
+  assert.deepEqual(progress([E('curl', rows('LRLRLR', 'x'))], { pair: false }), { done: 1, total: 6, percent: 16 });
+  // rounded down: 100 only when every working set is logged; warm-ups never count
+  const warm = { ...sided(undefined, 10, 'warmup'), id: 'w', done: false };
+  assert.deepEqual(progress([E('bench', [warm, ...rows('---', 'xx')])]), { done: 2, total: 3, percent: 66 });
+  assert.deepEqual(progress([E('bench', [warm, ...rows('---', 'xxx')])]), { done: 3, total: 3, percent: 100 }, 'an open warm-up does not hold back 100');
+  assert.deepEqual(progress([E('bench', [warm])]), { done: 0, total: 0, percent: null }, 'only warm-ups: no percent');
+  assert.deepEqual(progress([]), { done: 0, total: 0, percent: null });
+  // an exercise's repeated entries pair with each other, as in the totals
+  assert.deepEqual(progress([E('curl', rows('L', 'x')), E('bench', rows('-')), E('curl', rows('R', 'x'))]), { done: 1, total: 2, percent: 50 });
+});
+
 test('muscle and routine totals (#54): pairs within one exercise and one workout, repeated entries together; minutes count every row', () => {
   const now = Date.now();
   const lib = new Map([
