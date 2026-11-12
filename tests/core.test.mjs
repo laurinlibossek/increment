@@ -835,7 +835,7 @@ test('Strong suggestions: spelling, plurals, punctuation, accents, equipment and
   // short plurals ("ups") and spacing or hyphens that only split or join words, as people type them in Strong
   for (const [name, id, category] of [
     ['Pull-Ups', 'x-pull-up', 'reps'], ['Pull Ups', 'x-pull-up', 'reps'], ['Push-ups', 'x-push-up', 'reps'],
-    ['Chin-ups', 'x-chin-up', 'reps'], ['Sit-ups', 'x-sit-up', 'reps'], ['Lat Pull Down', 'x-lat-pulldown-cable', 'machine'],
+    ['Chin-ups', 'x-chin-up', 'reps'], ['Lat Pull Down', 'x-lat-pulldown-cable', 'machine'],
     ['Tricep Push Down', 'x-triceps-pushdown-cable', 'machine'], ['Skull Crushers (EZ Bar)', 'x-skullcrusher-ez-bar', 'barbell'],
   ]) {
     assert.equal(suggestions(name, category)[0]?.id, id, name);
@@ -1377,10 +1377,22 @@ test('links: the web app at its domain, and the contact email written in one pla
 const seedV1 = JSON.parse(read(path.join(ROOT, 'tests/fixtures/exercises-v1.json')));
 const byName = (name) => core.SEED_EXERCISES.find((e) => e.name === name);
 
-test('catalogue preserves all v1 ids, English names, categories, body parts and example routines', () => {
+// #45: the approved cut (Laurin, 11 Nov 2026), 33 of them among v1's 190; and one rename that keeps its id
+const V1_CUT = [
+  'x-incline-push-up', 'x-decline-push-up', 'x-deadlift-dumbbell', 'x-inverted-row', 'x-upright-row-barbell', 'x-reverse-fly-dumbbell',
+  'x-bench-dip', 'x-goblet-squat-kettlebell', 'x-squat-bodyweight', 'x-lunge', 'x-glute-bridge', 'x-box-jump', 'x-sit-up',
+  'x-bicycle-crunch', 'x-lying-leg-raise', 'x-toes-to-bar', 'x-russian-twist', 'x-russian-twist-weighted', 'x-mountain-climber',
+  'x-dead-bug', 'x-wood-chop-cable', 'x-hollow-hold', 'x-l-sit', 'x-thruster-barbell', 'x-turkish-get-up-kettlebell', 'x-burpee',
+  'x-battle-ropes', 'x-swimming', 'x-hiking', 'x-jump-rope', 'x-stretching', 'x-yoga', 'x-warm-up',
+];
+const RENAMED = { 'x-lat-pulldown-single-arm': 'Single Arm Lat Pulldown (Cable)' };
+
+test('catalogue keeps v1’s ids, names, categories, body parts and example routines, but for the approved cut (#45)', () => {
   assert.equal(seedV1.exercises.length, 190);
   const current = new Map(core.SEED_EXERCISES.map((e) => [e.id, e]));
-  for (const old of seedV1.exercises) assert.deepEqual(current.get(old.id), old);
+  const gone = seedV1.exercises.filter((old) => !current.has(old.id)).map((old) => old.id);
+  assert.deepEqual([...gone].sort(), [...V1_CUT].sort(), 'exactly the approved cut');
+  for (const old of seedV1.exercises) if (current.has(old.id)) assert.deepEqual(current.get(old.id), { ...old, ...(RENAMED[old.id] ? { name: RENAMED[old.id] } : {}) });
   // one-side exercises carry each set as a left and a right row (#54); folded back, the examples are v1's
   const fold = (t) => ({ ...t, exercises: t.exercises.map((e) => ({ ...e, sets: e.sets.filter((x) => x.side !== 'right').map(({ side, ...x }) => x) })) });
   assert.deepEqual(core.EXAMPLE_TEMPLATES.map(fold), seedV1.examples);
@@ -1388,8 +1400,32 @@ test('catalogue preserves all v1 ids, English names, categories, body parts and 
     const want = core.isUnilateral({ id: e.exerciseId }) ? e.sets.map((_, i) => (i % 2 ? 'right' : 'left')) : e.sets.map(() => undefined);
     assert.deepEqual(e.sets.map((x) => x.side), want, e.exerciseId);
   }
-  assert.ok(core.SEED_VERSION > 1);
-  assert.ok(core.SEED_EXERCISES.length >= 360, 'a substantial, curated expansion');
+  assert.equal(core.SEED_VERSION, 3);
+  assert.equal(core.SEED_EXERCISES.length, 306, '400 − 96 + 2 (#45)');
+  assert.equal(core.EXERCISE_CATALOGUE.length, 74);
+  for (const name of ['Squat Press (Machine)', 'Step Up (Cable)']) assert.ok(byName(name), name);
+});
+
+test('the cut (#45): aliases point at kept built-ins; links, Strong files and backups bring cut exercises as the person’s own', () => {
+  const ids = new Set(core.SEED_EXERCISES.map((e) => e.id));
+  assert.deepEqual(Object.values(core.STRONG_EXERCISE_ALIASES).filter((id) => !ids.has(id)), [], 'every shipped alias targets a kept built-in');
+  assert.deepEqual(core.UNILATERAL_NAMES.filter((n) => !byName(n)), [], 'every shipped unilateral exercise is kept (#54)');
+  assert.equal(core.isUnilateral(byName('Single Arm Lat Pulldown (Cable)')), true, 'by name, so the renamed one keeps its id');
+  // a link from before the cut keeps the name, category and body part, so the receiver creates it as their own
+  const old = Buffer.from(JSON.stringify({ v: 1, n: 'Abs', e: [{ i: 'x-sit-up', n: 'Sit Up', c: 'reps', b: 'core', s: [['n', null, 15]] }] })).toString('base64url');
+  const got = core.decodeTemplate('#template=' + old, { categories: ['reps'], bodyParts: ['core'] }).exercises[0];
+  assert.deepEqual([got.name, got.category, got.bodyPart], ['Sit Up', 'reps', 'core']);
+  assert.ok(!ids.has(got.id), 'not a built-in any more');
+  // a Strong file with a cut name goes to review instead of a silent match
+  const preview = core.parseStrongCSV(strongFile([['Sit Up', 0, 15]]), { exercises: core.SEED_EXERCISES });
+  assert.deepEqual(preview.review.map((r) => r.name), ['Sit Up']);
+  // a backup that still holds a cut built-in and its history keeps both; nothing is reseeded or dropped
+  const sitUp = seedV1.exercises.find((e) => e.id === 'x-sit-up');
+  const data = { exercises: [sitUp], workouts: [{ id: 'w', startedAt: 1, exercises: [{ id: 'e', exerciseId: 'x-sit-up', sets: [{ id: 's', type: 'normal', r: 15 }] }] }], templates: [], measurements: [], kv: {} };
+  const restored = core.parseBackup(core.makeBackup(data, 'test'), core.SEED_EXERCISES).data;
+  assert.deepEqual(restored.exercises.find((e) => e.id === 'x-sit-up'), sitUp);
+  assert.deepEqual(restored.workouts, data.workouts);
+  assert.equal(restored.exercises.length, 307, 'the 306 and the kept one');
 });
 
 test('catalogue has unique stable ids, valid logging types, and exactly one family per built-in', () => {
@@ -1406,7 +1442,7 @@ test('catalogue has unique stable ids, valid logging types, and exactly one fami
     for (const id of f.members) assert.equal(core.familyOf(seeds.find((e) => e.id === id)), f.id);
   }
   for (const e of seeds) {
-    assert.equal(e.id, 'x-' + core.slug(e.name));
+    assert.equal(e.id, Object.hasOwn(RENAMED, e.id) ? e.id : 'x-' + core.slug(e.name), e.name);
     assert.ok(core.CATEGORY_LABEL[e.category], e.name);
     assert.ok(core.BODY_PART_LABEL[e.bodyPart], e.name);
     assert.equal(Object.hasOwn(e, 'family'), false, 'membership is resolved, not stored');
@@ -1665,12 +1701,12 @@ test('family members keep main-first catalogue order, actual stored records and 
 test('family groups keep exercises then equipment, including different logged fields', () => {
   const groups = core.familyMemberGroups('f-pull-up');
   const pull = groups.find((g) => g.name === 'Pull Up');
-  assert.deepEqual(pull.members.map((m) => m.equipment), ['', 'Band', 'Weighted', 'Assisted'], 'plain Pull Up leads');
-  assert.deepEqual(pull.members.map((m) => m.exercise.category), ['reps', 'reps', 'weighted_bw', 'assisted_bw']);
-  assert.equal(new Set(pull.members.map((m) => m.exercise.id)).size, 4);
+  assert.deepEqual(pull.members.map((m) => m.equipment), ['', 'Weighted', 'Assisted'], 'plain Pull Up leads');
+  assert.deepEqual(pull.members.map((m) => m.exercise.category), ['reps', 'weighted_bw', 'assisted_bw']);
+  assert.equal(new Set(pull.members.map((m) => m.exercise.id)).size, 3);
   const squat = core.familyMemberGroups('f-squat');
   assert.equal(squat[0].name, 'Squat');
-  assert.deepEqual(squat[0].members.map((m) => m.equipment), ['Barbell', 'Dumbbell', 'Smith Machine', 'Bodyweight']);
+  assert.deepEqual(squat[0].members.map((m) => m.equipment), ['Barbell', 'Smith Machine']);
   assert.ok(squat.some((g) => g.name === 'Front Squat'));
   assert.deepEqual(core.familyMemberGroups('f-unknown'), []);
   assert.equal(core.exerciseEquipment({ name: 'Row (Cable) (wide grip)' }), 'wide grip');
@@ -1701,10 +1737,10 @@ test('every family keeps related movements contiguous and equipment in the share
     assert.deepEqual(core.familyMemberGroups(f.id).flatMap(g => g.members.map(m => m.exercise.id)), f.members.map(e => e.id));
   }
   const groups = (id) => core.familyMemberGroups(id).map(g => g.name);
-  assert.deepEqual(groups('f-squat'), ['Squat', 'Front Squat', 'Safety Bar Squat', 'Zercher Squat', 'Box Squat', 'Paused Squat', 'Pin Squat', 'Hack Squat', 'Pendulum Squat', 'Belt Squat', 'Goblet Squat', 'Pistol Squat']);
+  assert.deepEqual(groups('f-squat'), ['Squat', 'Front Squat', 'Safety Bar Squat', 'Zercher Squat', 'Box Squat', 'Paused Squat', 'Pin Squat', 'Hack Squat', 'Squat Press', 'Pendulum Squat', 'Belt Squat', 'Goblet Squat', 'Pistol Squat']);
   assert.deepEqual(groups('f-split-squat'), ['Split Squat', 'Bulgarian Split Squat', 'Front Foot Elevated Split Squat']);
-  assert.deepEqual(groups('f-romanian-deadlift'), ['Romanian Deadlift', 'Stiff Leg Deadlift', 'Single Leg Romanian Deadlift', 'B Stance Romanian Deadlift']);
-  assert.deepEqual(groups('f-hip-thrust'), ['Hip Thrust', 'Glute Bridge', 'Single Leg Hip Thrust', 'Single Leg Glute Bridge']);
+  assert.deepEqual(groups('f-romanian-deadlift'), ['Romanian Deadlift', 'Stiff Leg Deadlift', 'Single Leg Romanian Deadlift']);
+  assert.deepEqual(groups('f-hip-thrust'), ['Hip Thrust', 'Glute Bridge', 'Single Leg Hip Thrust']);
 });
 
 test('each movement starts with its usual version, not the first in the equipment order', () => {
@@ -1717,17 +1753,18 @@ test('each movement starts with its usual version, not the first in the equipmen
   assert.equal(first('f-calf-raise'), 'x-standing-calf-raise-machine');
   assert.equal(first('f-nordic-hamstring-curl'), 'x-nordic-hamstring-curl');
   const lead = (familyId, name) => core.familyMemberGroups(familyId).find((g) => g.name === name).members.map((m) => m.exercise.name);
-  assert.deepEqual(lead('f-push-up', 'Push Up'), ['Push Up', 'Push Up (Band)', 'Push Up (Weighted)']);
-  assert.deepEqual(lead('f-lat-pulldown', 'Lat Pulldown'), ['Lat Pulldown (Cable)', 'Lat Pulldown (Machine)', 'Lat Pulldown (Single Arm)']);
+  assert.deepEqual(lead('f-push-up', 'Push Up'), ['Push Up', 'Push Up (Weighted)']);
+  assert.deepEqual(lead('f-lat-pulldown', 'Lat Pulldown'), ['Lat Pulldown (Cable)', 'Lat Pulldown (Machine)']);
+  assert.deepEqual(lead('f-lat-pulldown', 'Single Arm Lat Pulldown'), ['Single Arm Lat Pulldown (Cable)', 'Single Arm Lat Pulldown (Machine)'], 'the renamed one leads its movement (#45)');
   assert.deepEqual(lead('f-row', 'Seated Row'), ['Seated Row (Cable)', 'Seated Row (Machine)']);
-  assert.deepEqual(lead('f-squat', 'Hack Squat'), ['Hack Squat (Machine)', 'Hack Squat (Barbell)']);
-  assert.deepEqual(lead('f-split-squat', 'Bulgarian Split Squat'), ['Bulgarian Split Squat (Dumbbell)', 'Bulgarian Split Squat (Barbell)', 'Bulgarian Split Squat (Smith Machine)', 'Bulgarian Split Squat']);
+  assert.deepEqual(lead('f-squat', 'Hack Squat'), ['Hack Squat (Machine)']);
+  assert.deepEqual(lead('f-split-squat', 'Bulgarian Split Squat'), ['Bulgarian Split Squat (Dumbbell)', 'Bulgarian Split Squat (Barbell)', 'Bulgarian Split Squat (Smith Machine)']);
   // a custom version joins after the usual one; a hidden usual version hands the lead to the next built-in
   const library = [...core.SEED_EXERCISES, { id: 'c-lat-band', name: 'Lat Pulldown (Band)', family: 'f-lat-pulldown', category: 'reps' }];
   const names = (lib) => core.familyMemberGroups('f-lat-pulldown', lib).find((g) => g.name === 'Lat Pulldown').members.map((m) => m.exercise.name);
-  assert.deepEqual(names(library), ['Lat Pulldown (Cable)', 'Lat Pulldown (Machine)', 'Lat Pulldown (Band)', 'Lat Pulldown (Single Arm)']);
+  assert.deepEqual(names(library), ['Lat Pulldown (Cable)', 'Lat Pulldown (Machine)', 'Lat Pulldown (Band)']);
   const hidden = library.map((e) => (e.id === 'x-lat-pulldown-cable' ? { ...e, hidden: true } : e));
-  assert.deepEqual(names(hidden), ['Lat Pulldown (Machine)', 'Lat Pulldown (Band)', 'Lat Pulldown (Single Arm)']);
+  assert.deepEqual(names(hidden), ['Lat Pulldown (Machine)', 'Lat Pulldown (Band)']);
 });
 
 test('equipment ordering also applies to custom groups without changing stored records', () => {
@@ -1768,7 +1805,11 @@ test('seeding upgrades v1, is repeatable, and never overwrites renamed or hidden
   old[0] = { ...old[0], name: 'My bench', hidden: true, restSec: 123, notes: 'mine' };
   const snapshot = structuredClone(old);
   const upgraded = core.withSeedExercises(old);
-  assert.equal(upgraded.length, core.SEED_EXERCISES.length);
+  // a library keeps what it has (cut built-ins too, #45: no migration); only missing built-ins come in, never a cut one
+  const had = new Set(old.map((e) => e.id));
+  assert.equal(upgraded.length, old.length + core.SEED_EXERCISES.filter((e) => !had.has(e.id)).length);
+  assert.equal(core.withSeedExercises([]).length, 306, 'a fresh library has the 306');
+  assert.ok(!core.withSeedExercises([]).some((e) => V1_CUT.includes(e.id)), 'cut built-ins are never seeded');
   assert.equal(upgraded.find((e) => e.id === old[0].id), old[0]);
   assert.deepEqual(core.seedExerciseChanges(upgraded), []);
   assert.deepEqual(core.seedExerciseChanges(new Map(upgraded.map((e) => [e.id, e]))), []);

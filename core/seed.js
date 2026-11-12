@@ -41,7 +41,7 @@ export const BODY_PARTS = [
 ];
 export const BODY_PART_LABEL = Object.fromEntries(BODY_PARTS.map((b) => [b.id, b.label]));
 
-export const SEED_VERSION = 2;
+export const SEED_VERSION = 3;
 
 // Family membership comes from the catalogue by id, never from stored built-ins.
 export const SEED_EXERCISES = EXERCISE_CATALOGUE.flatMap((f) =>

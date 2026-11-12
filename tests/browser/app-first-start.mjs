@@ -205,9 +205,10 @@ const has = async (page, re) => (typeof re === 'string' ? new RegExp(re.replace(
   await chooser.setFiles(STRONG);
   await page.getByTestId('strong-review').waitFor();
   assert.match(await page.getByTestId('strong-review').innerText(), /86 Trainings/);
-  assert.equal(await page.locator('[data-testid^="strong-row-"]').count(), 6);
-  // Power Clean is preselected; explicitly create the other five movements.
-  for (const i of [0, 2, 3, 4, 5]) await page.getByTestId(`strong-new-${i}`).click();
+  // Swimming left the catalogue (#45), so it's a name to decide too
+  assert.equal(await page.locator('[data-testid^="strong-row-"]').count(), 7);
+  // Power Clean is preselected; explicitly create the other six movements.
+  for (const i of [0, 2, 3, 4, 5, 6]) await page.getByTestId(`strong-new-${i}`).click();
   await page.getByTestId('strong-confirm').click();
   await page.getByTestId('strong-import').waitFor();
   assert.match(dialogs[0], /86 Trainings importiert/);
