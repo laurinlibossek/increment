@@ -41,8 +41,8 @@ for (const theme of ['light', 'dark']) {
   await openSearch(page);
   const search = page.getByTestId('exercise-search');
   if (!before) {
-    assert.match(await page.getByTestId('family-f-squat').innerText(), /Squat[\s\S]*Legs · 19 variations/);
-    assert.match(await search.getAttribute('placeholder'), /Search 24 exercises/);
+    assert.match(await page.getByTestId('family-f-squat').innerText(), /Squat[\s\S]*Legs · 17 variations/);
+    assert.match(await search.getAttribute('placeholder'), /Search 22 exercises/);
     assert.equal(await page.locator('[data-testid^="family-"]').count(), 3);
     assert.match(await page.getByTestId('exercise-c-own-row').innerText(), /My Row \(Upper\) \(Cybex Machine\)/);
     const order = await page.locator('[data-testid^="family-"], [data-testid="exercise-c-own-row"]').allInnerTexts();
@@ -113,7 +113,7 @@ for (const theme of ['light', 'dark']) {
     await openExercise(page, 'x-safety-bar-squat-barbell', 'safety bar');
     await page.getByTestId('exercise-options').click(); await page.getByTestId('ex-hide').click();
     await backToSearch(page); await search.fill('');
-    assert.match(await page.getByTestId('family-f-squat').innerText(), /18 variations/);
+    assert.match(await page.getByTestId('family-f-squat').innerText(), /16 variations/);
     await page.getByTestId('family-f-squat').click();
     await page.getByTestId('exercise-title').waitFor();
     assert.equal(await page.getByTestId('family-exercises-x-safety-bar-squat-barbell').count(), 0);
@@ -186,7 +186,7 @@ if (!before) {
   const data = familiesData(); data.exercises = SEED_EXERCISES;
   const { ctx, page, errors } = await open(data);
   await openSearch(page);
-  assert.match(await page.getByTestId('exercise-search').getAttribute('placeholder'), /Search 400 exercises/);
+  assert.match(await page.getByTestId('exercise-search').getAttribute('placeholder'), /Search 306 exercises/);
   assert.deepEqual(errors, []); await ctx.close();
   ok('the search placeholder counts exercises, not families');
 }

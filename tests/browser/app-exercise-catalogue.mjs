@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { openSearch, launch, devices, grantWakeLock, APP, shots, storedData, waitStored } from './env.mjs';
-import { SEED_EXERCISES, SEED_VERSION, makeBackup, familyOf } from '../../core/index.js';
+import { SEED_EXERCISES, SEED_VERSION, makeBackup, familyOf, withSeedExercises } from '../../core/index.js';
 
 const v1 = JSON.parse(fs.readFileSync(new URL('../fixtures/exercises-v1.json', import.meta.url), 'utf8'));
 const OUT = shots('app-exercise-catalogue');
@@ -38,7 +38,9 @@ function upgradedData() {
 function checkUpgrade(actual, before) {
   assert.equal(actual.kv.meta.seedVersion, SEED_VERSION);
   assert.equal(actual.kv.meta.createdAt, 123);
-  assert.equal(actual.exercises.length, SEED_EXERCISES.length);
+  // existing ids stay (cut built-ins too, #45: no migration); only the missing built-ins come in
+  assert.equal(actual.exercises.length, withSeedExercises(before.exercises).length);
+  assert.ok(SEED_EXERCISES.every((e) => e.name === 'Kelso Shrug (Dumbbell)' || actual.exercises.some((x) => x.id === e.id)), 'every built-in is there');
   assert.deepEqual(actual.exercises.find((e) => e.id === before.exercises[0].id), before.exercises[0]);
   assert.deepEqual(actual.exercises.find((e) => e.id === 'c-kelso'), { ...before.exercises.at(-1), family: 'f-kelso-shrug' });
   assert.ok(!actual.exercises.some((e) => e.id === 'x-kelso-shrug-dumbbell'));
