@@ -272,7 +272,7 @@ export default function AccountSheet() {
       <View>
         <SettingRow first symbol="square.and.arrow.up" title={tr('Back up now')} sub={s.meta.lastBackupAt ? tr('Last backup {when}', { when: f.relDayLower(s.meta.lastBackupAt) }) : tr('No backup yet')}
           onPress={busy ? undefined : doBackup} testID="backup-now" />
-        <SettingRow symbol="square.and.arrow.down" title={tr('Restore from backup')} sub={tr('A backup file from Increment or Setlog')} onPress={busy ? undefined : doRestore} testID="restore" />
+        <SettingRow symbol="square.and.arrow.down" title={tr('Restore from backup')} onPress={busy ? undefined : doRestore} testID="restore" />
         <SettingRow symbol="arrow.left.arrow.right" title={tr('Import from Strong')} sub={tr('In Strong: Settings → Export Workouts, then pick that CSV here')} onPress={busy ? undefined : doStrong} testID="strong-import" />
         <SettingRow symbol="tablecells" title={tr('Export as CSV')} sub={tr('Spreadsheet-friendly, Strong column format')} onPress={doCSV} testID="export-csv" />
       </View>

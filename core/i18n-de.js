@@ -816,7 +816,6 @@ export default {
   // the iPhone and Android app (app/ in this repo)
   'Finished workouts show up here. To bring your history over, use Import from Strong or Restore from backup in Account.': 'Abgeschlossene Trainings erscheinen hier. Um deinen Verlauf mitzunehmen, nutze im Account „Aus Strong importieren“ oder „Aus Backup wiederherstellen“.',
   'Units, theme, language, backup, Strong import': 'Einheiten, Design, Sprache, Backup, Strong-Import',
-  'A backup file from Increment or Setlog': 'Eine Backup-Datei aus Increment oder Setlog',
   'No workout running': 'Kein Training läuft',
   Search: 'Suchen',
   'Rest timer alerts': 'Pausen-Benachrichtigung',
