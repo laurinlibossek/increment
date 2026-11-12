@@ -78,6 +78,8 @@ try {
   if (!before) for (const lang of ['en', 'de']) for (const unit of ['kg', 'lb']) {
     const data = demoData(lang);
     data.kv.settings.unit = unit;
+    // the exercise pages show Estimated 1RM, whose rounding this checks (Heaviest weight is the default, #27)
+    data.kv.chartMetrics = { [BENCH]: 'e1rm', [DEAD]: 'e1rm' };
     const day = new Date(); day.setDate(Math.min(15, day.getDate())); day.setHours(0, 0, 0, 0);
     const workout = (key, hour, exerciseId, sets) => ({ id: `format-${key}`, name: `Format ${key}`, startedAt: day.getTime() + hour * 3600000, endedAt: day.getTime() + hour * 3600000 + 71 * 60000, exercises: [{ id: `entry-${key}`, exerciseId, sets }] });
     const precise = workout('precise', 18, BENCH, [

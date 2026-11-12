@@ -2059,3 +2059,30 @@ test('estimated 1RM (#41): the chosen formula up to 12 reps, Epley above, for ev
   const rec = core.exerciseRecords(core.buildStats([w], new Map([[bench.id, bench]]), 'brzycki').byExercise.get(bench.id), 'barbell', 'brzycki');
   assert.ok(near(rec.e1rm.value, epley(20, 36)));
 });
+
+test('exercise charts (#27): Heaviest weight by default, the chosen chart per exercise, cleaned and kept in backups', () => {
+  const defaults = Object.fromEntries(core.CATEGORIES.map((c) => [c.id || c, core.defaultChartMetric(c.id || c)]));
+  assert.deepEqual(defaults, { barbell: 'weight', dumbbell: 'weight', machine: 'weight', weighted_bw: 'weight', assisted_bw: 'reps', reps: 'reps', cardio: 'distance', duration: 'time' });
+  // a chosen metric the category has is kept; anything else falls back to the default
+  assert.equal(core.chartMetricFor('barbell', 'e1rm'), 'e1rm');
+  assert.equal(core.chartMetricFor('barbell', 'distance'), 'weight');
+  assert.equal(core.chartMetricFor('reps', undefined), 'reps');
+  assert.equal(core.chartMetricFor('cardio', 42), 'distance');
+  // the map keeps only existing exercises with a metric they still have
+  const bench = core.SEED_EXERCISES.find((e) => e.id === 'x-bench-press-barbell');
+  const run = core.SEED_EXERCISES.find((e) => e.category === 'cardio');
+  const map = { [bench.id]: 'e1rm', [run.id]: 'weight', gone: 'weight', [bench.id + 'x']: 'e1rm' };
+  assert.deepEqual(core.cleanChartMetrics(map, core.SEED_EXERCISES), { [bench.id]: 'e1rm' });
+  assert.deepEqual(core.cleanChartMetrics(map, new Map([[bench.id, bench]])), { [bench.id]: 'e1rm' });
+  assert.deepEqual(core.cleanChartMetrics(null, core.SEED_EXERCISES), {});
+  // backups carry it (cleaned); older backups without it restore as before
+  const data = { exercises: [], workouts: [], templates: [], measurements: [], kv: { chartMetrics: map } };
+  const back = core.parseBackup(core.makeBackup(data, '1.0.0', new Date()), core.SEED_EXERCISES);
+  assert.deepEqual(back.data.kv.chartMetrics, { [bench.id]: 'e1rm' });
+  const old = core.parseBackup(core.makeBackup({ ...data, kv: {} }, '1.0.0', new Date()), core.SEED_EXERCISES);
+  assert.equal(old.data.kv.chartMetrics, undefined);
+  // the Strong CSV doesn't change: it has no place for it
+  const w = { id: 'w', name: 'Push', startedAt: Date.UTC(2026, 10, 3, 9), endedAt: Date.UTC(2026, 10, 3, 10), exercises: [E(bench.id, [S('normal', 80, 8)])] };
+  const exercises = new Map([[bench.id, bench]]);
+  assert.equal(core.exportCSV({ workouts: [w], exercises, kv: { chartMetrics: map } }), core.exportCSV({ workouts: [w], exercises }));
+});

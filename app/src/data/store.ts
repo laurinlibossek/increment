@@ -4,7 +4,7 @@
 import { useSyncExternalStore } from 'react';
 import { AppState } from 'react-native';
 import {
-  SEED_EXERCISES, SEED_VERSION, withDefaults, buildStats, sessionsByExercise, configureCalc, bodyweightFrom,
+  SEED_EXERCISES, SEED_VERSION, withDefaults, cleanChartMetrics, buildStats, sessionsByExercise, configureCalc, bodyweightFrom,
   parseBackup, parseStrongCSV, resolveStrongImport, STRONG_EXERCISE_ALIASES, suggestTemplate, previousSetsFrom, newActiveWorkout, finishWorkout, prsForNewWorkout, liveRecordSets, withoutExercise,
   workoutVolume, makeBackup, uid, seedExerciseChanges,
   templateFromDraft, workoutFromEditDraft, copyTemplateRecord, folderNames, findExerciseByName, newExerciseRecord,
@@ -32,6 +32,8 @@ export interface State {
   profile: Profile;
   meta: Meta;
   strongAliases: Record<string, string>;
+  /** The chart each exercise page shows, when chosen (#27). */
+  chartMetrics: Record<string, string>;
   customFamilies: Record<string, string>;
   /** the running workout, or null */
   active: ActiveWorkout | null;
@@ -61,6 +63,7 @@ let state: State = {
   profile: { name: '' },
   meta: {},
   strongAliases: { ...STRONG_EXERCISE_ALIASES },
+  chartMetrics: {},
   customFamilies: {},
   active: null,
   edit: null,
@@ -100,6 +103,7 @@ function fromData(data: Data): Partial<State> {
     meta: { ...(data.kv.meta || {}) },
     strongAliases: { ...STRONG_EXERCISE_ALIASES, ...(data.kv.strongAliases || {}) },
     customFamilies: cleanCustomFamilies(data.kv.customFamilies || {}, data.exercises),
+    chartMetrics: cleanChartMetrics(data.kv.chartMetrics, data.exercises),
     active: data.kv.active || null,
   };
 }
@@ -337,6 +341,7 @@ function takeIn(records: Map<string, Saved>, all = false) {
   if (touched.has('profile')) patch.profile = { name: '', ...(kv.profile || {}) };
   if (touched.has('meta')) patch.meta = { ...(kv.meta || {}) };
   if (touched.has('strongAliases')) patch.strongAliases = { ...STRONG_EXERCISE_ALIASES, ...(kv.strongAliases || {}) };
+  if (touched.has('chartMetrics')) patch.chartMetrics = cleanChartMetrics(kv.chartMetrics, patch.exercises || state.exercises);
   if (touched.has('customFamilies') || touched.has('exercises')) {
     const families = touched.has('customFamilies') ? kv.customFamilies || {} : state.customFamilies;
     patch.customFamilies = cleanCustomFamilies(families, [...exercises.values()]);
@@ -377,7 +382,7 @@ export function catchUp(): Promise<void> {
 function currentData(s: State = state): Data {
   return {
     exercises: [...s.exercises.values()], workouts: s.workouts, templates: s.templates, measurements: s.measurements,
-    kv: { settings: s.settings, profile: s.profile, meta: s.meta, strongAliases: s.strongAliases, customFamilies: s.customFamilies, active: s.active },
+    kv: { settings: s.settings, profile: s.profile, meta: s.meta, strongAliases: s.strongAliases, customFamilies: s.customFamilies, chartMetrics: s.chartMetrics, active: s.active },
   };
 }
 
@@ -533,6 +538,13 @@ export async function setMeta(patch: Partial<Meta>) {
   const meta = { ...state.meta, ...patch };
   setState({ meta });
   await save([kvOp('meta', meta)], { merge: { meta: patch } });
+}
+
+/** Remember the chart chosen on an exercise's page (#27). */
+export async function setChartMetric(exerciseId: string, metric: string) {
+  const chartMetrics = { ...state.chartMetrics, [exerciseId]: metric };
+  setState({ chartMetrics });
+  await save([kvOp('chartMetrics', chartMetrics)]);
 }
 
 export async function setProfile(patch: Partial<Profile>) {
@@ -743,7 +755,10 @@ export async function deleteExercise(id: string) {
       return next;
     });
     const customFamilies = cleanCustomFamilies(state.customFamilies, exercises);
-    await save(familyOps([], customFamilies, [id], { templates: changed }), { mode: 'after', publish: () => setState({ exercises, templates, customFamilies }) });
+    // its remembered chart goes with it (#27)
+    const chartMetrics = cleanChartMetrics(state.chartMetrics, exercises) as Record<string, string>;
+    const chartOps = id in state.chartMetrics ? [kvOp('chartMetrics', chartMetrics)] : [];
+    await save([...familyOps([], customFamilies, [id], { templates: changed }), ...chartOps], { mode: 'after', publish: () => setState({ exercises, templates, customFamilies, chartMetrics }) });
   });
 }
 
@@ -770,7 +785,10 @@ export async function mergeExercise(fromId: string, intoId: string) {
       return list.map((x) => byId.get(x.id) || x);
     };
     const customFamilies = cleanCustomFamilies(state.customFamilies, exercises);
-    const patch: Partial<State> = { exercises, customFamilies, workouts: swap(state.workouts, movedWorkouts), templates: swap(state.templates, movedTemplates) };
+    // the merged exercise's chart goes; the target keeps its own (#27)
+    const chartMetrics = cleanChartMetrics(state.chartMetrics, exercises) as Record<string, string>;
+    const chartOps = fromId in state.chartMetrics ? [kvOp('chartMetrics', chartMetrics)] : [];
+    const patch: Partial<State> = { exercises, customFamilies, chartMetrics, workouts: swap(state.workouts, movedWorkouts), templates: swap(state.templates, movedTemplates) };
     const [active] = state.active ? moveExerciseEntries([state.active], fromId, intoId) as ActiveWorkout[] : [];
     if (active) patch.active = active;
     const [edit] = state.edit ? moveExerciseEntries([state.edit], fromId, intoId) as EditDraft[] : [];
@@ -783,7 +801,7 @@ export async function mergeExercise(fromId: string, intoId: string) {
     // A delayed draft write must not put the old source id back after this transaction.
     if (active && activeTimer) { clearTimeout(activeTimer); activeTimer = null; }
     try {
-      await save(familyOps([target], customFamilies, [fromId], { workouts: movedWorkouts, templates: movedTemplates, active }), { mode: 'after', publish: () => setState(patch) });
+      await save([...familyOps([target], customFamilies, [fromId], { workouts: movedWorkouts, templates: movedTemplates, active }), ...chartOps], { mode: 'after', publish: () => setState(patch) });
     } catch (error) {
       if (active) persistActive(true);
       throw error;

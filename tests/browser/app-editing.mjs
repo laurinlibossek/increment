@@ -426,9 +426,9 @@ for (const scheme of ['light', 'dark']) {
   await id(page, `exercise-${SQUAT}`).click();
   await id(page, 'exercise-chart').waitFor();
   await wait(page, 400);
-  // the hero number (estimated 1RM of the last session), one line, a signal dot per record
+  // the hero number (heaviest weight of the last session, the default for a loaded exercise, #27), one line, a signal dot per record
   assert.match(await id(page, 'exercise-hero').innerText(), /^[\d.,]+\s*kg$/);
-  assert.match(await id(page, 'exercise-metric').innerText(), /Estimated 1RM, best of last session/);
+  assert.match(await id(page, 'exercise-metric').innerText(), /Heaviest weight, last session/);
   const paths = await id(page, 'exercise-chart').locator('svg path').count();
   const dots = await id(page, 'exercise-chart').locator('svg circle').count();
   assert.ok(paths === 1 && dots >= 1, `paths ${paths}, record dots ${dots}`);

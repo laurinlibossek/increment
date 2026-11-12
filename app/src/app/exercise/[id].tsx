@@ -9,12 +9,12 @@ import { useMemo, useState } from 'react';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { ScrollView, Text, View } from 'react-native';
 import {
-  BODY_PARTS, exerciseRecords, exerciseSeries, chartMetricsFor, hasLoadRecords, formulaLabel,
+  BODY_PARTS, exerciseRecords, exerciseSeries, chartMetricsFor, chartMetricFor, hasLoadRecords, formulaLabel,
   kgTo, kmTo, roundW, DAY, EXERCISE_RANGES, REST_CHOICES, canMergeExercises, startOfDay,
 } from '@increment/core';
 
 import {
-  allSessions, deleteExercise, exerciseUsage, getState, mergeExercise, stats, updateExercise, useAppState,
+  allSessions, deleteExercise, exerciseUsage, getState, mergeExercise, setChartMetric, stats, updateExercise, useAppState,
 } from '@/data/store';
 import type { Category, Exercise, Workout } from '@/data/types';
 import { SPACE, TYPE } from '@/design/tally';
@@ -57,7 +57,8 @@ function ExercisePage({ id }: { id: string }) {
   const category = (ex?.category || 'barbell') as Category;
   const formula = s.settings.formula;
   const metrics = chartMetricsFor(category) as Metric[];
-  const [metricId, setMetricId] = useState(metrics[0].id);
+  // the chart chosen for this exercise, remembered (and in backups), else its default (#27)
+  const metricId = chartMetricFor(category, s.chartMetrics[id]) as string;
   const [chosenRange, setRange] = useState<string | null>(null);
   const [limit, setLimit] = useState(10);
   const m = metrics.find((x) => x.id === metricId) || metrics[0];
@@ -135,7 +136,7 @@ function ExercisePage({ id }: { id: string }) {
           : tr('Estimated 1RM uses the {name} formula on your best working set of each session, and Epley above 12 reps. Change it in Account.', { name: formulaLabel(formula) })) : undefined,
       actions: metrics.map((x) => ({ label: tr(x.label), value: x.id, checked: x.id === m.id, testID: `metric-${x.id}` })),
     });
-    if (v) setMetricId(v);
+    if (v) setChartMetric(id, v);
   };
   const menu = () => exerciseMenu(ex, every.length, f);
 
