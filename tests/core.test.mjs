@@ -2086,3 +2086,12 @@ test('exercise charts (#27): Heaviest weight by default, the chosen chart per ex
   const exercises = new Map([[bench.id, bench]]);
   assert.equal(core.exportCSV({ workouts: [w], exercises, kv: { chartMetrics: map } }), core.exportCSV({ workouts: [w], exercises }));
 });
+
+test('Plan rows (#32): a routine\'s muscle groups once each in order, and names with how many more', () => {
+  const lib = new Map(core.SEED_EXERCISES.map((e) => [e.id, e]));
+  const t = { exercises: [E('x-squat-barbell', []), E('x-bench-press-barbell', []), E('x-pull-up', []), E('x-incline-bench-press-barbell', []), E('gone', [])] };
+  assert.deepEqual(core.routineMuscles(t, lib).map((m) => m.label), ['Chest', 'Back', 'Legs']);
+  assert.deepEqual(core.routineMuscles({ exercises: [] }, lib), []);
+  assert.deepEqual(core.namesPreview(['A', 'B', 'C', 'D', 'E']), { shown: ['A', 'B', 'C'], more: 2 });
+  assert.deepEqual(core.namesPreview(['A', 'B']), { shown: ['A', 'B'], more: 0 });
+});

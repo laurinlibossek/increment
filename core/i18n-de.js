@@ -746,6 +746,7 @@ export default {
   'Sets per muscle': 'Sätze pro Muskel',
   'Last 7 days': 'Letzte 7 Tage',
   'No sets in the last 7 days.': 'Keine Sätze in den letzten 7 Tagen.',
+  '{names} & {n} more': '{names} und {n} weitere',
   'not done yet': 'noch nicht gemacht',
   'Examples hidden — turn them back on in Account': 'Beispiele ausgeblendet – unter Account wieder einschalten',
   'Last 30 days': 'Letzte 30 Tage',
