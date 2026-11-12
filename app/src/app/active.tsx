@@ -27,7 +27,7 @@ import { SPACE, TYPE, CONTROL } from '@/design/tally';
 import { useFormat } from '@/lib/format';
 import { pickExercises } from '@/lib/picker';
 import { useTally } from '@/lib/theme';
-import { confirmDiscard, finishFlow } from '@/lib/workout';
+import { confirmDiscard, finishFlow, workoutReady } from '@/lib/workout';
 import { Empty, Icon } from '@/ui/kit';
 import {
   OverlayHost, actionSheet, pickDateTime, prompt, toast,
@@ -107,6 +107,11 @@ function Running({ a, reveal }: { a: ActiveWorkout; reveal: { current: (ref: Tex
   const before = at > 0 ? st.units.slice(0, at) : [];
   const after = at >= 0 ? st.units.slice(at + 1) : [];
   const blockProps = useBlockProps('active', a);
+  // "Weight increase recommended" per exercise, from the routine's latest workout (#49)
+  const workouts = useAppSelector((s) => s.workouts);
+  const templates = useAppSelector((s) => s.templates);
+  const askUpdate = useAppSelector((s) => s.settings.askTemplateUpdate);
+  const ready = useMemo(() => workoutReady(a), [a, workouts, templates, askUpdate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---------- keeping the keypad's field in view ----------
   const show = (ref: TextInputInstance | null) => {
@@ -287,7 +292,7 @@ function Running({ a, reveal }: { a: ActiveWorkout; reveal: { current: (ref: Tex
               unitY.current = e.nativeEvent.layout.y;
               if (scrollToUnit.current) { scrollToUnit.current = false; scrollRef.current?.scrollTo({ y: Math.max(0, unitY.current - SPACE.s4), animated: true }); }
             }}>
-              {st.unit.entries.map((e) => <ExerciseBlock key={e.id} {...blockProps(e)} mode="active" live={live} />)}
+              {st.unit.entries.map((e) => <ExerciseBlock key={e.id} {...blockProps(e)} mode="active" live={live} ready={ready.get(e.id) || null} />)}
             </View>
           )}
           {after.length > 0 && (

@@ -12,7 +12,7 @@ import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import {
   placeholders, restFor, addSet, joinSuperset, leaveSuperset, removeEntry, restoreEntry, replaceExercise, addWarmups, rateSet, setRir, setSetType,
-  loggedFields, usesWeight, usesDistance, numToInput, parseNum, focusOptions, focusValues, uncheckSet,
+  loggedFields, usesWeight, usesDistance, numToInput, parseNum, focusOptions, focusValues, uncheckSet, parseRepsInput, readinessKind,
   REST_CHOICES, RPE_CHOICES, RIR_CHOICES, SET_TYPES, FOCUS_LABEL, BODY_PART_LABEL,
 } from '@increment/core';
 
@@ -33,6 +33,8 @@ import type { StrokeState } from '@/ui/tally/Tally';
 import { CAPTION_H, SetField, type Field } from './SetRow';
 import { useSession } from './Session';
 import { effortText, lastTimeText, setValueText } from './text';
+import { readyText, type Readiness } from '@/lib/workout';
+import { Highlight } from '@/ui/tally/Highlight';
 
 export type EditorMode = 'active' | 'edit' | 'template';
 
@@ -48,6 +50,8 @@ type Props = {
   superset?: { index: number; letter: string };
   /** running workout: the id of the set being logged */
   live?: string | null;
+  /** running workout: "Weight increase recommended" (or less assistance) from the routine's latest workout (#49) */
+  ready?: Readiness;
 };
 
 const SET_TYPE_NAME: Record<SetType, string> = { normal: 'Normal', warmup: 'Warm-up', drop: 'Drop set', failure: 'Failure' };
@@ -56,7 +60,7 @@ const SET_TYPE_CHIP: Record<SetType, string> = { normal: '', warmup: 'Warm-up', 
 type FocusKey = keyof typeof FOCUS_LABEL;
 
 export const ExerciseBlock = memo(function ExerciseBlock({
-  draftKey, mode, entry, ex, prevSets, recordSets, settings, superset, live = null,
+  draftKey, mode, entry, ex, prevSets, recordSets, settings, superset, live = null, ready = null,
 }: Props) {
   const f = useFormat();
   const { tr } = f;
@@ -259,6 +263,13 @@ export const ExerciseBlock = memo(function ExerciseBlock({
   const part = BODY_PART_LABEL[ex.bodyPart as keyof typeof BODY_PART_LABEL];
   const facts = [active ? f.exEquipment(ex) : '', part ? tr(part) : '', last ? tr('last time {sets}', { sets: last }) : ''].filter(Boolean).join(' · ');
   const target = session?.target;
+  // the routine editor: "Weight increase recommended" needs a range on every working set (#49)
+  const kind = mode === 'template' ? readinessKind(cat) as Readiness : null;
+  const working = kind ? entry.sets.filter((x) => x.type === 'normal' || x.type === 'failure') : [];
+  const ranged = working.filter((x) => parseRepsInput(x.r)?.range).length;
+  const rangeHint = ranged > 0 && ranged < working.length
+    ? tr(kind === 'assistance' ? 'Less assistance is recommended once every working set has a rep range' : 'Weight increases are recommended once every working set has a rep range')
+    : '';
 
   const row = (set: SetDraft, i: number) => {
     const ph = rows[i]?.ph || {};
@@ -329,6 +340,8 @@ export const ExerciseBlock = memo(function ExerciseBlock({
           </Pressable>
         </View>
         {!!facts && <Text style={{ ...TYPE.footnote, color: t.ink2 }} testID={`last-${ex.id}`}>{facts}</Text>}
+        {!!ready && active && <View style={{ marginTop: SPACE.s1 }}><Highlight chip testID={`ready-${ex.id}`}>{readyText(ready, tr)}</Highlight></View>}
+        {!!rangeHint && <Text style={{ ...TYPE.footnote, color: t.ink2 }} testID={`range-hint-${ex.id}`}>{rangeHint}</Text>}
         {(superset || (active && rest > 0)) && (
           <Text style={{ ...TYPE.footnote, color: t.ink2 }}>
             {superset ? <Text>{tr('Superset {letter}', { letter: superset.letter })}</Text> : null}

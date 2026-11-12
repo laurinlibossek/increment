@@ -10,6 +10,8 @@ import { useFormat } from '@/lib/format';
 import { useTally } from '@/lib/theme';
 import { PinnedNote } from '@/ui/PinnedNote';
 import { templateMenu } from '@/lib/templates';
+import { readyText, routineReady } from '@/lib/workout';
+import { Highlight } from '@/ui/tally/Highlight';
 import { beginWorkout } from '@/lib/workout';
 import {
   Empty, IconButton, Page,
@@ -41,6 +43,9 @@ export default function TemplatePreview() {
     ? `${tr('Example')} · ${t.folder}`
     : [t.archived ? tr('Archived') : '', t.folder, at ? tr('Last done {when}', { when: f.relDayLower(at) }) : tr('Not done yet')].filter(Boolean).join(' · ');
   const rows = t.exercises.filter((e) => s.exercises.has(e.exerciseId));
+  // "Weight increase recommended" from the latest workout of this routine (#49)
+  const readyList = routineReady(t);
+  const ready = new Map(t.exercises.map((e, i) => [e, readyList[i]]));
   const menu = async () => {
     const r = await templateMenu(t, f);
     if (r === 'deleted' && router.canGoBack()) router.back();
@@ -76,9 +81,13 @@ export default function TemplatePreview() {
           const sub = f.plural(setTotal(e.sets), 'set')
             + (targets.length ? ' · ' + [...new Set(targets)].join(', ') : '')
             + (e.restSec ? ` · ${tr('rest {time}', { time: f.clock(e.restSec) })}` : '');
+          const r = ready.get(e);
           return <ListRow key={i} first={i === 0} testID={`template-exercise-${i}`}
             title={<Text style={[TYPE.body, { color: colors.ink }]}>{f.exName(exr)}</Text>}
-            subtitle={<Text style={[TYPE.footnote, { color: colors.ink2, fontVariant: ['tabular-nums'] }]}>{sub}</Text>} />;
+            subtitle={<>
+              <Text style={[TYPE.footnote, { color: colors.ink2, fontVariant: ['tabular-nums'] }]}>{sub}</Text>
+              {!!r && <View style={{ marginTop: SPACE.s1 }}><Highlight chip testID={`template-ready-${i}`}>{readyText(r, tr)}</Highlight></View>}
+            </>} />;
         })}
       </ScrollView>
       <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
