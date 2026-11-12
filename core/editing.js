@@ -6,12 +6,14 @@ import { uid, slug } from './units.js';
 import { entryToDraft, draftEntries, remapSupersets } from './drafts.js';
 import { cleanTemplateExercises } from './templates.js';
 import { loggedFields } from './calc.js';
+import { parseRepsInput } from './rep-range.js';
 
 export const EDIT_MESSAGES = {
   templateName: 'Give the template a name',
   templateEmpty: 'Add at least one exercise',
   workoutEmpty: 'Keep at least one complete set',
   exerciseName: 'Give the exercise a name',
+  repRange: 'A rep range needs two whole numbers, like 8–10',
 };
 
 /**
@@ -48,6 +50,8 @@ export function templateFromDraft(draft, {
   const name = (draft.name || '').trim();
   if (!name) return { problem: EDIT_MESSAGES.templateName };
   if (!draft.exercises.length) return { problem: EDIT_MESSAGES.templateEmpty };
+  // a range that doesn't read ("10–8", "8–") never saves as some other prescription (#44)
+  if (draft.exercises.some((e) => e.sets.some((x) => parseRepsInput(x.r)?.problem))) return { problem: EDIT_MESSAGES.repRange };
   return {
     template: withPinnedNote({
       ...(existing || { createdAt: now }),

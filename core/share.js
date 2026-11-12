@@ -3,6 +3,8 @@
 // receiver gets matching exercises (or new custom ones) without any server.
 import { FAMILY_BY_ID, familyOf } from './exercise-families.js';
 import { sideOf } from './set-sides.js';
+import { repRange, withRepRange } from './rep-range.js';
+import { loggedFields } from './calc.js';
 
 const TYPE_CODE = { normal: 'n', warmup: 'w', drop: 'd', failure: 'f' };
 const CODE_TYPE = Object.fromEntries(Object.entries(TYPE_CODE).map(([k, v]) => [v, k]));
@@ -28,7 +30,9 @@ export function encodeTemplate(t, exercises) {
     else if (Object.hasOwn(FAMILY_BY_ID, familyOf(ex))) o.f = familyOf(ex);
     o.s = x.sets.map((st) => {
       const row = [TYPE_CODE[st.type || 'normal'] || 'n', st.w ?? null, st.r ?? null, st.d ?? null, st.t ?? null];
-      if (sideOf(st)) row.push(st.side === 'left' ? 'l' : 'r');
+      row.push(sideOf(st) ? (st.side === 'left' ? 'l' : 'r') : null);
+      // a rep range as [low, high] after the side (#44); older apps read the target in r
+      if (repRange(st)) row.push(repRange(st));
       while (row.length > 1 && row[row.length - 1] === null) row.pop();
       return row;
     });
@@ -75,7 +79,8 @@ export function decodeTemplate(text, { categories = [], bodyParts = [] } = {}) {
       const set = { type: CODE_TYPE[row[0]] || 'normal' };
       ['w', 'r', 'd', 't'].forEach((k, i) => { const v = num(row[i + 1]); if (v !== null) set[k] = v; });
       if (row[5] === 'l' || row[5] === 'r') set.side = row[5] === 'l' ? 'left' : 'right';
-      return set;
+      const range = Array.isArray(row[6]) && loggedFields(cats.has(o.c) ? o.c : 'barbell').includes('r') ? repRange({ rMin: row[6][0], rMax: row[6][1] }) : null;
+      return range ? withRepRange(set, range) : set;
     }).filter(Boolean);
     return {
       id: typeof o.i === 'string' && /^x-[a-z0-9-]+$/.test(o.i) ? o.i : null,

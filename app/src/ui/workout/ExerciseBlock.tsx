@@ -270,6 +270,8 @@ export const ExerciseBlock = memo(function ExerciseBlock({
     const side = set.side ? set.side === 'left' ? tr('Left side') : tr('Right side') : '';
     if (side) chips.push({ text: side });
     if (set.type !== 'normal') chips.push({ text: tr(SET_TYPE_CHIP[set.type]) });
+    // the routine's rep range, apart from the ghost (last time's reps) (#44)
+    if (set.range && mode !== 'template') chips.push({ text: tr('{range} reps', { range: `${set.range[0]}–${set.range[1]}` }) });
     const rir = setRir(set) as number | null;
     // a failure set's chip already says 0 left
     if (mode === 'template') { if (set.rpe) chips.push({ text: `RPE ${set.rpe}` }); } else if (rir !== null && set.type !== 'failure' && (set.done || !active)) chips.push({ text: effortText(rir, tr) });
@@ -281,7 +283,7 @@ export const ExerciseBlock = memo(function ExerciseBlock({
     // field boxes (with their captions) on the set being logged, the set the keypad types into, and every set in an editor
     const boxed = !active || isLive || (!!target && target.setId === set.id);
     const inputs = fields.map((k) => (
-      <SetField key={k} field={k} value={set[k]} ghost={ph[k] || ''} single={fields.length === 1}
+      <SetField key={k} field={k} value={set[k]} ghost={ph[k] || ''} single={fields.length === 1} range={mode === 'template' && k === 'r'}
         boxed={boxed} caption={fieldNames[k]} editing={!!target && target.setId === set.id && target.field === k}
         label={`${fieldNames[k]}, ${setName}`} testID={`in-${k}-${set.id}`}
         onChange={(v) => edit((e) => { e.sets[i][k] = v; })}

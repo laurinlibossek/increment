@@ -5,7 +5,7 @@
 import { useMemo } from 'react';
 import { Text, View } from 'react-native';
 import { router } from 'expo-router';
-import { routineSize, setsPerMuscle, weekStrip } from '@increment/core';
+import { entryRepRange, routineSize, setsPerMuscle, weekStrip } from '@increment/core';
 
 import { suggestion, useAppState } from '@/data/store';
 import type { Template } from '@/data/types';
@@ -70,7 +70,8 @@ export default function TodayTab() {
     const groups: StrokeState[][] = entries.map((e) => e.sets.map((x) => (x.type === 'warmup' ? 'warmupPending' : 'pending')));
     card = (
       <RoutineCard testID="up-next" context={`${tr('Up next')} · ${why(sug.why)}`} name={tpl.name}
-        exercises={entries.map((e) => f.exName(s.exercises.get(e.exerciseId)))}
+        // with the range a routine prescribes for an exercise (#44): "Bench Press × 8–10"
+        exercises={entries.map((e) => { const r = entryRepRange(e); return `${f.exName(s.exercises.get(e.exerciseId))}${r ? ` × ${r[0]}–${r[1]}` : ''}`; })}
         tally={{ groups, label: f.plural(size.sets, 'set') }}
         facts={[f.plural(size.exercises, 'exercise'), f.plural(size.sets, 'set'), size.minutes ? tr('about {n} min', { n: size.minutes }) : ''].filter(Boolean).join(' · ')}
         onPress={() => router.push({ pathname: '/template/[id]', params: { id: tpl.id } })}

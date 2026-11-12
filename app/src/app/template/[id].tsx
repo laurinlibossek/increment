@@ -70,7 +70,7 @@ export default function TemplatePreview() {
         {rows.map((e, i) => {
           const exr = s.exercises.get(e.exerciseId)!;
           const targets = e.sets.map((x) => {
-            if (usesWeight(exr.category) && (x.w === undefined || x.w === null) && x.r) return f.plural(x.r, 'rep');
+            if (usesWeight(exr.category) && (x.w === undefined || x.w === null) && x.r) return f.reps(x);
             return x.w || x.r || x.t || x.d ? f.setText(x, exr.category, true) : null;
           }).filter(Boolean);
           const sub = f.plural(setTotal(e.sets), 'set')
