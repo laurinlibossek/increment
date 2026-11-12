@@ -14,7 +14,7 @@ import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useKeepAwake } from 'expo-keep-awake';
 import {
-  newEntries, sessionState, hasPendingSets, nextUnit, placeholders, loggedFields, rateSet, setRir, REST_PRESETS,
+  newEntries, sessionState, hasPendingSets, nextUnit, placeholders, loggedFields, rateSet, setRir, REST_PRESETS, isUnilateral,
 } from '@increment/core';
 
 import {
@@ -137,7 +137,7 @@ function Running({ a, reveal }: { a: ActiveWorkout; reveal: { current: (ref: Tex
   const addExercises = async () => {
     const ids = await pickExercises({ multi: true, title: tr('Add exercises') });
     if (!ids) return;
-    editActive((d) => { d.exercises.push(...newEntries(ids, { previousSets: (id: string) => previousSets(id) })); });
+    editActive((d) => { d.exercises.push(...newEntries(ids, { previousSets: (id: string) => previousSets(id), isUnilateral: (id: string) => isUnilateral(getState().exercises.get(id)) })); });
   };
   const discard = async () => {
     const cur = getState().active;

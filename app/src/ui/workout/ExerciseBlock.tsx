@@ -116,7 +116,8 @@ export const ExerciseBlock = memo(function ExerciseBlock({
         actions: [
           { label: tr('Left'), value: 'left', checked: set.side === 'left', testID: 'side-left' },
           { label: tr('Right'), value: 'right', checked: set.side === 'right', testID: 'side-right' },
-          set.side ? { label: tr('Clear'), value: 'clear', destructive: true, testID: 'side-clear' } : null,
+          // a unilateral exercise's working sets always have a side (#54); a warm-up or a bilateral exercise's set can drop it
+          set.side && (set.type === 'warmup' || !isUnilateral(ex)) ? { label: tr('Clear'), value: 'clear', destructive: true, testID: 'side-clear' } : null,
         ],
       });
       if (side) edit((e) => {
@@ -396,7 +397,7 @@ export const ExerciseBlock = memo(function ExerciseBlock({
           ? <Fragment key={set.id}>{row(set, i)}<SetRest setId={set.id} /></Fragment>
           : row(set, i)))}
       </View>
-      <Pressable onPress={() => edit((e) => addSet(e))} accessibilityRole="button" testID={`add-set-${ex.id}`}
+      <Pressable onPress={() => edit((e) => addSet(e, { unilateral: isUnilateral(ex) }))} accessibilityRole="button" testID={`add-set-${ex.id}`}
         style={({ pressed }) => [styles.addSet, { opacity: pressed ? 0.6 : 1 }]}>
         <Icon name="plus" size={17} color={t.ink2} />
         <Text style={{ ...TYPE.body, color: t.ink2 }}>{tr('Add set')}</Text>

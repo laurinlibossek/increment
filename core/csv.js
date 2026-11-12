@@ -4,6 +4,7 @@ import {
   uid, slug, parseNum, KG_PER_LB, KM_PER_MI, kgTo, kmTo, roundW,
 } from './units.js';
 import { rpeFromRir } from './calc.js';
+import { isUnilateral, mergeSidePairs } from './set-sides.js';
 import { canMergeExercises } from './editing.js';
 import { BODY_PARTS, CATEGORIES, SEED_EXERCISES } from './seed.js';
 import { strongNameKey, STRONG_EXERCISE_ALIASES, strongExerciseSuggestions, strongExerciseFamily } from './strong-matching.js';
@@ -513,7 +514,12 @@ const quoted = (v) => '"' + String(v ?? '').replace(/"/g, '""') + '"';
  * workout notes on the workout's first row, both empty elsewhere; RPE as it is
  * (from reps in reserve: 10 − RIR); one newline at the end.
  */
-export function exportCSV({ workouts, exercises, unit = 'kg', distUnit = 'km', unknownName = 'Unknown exercise' }) {
+/**
+ * `pairSides` (Account → "Count left/right sets together", #54): a unilateral
+ * exercise's left and right sets go out as one row each pair, as Strong logs
+ * them (mergeSidePairs); off, every side is its own row.
+ */
+export function exportCSV({ workouts, exercises, unit = 'kg', distUnit = 'km', unknownName = 'Unknown exercise', pairSides = false }) {
   const st = { unit, distUnit };
   const lines = [['Date', 'Workout Name', 'Duration', 'Exercise Name', 'Set Order', 'Weight', 'Reps', 'Distance', 'Seconds', 'Notes', 'Workout Notes', 'RPE'].join(',')];
   const asc = [...workouts].sort((a, b) => a.startedAt - b.startedAt);
@@ -521,9 +527,11 @@ export function exportCSV({ workouts, exercises, unit = 'kg', distUnit = 'km', u
     const dur = strongDuration((w.endedAt || w.startedAt) - w.startedAt);
     let firstOfWorkout = true;
     for (const e of w.exercises) {
-      const name = exercises.get(e.exerciseId)?.name || unknownName;
+      const ex = exercises.get(e.exerciseId);
+      const name = ex?.name || unknownName;
+      const rows = pairSides && isUnilateral(ex) ? mergeSidePairs(e.sets) : e.sets;
       let n = 0;
-      e.sets.forEach((s, i) => {
+      rows.forEach((s, i) => {
         let order;
         if (s.type === 'warmup') order = 'W';
         else if (s.type === 'drop') order = 'D';

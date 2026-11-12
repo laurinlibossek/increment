@@ -102,7 +102,8 @@ for (const theme of ['light', 'dark']) {
   await id(`in-t-${p1}`).fill('45');
   await log(p1);
   if (await id('rest-skip').count()) await id('rest-skip').click();
-  assert.deepEqual(await texts(PLANK, 'notes'), ['−0:15']);
+  // Side Plank is unilateral: the routine's set became Left and Right (#54), each against last time's set
+  assert.deepEqual(await texts(PLANK, 'notes'), ['−0:15 Left', 'Right']);
   await id(`jump-${RUN}`).click();
   await block(RUN).waitFor();
   assert.deepEqual(await head(RUN), ['Set', 'km', 'Time']);
@@ -112,7 +113,7 @@ for (const theme of ['light', 'dark']) {
   await log(r1);
   if (!(await block(RUN).count())) await id(`jump-${RUN}`).click();
   assert.deepEqual(await texts(RUN, 'notes'), ['+0.5 km']);
-  ok(`${theme}: “Set Time” for a plank (45 s is −0:15), “Set km Time” for a run (5.5 km is +0.5 km)`);
+  ok(`${theme}: “Set Time” for a plank (45 s on the left is −0:15), “Set km Time” for a run (5.5 km is +0.5 km)`);
   assert.deepEqual(errors, []);
   await ctx.close();
 }

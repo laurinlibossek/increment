@@ -77,7 +77,7 @@ export default function AccountSheet() {
   };
   const doBackup = () => backupNow(tr);
   const doCSV = async () => {
-    const text = exportCSV({ workouts: s.workouts, exercises: s.exercises, unit: st.unit, distUnit: st.distUnit, unknownName: tr('Unknown exercise') });
+    const text = exportCSV({ workouts: s.workouts, exercises: s.exercises, unit: st.unit, distUnit: st.distUnit, unknownName: tr('Unknown exercise'), pairSides: st.pairSides !== false });
     const r = await saveTextFile(`increment-workouts-${dateStamp()}.csv`, text, 'text/csv', 'public.comma-separated-values-text', tr('Export as CSV'));
     toast(r === 'failed' ? tr('Sharing isn’t available here') : tr('CSV exported'));
   };
