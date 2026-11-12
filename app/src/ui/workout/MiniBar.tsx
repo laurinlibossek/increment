@@ -28,7 +28,9 @@ export const DOCK_SPACE = CONTROL.accessoryH + SPACE.s4;
  * round by round); warm-ups are drawn but not counted (#38).
  */
 export function sessionView(a: ActiveWorkout, records: Map<string, unknown>) {
-  const next = (sessionState(a, { current: a.current ?? null }) as { next: { entry: EntryDraft; set: SetDraft } | null }).next;
+  type Next = { next: { entry: EntryDraft; set: SetDraft } | null };
+  // a finished exercise stays on the workout's screen (#60); Now Lifting already names the set that comes next in order
+  const next = (sessionState(a, { current: a.current ?? null }) as Next).next || (sessionState(a) as Next).next;
   let done = 0, total = 0, recordCount = 0;
   const all: StrokeState[][] = a.exercises.map((e) => e.sets.map((s) => {
     const warm = s.type === 'warmup';

@@ -844,6 +844,7 @@ export default {
   'Log {set}': '{set} eintragen',
   'Log set': 'Satz eintragen',
   'Next exercise': 'Nächste Übung',
+  'Next: {name}': 'Weiter: {name}',
   'Finish workout': 'Training beenden',
   'Finish early': 'Früher beenden',
   'Start rest timer': 'Pausentimer starten',

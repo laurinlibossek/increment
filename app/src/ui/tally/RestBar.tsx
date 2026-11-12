@@ -113,9 +113,11 @@ export type RestBarProps = {
   onSkip: () => void;
   /** "Reps left?" and the EffortPicker, when a logged set can be rated */
   effort?: ReactNode;
+  /** the exercise on screen is done: where to go next, "Next: Hack Press" (#60); tapping it moves on, the rest keeps running */
+  next?: { label: string; onPress: () => void };
 };
 
-export function RestBar({ end, total, labels, onAdjust, onSkip, effort }: RestBarProps) {
+export function RestBar({ end, total, labels, onAdjust, onSkip, effort, next }: RestBarProps) {
   const { colors: t } = useTally();
   const secs = useSecondsLeft(end);
   return (
@@ -132,6 +134,12 @@ export function RestBar({ end, total, labels, onAdjust, onSkip, effort }: RestBa
         </View>
       </View>
       <DrainBar end={end} total={total} />
+      {next && (
+        <Pressable onPress={next.onPress} accessibilityRole="button" testID="rest-next" hitSlop={8}
+          style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', minHeight: 28, opacity: pressed ? 0.6 : 1 })}>
+          <Text numberOfLines={1} style={{ ...TYPE.subhead, fontWeight: '600', color: t.accent }}>{next.label}</Text>
+        </Pressable>
+      )}
       {effort}
     </View>
   );

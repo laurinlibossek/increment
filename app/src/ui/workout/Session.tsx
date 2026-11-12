@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import {
-  checkOffSet, placeholders, restFor, sessionState, loggedFields, platesFor, parseNum,
+  checkOffSet, placeholders, restFor, currentAfterLog, loggedFields, platesFor, parseNum,
   numToInput, digitsToSec, secToDigits, fmtDigits, weightStep, moveUnit, BODY_PART_LABEL,
 } from '@increment/core';
 
@@ -130,8 +130,9 @@ export function SessionProvider({ children, onTarget }: { children: ReactNode; o
     if (record) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     else Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     if (r.rest && r.rest > 0) startRest(r.rest, f.exName(ex), { entryId, setId });
-    // the exercise switched to is done: the session goes back to its order
-    if (after.current && !sessionState(after, { current: after.current }).next) patchActive({ current: null });
+    // the set finished its exercise (a superset: its last round): it stays on screen until the person moves on (#60)
+    const stay = currentAfterLog(after, entryId);
+    if (stay !== (after.current ?? null)) patchActive({ current: stay });
     if (targetRef.current?.setId === setId) close();
     return true;
   }, [f, tr, close]);

@@ -10,6 +10,7 @@ The bottom of the session: one primary action in thumb reach that changes with t
 
 **Rules**
 - Logging: one block `primary` button. Resting: the countdown (`t-number-l`), −15, +15, Skip, the drain bar and the EffortPicker for the set just logged. Done: "Finish workout".
+- An exercise that's done stays on screen (#60): the bar reads "Next: Hack Press" and moves on when tapped; during a rest the rest bar shows the same "Next: …" small (`subhead`, accent), under the drain bar. "Add set" stays where it is for one more.
 - The same rest also shows under the set it follows (#53): a 2 pt line along the divider (`line` track, `ink` fill) that drains right to left, with the time left at its end (footnote, `ink-2`). It reads the same timer, so −15, +15, Skip, the end and a reload move both; a manual rest with no set, a deleted set or another exercise on screen shows none. With Reduce Motion it steps once a second. The exercise's own rest is stated once under its name, "Barbell · Chest · Rest 2:00"; tapping it changes it.
 - The drain bar empties from right to left in one linear animation; the countdown text updates once a second.
 - Sits on `paper` with a `line` hairline on top, above the home indicator.

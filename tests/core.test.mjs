@@ -152,6 +152,47 @@ test('reps in reserve: 0 is failure, both ways', () => {
   assert.deepEqual(core.draftToSet(h, st), { id: h.id, type: 'failure', w: 100, r: 5, rir: 0 });
 });
 // ---------- the session ----------
+test('a finished exercise stays on screen (#60): where the session stays after logging, and what comes next', () => {
+  const set = (id, done = false) => ({ id, type: 'normal', w: '', r: '', d: '', t: '', rpe: '', done });
+  const entry = (id, sets, supersetId = null) => ({ id, exerciseId: `x-${id}`, supersetId, sets });
+  const log = (draft, entryId, setId) => {
+    draft.exercises.find((e) => e.id === entryId).sets.find((x) => x.id === setId).done = true;
+    draft.current = core.currentAfterLog(draft, entryId);
+  };
+  const draft = { current: null, exercises: [
+    entry('a', [set('a1'), set('a2')]), entry('b', [set('b1'), set('b2')], 'S'), entry('c', [set('c1'), set('c2')], 'S'), entry('d', [set('d1')]),
+  ] };
+  // a plain exercise: its last set keeps it on screen, "Next" names the next one
+  log(draft, 'a', 'a1');
+  assert.equal(draft.current, null, 'sets left: the session follows its order');
+  log(draft, 'a', 'a2');
+  assert.equal(draft.current, 'a');
+  assert.equal(core.sessionState(draft, { current: draft.current }).next, null, 'nothing left to log on screen');
+  assert.equal(core.nextUnit(draft, 'a').id, 'b');
+  // one more set: logging it stays again
+  draft.exercises[0].sets.push(set('a3'));
+  assert.equal(core.sessionState(draft, { current: draft.current }).next.set.id, 'a3');
+  log(draft, 'a', 'a3');
+  assert.equal(draft.current, 'a');
+  // moving on returns to the order; a superset stays only after its last round
+  draft.current = null;
+  for (const [e, x] of [['b', 'b1'], ['c', 'c1'], ['b', 'b2']]) { log(draft, e, x); assert.equal(draft.current, null, x); }
+  log(draft, 'c', 'c2');
+  assert.equal(draft.current, 'c');
+  assert.equal(core.sessionState(draft, { current: 'c' }).unit.id, 'b', 'the superset stays');
+  assert.equal(core.nextUnit(draft, 'c').id, 'd');
+  // an earlier exercise skipped comes first
+  const skipped = { current: 'd', exercises: [entry('a', [set('a1')]), entry('d', [set('d1')])] };
+  log(skipped, 'd', 'd1');
+  assert.equal(skipped.current, 'd');
+  assert.equal(core.nextUnit(skipped, 'd').id, 'a');
+  // the workout's last exercise: nothing next (Finish), the screen stays
+  log(draft, 'd', 'd1');
+  assert.equal(draft.current, 'd');
+  assert.equal(core.nextUnit(draft, 'd'), null);
+  assert.equal(core.nextUnit({ exercises: [] }), null);
+});
+
 test('session: units keep supersets together, rounds alternate, the next set follows the person', () => {
   const set = (id, done = false) => ({ id, type: 'normal', w: '', r: '', d: '', t: '', rpe: '', done });
   const entry = (id, sets, supersetId = null) => ({ id, exerciseId: `x-${id}`, supersetId, sets });

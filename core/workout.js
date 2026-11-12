@@ -322,6 +322,35 @@ export function sessionState(draft, { current = null, restEntryId = null } = {})
 }
 
 /**
+ * The exercise the session goes to next (#60): the first unit in order, other
+ * than the one with entry `fromId`, that still has sets to log (an earlier one
+ * the person skipped comes first). Null when nothing else is left: Finish.
+ * @param {any} draft
+ * @param {string | null} [fromId]
+ */
+export function nextUnit(draft, fromId = null) {
+  const units = sessionUnits(draft.exercises);
+  const from = fromId ? unitOf(units, fromId) : null;
+  return units.find((u) => u !== from && unitSets(u).some((x) => !x.set.done)) || null;
+}
+
+/**
+ * Where the session stays after a set of entry `entryId` was logged (#60):
+ * once that set finishes its exercise (a superset: its last round), on it, so
+ * the person moves on with "Next: …" (one more set stays possible); the rest
+ * timer ending doesn't move it. Otherwise where it was. Returns the new
+ * `current`.
+ * @param {any} draft
+ * @param {string} entryId
+ * @returns {string | null}
+ */
+export function currentAfterLog(draft, entryId) {
+  const unit = unitOf(sessionUnits(draft.exercises), entryId);
+  if (unit && !unitSets(unit).some((x) => !x.set.done)) return entryId;
+  return draft.current ?? null;
+}
+
+/**
  * The smallest change of an exercise's weight, in the person's unit, for the
  * keypad's −/+ keys: a pair of the smallest plates on a barbell (2.5 kg,
  * 5 lb), the dumbbell rack's step (2 kg, 5 lb), else 2.5 kg or 5 lb.

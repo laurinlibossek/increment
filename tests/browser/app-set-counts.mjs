@@ -71,7 +71,9 @@ ok('after jumping to Squat, Now Lifting shows Squat’s next set');
 await id('resume-workout').click();
 await id(`block-${SQUAT}`).waitFor();
 for (let i = 0; i < 2; i++) { await checks(SQUAT).nth(i).click(); await wait(150); }
-// Squat done: the session goes back to its order, to Bench
+// Squat done: it stays on screen until Next goes back to the session's order, to Bench (#60)
+assert.equal((await id('next-exercise').innerText()).trim(), 'Next: Bench Press (Barbell)');
+await id('next-exercise').click();
 await id(`block-${BENCH}`).waitFor();
 for (let i = 4; i < 7; i++) { await checks(BENCH).nth(i).click(); await wait(150); }
 await wait();
