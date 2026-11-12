@@ -59,7 +59,8 @@ async function readable(locator) {
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), out = [], candidates = [];
     let node;
     while ((node = walker.nextNode())) candidates.push({ text: node.textContent, element: node.parentElement });
-    for (const element of root.querySelectorAll('input, textarea')) {
+    // typed text only: a switch's checkbox holds the value "on", which nobody reads
+    for (const element of root.querySelectorAll('input:not([type="checkbox"]):not([type="radio"]), textarea')) {
       if (element.value) candidates.push({ text: element.value, element });
     }
     for (const candidate of candidates) {
