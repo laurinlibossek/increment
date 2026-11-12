@@ -119,7 +119,15 @@ async function discard(page) {
   // Plan: the templates as rows, + starts an empty workout
   await selectTab(page, 'plan');
   await wait(page);
-  for (const t of data.templates) assert.match(await id(page, `template-${t.id}`).innerText(), new RegExp(`${t.name}\\n${t.exercises.length} exercises · `));
+  // each row previews the routine (#32): its exercises, then muscles · sets · about how long · last done
+  for (const t of data.templates) {
+    const text = await id(page, `template-${t.id}`).innerText();
+    const sz = core.routineSize(t, lib, { defaultRest: settings.defaultRest });
+    const names = t.exercises.map((e) => lib.get(e.exerciseId)?.name).filter(Boolean);
+    assert.ok(text.startsWith(`${t.name}\n${names[0]}`), text);
+    if (names.length > 3) assert.ok(text.includes(` & ${names.length - 3} more`), text);
+    assert.ok(text.includes(`${sz.sets} sets · about ${sz.minutes} min · `), text);
+  }
   await id(page, 'plan-add').click();
   await id(page, 'new-template').waitFor();
   await id(page, 'new-folder').waitFor();
