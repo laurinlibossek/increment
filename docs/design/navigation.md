@@ -47,7 +47,7 @@ The running workout is a full-height sheet, like Now Playing in a music app.
 | Today in Setlog | In Increment |
 | --- | --- |
 | Workout tab: Start an empty workout, template grid | Today: Up next card; Plan: routines; "Empty workout" in the + menu on Plan |
-| Logging table with ✓ column | Set rows with strokes; Action bar logs the current set |
+| Logging table with ✓ column | Set rows under one "Set · kg · Reps" header, a label per set and one tick (#48); Action bar logs the current set |
 | Green Finish button, top right | "Finish workout" in the Action bar after the last set; ⋯ → Finish early |
 | "Update template?" dialog after finishing | Better numbers go into the routine by themselves; a changed layout asks once over the summary ("Change Push A?") |
 | History tab + calendar | Progress → Workouts |

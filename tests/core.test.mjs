@@ -2293,3 +2293,28 @@ test('weight increase recommended (#49): the editor stamps a changed prescriptio
   assert.equal(save((d) => { d.exercises[0].sets.pop(); }).prescribedAt, 9000);
   assert.equal(core.prescriptionKey(t.exercises), core.prescriptionKey([E('x-bench-press-barbell', [S('normal', 80, 10, { rMin: 8, rMax: 10 }), S('normal', 70, 12)])]), 'a moved target is no change');
 });
+
+test('setChange (#48): the value that decided the change since last time, and by how much', () => {
+  const c = (p, d, cat) => core.setChange(p, d, cat);
+  // weight decides first, then reps; up or down
+  assert.deepEqual(c({ w: 80, r: 8 }, { w: 82.5, r: 6 }, 'barbell'), { dir: 1, key: 'w', diff: 2.5 });
+  assert.deepEqual(c({ w: 80, r: 8 }, { w: 80, r: 10 }, 'dumbbell'), { dir: 1, key: 'r', diff: 2 });
+  assert.deepEqual(c({ w: 80, r: 8 }, { w: 80, r: 7 }, 'machine'), { dir: -1, key: 'r', diff: -1 });
+  assert.deepEqual(c({ w: 80, r: 8 }, { w: 77.5, r: 12 }, 'barbell'), { dir: -1, key: 'w', diff: -2.5 });
+  // the same set: nothing to say; a first time or an empty set: nothing either
+  assert.equal(c({ w: 80, r: 8 }, { w: 80, r: 8 }, 'barbell'), null);
+  assert.equal(c(null, { w: 80, r: 8 }, 'barbell'), null);
+  assert.equal(c({ w: 80, r: 8 }, {}, 'barbell'), null);
+  // assisted: less assistance is better, so its diff is negative and dir 1
+  assert.deepEqual(c({ w: 30, r: 8 }, { w: 25, r: 8 }, 'assisted_bw'), { dir: 1, key: 'w', diff: -5 });
+  assert.deepEqual(c({ w: 30, r: 8 }, { w: 35, r: 12 }, 'assisted_bw'), { dir: -1, key: 'w', diff: 5 });
+  // reps only, time only
+  assert.deepEqual(c({ r: 10 }, { r: 12 }, 'reps'), { dir: 1, key: 'r', diff: 2 });
+  assert.deepEqual(c({ t: 60 }, { t: 45 }, 'duration'), { dir: -1, key: 't', diff: -15 });
+  // cardio: further decides by distance; the same distance faster by time
+  assert.deepEqual(c({ d: 5, t: 1500 }, { d: 5.5, t: 1700 }, 'cardio'), { dir: 1, key: 'd', diff: 0.5 });
+  assert.deepEqual(c({ d: 5, t: 1500 }, { d: 5, t: 1440 }, 'cardio'), { dir: 1, key: 't', diff: -60 });
+  assert.deepEqual(c({ t: 1200 }, { t: 1500 }, 'cardio'), { dir: 1, key: 't', diff: 300 });
+  // floating-point noise doesn't leak into the text
+  assert.deepEqual(c({ w: 0.1, r: 8 }, { w: 0.3, r: 8 }, 'barbell'), { dir: 1, key: 'w', diff: 0.2 });
+});

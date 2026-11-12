@@ -31,6 +31,8 @@ const id = (page, t) => page.getByTestId(t);
 const block = (page, ex) => id(page, `block-${ex}`);
 const inputs = (page, ex, f) => block(page, ex).locator(`[data-testid^="in-${f}-"]`);
 const checks = (page, ex) => block(page, ex).locator('[data-testid^="check-"]');
+/** The header row's column names, "Set kg Reps" (#48). */
+const head = async (page, ex) => (await page.getByTestId(`sets-head-${ex}`).innerText()).replace(/×/g, ' ').split(/\s+/).filter(Boolean);
 const toastText = async (page) => { await id(page, 'toast').waitFor(); return id(page, 'toast').innerText(); };
 const wait = (page, ms = 300) => page.waitForTimeout(ms);
 const visibleText = (page) => page.locator('body').innerText();
@@ -78,10 +80,9 @@ const store = (page) => storedData(page);
   await pickExercises(page, [{ q: 'bench bb', id: BENCH }, { q: 'pull up', id: PULLUP }]);
   assert.equal(await inputs(page, BENCH, 'w').count(), 3, 'templates start with at least 3 sets');
   assert.equal(await checks(page, BENCH).count(), 0, 'no check-off in the template editor');
-  // every set has boxes that say what they hold, and a ⋯ for its menu
-  const captions = (page2, ex) => block(page2, ex).locator('[data-testid^="cap-"]').evaluateAll((els) => [...new Set(els.map((e) => e.innerText))]);
-  assert.deepEqual(await captions(page, BENCH), ['Weight', 'Reps']);
-  assert.equal(await block(page, BENCH).locator('[data-testid^="set-menu-"]').count(), 3);
+  // one header names the columns (#48); every set has a label that opens its menu
+  assert.deepEqual(await head(page, BENCH), ['Set', 'kg', 'Reps']);
+  assert.deepEqual(await block(page, BENCH).locator('[data-testid^="label-"]').evaluateAll((els) => els.map((e) => e.innerText.trim())), ['1', '2', '3']);
   await inputs(page, BENCH, 'w').first().fill('80');
   await inputs(page, BENCH, 'r').first().fill('8');
   // the rest timer of an exercise waits for Save
@@ -349,7 +350,7 @@ const store = (page) => storedData(page);
   await id(page, 'edit-save').waitFor();
   assert.equal(await id(page, 'edit-name').inputValue(), w.name);
   assert.equal(await page.locator('[data-testid^="check-"]').count(), 0, 'no check-off when editing');
-  assert.deepEqual(await block(page, firstWeighted.exerciseId).locator('[data-testid^="cap-"]').evaluateAll((els) => [...new Set(els.map((e) => e.innerText))]), ['Gewicht', 'Wdh.'], 'the boxes say what they hold, in German');
+  assert.deepEqual(await head(page, firstWeighted.exerciseId), ['Satz', 'kg', 'Wdh.'], 'the header names the columns, in German');
   await id(page, 'edit-name').fill('Montag schwer');
   await id(page, 'edit-duration').fill('75');
   await inputs(page, firstWeighted.exerciseId, 'w').first().fill('77,5');

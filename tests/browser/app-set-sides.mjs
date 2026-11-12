@@ -10,11 +10,12 @@ let passed = 0;
 const ok = (label) => { passed++; console.log('PASS', label); };
 const stored = (p) => storedData(p);
 const block = (p, ex = CURL) => p.getByTestId(`block-${ex}`);
-const setIds = (p, ex = CURL) => block(p, ex).locator('[data-testid^="set-menu-"]').evaluateAll((els) => els.map((e) => e.dataset.testid.slice('set-menu-'.length)));
+// the set's label (W, 1, 2, D, F) opens its menu (#48)
+const setIds = (p, ex = CURL) => block(p, ex).locator('[data-testid^="label-"]').evaluateAll((els) => els.map((e) => e.dataset.testid.slice('label-'.length)));
 const input = (p, f, i) => block(p).locator(`[data-testid^="in-${f}-"]`).nth(i);
 async function menu(p, i = 0, ex = CURL) {
   const ids = await setIds(p, ex);
-  await p.getByTestId(`set-menu-${ids[i]}`).click();
+  await p.getByTestId(`label-${ids[i]}`).click();
   await p.getByTestId('type-normal').waitFor();
   return ids[i];
 }
@@ -44,7 +45,9 @@ async function start(p) {
 try {
   for (const language of ['en', 'de']) for (const theme of ['light', 'dark']) {
     const { ctx, page: p, errors } = await open(theme, language);
-    const left = language === 'de' ? 'Links' : 'Left side', right = language === 'de' ? 'Rechts' : 'Right side';
+    // beside a set (#48) "Left"; the workout page's footnote still says "Left side"
+    const left = language === 'de' ? 'Links' : 'Left', right = language === 'de' ? 'Rechts' : 'Right';
+    const leftLine = language === 'de' ? 'Links' : 'Left side';
     await start(p);
     let first;
     if (before) {
@@ -59,7 +62,7 @@ try {
       await p.getByTestId('set-side').click();
       assert.equal(await p.getByTestId('side-clear').count(), 0);
       await p.getByTestId('side-left').click();
-      await p.getByTestId(`label-${first}`).getByText(left, { exact: true }).waitFor();
+      await p.getByTestId(`notes-${first}`).getByText(left, { exact: true }).waitFor();
       assert.equal(await input(p, 'w', 0).getAttribute('placeholder'), '26', 'Left uses the left history, although Right was logged first');
       await menu(p); await shot(p, language, theme, 'set-menu');
       assert.match(await p.getByTestId('set-side').innerText(), language === 'de' ? /Seite · Links/ : /Side · Left/);
@@ -74,7 +77,7 @@ try {
     const ids = await setIds(p);
     assert.equal(ids.length, 2);
     if (!before) {
-      await p.getByTestId(`label-${ids[1]}`).getByText(right, { exact: true }).waitFor();
+      await p.getByTestId(`notes-${ids[1]}`).getByText(right, { exact: true }).waitFor();
       assert.equal(await input(p, 'w', 1).getAttribute('placeholder'), '16');
       ok(`${language}/${theme}: Add set alternates to Right and its grey value pairs with Right`);
     }
@@ -85,10 +88,10 @@ try {
       const expected = language === 'de' ? /Satz 1, links, 30 × 5, eingetragen/ : /Set 1, left side, 30 × 5, logged/;
       assert.match(await p.getByTestId(`check-${ids[0]}`).getAttribute('aria-label'), expected);
       assert.match(await p.getByTestId(`set-${ids[0]}`).getAttribute('aria-label'), expected);
-      const chips = await p.getByTestId(`label-${ids[0]}`).innerText();
-      assert.ok(chips.startsWith(left), chips);
+      const notes = await p.getByTestId(`notes-${ids[0]}`).innerText();
+      assert.ok(notes.split('\n').includes(left), notes);
       assert.match(await p.getByTestId('session-count').innerText(), /2/);
-      ok(`${language}/${theme}: chips lead other flags, row and stroke read the side, and two rows remain two tally strokes`);
+      ok(`${language}/${theme}: the set says its side, row and tick read the side, and two rows remain two tally strokes`);
     }
     await shot(p, language, theme, 'running');
     await p.getByTestId('workout-menu').click(); await p.getByTestId('menu-finish').click();
@@ -108,27 +111,27 @@ try {
     await p.goto(`${APP}/workout/${finished.id}`); await p.getByTestId('workout-title').waitFor();
     if (!before) {
       const line = await p.getByTestId(`workout-set-${ids[0]}`).innerText();
-      assert.ok(line.includes(left + ' · '), line);
+      assert.ok(line.includes(leftLine + ' · '), line);
     }
     await shot(p, language, theme, 'workout-detail');
     if (!before) {
       ok(`${language}/${theme}: workout detail leads the set footnote with the side before record flags`);
       await start(p);
       const again = await setIds(p);
-      await p.getByTestId(`label-${again[0]}`).getByText(left, { exact: true }).waitFor();
-      await p.getByTestId(`label-${again[1]}`).getByText(right, { exact: true }).waitFor();
+      await p.getByTestId(`notes-${again[0]}`).getByText(left, { exact: true }).waitFor();
+      await p.getByTestId(`notes-${again[1]}`).getByText(right, { exact: true }).waitFor();
       assert.equal(await input(p, 'w', 0).getAttribute('placeholder'), '30');
       assert.equal(await input(p, 'w', 1).getAttribute('placeholder'), '16');
       ok(`${language}/${theme}: restarting the routine restores Left/Right chips and the correct side's grey values`);
       await side(p, 'clear');
-      await p.getByTestId(`label-${again[0]}`).getByText(left, { exact: true }).waitFor({ state: 'hidden' });
+      await p.getByTestId(`notes-${again[0]}`).getByText(left, { exact: true }).waitFor({ state: 'hidden' });
       await waitStored(p, (d, id) => !Object.hasOwn(d.kv.active.exercises[0].sets.find((s) => s.id === id), 'side'), again[0]);
       assert.equal((await stored(p)).kv.active.exercises[0].sets[1].side, 'right');
       ok(`${language}/${theme}: Clear removes the side field and chip without changing the other set`);
       // Both editors use this same menu and persist the selected side on Save.
       await p.goto(`${APP}/template-edit?id=${ROUTINE}`);
       await block(p).waitFor(); const routineSet = await side(p, 'right');
-      await p.getByTestId(`label-${routineSet}`).getByText(right, { exact: true }).waitFor();
+      await p.getByTestId(`notes-${routineSet}`).getByText(right, { exact: true }).waitFor();
       await p.getByTestId('template-save').click();
       assert.equal((await stored(p)).templates.find((t) => t.id === ROUTINE).exercises[0].sets[0].side, 'right');
       await p.goto(`${APP}/workout-edit/${finished.id}`); await block(p).waitFor();

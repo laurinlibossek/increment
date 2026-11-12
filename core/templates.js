@@ -231,6 +231,25 @@ export function compareSets(routineSet, doneSet, category) {
   return 0;
 }
 
+/**
+ * What changed from last time's paired set to this one (#48), for the note
+ * beside a logged set: `{ dir, key, diff }`, where `dir` is compareSets'
+ * verdict (1 better, -1 worse), `key` the value that decided it ('w', 'r',
+ * 'd' or 't') and `diff` that value's change in stored units (kg, reps, km,
+ * seconds; for assisted exercises less assistance is a negative diff that's
+ * better). Null when nothing changed or either set has no numbers.
+ */
+export function setChange(prevSet, doneSet, category) {
+  if (!prevSet || !doneSet || !hasNumbers(prevSet) || !hasNumbers(doneSet)) return null;
+  const dir = compareSets(prevSet, doneSet, category);
+  if (!dir) return null;
+  const keys = category === 'cardio'
+    ? (valueOf(prevSet, 'd') || valueOf(doneSet, 'd')) && sign(valueOf(doneSet, 'd') - valueOf(prevSet, 'd')) ? ['d'] : ['t']
+    : (BETTER[category] || BETTER.barbell).map(([k]) => k);
+  const key = keys.find((k) => sign(valueOf(doneSet, k) - valueOf(prevSet, k))) || keys[0];
+  return { dir, key, diff: Math.round((valueOf(doneSet, key) - valueOf(prevSet, key)) * 1000) / 1000 };
+}
+
 /** The routine set with the done set's numbers; its own type, targets (RPE) and rep range stay. */
 function raisedSet(routineSet, doneSet, type = setType(routineSet), sideFrom = routineSet) {
   const o = { ...routineSet, type };

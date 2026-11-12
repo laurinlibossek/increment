@@ -10,6 +10,7 @@
   --control-on: #ffffff;
   --diff-added: #cdeed5;
   --diff-removed: #fbd5d2;
+  --pinned-note: #fbf3d0;
   --line: #e2e2dd;
   --ink: #0d0d0c;
   --ink-2: #5d5d58;
@@ -53,6 +54,7 @@
     --control-on: #6e6e69;
     --diff-added: #1e4a2a;
     --diff-removed: #5a1f1c;
+    --pinned-note: #2b2814;
     --line: #2b2b28;
     --ink: #f4f4f0;
     --ink-2: #a6a6a0;

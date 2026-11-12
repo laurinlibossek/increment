@@ -41,6 +41,9 @@ const block = (page, ex) => id(page, `block-${ex}`);
 const inputs = (page, ex, f) => block(page, ex).locator(`[data-testid^="in-${f}-"]`);
 const checks = (page, ex) => block(page, ex).locator('[data-testid^="check-"]');
 const labels = (page, ex) => block(page, ex).locator('[data-testid^="label-"]');
+const notes = (page, ex) => block(page, ex).locator('[data-testid^="notes-"]');
+/** The header row's column names, "Set kg Reps" (#48). */
+const head = async (page, ex) => (await id(page, `sets-head-${ex}`).innerText()).replace(/×/g, ' ').split(/\s+/).filter(Boolean);
 const toastText = async (page) => { await id(page, 'toast').waitFor(); return id(page, 'toast').innerText(); };
 const checked = async (loc) => (await loc.getAttribute('aria-checked')) === 'true';
 const wait = (page, ms = 300) => page.waitForTimeout(ms);
@@ -110,17 +113,16 @@ async function pick(page, names) {
   await wait(page, 200);
   assert.equal(await inputs(page, BENCH, 'w').nth(1).getAttribute('placeholder'), '80');
   assert.equal(await inputs(page, BENCH, 'r').nth(1).getAttribute('placeholder'), '5');
-  // the set being logged says what its boxes hold; last time's value stays the placeholder under the caption
-  const live = (await checks(page, BENCH).nth(1).getAttribute('data-testid')).replace(/^check-/, '');
-  assert.deepEqual([await id(page, `cap-w-${live}`).innerText(), await id(page, `cap-r-${live}`).innerText()], ['Weight', 'Reps']);
-  const logged = (await checks(page, BENCH).nth(0).getAttribute('data-testid')).replace(/^check-/, '');
-  assert.equal(await id(page, `cap-w-${logged}`).count(), 0, 'a logged set has no boxes');
+  // one header names the columns (#48); the sets are labelled 1, 2
+  assert.deepEqual(await head(page, BENCH), ['Set', 'kg', 'Reps']);
+  assert.deepEqual(await labels(page, BENCH).evaluateAll((els) => els.map((e) => e.innerText.trim())), ['1', '2']);
+  assert.equal(await block(page, BENCH).locator('[data-testid^="cap-"]').count(), 0, 'no captions in the boxes');
   await checks(page, BENCH).nth(1).click();
   await wait(page, 200);
   assert.equal(await inputs(page, BENCH, 'w').nth(1).inputValue(), '80');
   assert.equal(await checked(checks(page, BENCH).nth(1)), true);
   assert.match(await id(page, 'session-count').innerText(), /^2 of 3 sets/);
-  ok('a new set shows the row above as ghost values under “Weight” and “Reps”; logging it saves them (2 of 3 sets under the hero tally)');
+  ok('a new set shows the row above as ghost values under the “Set kg Reps” header; logging it saves them (2 of 3 sets under the hero tally)');
 
   // the rest bar: ±15 s, "Reps left?" for the set just logged, Skip
   const before = await id(page, 'rest-left').innerText();
@@ -136,17 +138,19 @@ async function pick(page, names) {
   await id(page, 'effort-2').click();
   await wait(page, 300);
   assert.equal(await id(page, 'effort-2').getAttribute('aria-pressed'), 'true');
-  assert.equal((await labels(page, BENCH).nth(1).innerText()).trim(), '2+ left');
-  // 0 left is a failure set; another rating makes it a working set again
+  assert.equal((await notes(page, BENCH).nth(1).innerText()).trim(), '2+ RIR');
+  // 0 left is a failure set (F); another rating makes it a working set again
   await id(page, 'effort-0').click();
   await wait(page, 300);
-  assert.equal((await labels(page, BENCH).nth(1).innerText()).trim(), 'Failure');
+  assert.equal((await labels(page, BENCH).nth(1).innerText()).trim(), 'F');
+  assert.equal((await notes(page, BENCH).nth(1).innerText()).trim(), '', 'F already says 0 in reserve');
   const activeSet = async (n) => (await storedData(page)).kv.active.exercises[0].sets[n];
   await wait(page, 300);
   assert.deepEqual([(await activeSet(1)).type, (await activeSet(1)).rir], ['failure', 0]);
   await id(page, 'effort-2').click();
   await wait(page, 300);
-  assert.equal((await labels(page, BENCH).nth(1).innerText()).trim(), '2+ left');
+  assert.equal((await notes(page, BENCH).nth(1).innerText()).trim(), '2+ RIR');
+  assert.equal((await labels(page, BENCH).nth(1).innerText()).trim(), '2');
   await page.screenshot({ path: `${OUT}/01-rest-bar.png` });
   await id(page, 'rest-skip').click();
   await wait(page, 300);
@@ -162,25 +166,27 @@ async function pick(page, names) {
   await id(page, `add-set-${BENCH}`).click();
   await wait(page, 200);
   assert.equal(await id(page, 'log-set').innerText(), 'Log 80 × 5');
-  // a plain working set has a ⋯ at the end of its row that opens its menu
-  const third = (await checks(page, BENCH).nth(2).getAttribute('data-testid')).replace(/^check-/, '');
-  assert.equal((await labels(page, BENCH).nth(2).innerText()).trim(), '', 'no chip on a plain working set');
-  await id(page, `set-menu-${third}`).click();
+  // the set's label opens its menu (#48): no ⋯, no type chip
+  assert.equal((await labels(page, BENCH).nth(2).innerText()).trim(), '3');
+  assert.equal((await notes(page, BENCH).nth(2).innerText()).trim(), '', 'nothing beside a plain pending set');
+  assert.equal(await block(page, BENCH).locator('[data-testid^="set-menu-"]').count(), 0);
+  await labels(page, BENCH).nth(2).click();
   await id(page, 'type-drop').click();
   await wait(page, 200);
-  assert.equal((await labels(page, BENCH).nth(2).innerText()).trim(), 'Drop');
+  assert.equal((await labels(page, BENCH).nth(2).innerText()).trim(), 'D');
   // choosing Failure sets 0 reps left; 1 left makes it a working set again
   await labels(page, BENCH).nth(1).click();
   await id(page, 'type-failure').click();
   await wait(page, 300);
-  assert.equal((await labels(page, BENCH).nth(1).innerText()).trim(), 'Failure');
+  assert.equal((await labels(page, BENCH).nth(1).innerText()).trim(), 'F');
   await labels(page, BENCH).nth(1).click();
   assert.match(await id(page, 'set-rir').innerText(), /Reps left · 0 left/);
   await id(page, 'set-rir').click();
   assert.deepEqual(await page.locator('[data-testid^="rir-"]').evaluateAll((els) => els.map((e) => e.dataset.testid)), ['rir-0', 'rir-1', 'rir-2', 'rir-clear']);
   await id(page, 'rir-1').click();
   await wait(page, 300);
-  assert.equal((await labels(page, BENCH).nth(1).innerText()).trim(), '1 left');
+  assert.equal((await notes(page, BENCH).nth(1).innerText()).trim(), '1 RIR');
+  assert.equal((await labels(page, BENCH).nth(1).innerText()).trim(), '2');
   assert.deepEqual([(await activeSet(1)).type, (await activeSet(1)).rir], ['normal', 1]);
   await labels(page, BENCH).nth(2).click();
   await id(page, 'set-delete').click();
@@ -190,8 +196,8 @@ async function pick(page, names) {
   await id(page, 'toast-action').click();
   await wait(page, 200);
   assert.equal(await checks(page, BENCH).count(), 3);
-  assert.equal((await labels(page, BENCH).nth(2).innerText()).trim(), 'Drop');
-  ok('switching back to Bench from its row; the set menu from ⋯ and the chips: drop set, Failure = 0 left and back to 1 left, delete and undo');
+  assert.equal((await labels(page, BENCH).nth(2).innerText()).trim(), 'D');
+  ok('switching back to Bench from its row; the set menu from the set’s label: drop set (D), Failure (F) = 0 left and back to 1 RIR, delete and undo');
 
   // the keypad: typing replaces the ghost value, −2.5 with plates per side, Next → reps → logged
   const drop = await checks(page, BENCH).nth(2).getAttribute('data-testid');
@@ -338,9 +344,8 @@ async function pick(page, names) {
   assert.equal(latW.length, 3);
   assert.equal(latW[0], '40');
   assert.equal(await page.locator('[data-testid^="jump-"]').count(), 2, 'the other two exercises are under Up next');
-  // the set being logged says what its boxes hold, in German
-  const latLive = (await checks(page, LAT).nth(0).getAttribute('data-testid')).replace(/^check-/, '');
-  assert.deepEqual([await id(page, `cap-w-${latLive}`).innerText(), await id(page, `cap-r-${latLive}`).innerText()], ['Gewicht', 'Wdh.']);
+  // the header names the columns, in German
+  assert.deepEqual(await head(page, LAT), ['Satz', 'kg', 'Wdh.']);
   await page.screenshot({ path: `${OUT}/05-template-workout-de.png` });
   // the web app's backup has its own "Keep screen on" (on); the app's stays off
   assert.equal(await page.evaluate(() => window.__wakeLocks), 0);
@@ -374,7 +379,7 @@ async function pick(page, names) {
   await inputs(page, SQUAT, 'r').nth(1).fill('10');
   await checks(page, SQUAT).nth(1).click();
   await wait(page, 300);
-  assert.match(await labels(page, SQUAT).nth(1).innerText(), /Rekord/);
+  assert.match(await notes(page, SQUAT).nth(1).innerText(), /Rekord/);
   assert.match(await id(page, 'session-count').innerText(), /1 Rekord/);
   await page.screenshot({ path: `${OUT}/05b-record.png` });
   await id(page, `jump-${LAT}`).click();
@@ -383,7 +388,7 @@ async function pick(page, names) {
   await inputs(page, LAT, 'w').nth(2).fill('55');
   for (let i = 0; i < 3; i++) await checks(page, LAT).nth(i).click();
   await wait(page, 300);
-  assert.doesNotMatch(await labels(page, LAT).nth(1).innerText(), /Rekord/, 'no record without history');
+  assert.doesNotMatch(await notes(page, LAT).nth(1).innerText(), /Rekord/, 'no record without history');
   ok(`Squat shows last time (${sqLast}); "Log" logs it; 250 kg × 10 gets the Record chip`);
 
   // finish: everything typed is logged, so it just asks
