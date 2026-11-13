@@ -133,7 +133,7 @@ The app is built in the Tally design language: ink on paper, one stroke per set,
 - **App, Expo Go:** it only has its bundled native modules; a library with native code needs a development build. On Android, Expo Go logs a warning about remote push when expo-notifications loads (harmless; local notifications work).
 - **Lint:** there's no linter in the repo; `tsc --noEmit` and `npm test` (duplicate German keys) catch the most common slips.
 - **Web build, iOS:** a Home Screen web app's storage is separate from Safari's, and iOS suspends web apps in the background, so the web build can't alert at the end of a rest with the phone locked.
-- **Deliberate:** the example routines Push, Pull and Legs keep their English names in German (the split is known by them). There's no "Hybrid" 1RM formula (Strong's couldn't be verified).
+- **Deliberate:** the example routines Push, Pull and Legs keep their English names in German (the split is known by them). There's no "Hybrid" 1RM formula (its method couldn't be verified).
 
 ## Not possible in the web build
 

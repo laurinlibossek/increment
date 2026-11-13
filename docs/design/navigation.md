@@ -1,6 +1,6 @@
 # Screens and navigation
 
-Strong organises the app by object (Profile, History, Workout, Exercises, Measure). Increment organises it by time: what to do now, what you plan, how it went.
+Increment organises the app by time, not by object (Profile, History, Workout, Exercises, Measure): what to do now, what you plan, how it went.
 
 ## Tabs
 

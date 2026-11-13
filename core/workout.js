@@ -542,7 +542,7 @@ export function liveRecordSets(a, bests, exercises, settings) {
 }
 
 // ---------- focus metric ----------
-// One number per exercise the user wants to push (Strong's "focus metric"),
+// One number per exercise the user wants to push (the "focus metric"),
 // from the sets as they stand (typed values, else the grey placeholders),
 // compared with the previous session.
 export const FOCUS_LABEL = {

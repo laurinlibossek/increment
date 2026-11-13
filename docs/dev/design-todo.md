@@ -2,7 +2,7 @@
 
 A design audit of the whole app, done with the [unslop](https://github.com/heydamir/unslop) skill by Damir Sokolovsky (CC BY 4.0), checked against Tally. This file is the work list that came out of it, written for the coding agent that does the work. Laurin reviews each pull request; Claude checks the result against this list afterwards.
 
-**Verdict:** light slop, so this is a polish pass, not a redesign. None of the usual AI tells are in the app (no gradients, glows, emoji, purple or pulsing), and Today, the session, the keypad, the rest bar and the summary are the standard to match. What's left: screens still in the old Strong look, numbers written several ways, a few bugs, dark-mode controls, and the web build at desktop width.
+**Verdict:** light slop, so this is a polish pass, not a redesign. None of the usual AI tells are in the app (no gradients, glows, emoji, purple or pulsing), and Today, the session, the keypad, the rest bar and the summary are the standard to match. What's left: screens still in the old look, numbers written several ways, a few bugs, dark-mode controls, and the web build at desktop width.
 
 Line numbers are as of `5979a0a`; search for the quoted code if they've moved.
 
@@ -73,10 +73,10 @@ Unslop's rule and Tally's ("numbers are the interface") agree: the same kind of 
 
 ## 3. The Workouts list in Tally (after group 2)
 
-The most out-of-place screen: Progress → Workouts is still Strong's history card.
+The most out-of-place screen: Progress → Workouts is still the old history card.
 
 - [x] **3.1 Rebuild the history list.**
-  - What's wrong: a grey card per past workout (Tally: a card marks something you can start, and never a table in a card), uppercase "EXERCISE / BEST SET" column headers (`app/src/app/history.tsx:232`; Tally: no small-caps labels), a row of Strong-style icons (clock, weight, trophy; Tally's records icon is the rosette), "15 PRs" in signal colour on every card, dates like "Tue, Nov 3, 2026 · 06:23 PM" (year in the current year, leading zero).
+  - What's wrong: a grey card per past workout (Tally: a card marks something you can start, and never a table in a card), uppercase "EXERCISE / BEST SET" column headers (`app/src/app/history.tsx:232`; Tally: no small-caps labels), a row of icons (clock, weight, trophy; Tally's records icon is the rosette), "15 PRs" in signal colour on every card, dates like "Tue, Nov 3, 2026 · 06:23 PM" (year in the current year, leading zero).
   - Do: full-width rows with `line` hairlines, like Lifts and Records, built from the shared `app/src/ui/tally/` components: the workout name; one meta line ("Tuesday · 1:11 · 15,740 kg", the year only for past years); the workout's tally (strokes per set, records as signal strokes, as on the workout page); "5 records" as text instead of the trophy. Keep the month headers with their counts. The exercise list either goes or becomes one plain subhead line ("Squat, Romanian Deadlift, Leg Press…"); **Default:** one line. Show the result to Laurin before polishing further: `docs/design/screens.html` has no Workouts screen yet.
   - Also: "PR"/"PRs" (German keys at `core/i18n-de.js:323-324`) become "record"/"records" ("Rekord"/"Rekorde"); delete the PR keys if nothing uses them any more.
   - Done when: no uppercase labels, no cards and no "PR" on the screen; tapping a row still opens the workout (suites `app-tabs`, `app-parity`); the calendar view is unchanged.
@@ -114,7 +114,7 @@ Plan, Progress, Lifts and Records use full-width rows with hairlines (Tally prin
   - 6.3: the Default stays.
   - Records are counted as record sets everywhere a count appears: Progress's 30-day strip now counts them like the Workouts rows, the workout page and the summary (it counted exercises with a record).
   - The exercise page's Heaviest weight shows the logged weight (58.75 kg, not 58.8); volumes there are whole numbers, Est. 1RM keeps one decimal. Chart axis labels keep the decimals their step needs (52.5, not 53).
-  - From group 3: the Workouts exercise line drops the bracketed equipment ("Squat, Romanian Deadlift, Leg Press"), as display names do; the calendar's selected day shows the date as a Title 2 heading over the list's row instead of the old Strong card.
+  - From group 3: the Workouts exercise line drops the bracketed equipment ("Squat, Romanian Deadlift, Leg Press"), as display names do; the calendar's selected day shows the date as a Title 2 heading over the list's row instead of the old card.
 
 ## 7. Dark mode controls
 
