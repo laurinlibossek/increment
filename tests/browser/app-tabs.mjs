@@ -121,8 +121,10 @@ async function discard(page) {
   // Plan: the templates as rows, + starts an empty workout
   await selectTab(page, 'plan');
   await wait(page);
-  // each row previews the routine (#32): its exercises, then muscles · sets · about how long · last done
-  for (const t of data.templates) {
+  // each row previews the routine (#32): its exercises, then muscles · sets · about how long · last done.
+  // The routines as stored now: starting Up next above split its one-sided exercises into Left and Right
+  // sets (#77), which changes its minutes on days when Up next has one (the backup's copy is the old one).
+  for (const t of (await store(page)).templates) {
     const text = await id(page, `template-${t.id}`).innerText();
     const sz = core.routineSize(t, lib, { defaultRest: settings.defaultRest });
     const names = t.exercises.map((e) => lib.get(e.exerciseId)?.name).filter(Boolean);
