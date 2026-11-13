@@ -79,6 +79,8 @@ export interface Exercise {
   notes?: string;
   pinnedNote?: string;
   restSec?: number;
+  /** Turned unilateral by the person (#54); the unilateral exercises we ship are always so (isUnilateral in core). */
+  unilateral?: boolean;
   imported?: boolean;
   createdAt?: number;
 }
@@ -104,6 +106,8 @@ export interface Settings {
   formula: string;
   historyStart: number | null;
   dumbbellTwice: boolean;
+  /** Routine and workout set totals count left/right pairs of one-side exercises (#54). */
+  pairSides: boolean;
   bwWeighted: boolean;
   bwAssisted: boolean;
   bodyUnit: 'kg' | 'lb' | null;

@@ -121,8 +121,8 @@ async function pick(page, names) {
   await wait(page, 200);
   assert.equal(await inputs(page, BENCH, 'w').nth(1).inputValue(), '80');
   assert.equal(await checked(checks(page, BENCH).nth(1)), true);
-  assert.match(await id(page, 'session-count').innerText(), /^2 of 3 sets/);
-  ok('a new set shows the row above as ghost values under the “Set kg Reps” header; logging it saves them (2 of 3 sets under the hero tally)');
+  assert.match(await id(page, 'session-count').innerText(), /^2 of 3 working sets · 66%/);
+  ok('a new set shows the row above as ghost values under the “Set kg Reps” header; logging it saves them (2 of 3 working sets · 66% under the hero tally)');
 
   // the rest bar: ±15 s, "Reps left?" for the set just logged, Skip
   const before = await id(page, 'rest-left').innerText();
@@ -155,10 +155,14 @@ async function pick(page, names) {
   await id(page, 'rest-skip').click();
   await wait(page, 300);
   assert.equal(await id(page, 'rest-left').count(), 0);
-  // Bench is done: Pull Up is next, and the Action bar logs its set
+  // Bench is done: it stays on screen until “Next: Pull Up” (#60), then the Action bar logs Pull Up's set
+  assert.equal(await block(page, BENCH).count(), 1);
+  assert.equal((await id(page, 'next-exercise').innerText()).trim(), 'Next: Pull Up');
+  await id(page, 'next-exercise').click();
+  await wait(page, 300);
   assert.equal(await block(page, PULLUP).count(), 1);
   assert.equal(await id(page, 'log-set').innerText(), 'Log set');
-  ok('the rest bar adds and takes 15 s, rates the set just logged (0 · 1 · 2+; 0 makes it a failure set) and skips; Pull Up comes up next');
+  ok('the rest bar adds and takes 15 s, rates the set just logged (0 · 1 · 2+; 0 makes it a failure set) and skips; Bench stays until “Next: Pull Up”');
 
   // back to Bench: set types and reps left from the set menu, delete with undo
   await id(page, `jump-${BENCH}`).click();
@@ -225,6 +229,9 @@ async function pick(page, names) {
   assert.equal(await checked(checks(page, BENCH).nth(2)), true);
   assert.match(await id(page, 'rest-left').innerText(), /^(2:00|1:59|1:58)$/);
   await id(page, 'rest-skip').click();
+  await wait(page, 300);
+  // Bench is done again: Next goes on to Pull Up (#60)
+  await id(page, 'next-exercise').click();
   await wait(page, 300);
   ok('the keypad types 70, steps to 67.5 with plates per side, and Next goes to reps, then logs the set');
 

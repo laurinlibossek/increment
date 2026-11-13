@@ -5,7 +5,7 @@
 import { Share } from 'react-native';
 import { router } from 'expo-router';
 import {
-  encodeTemplate, decodeTemplate, setTotal, usesWeight, CATEGORIES, BODY_PARTS, WEB_APP_URL,
+  encodeTemplate, decodeTemplate, exerciseSetCount, isUnilateral, sideOf, usesWeight, CATEGORIES, BODY_PARTS, WEB_APP_URL,
 } from '@increment/core';
 
 import {
@@ -47,9 +47,12 @@ export function templateShareText(t: Template, f: F) {
       let v = '';
       if (st.w === undefined && st.r && usesWeight(ex.category)) v = f.reps(st);
       else if (st.w || st.r || st.d || st.t) v = f.setText(st, ex.category);
-      return v && labels[i] === 'W' ? `W ${v}` : v;
+      const side = sideOf(st);
+      // a left and a right count as one set (#72), so each value says its side
+      return v && labels[i] === 'W' ? `W ${v}` : v && side ? `${tr(side === 'left' ? 'Left' : 'Right')} ${v}` : v;
     }).filter(Boolean);
-    lines.push(`• ${f.exName(ex)}: ${f.plural(setTotal(x.sets), 'set')}${sets.length ? ` (${sets.join(', ')})` : ''}`);
+    const count = exerciseSetCount(x.sets, isUnilateral(ex), { pair: s.settings.pairSides !== false });
+    lines.push(`• ${f.exName(ex)}: ${f.setsText(count)}${sets.length ? ` (${sets.join(', ')})` : ''}`);
   }
   lines.push('', tr('Add it to Increment: open this link, or copy it and choose Routines ⋯ → Add shared routine in the app.'),
     `${WEB_APP_URL}#template=${encodeTemplate(t, s.exercises)}`);
@@ -188,7 +191,7 @@ export async function templatesMenu(f: F) {
 
 type Shared = {
   name: string; notes: string; pinnedNote?: string;
-  exercises: { id: string | null; name: string; family?: string; category: Category; bodyPart: string; sets: TemplateEntry['sets']; restSec: number | null; notes: string; group: number | null; focus: string | null }[];
+  exercises: { id: string | null; name: string; family?: string; unilateral?: boolean; category: Category; bodyPart: string; sets: TemplateEntry['sets']; restSec: number | null; notes: string; group: number | null; focus: string | null }[];
 };
 
 /** Ask to add the template in a shared link. Returns false if the text holds none. */
@@ -211,7 +214,7 @@ export async function offerSharedTemplate(text: string, f: F): Promise<boolean> 
   const exercises: TemplateEntry[] = [];
   for (const x of p.exercises) {
     let id = x.id && getState().exercises.has(x.id) ? x.id : findExercise(x.name)?.id;
-    if (!id) id = (await addExercise({ name: x.name, category: x.category, bodyPart: x.bodyPart, family: x.family })).id;
+    if (!id) id = (await addExercise({ name: x.name, category: x.category, bodyPart: x.bodyPart, family: x.family, unilateral: x.unilateral })).id;
     const e: TemplateEntry = { exerciseId: id, sets: x.sets };
     if (x.restSec !== null) e.restSec = x.restSec;
     if (x.notes) e.notes = x.notes;

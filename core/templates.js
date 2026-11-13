@@ -30,7 +30,18 @@ function pairEntries(tplEntries, woEntries) {
  * Warm-ups pair only with warm-ups. When both lists carry sides, each side
  * (and untagged sets) pairs separately in order; otherwise use the old order.
  */
-export function pairSets(tplSets, woSets) {
+export function pairSets(tplSets, woSets, { split = false } = {}) {
+  // `split` (the ghost values, #54): when only these sets have sides, the k-th left and the k-th right
+  // both pair with the k-th set of the other list, which covered both sides
+  if (split && tplSets.some(sideOf) && !woSets.some(sideOf)) {
+    const pos = new Map(), used = new Map();
+    woSets.forEach((s, i) => { const b = setBucket(s); if (!pos.has(b)) pos.set(b, []); pos.get(b).push(i); });
+    return tplSets.map((s) => {
+      const b = setBucket(s), key = `${b}:${sideOf(s) || 'none'}`, at = used.get(key) || 0;
+      used.set(key, at + 1);
+      return pos.get(b)?.[at] ?? -1;
+    });
+  }
   const sided = tplSets.some(sideOf) && woSets.some(sideOf);
   const bucket = (s) => `${setBucket(s)}:${sided ? sideOf(s) || 'none' : ''}`;
   const pos = new Map(), used = new Map();

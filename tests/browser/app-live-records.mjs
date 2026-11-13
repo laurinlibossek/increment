@@ -56,7 +56,7 @@ await block().waitFor();
 for (let i = 0; i < 3; i++) { await checks().nth(i).click(); await wait(200); }
 await wait();
 assert.deepEqual(await chips(), [0], 'one record chip, on the first set');
-assert.match(await id('session-count').innerText(), /3 of 3 sets · 1 record$/);
+assert.match(await id('session-count').innerText(), /3 of 3 working sets · 100% · 1 record$/);
 assert.equal(await signalStrokes('session-tally'), 1);
 await page.screenshot({ path: `${OUT}/three-equal-sets.png` });
 ok('three sets of 100 × 5 after 95 × 5: one record in the session, its chip and its stroke');
@@ -83,7 +83,7 @@ ok('102.5 × 5 takes the record over; unchecked, the first set has it again');
 await id('minimize').click();
 await selectTab(page, 'index');
 await id('now-card').waitFor();
-assert.match(await id('now-card').innerText(), /4 of 4 sets · 1 record/);
+assert.match(await id('now-card').innerText(), /4 of 4 working sets · 100% · 1 record/);
 assert.equal(await signalStrokes('now-card'), 1);
 assert.equal(await signalStrokes('mini-bar'), 1);
 await page.screenshot({ path: `${OUT}/today.png` });

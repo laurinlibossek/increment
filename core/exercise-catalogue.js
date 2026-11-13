@@ -11,7 +11,8 @@ const B = 'barbell', D = 'dumbbell', M = 'machine', WB = 'weighted_bw', AB = 'as
 
 const family = (name, nameDe, members) => ({
   id: 'f-' + slug(name), name, nameDe,
-  members: members.map(([name, category, bodyPart]) => ({ id: 'x-' + slug(name), name, category, bodyPart })),
+  // a member's id comes from its name, unless it keeps an older one (a renamed built-in keeps its history)
+  members: members.map(([name, category, bodyPart, id]) => ({ id: id || 'x-' + slug(name), name, category, bodyPart })),
 });
 
 export const EXERCISE_CATALOGUE = [
@@ -28,7 +29,6 @@ export const EXERCISE_CATALOGUE = [
     ["Close Grip Bench Press (Barbell)", B, "arms"],
     ["Close Grip Bench Press (Smith Machine)", M, "arms"],
     ["Bench Press - Wide Grip (Barbell)", B, "chest"],
-    ["Neutral Grip Bench Press (Dumbbell)", D, "chest"],
     ["Floor Press (Barbell)", B, "chest"],
     ["Floor Press (Dumbbell)", D, "chest"],
     ["Paused Bench Press (Barbell)", B, "chest"],
@@ -56,14 +56,7 @@ export const EXERCISE_CATALOGUE = [
   ]),
   family("Push Up", "Liegestütze", [
     ["Push Up", R, "chest"],
-    ["Push Up (Band)", R, "chest"],
     ["Push Up (Weighted)", WB, "chest"],
-    ["Incline Push Up", R, "chest"],
-    ["Decline Push Up", R, "chest"],
-    ["Deficit Push Up", R, "chest"],
-    ["Close Grip Push Up", R, "chest"],
-    ["Wide Grip Push Up", R, "chest"],
-    ["Ring Push Up", R, "chest"],
   ]),
   family("Dip", "Dips", [
     ["Chest Dip", R, "chest"],
@@ -72,7 +65,6 @@ export const EXERCISE_CATALOGUE = [
     ["Triceps Dip", R, "arms"],
     ["Triceps Dip (Weighted)", WB, "arms"],
     ["Triceps Dip (Assisted)", AB, "arms"],
-    ["Bench Dip", R, "arms"],
   ]),
   family("Pullover", "Überzüge", [
     ["Pullover (Dumbbell)", D, "chest"],
@@ -84,23 +76,18 @@ export const EXERCISE_CATALOGUE = [
   family("Deadlift", "Kreuzheben", [
     ["Deadlift (Barbell)", B, "back"],
     ["Deadlift (Trap Bar)", B, "back"],
-    ["Deadlift (Dumbbell)", D, "back"],
     ["Sumo Deadlift (Barbell)", B, "back"],
     ["Deficit Deadlift (Barbell)", B, "back"],
     ["Paused Deadlift (Barbell)", B, "back"],
-    ["Block Pull (Barbell)", B, "back"],
     ["Rack Pull (Barbell)", B, "back"],
   ]),
   family("Romanian Deadlift", "Rumänisches Kreuzheben", [
     ["Romanian Deadlift (Barbell)", B, "legs"],
-    ["Romanian Deadlift (Trap Bar)", B, "legs"],
     ["Romanian Deadlift (Dumbbell)", D, "legs"],
     ["Romanian Deadlift (Smith Machine)", M, "legs"],
     ["Stiff Leg Deadlift (Barbell)", B, "legs"],
     ["Stiff Leg Deadlift (Dumbbell)", D, "legs"],
     ["Single Leg Romanian Deadlift (Dumbbell)", D, "legs"],
-    ["Single Leg Romanian Deadlift (Kettlebell)", M, "legs"],
-    ["B Stance Romanian Deadlift (Dumbbell)", D, "legs"],
   ]),
   family("Row", "Rudern", [
     ["Bent Over Row (Barbell)", B, "back"],
@@ -114,36 +101,31 @@ export const EXERCISE_CATALOGUE = [
     ["Chest Supported T Bar Row (Machine)", M, "back"],
     ["Chest Supported Row (Dumbbell)", D, "back"],
     ["Chest Supported Row (Machine)", M, "back"],
-    ["Chest Supported Row (Cable)", M, "back"],
     ["Helms Row (Dumbbell)", D, "back"],
     ["Seal Row (Barbell)", B, "back"],
-    ["Seal Row (Dumbbell)", D, "back"],
     ["Seated Row (Cable)", M, "back"],
     ["Seated Row (Machine)", M, "back"],
     ["Seated Wide-Grip Row (Cable)", M, "back"],
     ["Single Arm Row (Cable)", M, "back"],
     ["Iso-Lateral Row (Machine)", M, "back"],
     ["High Row (Machine)", M, "back"],
-    ["Inverted Row", R, "back"],
-    ["Row (Band)", R, "back"],
   ]),
   family("Lat Pulldown", "Latzug", [
     ["Lat Pulldown (Cable)", M, "back"],
     ["Lat Pulldown (Machine)", M, "back"],
-    ["Lat Pulldown (Single Arm)", M, "back"],
     ["Lat Pulldown - Close Grip (Cable)", M, "back"],
     ["Lat Pulldown - Wide Grip (Cable)", M, "back"],
     ["Lat Pulldown - Underhand (Cable)", M, "back"],
+    // renamed from Lat Pulldown (Single Arm) (#45): the id stays, so history does; the cable one is the usual version
+    ["Single Arm Lat Pulldown (Cable)", M, "back", "x-lat-pulldown-single-arm"],
     ["Single Arm Lat Pulldown (Machine)", M, "back"],
   ]),
   family("Pull Up", "Klimmzüge", [
     ["Pull Up", R, "back"],
-    ["Pull Up (Band)", R, "back"],
     ["Pull Up (Weighted)", WB, "back"],
     ["Pull Up (Assisted)", AB, "back"],
     ["Wide Grip Pull Up", R, "back"],
     ["Neutral Grip Pull Up", R, "back"],
-    ["Neutral Grip Pull Up (Weighted)", WB, "back"],
     ["Chin Up", R, "back"],
     ["Chin Up (Weighted)", WB, "back"],
     ["Chin Up (Assisted)", AB, "back"],
@@ -157,11 +139,9 @@ export const EXERCISE_CATALOGUE = [
   ]),
   family("Shrug", "Shrugs", [
     ["Shrug (Barbell)", B, "back"],
-    ["Shrug (Trap Bar)", B, "back"],
     ["Shrug (Dumbbell)", D, "back"],
     ["Shrug (Smith Machine)", M, "back"],
     ["Shrug (Machine)", M, "back"],
-    ["Shrug (Cable)", M, "back"],
   ]),
   family("Kelso Shrug", "Kelso Shrugs", [
     ["Kelso Shrug (Dumbbell)", D, "back"],
@@ -174,19 +154,14 @@ export const EXERCISE_CATALOGUE = [
   family("Overhead Press", "Schulterdrücken", [
     ["Overhead Press (Barbell)", B, "shoulders"],
     ["Overhead Press (Dumbbell)", D, "shoulders"],
-    ["Overhead Press (Kettlebell)", M, "shoulders"],
-    ["Overhead Press (Cable)", M, "shoulders"],
     ["Seated Overhead Press (Dumbbell)", D, "shoulders"],
     ["Seated Overhead Press (Barbell)", B, "shoulders"],
     ["Seated Overhead Press (Smith Machine)", M, "shoulders"],
     ["Shoulder Press (Machine)", M, "shoulders"],
     ["Shoulder Press (Smith Machine)", M, "shoulders"],
-    ["Single Arm Overhead Press (Dumbbell)", D, "shoulders"],
     ["Arnold Press (Dumbbell)", D, "shoulders"],
     ["Z Press (Barbell)", B, "shoulders"],
-    ["Z Press (Dumbbell)", D, "shoulders"],
     ["Push Press (Barbell)", B, "shoulders"],
-    ["Push Press (Dumbbell)", D, "shoulders"],
   ]),
   family("Landmine Press", "Landmine Press", [
     ["Landmine Press (Barbell)", B, "shoulders"],
@@ -195,7 +170,6 @@ export const EXERCISE_CATALOGUE = [
     ["Lateral Raise (Dumbbell)", D, "shoulders"],
     ["Lateral Raise (Machine)", M, "shoulders"],
     ["Lateral Raise (Cable)", M, "shoulders"],
-    ["Lateral Raise (Band)", R, "shoulders"],
     ["Seated Lateral Raise (Dumbbell)", D, "shoulders"],
     ["Leaning Lateral Raise (Cable)", M, "shoulders"],
     ["Behind the Back Lateral Raise (Cable)", M, "shoulders"],
@@ -204,25 +178,18 @@ export const EXERCISE_CATALOGUE = [
   ]),
   family("Front Raise", "Frontheben", [
     ["Front Raise (Dumbbell)", D, "shoulders"],
-    ["Front Raise (Barbell)", B, "shoulders"],
-    ["Front Raise (Plate)", M, "shoulders"],
     ["Front Raise (Cable)", M, "shoulders"],
   ]),
   family("Upright Row", "Aufrechtes Rudern", [
-    ["Upright Row (Barbell)", B, "shoulders"],
     ["Upright Row (Dumbbell)", D, "shoulders"],
-    ["Upright Row (Smith Machine)", M, "shoulders"],
     ["Upright Row (Cable)", M, "shoulders"],
   ]),
   family("Face Pull", "Face Pull", [
     ["Face Pull (Cable)", M, "shoulders"],
-    ["Face Pull (Band)", R, "shoulders"],
   ]),
   family("Reverse Fly", "Reverse Flys", [
-    ["Reverse Fly (Dumbbell)", D, "shoulders"],
     ["Reverse Fly (Machine)", M, "shoulders"],
     ["Reverse Fly (Cable)", M, "shoulders"],
-    ["Reverse Fly (Band)", R, "shoulders"],
     ["Chest Supported Reverse Fly (Dumbbell)", D, "shoulders"],
   ]),
   family("Handstand Push Up", "Handstand-Liegestütze", [
@@ -238,7 +205,6 @@ export const EXERCISE_CATALOGUE = [
   family("External Rotation", "Außenrotation", [
     ["External Rotation (Dumbbell)", D, "shoulders"],
     ["External Rotation (Cable)", M, "shoulders"],
-    ["External Rotation (Band)", R, "shoulders"],
   ]),
   family("Neck Curl", "Nackenbeugen", [
     ["Neck Curl (Plate)", M, "other"],
@@ -254,7 +220,6 @@ export const EXERCISE_CATALOGUE = [
     ["Bicep Curl (Dumbbell)", D, "arms"],
     ["Bicep Curl (Machine)", M, "arms"],
     ["Bicep Curl (Cable)", M, "arms"],
-    ["Bicep Curl (Band)", R, "arms"],
     ["Seated Bicep Curl (Dumbbell)", D, "arms"],
     ["Incline Curl (Dumbbell)", D, "arms"],
     ["Bayesian Curl (Cable)", M, "arms"],
@@ -269,8 +234,6 @@ export const EXERCISE_CATALOGUE = [
     ["Drag Curl (Barbell)", B, "arms"],
     ["Hammer Curl (Dumbbell)", D, "arms"],
     ["Hammer Curl (Cable)", M, "arms"],
-    ["Hammer Curl (Band)", R, "arms"],
-    ["Cross Body Hammer Curl (Dumbbell)", D, "arms"],
     ["Reverse Curl (Barbell)", B, "arms"],
     ["Reverse Curl (Dumbbell)", D, "arms"],
     ["Reverse Grip Bicep Curl (Cable)", M, "arms"],
@@ -278,7 +241,6 @@ export const EXERCISE_CATALOGUE = [
   ]),
   family("Triceps Extension", "Trizepsstrecken", [
     ["Triceps Pushdown (Cable)", M, "arms"],
-    ["Triceps Pushdown (Band)", R, "arms"],
     ["Triceps Pushdown - Rope (Cable)", M, "arms"],
     ["Single Arm Triceps Pushdown (Cable)", M, "arms"],
     ["Cross Body Triceps Extension (Cable)", M, "arms"],
@@ -314,9 +276,7 @@ export const EXERCISE_CATALOGUE = [
   ]),
   family("Squat", "Kniebeugen", [
     ["Squat (Barbell)", B, "legs"],
-    ["Squat (Dumbbell)", D, "legs"],
     ["Squat (Smith Machine)", M, "legs"],
-    ["Squat (Bodyweight)", R, "legs"],
     ["Front Squat (Barbell)", B, "legs"],
     ["Front Squat (Smith Machine)", M, "legs"],
     ["Safety Bar Squat (Barbell)", B, "legs"],
@@ -325,11 +285,10 @@ export const EXERCISE_CATALOGUE = [
     ["Paused Squat (Barbell)", B, "legs"],
     ["Pin Squat (Barbell)", B, "legs"],
     ["Hack Squat (Machine)", M, "legs"],
-    ["Hack Squat (Barbell)", B, "legs"],
+    ["Squat Press (Machine)", M, "legs"],
     ["Pendulum Squat (Machine)", M, "legs"],
     ["Belt Squat (Machine)", M, "legs"],
     ["Goblet Squat (Dumbbell)", D, "legs"],
-    ["Goblet Squat (Kettlebell)", M, "legs"],
     ["Pistol Squat", R, "legs"],
   ]),
   family("Leg Press", "Beinpresse", [
@@ -344,30 +303,25 @@ export const EXERCISE_CATALOGUE = [
     ["Bulgarian Split Squat (Dumbbell)", D, "legs"],
     ["Bulgarian Split Squat (Barbell)", B, "legs"],
     ["Bulgarian Split Squat (Smith Machine)", M, "legs"],
-    ["Bulgarian Split Squat", R, "legs"],
     ["Front Foot Elevated Split Squat (Dumbbell)", D, "legs"],
   ]),
   family("Lunge", "Ausfallschritte", [
     ["Lunge (Dumbbell)", D, "legs"],
     ["Lunge (Barbell)", B, "legs"],
-    ["Lunge", R, "legs"],
     ["Walking Lunge (Dumbbell)", D, "legs"],
     ["Walking Lunge (Barbell)", B, "legs"],
     ["Reverse Lunge (Barbell)", B, "legs"],
     ["Reverse Lunge (Dumbbell)", D, "legs"],
     ["Reverse Lunge (Smith Machine)", M, "legs"],
     ["Deficit Reverse Lunge (Dumbbell)", D, "legs"],
-    ["Lateral Lunge (Dumbbell)", D, "legs"],
   ]),
   family("Step Up", "Step-ups", [
     ["Step Up (Dumbbell)", D, "legs"],
-    ["Step Up (Barbell)", B, "legs"],
-    ["Step Up (Bodyweight)", R, "legs"],
+    ["Step Up (Cable)", M, "legs"],
   ]),
   family("Good Morning", "Good Morning", [
     ["Good Morning (Barbell)", B, "legs"],
     ["Good Morning (Smith Machine)", M, "legs"],
-    ["Seated Good Morning (Barbell)", B, "legs"],
   ]),
   family("Leg Extension", "Beinstrecker", [
     ["Leg Extension (Machine)", M, "legs"],
@@ -382,11 +336,9 @@ export const EXERCISE_CATALOGUE = [
     ["Standing Leg Curl (Machine)", M, "legs"],
     ["Single Leg Curl (Machine)", M, "legs"],
     ["Leg Curl (Cable)", M, "legs"],
-    ["Sliding Leg Curl", R, "legs"],
   ]),
   family("Nordic Hamstring Curl", "Nordic Hamstring Curl", [
     ["Nordic Hamstring Curl", R, "legs"],
-    ["Nordic Hamstring Curl (Band)", R, "legs"],
   ]),
   family("Glute Ham Raise", "Glute Ham Raise", [
     ["Glute Ham Raise", R, "legs"],
@@ -399,22 +351,16 @@ export const EXERCISE_CATALOGUE = [
     ["Hip Thrust (Dumbbell)", D, "legs"],
     ["Hip Thrust (Smith Machine)", M, "legs"],
     ["Hip Thrust (Machine)", M, "legs"],
-    ["Hip Thrust (Bodyweight)", R, "legs"],
-    ["Glute Bridge", R, "legs"],
     ["Glute Bridge (Barbell)", B, "legs"],
-    ["Single Leg Hip Thrust", R, "legs"],
     ["Single Leg Hip Thrust (Dumbbell)", D, "legs"],
-    ["Single Leg Glute Bridge", R, "legs"],
   ]),
   family("Glute Kickback", "Glute Kickback", [
     ["Glute Kickback (Cable)", M, "legs"],
     ["Glute Kickback (Machine)", M, "legs"],
-    ["Glute Kickback (Band)", R, "legs"],
   ]),
   family("Hip Abduction", "Abduktoren", [
     ["Hip Abduction (Machine)", M, "legs"],
     ["Hip Abduction (Cable)", M, "legs"],
-    ["Hip Abduction (Band)", R, "legs"],
   ]),
   family("Hip Adduction", "Adduktoren", [
     ["Hip Adduction (Machine)", M, "legs"],
@@ -427,12 +373,10 @@ export const EXERCISE_CATALOGUE = [
     ["Standing Calf Raise (Machine)", M, "legs"],
     ["Standing Calf Raise (Barbell)", B, "legs"],
     ["Standing Calf Raise (Smith Machine)", M, "legs"],
-    ["Standing Calf Raise (Bodyweight)", R, "legs"],
     ["Calf Raise (Dumbbell)", D, "legs"],
     ["Single Leg Calf Raise (Dumbbell)", D, "legs"],
     ["Donkey Calf Raise (Machine)", M, "legs"],
     ["Seated Calf Raise (Machine)", M, "legs"],
-    ["Seated Calf Raise (Dumbbell)", D, "legs"],
     ["Calf Press on Leg Press (Machine)", M, "legs"],
   ]),
   family("Tibialis Raise", "Tibialisheben", [
@@ -442,9 +386,6 @@ export const EXERCISE_CATALOGUE = [
   family("Cable Pull Through", "Pull Through", [
     ["Cable Pull Through", M, "legs"],
   ]),
-  family("Box Jump", "Box Jumps", [
-    ["Box Jump", R, "legs"],
-  ]),
   family("Crunch", "Crunches", [
     ["Crunch", R, "core"],
     ["Crunch (Machine)", M, "core"],
@@ -453,69 +394,30 @@ export const EXERCISE_CATALOGUE = [
     ["Decline Crunch", R, "core"],
     ["Decline Crunch (Weighted)", WB, "core"],
     ["Reverse Crunch", R, "core"],
-    ["Bicycle Crunch", R, "core"],
-  ]),
-  family("Sit Up", "Sit-ups", [
-    ["Sit Up", R, "core"],
-    ["Sit Up (Weighted)", WB, "core"],
-    ["Decline Sit Up", R, "core"],
   ]),
   family("Leg Raise", "Beinheben", [
     ["Hanging Leg Raise", R, "core"],
     ["Hanging Leg Raise (Weighted)", WB, "core"],
     ["Hanging Knee Raise", R, "core"],
-    ["Hanging Knee Raise (Weighted)", WB, "core"],
-    ["Toes to Bar", R, "core"],
     ["Captain's Chair Leg Raise", R, "core"],
-    ["Lying Leg Raise", R, "core"],
   ]),
   family("Ab Wheel", "Bauchroller", [
     ["Ab Wheel", R, "core"],
     ["Ab Rollout (Barbell)", B, "core"],
   ]),
-  family("Russian Twist", "Russian Twist", [
-    ["Russian Twist", R, "core"],
-    ["Russian Twist (Weighted)", WB, "core"],
-  ]),
-  family("Mountain Climber", "Mountain Climbers", [
-    ["Mountain Climber", R, "core"],
-  ]),
-  family("Dead Bug", "Dead Bug", [
-    ["Dead Bug", R, "core"],
-  ]),
   family("Pallof Press", "Pallof Press", [
     ["Pallof Press (Cable)", M, "core"],
-    ["Pallof Press (Band)", R, "core"],
-  ]),
-  family("Wood Chop", "Holzhacker", [
-    ["Wood Chop (Cable)", M, "core"],
-    ["Wood Chop (Dumbbell)", D, "core"],
   ]),
   family("Plank", "Plank", [
     ["Plank", T, "core"],
-    ["RKC Plank", T, "core"],
     ["Side Plank", T, "core"],
   ]),
   family("Side Bend", "Seitbeugen", [
     ["Side Bend (Dumbbell)", D, "core"],
     ["Side Bend (Cable)", M, "core"],
   ]),
-  family("Bird Dog", "Bird Dog", [
-    ["Bird Dog", R, "core"],
-  ]),
-  family("Dragon Flag", "Dragon Flag", [
-    ["Dragon Flag", R, "core"],
-  ]),
-  family("Hollow Hold", "Hollow Hold", [
-    ["Hollow Hold", T, "core"],
-  ]),
-  family("L-Sit", "L-Sit", [
-    ["L-Sit", T, "core"],
-  ]),
   family("Clean", "Clean", [
     ["Clean (Barbell)", B, "full"],
-    ["Clean (Dumbbell)", D, "full"],
-    ["Clean (Kettlebell)", M, "full"],
     ["Power Clean (Barbell)", B, "full"],
     ["Hang Clean (Barbell)", B, "full"],
   ]),
@@ -524,8 +426,6 @@ export const EXERCISE_CATALOGUE = [
   ]),
   family("Snatch", "Snatch", [
     ["Snatch (Barbell)", B, "full"],
-    ["Snatch (Dumbbell)", D, "full"],
-    ["Snatch (Kettlebell)", M, "full"],
     ["Power Snatch (Barbell)", B, "full"],
     ["Hang Snatch (Barbell)", B, "full"],
   ]),
@@ -533,25 +433,11 @@ export const EXERCISE_CATALOGUE = [
     ["Push Jerk (Barbell)", B, "full"],
     ["Split Jerk (Barbell)", B, "full"],
   ]),
-  family("Thruster", "Thruster", [
-    ["Thruster (Barbell)", B, "full"],
-    ["Thruster (Dumbbell)", D, "full"],
-  ]),
   family("Kettlebell Swing", "Kettlebell Swing", [
     ["Kettlebell Swing", M, "full"],
   ]),
-  family("Turkish Get Up", "Turkish Get-up", [
-    ["Turkish Get Up (Kettlebell)", M, "full"],
-    ["Turkish Get Up (Dumbbell)", D, "full"],
-  ]),
   family("Farmer's Walk", "Farmer's Walk", [
     ["Farmer's Walk (Dumbbell)", D, "full"],
-  ]),
-  family("Burpee", "Burpees", [
-    ["Burpee", R, "full"],
-  ]),
-  family("Battle Ropes", "Battle Ropes", [
-    ["Battle Ropes", T, "full"],
   ]),
   family("Sled Push", "Schlittenschieben", [
     ["Sled Push", M, "full"],
@@ -585,22 +471,29 @@ export const EXERCISE_CATALOGUE = [
   family("Air Bike", "Air Bike", [
     ["Air Bike", C, "cardio"],
   ]),
-  family("Swimming", "Schwimmen", [
-    ["Swimming", C, "cardio"],
-  ]),
-  family("Hiking", "Wandern", [
-    ["Hiking", C, "cardio"],
-  ]),
-  family("Jump Rope", "Seilspringen", [
-    ["Jump Rope", T, "cardio"],
-  ]),
-  family("Stretching", "Dehnen", [
-    ["Stretching", T, "other"],
-  ]),
-  family("Yoga", "Yoga", [
-    ["Yoga", T, "other"],
-  ]),
-  family("Warm Up", "Aufwärmen", [
-    ["Warm Up", T, "other"],
-  ]),
 ];
+
+// The unilateral variations we ship (#54), always unilateral: their sets can
+// say left or right, and summaries count complete left/right pairs. It belongs
+// to the variation, not its family (Chest Fly (Cable) is bilateral, Single Arm
+// Chest Fly (Cable) unilateral). Any other exercise is bilateral until the
+// person turns Unilateral on (its `unilateral: true`).
+export const UNILATERAL_NAMES = Object.freeze([
+  'Single Arm Chest Fly (Cable)', 'Single Arm Pullover (Cable)',
+  'Single Leg Romanian Deadlift (Dumbbell)',
+  'Bent Over One Arm Row (Dumbbell)', 'Kroc Row (Dumbbell)', 'Meadows Row (Barbell)', 'Single Arm Row (Cable)',
+  'Single Arm Lat Pulldown (Cable)', 'Single Arm Lat Pulldown (Machine)', 'Cuffed Single Arm Lat Pullover (Cable)',
+  'Concentration Curl (Dumbbell)',
+  'Single Arm Triceps Pushdown (Cable)', 'Single Arm Overhead Triceps Extension (Cable)',
+  'Pistol Squat', 'Single Leg Press (Machine)',
+  'Split Squat (Barbell)', 'Split Squat (Dumbbell)', 'Split Squat (Smith Machine)',
+  'Bulgarian Split Squat (Dumbbell)', 'Bulgarian Split Squat (Barbell)', 'Bulgarian Split Squat (Smith Machine)',
+  'Front Foot Elevated Split Squat (Dumbbell)',
+  'Single Leg Extension (Machine)', 'Single Leg Curl (Machine)', 'Standing Leg Curl (Machine)',
+  'Single Leg Hip Thrust (Dumbbell)',
+  'Glute Kickback (Cable)', 'Glute Kickback (Machine)',
+  'Copenhagen Plank', 'Single Leg Calf Raise (Dumbbell)', 'Side Plank',
+]);
+// by name, so a renamed member keeps its own id (Single Arm Lat Pulldown (Cable))
+const BY_NAME = new Map(EXERCISE_CATALOGUE.flatMap((f) => f.members.map((m) => [m.name, m.id])));
+export const UNILATERAL_IDS = new Set(UNILATERAL_NAMES.map((name) => BY_NAME.get(name)).filter(Boolean));

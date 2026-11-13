@@ -9,7 +9,7 @@ import {
   workoutVolume, makeBackup, uid, seedExerciseChanges,
   templateFromDraft, workoutFromEditDraft, copyTemplateRecord, folderNames, findExerciseByName, newExerciseRecord,
   exerciseInDraft, patchDraftExercise, changeSetting, convertDraftUnits, mergeExercisePatch, moveExerciseEntries,
-  changeExerciseFamily, cleanCustomFamilies, writeKey, coalesceWrites, splitBlocked, recordsOf,
+  changeExerciseFamily, cleanCustomFamilies, writeKey, coalesceWrites, splitBlocked, recordsOf, isUnilateral, splitRoutine,
 } from '@increment/core';
 
 import * as db from './storage';
@@ -713,18 +713,21 @@ async function saveExerciseFamily(ex: Exercise, selection?: string | null): Prom
   return exercises.get(ex.id)!;
 }
 
+/** Change an exercise; a field set to undefined is removed (an override back at its default, #54). */
 export async function updateExercise(id: string, patch: Partial<Exercise>, familySelection?: string | null) {
   return mutateExercises(async () => {
     const ex = state.exercises.get(id);
     if (!ex) return;
-    await saveExerciseFamily({ ...ex, ...patch }, familySelection);
+    const next: Exercise = { ...ex, ...patch };
+    for (const k of Object.keys(patch) as (keyof Exercise)[]) if (patch[k] === undefined) delete next[k];
+    await saveExerciseFamily(next, familySelection);
   });
 }
 
 export const findExercise = (name: string): Exercise | null => findExerciseByName(state.exercises, name) as Exercise | null;
 
 /** Create a custom exercise. Family choices stay in the form until this save. */
-export async function addExercise(o: { name: string; category: Exercise['category']; bodyPart: string; notes?: string; family?: string | null }, familySelection?: string | null): Promise<Exercise> {
+export async function addExercise(o: { name: string; category: Exercise['category']; bodyPart: string; notes?: string; family?: string | null; unilateral?: boolean }, familySelection?: string | null): Promise<Exercise> {
   return mutateExercises(async () => {
     const ex = newExerciseRecord(o, { hasId: (id: string) => state.exercises.has(id) }) as Exercise;
     if (o.family !== undefined) ex.family = o.family;
@@ -1056,9 +1059,14 @@ export async function saveWorkoutEdit(defaultName: string): Promise<{ problem?: 
 }
 
 export function startWorkout(from: { template?: Template | null; fromWorkout?: Workout | null }, defaultName: string) {
+  const uni = (id: string) => isUnilateral(state.exercises.get(id));
+  // a routine's unilateral sets without a side become left and right ones, in the routine too (#54),
+  // so progression, readiness and Update routine compare side with side
+  const split = from.template && !from.template.example ? splitRoutine(from.template, uni) as Template | null : null;
+  if (split) saveTemplate(split).catch(() => {});
   const active = newActiveWorkout({
-    template: from.template || null, fromWorkout: from.fromWorkout || null, hasExercise: (id: string) => state.exercises.has(id),
-    settings: state.settings, now: Date.now(), name: defaultName,
+    template: split || from.template || null, fromWorkout: from.fromWorkout || null, hasExercise: (id: string) => state.exercises.has(id),
+    isUnilateral: uni, settings: state.settings, now: Date.now(), name: defaultName,
   }) as ActiveWorkout;
   setState({ active });
   persistActive(true);

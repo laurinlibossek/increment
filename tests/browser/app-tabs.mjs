@@ -58,7 +58,9 @@ async function discard(page) {
 
   const card = await id(page, 'up-next').innerText();
   assert.match(card, new RegExp(`Up next · [^\\n]+\\n${sug.template.name}`));
-  assert.ok(card.includes(`${size.exercises} exercises · ${size.sets} sets · about ${size.minutes} min`), card);
+  // one-side exercises without sides show as unpaired (#54)
+  const setsText = (z) => `${z.sets} sets${z.unpaired ? ` · ${z.unpaired} unpaired` : ''}`;
+  assert.ok(card.includes(`${size.exercises} exercises · ${setsText(size)} · about ${size.minutes} min`), card);
   const date = new Intl.DateTimeFormat('en-US', { weekday: 'long', day: 'numeric', month: 'long' }).format(Date.now());
   assert.ok((await text(page)).toLowerCase().includes(date.toLowerCase()), `eyebrow ${date}`);
   assert.match(await id(page, 'week-head').innerText(), new RegExp(`${week.done} of ${settings.weeklyGoal} sessions`));
@@ -89,7 +91,7 @@ async function discard(page) {
   assert.match(bar, /Rest \d:\d\d/);
   const now = await id(page, 'now-card').innerText();
   assert.match(now, /In progress · since/);
-  assert.ok(now.includes(`1 of ${size.sets} sets`), now);
+  assert.ok(now.includes(`1 of ${size.sets} working sets · ${Math.floor(100 / size.sets)}%`), now);
   await page.screenshot({ path: `${OUT}/02-now-lifting.png` });
   await id(page, 'mini-skip-rest').click();
   await wait(page, 300);
@@ -126,7 +128,7 @@ async function discard(page) {
     const names = t.exercises.map((e) => lib.get(e.exerciseId)?.name).filter(Boolean);
     assert.ok(text.startsWith(`${t.name}\n${names[0]}`), text);
     if (names.length > 3) assert.ok(text.includes(` & ${names.length - 3} more`), text);
-    assert.ok(text.includes(`${sz.sets} sets · about ${sz.minutes} min · `), text);
+    assert.ok(text.includes(`${setsText(sz)} · about ${sz.minutes} min · `), text);
   }
   await id(page, 'plan-add').click();
   await id(page, 'new-template').waitFor();

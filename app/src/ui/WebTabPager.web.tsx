@@ -1,6 +1,6 @@
 // One browser scroll container for all tab pages. Native scrolling owns the
 // gesture, direction lock, momentum and snap, including touches on Pressables.
-import { useEffect, useEffectEvent, useLayoutEffect, useRef } from 'react';
+import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import {
   createBaseTabProps, createStandardRouterNavigator, TabRouter, unstable_useReconcileTabHistory, useIsFocused,
@@ -12,6 +12,20 @@ import { RADIUS, SPACE } from '@/design/tally';
 import { useTally } from '@/lib/theme';
 import { SymbolIcon, type SymbolName } from '@/ui/tally/ListRow';
 import { MiniBar } from '@/ui/workout/MiniBar';
+
+// The page the bar highlights: the one mostly visible while the pager moves,
+// separate from the settled route. Only the bar subscribes, so a swipe that
+// crosses halfway re-renders the bar and not the pages.
+type Shown = { get: () => number; set: (index: number) => void; subscribe: (listener: () => void) => () => void };
+function createShown(initial: number): Shown {
+  let value = initial;
+  const listeners = new Set<() => void>();
+  return {
+    get: () => value,
+    set: (index) => { if (index !== value) { value = index; listeners.forEach((l) => l()); } },
+    subscribe: (listener) => { listeners.add(listener); return () => { listeners.delete(listener); }; },
+  };
+}
 
 type PagerProps = NavigatorContentProps<
   { title?: string },
@@ -25,11 +39,17 @@ function PagerContent({ state, routeNames, preload, descriptors, actions, emitte
   const { colors: t } = useTally();
   const pagerRef = useRef<HTMLDivElement>(null);
   const touchingRef = useRef(false);
+  // A bar tap shows its tab at once, not the pages its smooth scroll passes.
+  const targetRef = useRef<number | null>(null);
   // SDK 58 registers tab routes on demand. Preload every declaration before
   // mounting the pager so all pages have real, stable route/descriptor keys.
   const routes = routeNames.flatMap((name) => state.routes.filter((r) => r.name === name));
   const ready = routes.length === routeNames.length;
   const selectedIndex = routes.findIndex((r) => r.key === state.routes[state.index]?.key);
+  const [shown] = useState(() => createShown(Math.max(0, selectedIndex)));
+  const pageAt = (pager: HTMLDivElement) => pager.clientWidth
+    ? Math.min(routes.length - 1, Math.max(0, Math.round(pager.scrollLeft / pager.clientWidth)))
+    : null;
   useLayoutEffect(() => {
     for (const name of routeNames) {
       if (!state.routes.some((r) => r.name === name)) preload(name);
@@ -42,6 +62,8 @@ function PagerContent({ state, routeNames, preload, descriptors, actions, emitte
     const pager = pagerRef.current;
     if (!pager) return;
     const align = () => {
+      targetRef.current = null;
+      if (selectedIndex >= 0) shown.set(selectedIndex);
       if (pager.clientWidth) pager.scrollTo({ left: selectedIndex * pager.clientWidth, behavior: 'instant' });
     };
     align();
@@ -54,10 +76,21 @@ function PagerContent({ state, routeNames, preload, descriptors, actions, emitte
     });
     resize.observe(pager);
     return () => resize.disconnect();
-  }, [selectedIndex, ready, focused]);
+  }, [selectedIndex, ready, focused, shown]);
+
+  const follow = useEffectEvent(() => {
+    const pager = pagerRef.current;
+    if (!pager) return;
+    const index = pageAt(pager);
+    const target = targetRef.current;
+    if (target !== null && Math.abs(pager.scrollLeft - target * pager.clientWidth) > 1) return;
+    targetRef.current = null;
+    if (index !== null) shown.set(index);
+  });
 
   const settle = useEffectEvent(() => {
     const pager = pagerRef.current;
+    if (pager && !touchingRef.current) { targetRef.current = null; follow(); }
     if (!pager || !focused || touchingRef.current || !pager.clientWidth) return;
     const index = Math.round(pager.scrollLeft / pager.clientWidth);
     // A quiet moment while holding a half swipe isn't a settled page. Leave
@@ -76,7 +109,7 @@ function PagerContent({ state, routeNames, preload, descriptors, actions, emitte
       clearTimeout(quiet);
       if (!supportsScrollEnd) quiet = setTimeout(settle, 150);
     };
-    const start = () => { touchingRef.current = true; clearTimeout(quiet); };
+    const start = () => { touchingRef.current = true; targetRef.current = null; clearTimeout(quiet); };
     const end = (e: TouchEvent) => {
       touchingRef.current = e.touches.length > 0;
       scroll();
@@ -84,7 +117,7 @@ function PagerContent({ state, routeNames, preload, descriptors, actions, emitte
     // scrollend covers modern browsers; the quiet-scroll fallback also works
     // on older iPhone Safari. These passive listeners never claim the touch.
     const onEnd = (e: Event) => { if (e.target === pager) settle(); };
-    const onScroll = (e: Event) => { if (e.target === pager) scroll(); };
+    const onScroll = (e: Event) => { if (e.target === pager) { follow(); scroll(); } };
     if (supportsScrollEnd) pager.addEventListener('scrollend', onEnd);
     pager.addEventListener('scroll', onScroll, { passive: true });
     pager.addEventListener('touchstart', start, { passive: true, capture: true });
@@ -104,6 +137,10 @@ function PagerContent({ state, routeNames, preload, descriptors, actions, emitte
     const pager = pagerRef.current;
     if (!pager) return;
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (pager.clientWidth && Math.abs(pager.scrollLeft - index * pager.clientWidth) > 1) {
+      targetRef.current = index;
+      shown.set(index);
+    }
     pager.scrollTo({ left: index * pager.clientWidth, behavior: reduced ? 'instant' : 'smooth' });
   };
 
@@ -123,7 +160,7 @@ function PagerContent({ state, routeNames, preload, descriptors, actions, emitte
           </div>
         ))}
       </div>
-      <TabBar state={{ ...state, routes, index: selectedIndex }} descriptors={descriptors} emitter={emitter} scrollToPage={scrollToPage} />
+      <TabBar state={{ ...state, routes, index: selectedIndex }} shown={shown} descriptors={descriptors} emitter={emitter} scrollToPage={scrollToPage} />
     </View>
   );
 }
@@ -138,15 +175,18 @@ const ICON: Record<string, [SymbolName, SymbolName]> = {
 };
 const BAR_H = 62;
 
-function TabBar({ state, descriptors, emitter, scrollToPage }: Pick<PagerProps, 'state' | 'descriptors' | 'emitter'> & { scrollToPage: (index: number) => void }) {
+function TabBar({ state, shown, descriptors, emitter, scrollToPage }: Pick<PagerProps, 'state' | 'descriptors' | 'emitter'> & {
+  shown: Shown; scrollToPage: (index: number) => void;
+}) {
   const { colors: t, scheme } = useTally();
+  const shownIndex = useSyncExternalStore(shown.subscribe, shown.get, shown.get);
   const insets = useSafeAreaInsets();
   const float = {
     backgroundColor: t.paper2, borderWidth: 0.5, borderColor: t.line,
     shadowColor: '#000', shadowOpacity: scheme === 'dark' ? 0.5 : 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: 6 },
   };
   const tab = (route: (typeof state.routes)[number], index: number) => {
-    const focused = state.index === index;
+    const focused = shownIndex === index;
     const { options } = descriptors[route.key];
     const label = String(options.title ?? route.name);
     const press = () => {

@@ -6,7 +6,8 @@ import { View } from 'react-native';
 import { SPACE, STROKE } from '@/design/tally';
 import { useTally } from '@/lib/theme';
 
-export type StrokeState = 'pending' | 'done' | 'warmup' | 'warmupPending' | 'live' | 'record' | 'skipped';
+export type StrokeState = 'pending' | 'done' | 'warmup' | 'warmupPending' | 'warmupLive' | 'live' | 'record' | 'skipped';
+const WARM: StrokeState[] = ['warmup', 'warmupPending', 'warmupLive'];
 export type TallySize = 'small' | 'regular' | 'hero';
 const HEIGHT: Record<TallySize, number> = { small: 14, regular: STROKE.h, hero: STROKE.hHero };
 const SMALL = { slot: STROKE.slot, hair: STROKE.hair, gap: STROKE.gap, group: STROKE.group };
@@ -17,15 +18,24 @@ export const STROKE_DIMS: Record<TallySize, { h: number; slot: number; hair: num
   hero: { h: STROKE.hHero, slot: STROKE.slotHero, hair: STROKE.hairHero, gap: STROKE.gapHero, group: STROKE.groupHero },
 };
 
+/** A running workout's set as a stroke (#38, #72): the live one outlined, warm-ups half height in every state. */
+export function setStroke(set: { id: string; type?: string; done?: boolean }, liveId: string | null | undefined, records: { has: (id: string) => boolean }): StrokeState {
+  const warm = set.type === 'warmup';
+  if (set.done) return records.has(set.id) ? 'record' : warm ? 'warmup' : 'done';
+  if (set.id === liveId) return warm ? 'warmupLive' : 'live';
+  return warm ? 'warmupPending' : 'pending';
+}
+
 export function Stroke({ state, size = 'regular' }: { state: StrokeState; size?: TallySize }) {
   const { colors: t } = useTally();
   const { slot, hair } = STROKE_DIMS[size];
-  const h = HEIGHT[size] * (state === 'warmup' || state === 'warmupPending' ? 0.55 : 1);
+  // warm-ups are half height in every state, the one being logged too (#72)
+  const h = HEIGHT[size] * (WARM.includes(state) ? 0.55 : 1);
   let mark;
   if (state === 'done' || state === 'warmup') mark = <View style={{ width: slot, height: h, backgroundColor: t.strokeDone }} />;
   else if (state === 'record') {
     mark = <View style={{ width: slot, height: h, backgroundColor: t.signal, borderWidth: t.signalEdge === t.signal ? 0 : 1, borderColor: t.signalEdge }} />;
-  } else if (state === 'live') mark = <View style={{ width: slot, height: h, borderWidth: Math.max(1.5, hair), borderColor: t.ink }} />;
+  } else if (state === 'live' || state === 'warmupLive') mark = <View style={{ width: slot, height: h, borderWidth: Math.max(1.5, hair), borderColor: t.ink }} />;
   else mark = <View style={{ width: hair, height: h, backgroundColor: t.ink3, opacity: state === 'skipped' ? 0.45 : 1 }} />;
   return <View style={{ width: slot, height: h, alignItems: 'center' }}>{mark}</View>;
 }

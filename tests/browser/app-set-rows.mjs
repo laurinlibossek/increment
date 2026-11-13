@@ -88,14 +88,11 @@ for (const theme of ['light', 'dark']) {
   await log(s1);
   await page.waitForTimeout(300);
   await page.screenshot({ path: `${OUT}/session-${theme}.png` });
-  // the drop set like last time: nothing; Bench Press is done, so Side Plank comes up; back to Bench to look
+  // the drop set like last time: nothing; Bench Press is done and stays on screen until Next (#60)
   await log(d);
   if (await id('rest-skip').count()) await id('rest-skip').click();
-  await block(PLANK).waitFor();
-  await id(`jump-${BENCH}`).click();
-  await block(BENCH).waitFor();
   assert.deepEqual(await texts(BENCH, 'notes'), ['', '+1 rep', 'Record', '']);
-  await id(`jump-${PLANK}`).click();
+  await id('next-exercise').click();
   ok(`${theme}: the tick logs and un-logs; “+1 rep” for 80 × 9, “Record” for 90 × 5, nothing for the warm-up or a drop set like last time`);
 
   // a time and a distance: their own columns, a worse time in grey
@@ -105,9 +102,8 @@ for (const theme of ['light', 'dark']) {
   await id(`in-t-${p1}`).fill('45');
   await log(p1);
   if (await id('rest-skip').count()) await id('rest-skip').click();
-  await block(RUN).waitFor();
-  await id(`jump-${PLANK}`).click();
-  assert.deepEqual(await texts(PLANK, 'notes'), ['−0:15']);
+  // Side Plank is unilateral: the routine's set became Left and Right (#54), each against last time's set
+  assert.deepEqual(await texts(PLANK, 'notes'), ['−0:15 Left', 'Right']);
   await id(`jump-${RUN}`).click();
   await block(RUN).waitFor();
   assert.deepEqual(await head(RUN), ['Set', 'km', 'Time']);
@@ -117,7 +113,7 @@ for (const theme of ['light', 'dark']) {
   await log(r1);
   if (!(await block(RUN).count())) await id(`jump-${RUN}`).click();
   assert.deepEqual(await texts(RUN, 'notes'), ['+0.5 km']);
-  ok(`${theme}: “Set Time” for a plank (45 s is −0:15), “Set km Time” for a run (5.5 km is +0.5 km)`);
+  ok(`${theme}: “Set Time” for a plank (45 s on the left is −0:15), “Set km Time” for a run (5.5 km is +0.5 km)`);
   assert.deepEqual(errors, []);
   await ctx.close();
 }

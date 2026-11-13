@@ -1,6 +1,7 @@
 // Small visible library, distinct variation histories, and two custom names.
 import { SEED_EXERCISES, SEED_VERSION, familyOf, DAY } from '../../core/index.js';
-export const SQ = 'x-squat-barbell', SMITH = 'x-squat-smith-machine', DB = 'x-squat-dumbbell';
+// Squat (Dumbbell) left the catalogue (#45): here it's the person's own, never logged
+export const SQ = 'x-squat-barbell', SMITH = 'x-squat-smith-machine', DB = 'c-squat-dumbbell';
 export const FRONT = 'x-front-squat-barbell', FRONT_SMITH = 'x-front-squat-smith-machine';
 export const CABLE = 'x-bicep-curl-cable', CURL_DB = 'x-bicep-curl-dumbbell';
 export function familiesData(theme = 'light') {
@@ -16,6 +17,7 @@ export function familiesData(theme = 'light') {
     exercises: [
       ...SEED_EXERCISES.map((e) => ({ ...e, hidden: !(familyOf(e) === 'f-squat' || ['x-bicep-curl-barbell', CABLE, CURL_DB, 'x-dead-hang'].includes(e.id)) })),
       { id: 'c-cybex', name: 'Squat (Cybex Machine)', category: 'machine', bodyPart: 'other', family: 'f-squat' },
+      { id: DB, name: 'Squat (Dumbbell)', category: 'dumbbell', bodyPart: 'legs', family: 'f-squat' },
       { id: 'c-own-row', name: 'My Row (Upper) (Cybex Machine)', category: 'machine', bodyPart: 'back' },
     ],
     workouts: [

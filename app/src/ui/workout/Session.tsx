@@ -11,8 +11,8 @@ import {
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import {
-  checkOffSet, placeholders, restFor, sessionState, loggedFields, platesFor, parseNum,
-  numToInput, digitsToSec, secToDigits, fmtDigits, weightStep, moveUnit, BODY_PART_LABEL,
+  checkOffSet, placeholders, restFor, currentAfterLog, loggedFields, platesFor, parseNum,
+  numToInput, digitsToSec, secToDigits, fmtDigits, weightStep, moveUnit, BODY_PART_LABEL, sessionProgress,
 } from '@increment/core';
 
 import {
@@ -24,7 +24,7 @@ import { setLabels, useFormat } from '@/lib/format';
 import { useTally } from '@/lib/theme';
 import { toast } from '@/ui/overlay';
 import { Keypad, keypadInput, type KeypadKey } from '@/ui/tally/Keypad';
-import { Tally, type StrokeState } from '@/ui/tally/Tally';
+import { setStroke, Tally, type StrokeState } from '@/ui/tally/Tally';
 import type { Field } from './SetRow';
 import { lastTimeText } from './text';
 
@@ -130,8 +130,9 @@ export function SessionProvider({ children, onTarget }: { children: ReactNode; o
     if (record) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     else Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     if (r.rest && r.rest > 0) startRest(r.rest, f.exName(ex), { entryId, setId });
-    // the exercise switched to is done: the session goes back to its order
-    if (after.current && !sessionState(after, { current: after.current }).next) patchActive({ current: null });
+    // the set finished its exercise (a superset: its last round): it stays on screen until the person moves on (#60)
+    const stay = currentAfterLog(after, entryId);
+    if (stay !== (after.current ?? null)) patchActive({ current: stay });
     if (targetRef.current?.setId === setId) close();
     return true;
   }, [f, tr, close]);
@@ -277,30 +278,28 @@ export function useElapsed(since: number) {
   return secs;
 }
 
-/** Stroke states of every set, one group per exercise; and the records among the logged sets. */
+/**
+ * Stroke states of every set, one group per exercise; how many working sets
+ * are logged (sessionProgress: warm-ups drawn but not counted, #38; a
+ * unilateral set counts once both sides are, #72); and the records among the
+ * logged sets.
+ */
 export function useSessionStrokes(a: ActiveWorkout, live: string | null) {
   const exercises = useAppSelector((x) => x.exercises);
   const workouts = useAppSelector((x) => x.workouts);
   const settings = useAppSelector((x) => x.settings);
   return useMemo(() => {
     const recs = activeRecords();
-    let done = 0, total = 0, records = 0;
+    let records = 0;
     const byEntry = new Map<string, StrokeState[]>();
     for (const e of a.exercises) {
       byEntry.set(e.id, e.sets.map((x) => {
-        // warm-ups are drawn but not counted (#38)
-        const warm = x.type === 'warmup';
-        if (!warm) total++;
-        if (x.done) {
-          if (!warm) done++;
-          if (recs.has(x.id)) { records++; return 'record'; }
-          return warm ? 'warmup' : 'done';
-        }
-        if (x.id === live) return 'live';
-        return warm ? 'warmupPending' : 'pending';
+        if (x.done && recs.has(x.id)) records++;
+        return setStroke(x, live, recs);
       }));
     }
-    return { byEntry, done, total, records };
+    const { done, total, percent } = sessionProgress(a.exercises, exercises, { pair: settings.pairSides !== false });
+    return { byEntry, done, total, percent, records };
   }, [a.exercises, live, exercises, workouts, settings]); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
@@ -321,6 +320,7 @@ export function UnitRows({
   const f = useFormat();
   const { tr } = f;
   const exercises = useAppSelector((x) => x.exercises);
+  const pair = useAppSelector((x) => x.settings.pairSides !== false);
   const templateId = useAppSelector((x) => x.active?.templateId ?? null);
   const [drag, setDrag] = useState<{ from: number; over: number } | null>(null);
   const dragRef = useRef(drag);
@@ -383,12 +383,10 @@ export function UnitRows({
           sub = [part ? tr(part) : '', last ? tr('last {sets}', { sets: last }) : ''].filter(Boolean).join(' · ');
         }
         const groups = u.entries.map((e) => strokes.get(e.id) || []);
-        // warm-ups are drawn but not counted (#38)
-        const done = groups.flat().filter((x) => x === 'done' || x === 'record').length;
-        const count = groups.flat().filter((x) => x !== 'warmup' && x !== 'warmupPending').length;
+        const { done, total } = sessionProgress(u.entries, exercises, { pair });
         return (
           <UnitRow key={u.id} index={i} title={names.join(' + ')} sub={sub} groups={groups} first={i === 0}
-            label={`${names.join(', ')}, ${tr('{done} of {total} sets', { done, total: count })}`}
+            label={`${names.join(', ')}, ${tr('{done} of {total} working sets', { done, total })}`}
             testID={`jump-${u.entries[0].exerciseId}`} onPress={() => onJump(u.entries[0].id)}
             draggable={!!draggable} lifted={drag?.from === i} shift={shift(i)} dy={dy} api={api}
             onStep={(by) => move(i, i + by)} moveLabels={[tr('Move up'), tr('Move down')]} />

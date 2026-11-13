@@ -14,7 +14,7 @@ import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useKeepAwake } from 'expo-keep-awake';
 import {
-  newEntries, sessionState, hasPendingSets, placeholders, loggedFields, rateSet, setRir, REST_PRESETS,
+  newEntries, sessionState, hasPendingSets, nextUnit, placeholders, loggedFields, rateSet, setRir, REST_PRESETS, isUnilateral,
 } from '@increment/core';
 
 import {
@@ -102,6 +102,8 @@ function Running({ a, reveal }: { a: ActiveWorkout; reveal: { current: (ref: Tex
   // ---------- where the session is ----------
   const st = useMemo(() => sessionState(a, { current: a.current ?? null, restEntryId: a.rest?.entryId ?? null }) as SessionAt, [a]);
   const live = st.next?.set.id ?? null;
+  // the exercise on screen is done (#60): it stays until the person moves on with "Next: {exercise}"
+  const ahead = useMemo(() => (st.unit && !st.next ? nextUnit(a, st.unit.id) as { entries: EntryDraft[] } | null : null), [a, st]);
   const strokes = useSessionStrokes(a, live);
   const at = st.unit ? st.units.indexOf(st.unit) : -1;
   const before = at > 0 ? st.units.slice(0, at) : [];
@@ -135,7 +137,7 @@ function Running({ a, reveal }: { a: ActiveWorkout; reveal: { current: (ref: Tex
   const addExercises = async () => {
     const ids = await pickExercises({ multi: true, title: tr('Add exercises') });
     if (!ids) return;
-    editActive((d) => { d.exercises.push(...newEntries(ids, { previousSets: (id: string) => previousSets(id) })); });
+    editActive((d) => { d.exercises.push(...newEntries(ids, { previousSets: (id: string) => previousSets(id), isUnilateral: (id: string) => isUnilateral(getState().exercises.get(id)) })); });
   };
   const discard = async () => {
     const cur = getState().active;
@@ -201,6 +203,9 @@ function Running({ a, reveal }: { a: ActiveWorkout; reveal: { current: (ref: Tex
     return rows[next.index]?.ph || {};
   }, [next, a.templateId, settings]);
   const exercises = useAppSelector((s) => s.exercises);
+  // "Next: Hack Press" (a superset: its exercises joined by +); tapping it goes there, also while a rest runs (#60)
+  const nextLabel = ahead ? tr('Next: {name}', { name: ahead.entries.map((e) => f.exName(exercises.get(e.exerciseId)) || tr('Exercise')).join(' + ') }) : '';
+  const goNext = () => patchActive({ current: ahead ? ahead.entries[0].id : null });
   let bar: ActionBarState;
   if (!a.exercises.length) bar = { kind: 'add', label: tr('Add exercises'), onAdd: addExercises };
   else if (a.rest) {
@@ -210,6 +215,7 @@ function Running({ a, reveal }: { a: ActiveWorkout; reveal: { current: (ref: Tex
     const rated = entry && i >= 0 && entry.sets[i].done ? entry.sets[i] : null;
     bar = {
       kind: 'rest', end: r.end, total: r.total, onAdjust: adjustRest, onSkip: skipRest,
+      next: nextLabel ? { label: nextLabel, onPress: goNext } : undefined,
       labels: {
         rest: tr('Rest'), skip: tr('Skip'), minus: tr('−15 s'), plus: tr('+15 s'), clock: f.clock,
         left: (secs) => tr('Rest timer, {n} seconds left', { n: secs }),
@@ -232,13 +238,11 @@ function Running({ a, reveal }: { a: ActiveWorkout; reveal: { current: (ref: Tex
       a11y: ex ? `${value ? tr('Log {set}', { set: value }) : tr('Log set')}, ${f.exName(ex)}` : undefined,
       onLog: () => session.logSet(next.entry.id, next.set.id),
     };
-  } else if (hasPendingSets(a)) bar = { kind: 'next', label: tr('Next exercise'), onNext: () => patchActive({ current: null }) };
+  } else if (hasPendingSets(a)) bar = { kind: 'next', label: nextLabel || tr('Next exercise'), onNext: goNext };
   else bar = { kind: 'finish', label: tr('Finish workout'), onFinish: finish };
 
-  const countText = [
-    tr('{done} of {total} sets', { done: strokes.done, total: strokes.total }),
-    strokes.records ? (strokes.records === 1 ? tr('1 record') : tr('{n} records', { n: strokes.records })) : '',
-  ].filter(Boolean).join(' · ');
+  // "3 of 12 working sets · 25% · 1 record" (#72)
+  const progress = f.progressText(strokes);
   const top = Platform.OS === 'ios' ? 0 : insets.top;
 
   return (
@@ -270,10 +274,10 @@ function Running({ a, reveal }: { a: ActiveWorkout; reveal: { current: (ref: Tex
             </View>
             {strokes.total > 0 && (
               <WorkoutTally testID="session-tally" style={styles.hero}
-                label={`${tr('{done} of {total} sets logged', { done: strokes.done, total: strokes.total })}${strokes.records ? `, ${countText.split(' · ')[1]}` : ''}`}
+                label={progress.label}
                 groups={a.exercises.filter((e) => e.sets.length).map((e) => strokes.byEntry.get(e.id) || [])} />
             )}
-            {strokes.total > 0 && <Text style={{ ...TYPE.subhead, color: t.ink2, marginTop: SPACE.s2, fontVariant: ['tabular-nums'] }} testID="session-count">{countText}</Text>}
+            {strokes.total > 0 && <Text style={{ ...TYPE.subhead, color: t.ink2, marginTop: SPACE.s2, fontVariant: ['tabular-nums'] }} testID="session-count">{progress.text}</Text>}
             {!!a.templateNotes && <Text style={{ ...TYPE.subhead, color: t.ink2, marginTop: SPACE.s3 }}>{a.templateNotes}</Text>}
             {!!pinned && <View style={{ marginTop: SPACE.s3 }}><PinnedNote text={pinned} testID="workout-pinned" /></View>}
             {(a.showNotes || !!a.notes) && (

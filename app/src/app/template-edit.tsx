@@ -5,7 +5,7 @@ import { useMemo } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { EDIT_MESSAGES, newEntries, templateDraft } from '@increment/core';
+import { EDIT_MESSAGES, newEntries, templateDraft, isUnilateral } from '@increment/core';
 
 import {
   editDraft, getState, patchDraft, previousSets, saveTemplateDraft, templateFolders, useAppSelector,
@@ -53,7 +53,7 @@ export default function TemplateEditScreen() {
   const addExercises = async () => {
     const ids = await pickExercises({ multi: true, title: tr('Add exercises') });
     if (!ids) return;
-    editDraft('edit', (x) => { x.exercises.push(...newEntries(ids, { previousSets: (eid: string) => previousSets(eid), kind: 'template' })); });
+    editDraft('edit', (x) => { x.exercises.push(...newEntries(ids, { previousSets: (eid: string) => previousSets(eid), kind: 'template', isUnilateral: (eid: string) => isUnilateral(getState().exercises.get(eid)) })); });
   };
 
   const header = (
