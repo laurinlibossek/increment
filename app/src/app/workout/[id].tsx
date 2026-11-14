@@ -5,7 +5,7 @@
 // template, shares as text or deletes (with Undo).
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import {
-  Pressable, ScrollView, StyleSheet, Text, View,
+  ScrollView, StyleSheet, Text, View,
 } from 'react-native';
 import {
   entriesSetCount, workoutVolume, est1RM, hasLoadRecords, kgTo, PR_LABEL,
@@ -22,10 +22,10 @@ import { openTemplateEditor, shareText } from '@/lib/templates';
 import { beginWorkout } from '@/lib/workout';
 import { useTally } from '@/lib/theme';
 import {
-  hm, Mark, MARGIN, StatStrip, tnum, workoutStrokes, WorkoutTally,
+  hm, Mark, MARGIN, SectionHeadLink, StatStrip, tnum, workoutStrokes, WorkoutTally,
 } from '@/ui/facts';
 import {
-  Button, Empty, Icon, IconButton, Page,
+  Button, Empty, IconButton, Page,
 } from '@/ui/kit';
 import { actionSheet, ask, toast } from '@/ui/overlay';
 
@@ -143,18 +143,6 @@ export default function WorkoutDetail() {
         <Button large title={tr('Do this workout again')} onPress={() => beginWorkout({ fromWorkout: w }, f)} testID="do-again" />
       </View>
     </ScrollView>
-  );
-}
-
-/** An exercise's name as a section header that opens its page. */
-function SectionHeadLink({ title, onPress, testID }: { title: string; onPress: () => void; testID?: string }) {
-  const { colors: t } = useTally();
-  return (
-    <Pressable onPress={onPress} accessibilityRole="link" testID={testID}
-      style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: MARGIN, marginTop: SPACE.s6, marginBottom: SPACE.s1, opacity: pressed ? 0.6 : 1 })}>
-      <Text style={{ ...TYPE.title3, color: t.ink, flexShrink: 1 }} numberOfLines={1}>{title}</Text>
-      <Icon name="chevron" size={13} color={t.ink3} />
-    </Pressable>
   );
 }
 

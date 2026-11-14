@@ -1,7 +1,7 @@
 // Today: what to do now. The date, the routine that is up next (or the
 // workout that's running) with its one Start button, a slot the store version can fill,
-// this week's sessions and the sets per muscle of the last 7 days. The avatar
-// opens Account. docs/design/navigation.md, phases.md → 2.
+// this week's sessions and the sets per muscle of the last 7 days (a muscle
+// opens the sets behind its number, #89). The avatar opens Account. docs/design/navigation.md, phases.md → 2.
 import { useMemo } from 'react';
 import { Text, View } from 'react-native';
 import { router } from 'expo-router';
@@ -99,7 +99,9 @@ export default function TodayTab() {
       <SectionHeader title={tr('Sets per muscle')} scope={tr('Last 7 days')} />
       {muscles.length ? (
         <MuscleVolume rows={muscles.map((m) => ({ ...m, label: tr(m.label) }))}
-          accessibilityLabel={(r) => `${r.label}, ${f.plural(r.sets, 'set')}`} />
+          accessibilityLabel={(r) => `${r.label}, ${f.plural(r.sets, 'set')}`}
+          // the sets behind each number (#89)
+          onPress={(r) => router.push({ pathname: '/muscle/[id]', params: { id: r.muscle } })} />
       ) : (
         <Text style={[TYPE.subhead, { color: t.ink2, paddingHorizontal: SPACE.s5 }]}>{tr('No sets in the last 7 days.')}</Text>
       )}

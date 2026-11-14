@@ -106,12 +106,13 @@ A full-width row: optional leading symbol, a title with an optional second line,
 
 Working sets per muscle over the last 7 days, as tallies.
 
-**You provide** sets per muscle (counted from the log; an exercise's secondary muscles count half). The store version may pass a target range per muscle; the open app passes none.
+**You provide** sets per muscle (counted from the log: each exercise counts toward its own body part only). The store version may pass a target range per muscle; the open app passes none. Optionally what a row does when tapped: on Today it opens the sets behind its number (#89).
 
 **Rules**
 - Stems are sets done; with a target range, hairlines show the sets still missing to its lower end.
 - The count on the right in `t-headline`. Above the range, the count turns `ink-2`; it never turns red.
 - Muscles in a fixed order (chest, back, shoulders, arms, legs, then the finer split once the exercise library has it).
+- A row that can be tapped looks the same as one that can't: no chevron, only the pressed state (`paper-2`). Its touch area runs the full width and meets the rows above and below, so the layout doesn't move (Laurin, 14 Nov 2026).
 
 ## NowLifting
 

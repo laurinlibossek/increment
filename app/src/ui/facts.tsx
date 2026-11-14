@@ -1,6 +1,6 @@
 // Small Tally pieces for the summary, the workout page and the exercise page
 // (docs/design/phases.md, phase 4): a stat strip, the highlight behind a
-// number that went up, a section header, a list row, and a finished
+// number that went up, a section header, an exercise's header link, a list row, and a finished
 // workout's tally. Private to those screens until the shared Tally
 // components (StatStrip, Highlight, SectionHeader, ListRow) exist in
 // ui/tally/; then these become thin wrappers or go.
@@ -83,6 +83,26 @@ export function SectionHead({ title, scope, action }: { title: string; scope?: s
         </Pressable>
       )}
     </View>
+  );
+}
+
+/**
+ * An exercise's name as a section header that opens its page, with an optional
+ * count on the trailing side, lined up with the counts of its rows (the
+ * workout page, Sets per muscle's breakdown).
+ */
+export function SectionHeadLink({ title, count, lines = 1, onPress, accessibilityLabel, testID }: {
+  title: string; count?: string; lines?: number; onPress: () => void; accessibilityLabel?: string; testID?: string;
+}) {
+  const { colors: t } = useTally();
+  return (
+    <Pressable onPress={onPress} accessibilityRole="link" accessibilityLabel={accessibilityLabel} testID={testID}
+      style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: MARGIN, marginTop: SPACE.s6, marginBottom: SPACE.s1, opacity: pressed ? 0.6 : 1 })}>
+      <Text style={{ ...TYPE.title3, color: t.ink, flexShrink: 1 }} numberOfLines={lines}>{title}</Text>
+      <Icon name="chevron" size={13} color={t.ink3} />
+      {/* in the column of the counts in the rows below, which stand before their chevron */}
+      {count !== undefined && <Text style={[{ ...TYPE.headline, color: t.ink, marginLeft: 'auto', paddingLeft: SPACE.s3, minWidth: 28, textAlign: 'right', marginRight: 13 + SPACE.s3 }, tnum]}>{count}</Text>}
+    </Pressable>
   );
 }
 
