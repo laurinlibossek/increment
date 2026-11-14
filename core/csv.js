@@ -576,15 +576,15 @@ const MEASUREMENT_ORDER = Object.fromEntries(MEASUREMENTS.map((m, i) => [m.id, i
 /**
  * One stored measurement value (kg, cm, % or kcal) in the units of the export:
  * body weight in `bodyUnit` (kg to 0.01, lb to 0.1, like the app), sizes in
- * `sizeUnit` to 0.1, calories whole. Body fat is the percent as typed (14 for
- * 14%): Strong's own file writes a fraction cut to one decimal (14% → 0.1),
- * which loses the value, so Increment doesn't copy it (#29).
+ * `sizeUnit` to 0.1, calories whole. Body fat is a fraction with the unit %,
+ * as Strong writes it, but not cut to one decimal the way Strong's file is
+ * (14% → 0.1 there): 14% → 0.14, 14.5% → 0.145 (Laurin, 14 Nov 2026, #29).
  */
 export function measurementCsvValue(kind, value, { bodyUnit = 'kg', sizeUnit = 'cm' } = {}) {
   if (kind === 'weight') return { value: roundW(kgTo(value, bodyUnit), bodyUnit), unit: bodyUnit };
   if (kind === 'length') return { value: Math.round((sizeUnit === 'in' ? value / CM_PER_IN : value) * 10) / 10, unit: sizeUnit };
   if (kind === 'kcal') return { value: Math.round(value), unit: 'kcal' };
-  return { value: Math.round(value * 100) / 100, unit: '%' };
+  return { value: Math.round(value * 100) / 10000, unit: '%' }; // the stored percent to 0.01, as a fraction
 }
 
 /**

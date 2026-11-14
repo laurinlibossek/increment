@@ -1144,19 +1144,21 @@ test('measurements CSV: the five columns of Strong’s measurement export, one f
     assert.equal(csv, fixture('measurements-export-kg-cm.csv'));
     assert.deepEqual(Object.keys(core.MEASUREMENT_CSV_NAMES).sort(), core.MEASUREMENTS.map((m) => m.id).sort(), 'a name for every measurement');
     assert.deepEqual(new Set(csv.trim().split('\n').slice(1).map((l) => l.split(',')[1])), new Set(Object.values(core.MEASUREMENT_CSV_NAMES)));
-    assert.match(csv, /^2026-03-02 07:41:05,Weight,81\.4,kg,Increment\n2026-03-02 07:41:05,Body Fat,14,%,Increment$/m);
+    assert.match(csv, /^2026-03-02 07:41:05,Weight,81\.4,kg,Increment\n2026-03-02 07:41:05,Body Fat,0\.14,%,Increment$/m);
   });
 });
 
-test('measurements CSV: units, rounding, body fat as the percent, local time, empty data', () => {
+test('measurements CSV: units, rounding, body fat as a fraction, local time, empty data', () => {
   const at = Date.UTC(2026, 2, 2, 7, 41, 5);
   const one = (type, value, units) => withTZ('UTC', () => core.exportMeasurementsCSV({ measurements: [{ id: 'x', type, value, at }], ...units }).split('\n')[1]);
   assert.equal(one('bodyweight', 93), '2026-03-02 07:41:05,Weight,93,kg,Increment', '93, not 93.0');
   assert.equal(one('bodyweight', 80.123), '2026-03-02 07:41:05,Weight,80.12,kg,Increment', 'kg to 0.01');
   assert.equal(one('bodyweight', 100 * core.KG_PER_LB, { bodyUnit: 'lb' }), '2026-03-02 07:41:05,Weight,100,lb,Increment', 'lb to 0.1, no 99.99');
-  // body fat is the percent people read: Strong's own file cuts a fraction to one decimal (14% → 0.1)
-  assert.equal(one('bodyfat', 14), '2026-03-02 07:41:05,Body Fat,14,%,Increment');
-  assert.equal(one('bodyfat', 14.5, { bodyUnit: 'lb', sizeUnit: 'in' }), '2026-03-02 07:41:05,Body Fat,14.5,%,Increment', 'the units don’t touch it');
+  // body fat is a fraction, as Strong writes it, but not cut to one decimal (Strong's file says 0.1 for 14%)
+  assert.equal(one('bodyfat', 14), '2026-03-02 07:41:05,Body Fat,0.14,%,Increment');
+  assert.equal(one('bodyfat', 14.5, { bodyUnit: 'lb', sizeUnit: 'in' }), '2026-03-02 07:41:05,Body Fat,0.145,%,Increment', 'the units don’t touch it');
+  assert.equal(one('bodyfat', 14.3), '2026-03-02 07:41:05,Body Fat,0.143,%,Increment', 'no 0.14300000000000002');
+  assert.equal(one('bodyfat', 8), '2026-03-02 07:41:05,Body Fat,0.08,%,Increment');
   assert.equal(one('calories', 2450.6), '2026-03-02 07:41:05,Calorie Intake,2451,kcal,Increment');
   assert.equal(one('waist', 84.26), '2026-03-02 07:41:05,Waist,84.3,cm,Increment');
   assert.equal(one('waist', 33 * 2.54, { sizeUnit: 'in' }), '2026-03-02 07:41:05,Waist,33,in,Increment');

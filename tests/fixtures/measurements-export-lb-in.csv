@@ -1,6 +1,6 @@
 Date,Measurement Type,Value,Unit,Source
 2026-03-02 07:41:05,Weight,179.5,lb,Increment
-2026-03-02 07:41:05,Body Fat,14,%,Increment
+2026-03-02 07:41:05,Body Fat,0.14,%,Increment
 2026-03-02 21:05:00,Calorie Intake,2450,kcal,Increment
 2026-03-03 08:00:00,Neck,15.6,in,Increment
 2026-03-03 08:01:00,Shoulders,47.7,in,Increment
@@ -16,4 +16,4 @@ Date,Measurement Type,Value,Unit,Source
 2026-03-03 08:11:00,Left Calf,15,in,Increment
 2026-03-03 08:12:00,Right Calf,15.1,in,Increment
 2026-03-09 07:30:12,Weight,181.1,lb,Increment
-2026-03-09 07:31:00,Body Fat,14.5,%,Increment
+2026-03-09 07:31:00,Body Fat,0.145,%,Increment

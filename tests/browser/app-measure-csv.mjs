@@ -62,7 +62,7 @@ async function exportFile(page, id) {
   assert.equal(await exportFile(page, id), golden('measurements-export-lb-in.csv'));
   await page.waitForTimeout(2500);
   await page.screenshot({ path: `${OUT}/en-dark-account.png` });
-  ok('with lb and mi, body weight goes out in lb and sizes in in (the lb/in golden file); body fat and calories as they are');
+  ok('with lb and mi, body weight goes out in lb and sizes in in (the lb/in golden file); body fat (a fraction) and calories as they are');
   assert.deepEqual(errors, []);
   await ctx.close();
 }
