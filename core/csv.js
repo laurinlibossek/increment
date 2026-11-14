@@ -6,7 +6,7 @@ import {
 import { rpeFromRir } from './calc.js';
 import { isUnilateral, mergeSidePairs } from './set-sides.js';
 import { canMergeExercises } from './editing.js';
-import { BODY_PARTS, CATEGORIES, SEED_EXERCISES } from './seed.js';
+import { BODY_PARTS, CATEGORIES, SEED_EXERCISES, MEASUREMENTS, MEASUREMENT_BY_ID } from './seed.js';
 import { strongNameKey, STRONG_EXERCISE_ALIASES, strongExerciseSuggestions, strongExerciseFamily } from './strong-matching.js';
 
 // ---------- CSV ----------
@@ -555,3 +555,56 @@ export function exportCSV({ workouts, exercises, unit = 'kg', distUnit = 'km', u
   return lines.join('\n') + '\n';
 }
 
+
+// ---------- measurements CSV (#29) ----------
+/**
+ * The Measurement Type each measurement goes out as. Strong's export shows `Weight`
+ * and `Body Fat` (Laurin's sample, 14 Nov 2026); the rest are only in Strong's paid
+ * tier, so they are the app's English names in the same capitalisation. A sample of
+ * that tier's export corrects them here, in one place. English in every language,
+ * like the stored exercise names.
+ */
+export const MEASUREMENT_CSV_NAMES = {
+  bodyweight: 'Weight', bodyfat: 'Body Fat', calories: 'Calorie Intake',
+  neck: 'Neck', shoulders: 'Shoulders', chest: 'Chest',
+  bicep_l: 'Left Biceps', bicep_r: 'Right Biceps', forearm_l: 'Left Forearm', forearm_r: 'Right Forearm',
+  waist: 'Waist', hips: 'Hips', thigh_l: 'Left Thigh', thigh_r: 'Right Thigh', calf_l: 'Left Calf', calf_r: 'Right Calf',
+};
+const CM_PER_IN = 2.54;
+const MEASUREMENT_ORDER = Object.fromEntries(MEASUREMENTS.map((m, i) => [m.id, i]));
+
+/**
+ * One stored measurement value (kg, cm, % or kcal) in the units of the export:
+ * body weight in `bodyUnit` (kg to 0.01, lb to 0.1, like the app), sizes in
+ * `sizeUnit` to 0.1, calories whole. Body fat is the percent as typed (14 for
+ * 14%): Strong's own file writes a fraction cut to one decimal (14% → 0.1),
+ * which loses the value, so Increment doesn't copy it (#29).
+ */
+export function measurementCsvValue(kind, value, { bodyUnit = 'kg', sizeUnit = 'cm' } = {}) {
+  if (kind === 'weight') return { value: roundW(kgTo(value, bodyUnit), bodyUnit), unit: bodyUnit };
+  if (kind === 'length') return { value: Math.round((sizeUnit === 'in' ? value / CM_PER_IN : value) * 10) / 10, unit: sizeUnit };
+  if (kind === 'kcal') return { value: Math.round(value), unit: 'kcal' };
+  return { value: Math.round(value * 100) / 100, unit: '%' };
+}
+
+/**
+ * Every measurement as one CSV in the columns of Strong's measurement export
+ * (#29, pinned by tests/fixtures/measurements-*.csv): Date (local time, as the
+ * workout CSV), Measurement Type, Value (a decimal point, no forced .0: 93,
+ * 81.4), Unit, Source (`Increment`). Strong writes a file per measurement; this
+ * is one file, oldest first, so the type column tells them apart (Laurin, 14 Nov
+ * 2026). Nothing is quoted: no cell can hold a comma. Types the app doesn't
+ * know and values that aren't numbers are left out. One newline at the end,
+ * like the workout CSV.
+ */
+export function exportMeasurementsCSV({ measurements, bodyUnit = 'kg', sizeUnit = 'cm' }) {
+  const lines = ['Date,Measurement Type,Value,Unit,Source'];
+  const rows = (measurements || [])
+    .filter((m) => MEASUREMENT_BY_ID[m.type] && MEASUREMENT_CSV_NAMES[m.type] && Number.isFinite(m.value) && Number.isFinite(m.at))
+    .sort((a, b) => a.at - b.at || MEASUREMENT_ORDER[a.type] - MEASUREMENT_ORDER[b.type]);
+  for (const m of rows) {
+    const { value, unit } = measurementCsvValue(MEASUREMENT_BY_ID[m.type].kind, m.value, { bodyUnit, sizeUnit });
+    lines.push([isoLocal(m.at), MEASUREMENT_CSV_NAMES[m.type], String(value), unit, 'Increment'].join(','));
+  }
+  return lines.join('\n') + '\n';
+}

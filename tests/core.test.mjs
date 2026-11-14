@@ -1119,6 +1119,70 @@ test('Strong shipped spellings resolve to existing identities, and new family me
   assert.equal(core.strongExerciseFamily('Squat Jump (Machine)', core.SEED_EXERCISES), undefined);
 });
 
+// ---------- measurements CSV (#29) ----------
+const { EXPORT_MEASUREMENTS } = await import('./fixtures/measurements-export.mjs');
+
+test('measurements CSV: the five columns of Strong’s measurement export, one file, pinned by golden files (kg/cm and lb/in)', () => {
+  withTZ('UTC', () => {
+    for (const [file, bodyUnit, sizeUnit] of [['measurements-export-kg-cm.csv', 'kg', 'cm'], ['measurements-export-lb-in.csv', 'lb', 'in']]) {
+      const csv = core.exportMeasurementsCSV({ measurements: EXPORT_MEASUREMENTS, bodyUnit, sizeUnit });
+      assert.equal(csv, fixture(file), file);
+      const lines = csv.split('\n');
+      assert.equal(lines[0], 'Date,Measurement Type,Value,Unit,Source');
+      assert.equal(lines.at(-1), '', 'one final newline');
+      for (const l of lines.slice(1, -1)) {
+        const cells = l.split(',');
+        assert.equal(cells.length, 5, l);
+        assert.match(cells[0], /^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$/, l);
+        assert.match(cells[2], /^\d+(\.\d+)?$/, `${l}: a decimal point, no forced .0`);
+        assert.equal(cells[4], 'Increment');
+      }
+    }
+    // every type the app has goes out, under its name; oldest first whatever the stored order,
+    // two at the same second in the app's order of measurements
+    const csv = core.exportMeasurementsCSV({ measurements: [...EXPORT_MEASUREMENTS].reverse() });
+    assert.equal(csv, fixture('measurements-export-kg-cm.csv'));
+    assert.deepEqual(Object.keys(core.MEASUREMENT_CSV_NAMES).sort(), core.MEASUREMENTS.map((m) => m.id).sort(), 'a name for every measurement');
+    assert.deepEqual(new Set(csv.trim().split('\n').slice(1).map((l) => l.split(',')[1])), new Set(Object.values(core.MEASUREMENT_CSV_NAMES)));
+    assert.match(csv, /^2026-03-02 07:41:05,Weight,81\.4,kg,Increment\n2026-03-02 07:41:05,Body Fat,14,%,Increment$/m);
+  });
+});
+
+test('measurements CSV: units, rounding, body fat as the percent, local time, empty data', () => {
+  const at = Date.UTC(2026, 2, 2, 7, 41, 5);
+  const one = (type, value, units) => withTZ('UTC', () => core.exportMeasurementsCSV({ measurements: [{ id: 'x', type, value, at }], ...units }).split('\n')[1]);
+  assert.equal(one('bodyweight', 93), '2026-03-02 07:41:05,Weight,93,kg,Increment', '93, not 93.0');
+  assert.equal(one('bodyweight', 80.123), '2026-03-02 07:41:05,Weight,80.12,kg,Increment', 'kg to 0.01');
+  assert.equal(one('bodyweight', 100 * core.KG_PER_LB, { bodyUnit: 'lb' }), '2026-03-02 07:41:05,Weight,100,lb,Increment', 'lb to 0.1, no 99.99');
+  // body fat is the percent people read: Strong's own file cuts a fraction to one decimal (14% → 0.1)
+  assert.equal(one('bodyfat', 14), '2026-03-02 07:41:05,Body Fat,14,%,Increment');
+  assert.equal(one('bodyfat', 14.5, { bodyUnit: 'lb', sizeUnit: 'in' }), '2026-03-02 07:41:05,Body Fat,14.5,%,Increment', 'the units don’t touch it');
+  assert.equal(one('calories', 2450.6), '2026-03-02 07:41:05,Calorie Intake,2451,kcal,Increment');
+  assert.equal(one('waist', 84.26), '2026-03-02 07:41:05,Waist,84.3,cm,Increment');
+  assert.equal(one('waist', 33 * 2.54, { sizeUnit: 'in' }), '2026-03-02 07:41:05,Waist,33,in,Increment');
+  // the phone's local time, like the workout CSV
+  assert.equal(withTZ('Europe/Berlin', () => core.exportMeasurementsCSV({ measurements: [{ id: 'x', type: 'bodyweight', value: 81, at }] }).split('\n')[1]),
+    '2026-03-02 08:41:05,Weight,81,kg,Increment');
+  // nothing logged: the header only
+  assert.equal(core.exportMeasurementsCSV({ measurements: [] }), 'Date,Measurement Type,Value,Unit,Source\n');
+  assert.equal(core.exportMeasurementsCSV({}), 'Date,Measurement Type,Value,Unit,Source\n');
+});
+
+test('measurements CSV: app-only fields never reach the file; unknown types and broken values are left out', () => {
+  const extra = EXPORT_MEASUREMENTS.map((m) => ({ ...m, note: 'after the gym', source: 'health', futureField: { any: 1 } }));
+  const broken = [
+    { id: 'z1', type: 'mystery', value: 5, at: Date.UTC(2026, 2, 4) },
+    { id: 'z2', type: 'bodyweight', value: NaN, at: Date.UTC(2026, 2, 4) },
+    { id: 'z3', type: 'bodyweight', value: '81', at: Date.UTC(2026, 2, 4) },
+    { id: 'z4', type: 'waist', value: 80, at: undefined },
+  ];
+  withTZ('UTC', () => {
+    const csv = core.exportMeasurementsCSV({ measurements: [...extra, ...broken] });
+    assert.equal(csv, fixture('measurements-export-kg-cm.csv'));
+    assert.doesNotMatch(csv, /m0\d|after the gym|health|mystery/);
+  });
+});
+
 // ---------- backup ----------
 test('backups round-trip, count as the latest backup and restore the built-in library', () => {
   const data = { exercises: [], workouts: [{ id: 'w' }], templates: [], measurements: [], kv: { meta: { lastBackupAt: 5 } } };
