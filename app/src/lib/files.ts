@@ -1,10 +1,15 @@
 // Handing a file to the user: the share sheet on the phone (Save to Files,
 // AirDrop, Mail…), a download in a browser.
-import { Platform } from 'react-native';
+import { Platform, Share } from 'react-native';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 
-export type SaveResult = 'shared' | 'downloaded' | 'failed';
+/**
+ * 'dismissed': the iPhone's share sheet was closed without saving or sending the
+ * file (#85). Android's sheet and a browser download can't tell, so they say
+ * 'shared' and 'downloaded' either way.
+ */
+export type SaveResult = 'shared' | 'downloaded' | 'dismissed' | 'failed';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 export const dateStamp = (t = Date.now()) => {
@@ -33,6 +38,12 @@ export async function saveTextFile(name: string, text: string, mime: string, uti
     if (file.exists) file.delete();
     file.create();
     await file.write(text);
+    // React Native's own sheet on iPhone says whether the file went anywhere; expo-sharing's
+    // resolves the same way when it is just closed. Android's can't share a file.
+    if (Platform.OS === 'ios') {
+      const r = await Share.share({ url: file.uri });
+      return r.action === 'sharedAction' ? 'shared' : 'dismissed';
+    }
     if (!(await Sharing.isAvailableAsync())) return 'failed';
     await Sharing.shareAsync(file.uri, { mimeType: mime, UTI: uti, dialogTitle });
     return 'shared';

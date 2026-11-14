@@ -451,6 +451,8 @@ export default {
   Dismiss: 'Ausblenden',
   'Backup ready': 'Backup bereit',
   'Backup downloaded': 'Backup heruntergeladen',
+  'Backup not saved': 'Backup nicht gespeichert',
+  'The running workout wasn’t saved to a file, so nothing was replaced.': 'Das laufende Training wurde nicht in einer Datei gesichert, deshalb wurde nichts ersetzt.',
   'CSV exported': 'CSV exportiert',
   'Replace all data?': 'Alle Daten ersetzen?',
   'The backup{from} has {workouts}, {templates} and {measurements}. Everything currently in the app is replaced.': 'Das Backup{from} enthält {workouts}, {templates} und {measurements}. Alles, was gerade in der App ist, wird ersetzt.',
