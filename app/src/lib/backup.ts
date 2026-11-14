@@ -13,6 +13,8 @@ export const appVersion = () => Constants.expoConfig?.version || '';
 export async function backupNow(tr: Tr) {
   const r = await saveTextFile(`increment-backup-${dateStamp()}.json`, backupText(appVersion()), 'application/json', 'public.json', tr('Back up now'));
   if (r === 'failed') { toast(tr('Couldn’t make the backup')); return; }
+  // a closed share sheet is no backup: the reminder stays (#85)
+  if (r === 'dismissed') { toast(tr('Backup not saved')); return; }
   // the file is made either way: storage failing may be why the person backs up
   markBackedUp().catch(() => {});
   toast(r === 'shared' ? tr('Backup ready') : tr('Backup downloaded'));

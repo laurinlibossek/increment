@@ -79,13 +79,13 @@ export default function AccountSheet() {
   const doCSV = async () => {
     const text = exportCSV({ workouts: s.workouts, exercises: s.exercises, unit: st.unit, distUnit: st.distUnit, unknownName: tr('Unknown exercise'), pairSides: st.pairSides !== false });
     const r = await saveTextFile(`increment-workouts-${dateStamp()}.csv`, text, 'text/csv', 'public.comma-separated-values-text', tr('Export workouts as CSV'));
-    toast(r === 'failed' ? tr('Sharing isn’t available here') : tr('CSV exported'));
+    if (r !== 'dismissed') toast(r === 'failed' ? tr('Sharing isn’t available here') : tr('CSV exported'));
   };
   // body measurements in the columns of Strong's measurement export, one file (#29)
   const doMeasureCSV = async () => {
     const text = exportMeasurementsCSV({ measurements: s.measurements, bodyUnit: bodyUnit(st), sizeUnit: lengthUnit(st) });
     const r = await saveTextFile(`increment-measurements-${dateStamp()}.csv`, text, 'text/csv', 'public.comma-separated-values-text', tr('Export measurements as CSV'));
-    toast(r === 'failed' ? tr('Sharing isn’t available here') : tr('CSV exported'));
+    if (r !== 'dismissed') toast(r === 'failed' ? tr('Sharing isn’t available here') : tr('CSV exported'));
   };
 
   const doRestore = async () => {
@@ -116,6 +116,8 @@ export default function AccountSheet() {
       if (pick === 'backup') {
         const r = await saveTextFile(`increment-backup-${dateStamp()}.json`, backupText(appVersion()), 'application/json', 'public.json', tr('Back up now'));
         if (r === 'failed') { notice(tr('Restore from backup'), tr('Couldn’t make the backup')); return; }
+        // the sheet was closed: without the copy it promised, nothing is replaced (#85)
+        if (r === 'dismissed') { notice(tr('Restore from backup'), tr('The running workout wasn’t saved to a file, so nothing was replaced.')); return; }
         active = preview.active;
       }
     }
