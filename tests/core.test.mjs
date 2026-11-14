@@ -1021,6 +1021,23 @@ function withTZ(tz, fn) {
 const { EXPORT_EXERCISES, EXPORT_WORKOUTS } = await import('./fixtures/strong-export-workouts.mjs');
 const exportMap = (list = EXPORT_EXERCISES) => new Map(list.map((e) => [e.id, e]));
 
+test('daysAgo counts calendar days, also on the day after a clock change (#86)', () => {
+  withTZ('Europe/Berlin', () => {
+    const at = (local) => new Date(local).getTime();
+    // Mondays after the clocks went forward (a 23-hour Sunday) and back (25 hours), and an ordinary day
+    for (const [now, before] of [['2026-03-30T09:00', '2026-03-29T18:00'], ['2026-10-26T09:00', '2026-10-25T18:00'], ['2026-11-14T09:00', '2026-11-13T18:00']]) {
+      assert.equal(core.daysAgo(at(before), at(now)), 1, `${before} is yesterday on ${now}`);
+      assert.equal(core.daysAgo(at(now), at(now)), 0);
+    }
+    // the dialog's old rule, today's midnight minus 24 hours, missed that Monday's yesterday
+    assert.notEqual(core.startOfDay(at('2026-03-29T18:00')), core.startOfDay(at('2026-03-30T09:00')) - core.DAY);
+    assert.equal(core.daysAgo(at('2026-03-29T00:00'), at('2026-03-30T23:59')), 1, 'from midnight to the last minute');
+    assert.equal(core.daysAgo(at('2026-03-23T12:00'), at('2026-03-30T12:00')), 7, 'a week with the 23-hour day');
+    assert.equal(core.daysAgo(at('2026-10-19T12:00'), at('2026-10-26T12:00')), 7, 'a week with the 25-hour day');
+    assert.equal(core.daysAgo(at('2026-11-15T08:00'), at('2026-11-14T20:00')), -1, 'tomorrow');
+  });
+});
+
 test('CSV export is Strong’s 12-column style, pinned by golden files (kg/km and lb/mi)', () => {
   withTZ('UTC', () => {
     for (const [file, unit, distUnit] of [['strong-export-kg.csv', 'kg', 'km'], ['strong-export-lb.csv', 'lb', 'mi']]) {

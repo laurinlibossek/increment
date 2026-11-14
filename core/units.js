@@ -117,6 +117,11 @@ export function fmtDigits(d) {
 // ---------- calendar ----------
 export const DAY = 86400000;
 export function startOfDay(t) { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); }
+/**
+ * Calendar days from `at` back from `now`: 0 today, 1 yesterday. Rounded, because
+ * the day the clocks change has 23 or 25 hours (#86); negative for a later day.
+ */
+export function daysAgo(at, now = Date.now()) { return Math.round((startOfDay(now) - startOfDay(at)) / DAY); }
 export function startOfWeek(t, weekStart = 1) {
   const d = new Date(startOfDay(t));
   const diff = (d.getDay() - weekStart + 7) % 7;

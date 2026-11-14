@@ -1,6 +1,7 @@
 // Screens with dates move on with the day (#36): at midnight while the app is
 // open, and when it comes back to the foreground days later. Uses Playwright's
-// clock, so no real waiting; the data never changes.
+// clock, so no real waiting; the data never changes. Also the date dialog's Yesterday
+// on the day after a clock change (#86).
 import assert from 'node:assert/strict';
 import { launch, devices, grantWakeLock, APP, shots, storedData, selectTab } from './env.mjs';
 import { SEED_EXERCISES, SEED_VERSION } from '../../core/index.js';
@@ -79,8 +80,19 @@ await ctx.close();
   await p.getByText('Sunday, March 29', { exact: true }).first().waitFor();
   await p.clock.runFor('23:00:00'); // 00:01 CET + 23 hours = 00:01 CEST on Monday
   await p.getByText('Monday, March 30', { exact: true }).first().waitFor();
-  await c.close();
   ok('across the switch to summer time the day still changes at midnight');
+  // the date and time dialog (Start history from, a workout's start) calls the 23-hour Sunday Yesterday (#86)
+  await p.getByTestId('open-account').click();
+  await p.getByTestId('set-history-start').click();
+  await p.getByTestId('history-pick').click();
+  const dayLabel = () => p.getByTestId('day-label').innerText();
+  assert.equal(await dayLabel(), 'Today');
+  await p.getByTestId('day-prev').click();
+  assert.equal(await dayLabel(), 'Yesterday');
+  await p.getByTestId('day-prev').click();
+  assert.equal(await dayLabel(), 'Sat, Mar 28');
+  await c.close();
+  ok('on the Monday after the switch, the date dialog says Yesterday for Sunday');
 }
 await browser.close();
 console.log(`\n${passed} checks passed`);

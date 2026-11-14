@@ -11,6 +11,7 @@ import {
   Animated, BackHandler, Keyboard, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { daysAgo, startOfDay } from '@increment/core';
 
 import { useLang } from '@/lib/i18n';
 import { RADIUS, SPACE, TYPE } from '@/design/tally';
@@ -263,8 +264,6 @@ function PromptView({ o }: { o: Extract<Open, { kind: 'prompt' }> }) {
 
 // ---------- day and time ----------
 const pad2 = (n: number) => String(n).padStart(2, '0');
-const DAY_MS = 86400000;
-function startOfDay(t: number) { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); }
 
 /** A day stepper (‹ Today ›) and HH:MM fields. Calls onChange with the time in ms. */
 function DayTime({ value, onChange, max }: { value: number; onChange: (t: number) => void; max?: number }) {
@@ -274,9 +273,9 @@ function DayTime({ value, onChange, max }: { value: number; onChange: (t: number
   const [hh, setHh] = useState(pad2(d.getHours()));
   const [mm, setMm] = useState(pad2(d.getMinutes()));
   const day = startOfDay(value);
-  const today = startOfDay(Date.now());
-  const label = day === today ? tr('Today') : day === today - DAY_MS ? tr('Yesterday')
-    : new Intl.DateTimeFormat(locale, { weekday: 'short', day: 'numeric', month: 'short', year: day < today - 300 * DAY_MS ? 'numeric' : undefined }).format(value);
+  const ago = daysAgo(value);
+  const label = ago === 0 ? tr('Today') : ago === 1 ? tr('Yesterday')
+    : new Intl.DateTimeFormat(locale, { weekday: 'short', day: 'numeric', month: 'short', year: ago > 300 ? 'numeric' : undefined }).format(value);
   const at = (dayStart: number, h: string, m: string) => {
     const x = new Date(dayStart);
     x.setHours(Math.min(23, Math.max(0, parseInt(h, 10) || 0)), Math.min(59, Math.max(0, parseInt(m, 10) || 0)), 0, 0);
