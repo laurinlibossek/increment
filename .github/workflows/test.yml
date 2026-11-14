@@ -67,10 +67,12 @@ jobs:
   # The web app: once every check above passed on main, build the website
   # (scripts/web-site.mjs) and publish it with GitHub Pages at
   # https://increment-training.app (Settings → Pages: source GitHub Actions,
-  # custom domain increment-training.app). Pull requests never publish.
+  # custom domain increment-training.app). Pull requests never publish, and
+  # neither does the private increment-prod, which merges this file in: the
+  # open web app is published from this repository only.
   deploy:
     needs: [core, app, browser]
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    if: github.repository == 'laurinlibossek/increment' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read

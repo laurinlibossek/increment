@@ -12,16 +12,6 @@ export const uid = () => {
   return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
 };
 
-export const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
-
-export function debounce(fn, ms) {
-  let t = null;
-  const d = (...args) => { clearTimeout(t); t = setTimeout(() => { t = null; fn(...args); }, ms); };
-  d.flush = (...args) => { if (t) { clearTimeout(t); t = null; fn(...args); } };
-  d.cancel = () => { clearTimeout(t); t = null; };
-  return d;
-}
-
 export const slug = (s) => String(s).toLowerCase()
   .replace(/[()]/g, ' ').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
@@ -117,6 +107,11 @@ export function fmtDigits(d) {
 // ---------- calendar ----------
 export const DAY = 86400000;
 export function startOfDay(t) { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); }
+/**
+ * Calendar days from `at` back from `now`: 0 today, 1 yesterday. Rounded, because
+ * the day the clocks change has 23 or 25 hours (#86); negative for a later day.
+ */
+export function daysAgo(at, now = Date.now()) { return Math.round((startOfDay(now) - startOfDay(at)) / DAY); }
 export function startOfWeek(t, weekStart = 1) {
   const d = new Date(startOfDay(t));
   const diff = (d.getDay() - weekStart + 7) % 7;

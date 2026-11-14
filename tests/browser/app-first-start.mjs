@@ -1,7 +1,7 @@
 // The Expo app (web build) on an emulated iPhone: first start, restoring a
 // backup from the Setlog web app (in Account, from the avatar on Today), every
 // screen with real data (Progress → Workouts, Body; Plan; Search), theme and
-// language from the backup, Strong import, and data surviving a reload. 15 checks.
+// language from the backup, Strong import, data surviving a reload, and damaged backups refused. 16 checks.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -233,7 +233,7 @@ const has = async (page, re) => (typeof re === 'string' ? new RegExp(re.replace(
 
 // ---------- 6. a broken file ----------
 {
-  const { ctx, page, dialogs } = await newPage();
+  const { ctx, page, errors, dialogs } = await newPage();
   await page.getByTestId('start-empty').waitFor();
   const broken = path.join(DATA, 'broken.json');
   fs.writeFileSync(broken, '{"app":"other"}');
@@ -243,6 +243,39 @@ const has = async (page, re) => (typeof re === 'string' ? new RegExp(re.replace(
   for (let i = 0; i < 30 && !dialogs.length; i++) await page.waitForTimeout(100);
   assert.match(dialogs[0], /This isn’t a Setlog backup file/);
   ok('a file that isn’t a backup is refused with a clear message');
+
+  // a backup with one damaged record (#83) is refused whole: nothing is asked or replaced
+  const restoreFile = async (file, count) => {
+    const [c] = await Promise.all([page.waitForEvent('filechooser'), page.getByTestId('restore').click()]);
+    await c.setFiles(file);
+    for (let i = 0; i < 50 && dialogs.length < count; i++) await page.waitForTimeout(100);
+  };
+  // the sample backup in English, so every message stays English
+  const sample = JSON.parse(fs.readFileSync(BACKUP, 'utf8'));
+  const good = { ...sample, data: { ...sample.data, kv: { ...sample.data.kv, settings: { ...sample.data.kv.settings, language: 'en' } } } };
+  const [first, second] = good.data.workouts;
+  const english = path.join(DATA, 'english.json');
+  fs.writeFileSync(english, JSON.stringify(good));
+  await restoreFile(english, 3);
+  assert.match(dialogs[2], /Backup restored/);
+  const damaged = path.join(DATA, 'damaged.json');
+  fs.writeFileSync(damaged, JSON.stringify({ ...good, data: { ...good.data, workouts: [{ ...first, exercises: undefined }, ...good.data.workouts.slice(1)] } }));
+  await restoreFile(damaged, 4);
+  assert.equal(dialogs[3], 'Restore from backup\n\nThe backup is damaged (workouts).');
+  let stored = await storedData(page);
+  assert.equal(stored.workouts.length, 86);
+  assert.deepEqual(stored.workouts.find((w) => w.id === first.id).exercises, first.exercises, 'the workout from before is untouched');
+  // the same workout twice: restored once, as its later copy, as on the phone
+  const twice = path.join(DATA, 'twice.json');
+  fs.writeFileSync(twice, JSON.stringify({ ...good, data: { ...good.data, workouts: [...good.data.workouts, { ...second, name: 'Later copy' }] } }));
+  await restoreFile(twice, 6);
+  assert.match(dialogs[4], /Replace all data\?[\s\S]*86 workouts/);
+  assert.match(dialogs[5], /Backup restored/);
+  stored = await storedData(page);
+  assert.equal(stored.workouts.length, 86);
+  assert.equal(stored.workouts.find((w) => w.id === second.id).name, 'Later copy');
+  assert.deepEqual(errors, []);
+  ok('a backup with a damaged record is refused and nothing changes; a workout saved twice restores once, its later copy');
   await ctx.close();
 }
 

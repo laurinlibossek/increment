@@ -73,23 +73,25 @@ export function sameStoredData(a, b) {
  * Stored data as the old browser storage kept it (one JSON value), checked
  * before it is moved: the four lists of documents with an id each, and kv.
  * A document saved twice keeps its later copy, as the old storage did on
- * reading. Throws if it isn't stored data.
+ * reading. Throws if it isn't stored data; the error's `part` names the list
+ * (or 'kv') at fault. Backups are checked with it too (parseBackup).
  */
 export function storedDataFrom(raw) {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('not stored data');
+  const fail = (message, part) => Object.assign(new Error(message), { part });
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw fail('not stored data');
   const out = { exercises: [], workouts: [], templates: [], measurements: [], kv: {} };
   for (const store of ['exercises', 'workouts', 'templates', 'measurements']) {
     const list = raw[store] ?? [];
-    if (!Array.isArray(list)) throw new Error(`${store} is not a list`);
+    if (!Array.isArray(list)) throw fail(`${store} is not a list`, store);
     const byId = new Map();
     for (const doc of list) {
-      if (!doc || typeof doc !== 'object' || typeof doc.id !== 'string' || !doc.id) throw new Error(`a record in ${store} has no id`);
+      if (!doc || typeof doc !== 'object' || typeof doc.id !== 'string' || !doc.id) throw fail(`a record in ${store} has no id`, store);
       byId.set(doc.id, doc);
     }
     out[store] = [...byId.values()];
   }
   const kv = raw.kv ?? {};
-  if (!kv || typeof kv !== 'object' || Array.isArray(kv)) throw new Error('kv is not an object');
+  if (!kv || typeof kv !== 'object' || Array.isArray(kv)) throw fail('kv is not an object', 'kv');
   for (const [k, v] of Object.entries(kv)) if (v !== null && v !== undefined) out.kv[k] = v;
   return out;
 }

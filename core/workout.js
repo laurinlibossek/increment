@@ -182,14 +182,6 @@ export function logPendingSets(draft, filled, now = Date.now()) {
   }
 }
 
-/** Copy the previous set's values into a row (tapping the "Previous" column). */
-export function copyPrevious(set, prev, cat, settings) {
-  if (!prev || set.done) return false;
-  const d = setToDraft(prev, settings);
-  for (const f of loggedFields(cat)) fillFrom(set, f, d);
-  return true;
-}
-
 /**
  * Unchecked sets the user started typing into, completed from the
  * placeholders like checking them off would. Returns [{ set, filled }] for

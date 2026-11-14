@@ -2,7 +2,7 @@
 // web app's format.js and util.js, built on the shared unit helpers.
 import { useMemo } from 'react';
 import {
-  kgTo, kmTo, roundW, fmtClock, usesWeight, startOfDay, DAY, exerciseDisplayName, exerciseBaseName, exerciseEquipment, repsText, repRange,
+  kgTo, kmTo, roundW, fmtClock, usesWeight, daysAgo, exerciseDisplayName, exerciseBaseName, exerciseEquipment, repsText, repRange,
 } from '@increment/core';
 
 import { useSettings } from '@/data/store';
@@ -108,7 +108,7 @@ export function makeFormat(settings: Settings, locale: string, lang: 'en' | 'de'
   /** A workout's day: recent days by name, older dates without the current year. */
   const workoutDay = (at: number, now = Date.now()) => {
     if (new Date(at).getFullYear() !== new Date(now).getFullYear()) return F.short.format(at);
-    const days = Math.round((startOfDay(now) - startOfDay(at)) / DAY);
+    const days = daysAgo(at, now);
     if (days <= 0) return tr('Today');
     if (days === 1) return tr('Yesterday');
     return days < 7 ? F.weekdayLong.format(at) : F.dayMonth.format(at);
@@ -128,7 +128,7 @@ export function makeFormat(settings: Settings, locale: string, lang: 'en' | 'de'
 
   /** "Today", "3 days ago", "2 weeks ago" … */
   const relDay = (at: number, now = Date.now()) => {
-    const days = Math.round((startOfDay(now) - startOfDay(at)) / DAY);
+    const days = daysAgo(at, now);
     if (days <= 0) return tr('Today');
     if (days === 1) return tr('Yesterday');
     if (days < 7) return tr('{n} days ago', { n: days });

@@ -48,10 +48,13 @@ test('1RM formulas and records', () => {
   assert.ok(Math.abs(core.est1RM(100, 5, 'epley') - 116.667) < 0.001);
   assert.ok(Math.abs(core.est1RM(100, 5, 'brzycki') - 112.5) < 0.001);
   assert.equal(core.est1RM(100, 1, 'mayhew'), 100);
-  const bests = { e1rm: 116.67, weight: 100, volume: 500 };
-  assert.deepEqual(core.newRecords({ type: 'normal', w: 70, r: 10 }, 'barbell', bests, 'epley', Date.now()), ['volume']);
-  assert.deepEqual(core.newRecords({ type: 'warmup', w: 200, r: 10 }, 'barbell', bests, 'epley', Date.now()), []);
-  assert.deepEqual(core.newRecords({ type: 'normal', w: 20, r: 10 }, 'assisted_bw', { reps: 8 }, 'epley', Date.now()), ['reps']);
+  // a set's records against the stored bests, as the summary works them out
+  const bests = new Map([['bb', { e1rm: 116.67, weight: 100, volume: 500 }], ['as', { reps: 8 }]]);
+  const exById = new Map([['bb', { id: 'bb', category: 'barbell' }], ['as', { id: 'as', category: 'assisted_bw' }]]);
+  const prs = (exerciseId, set) => core.prsForNewWorkout({ startedAt: Date.now(), exercises: [{ exerciseId, sets: [{ id: 's', ...set }] }] }, { bests }, exById, 'epley').map((p) => p.metric);
+  assert.deepEqual(prs('bb', { type: 'normal', w: 70, r: 10 }), ['volume']);
+  assert.deepEqual(prs('bb', { type: 'warmup', w: 200, r: 10 }), []);
+  assert.deepEqual(prs('as', { type: 'normal', w: 20, r: 10 }), ['reps']);
   assert.deepEqual(core.loggedFields('cardio'), ['d', 't']);
 });
 
@@ -107,8 +110,10 @@ test('reps in reserve: 0 · 1 · 2+, stored on the set, RPE reads as it, survive
   core.rateSet(draft, null);
   assert.equal('rir' in draft, false);
   // templates don't take a set's rating as a target
-  const tpl = core.applyWorkoutToTemplate([E('a', [S('normal', 60, 8)])], { exercises: [E('a', [S('normal', 62.5, 8, { rir: 1 })])] }, { valuesOnly: true });
-  assert.equal('rir' in tpl[0].sets[0], false);
+  for (const layout of [false, true]) {
+    const tpl = core.progressTemplate([E('a', [S('normal', 60, 8)])], { exercises: [E('a', [S('normal', 62.5, 8, { rir: 1 })])] }, () => 'barbell', { layout });
+    assert.deepEqual(tpl.exercises[0].sets, [S('normal', 62.5, 8)], `layout ${layout}`);
+  }
   // Strong's CSV only knows RPE: 10 − reps left, 2+ → 8
   const exercises = new Map([['x', { id: 'x', name: 'Bench Press (Barbell)', category: 'barbell' }]]);
   const csv = core.exportCSV({ workouts: [{ id: 'w', name: 'Push', startedAt: Date.UTC(2026, 10, 3, 9), endedAt: Date.UTC(2026, 10, 3, 10), exercises: [E('x', [S('normal', 80, 8, { rir: 1 }), S('normal', 80, 8, { rir: 2 }), S('normal', 80, 8, { rir: 0 }), S('normal', 80, 8, { rpe: 8.5 }), S('normal', 80, 8)])] }], exercises });
@@ -285,15 +290,7 @@ test('progressTemplate with the layout keeps drop sets, failure sets and superse
   assert.deepEqual(exercises.map((e) => e.supersetId), ['g', 'g']);
 });
 
-test('applyWorkoutToTemplate: values only vs. the new structure; RPE is kept', () => {
-  const tpl = [E('a', [S('warmup', 20, 10), S('normal', 60, 8)], { notes: 'Pause reps' }), E('b', [{ type: 'normal', r: 8 }])];
-  const workout = { exercises: [E('a', [S('normal', 62.5, 8, { rpe: 8 }), S('failure', 62.5, 6)]), E('c', [{ type: 'normal', r: 12 }])] };
-  const values = core.applyWorkoutToTemplate(tpl, workout, { valuesOnly: true });
-  assert.deepEqual(values[0].sets, [S('warmup', 20, 10), S('normal', 62.5, 8, { rpe: 8 })]);
-  assert.equal(values.length, 2);
-  const all = core.applyWorkoutToTemplate(tpl, workout);
-  assert.deepEqual(all.map((e) => e.exerciseId), ['a', 'c']);
-  assert.equal(all[0].notes, 'Pause reps');
+test('cleanTemplateExercises: a copied routine keeps targets and RPE, without set ids, ticks or missing exercises', () => {
   const clean = core.cleanTemplateExercises([E('a', [S('normal', 60, 8, { rpe: 7, id: 'x', done: true })], { supersetId: 'g' }), E('gone', [])], (id) => id !== 'gone');
   assert.deepEqual(clean[0].sets, [S('normal', 60, 8, { rpe: 7 })]);
   assert.equal(clean.length, 1);
@@ -1000,8 +997,7 @@ test('logging times (#43): set by logging, gone on uncheck, kept by edits and ba
   const noTimes = (list) => list.every((e) => e.sets.every((x) => !('doneAt' in x)));
   const saveAs = core.templateFromDraft(core.templateDraft({ workout, settings: st }), { settings: st, exercises }).template;
   assert.ok(noTimes(saveAs.exercises), 'Save as routine');
-  assert.ok(noTimes(core.applyWorkoutToTemplate(saveAs.exercises, workout)), 'Update routine');
-  assert.ok(noTimes(core.applyWorkoutToTemplate(saveAs.exercises, workout, { valuesOnly: true })), 'Update routine values');
+  assert.ok(noTimes(core.progressTemplate(saveAs.exercises, workout, () => 'barbell', { layout: true }).exercises), 'Update routine');
   assert.ok(noTimes(core.progressTemplate(saveAs.exercises, workout, () => 'barbell').exercises), 'progression');
   assert.ok(noTimes(core.cleanTemplateExercises(workout.exercises)), 'cleaned routine');
   assert.ok(noTimes(core.copyTemplateRecord(saveAs, { hasExercise: () => true }).exercises), 'Duplicate');
@@ -1020,6 +1016,23 @@ function withTZ(tz, fn) {
 }
 const { EXPORT_EXERCISES, EXPORT_WORKOUTS } = await import('./fixtures/strong-export-workouts.mjs');
 const exportMap = (list = EXPORT_EXERCISES) => new Map(list.map((e) => [e.id, e]));
+
+test('daysAgo counts calendar days, also on the day after a clock change (#86)', () => {
+  withTZ('Europe/Berlin', () => {
+    const at = (local) => new Date(local).getTime();
+    // Mondays after the clocks went forward (a 23-hour Sunday) and back (25 hours), and an ordinary day
+    for (const [now, before] of [['2026-03-30T09:00', '2026-03-29T18:00'], ['2026-10-26T09:00', '2026-10-25T18:00'], ['2026-11-14T09:00', '2026-11-13T18:00']]) {
+      assert.equal(core.daysAgo(at(before), at(now)), 1, `${before} is yesterday on ${now}`);
+      assert.equal(core.daysAgo(at(now), at(now)), 0);
+    }
+    // the dialog's old rule, today's midnight minus 24 hours, missed that Monday's yesterday
+    assert.notEqual(core.startOfDay(at('2026-03-29T18:00')), core.startOfDay(at('2026-03-30T09:00')) - core.DAY);
+    assert.equal(core.daysAgo(at('2026-03-29T00:00'), at('2026-03-30T23:59')), 1, 'from midnight to the last minute');
+    assert.equal(core.daysAgo(at('2026-03-23T12:00'), at('2026-03-30T12:00')), 7, 'a week with the 23-hour day');
+    assert.equal(core.daysAgo(at('2026-10-19T12:00'), at('2026-10-26T12:00')), 7, 'a week with the 25-hour day');
+    assert.equal(core.daysAgo(at('2026-11-15T08:00'), at('2026-11-14T20:00')), -1, 'tomorrow');
+  });
+});
 
 test('CSV export is Strong’s 12-column style, pinned by golden files (kg/km and lb/mi)', () => {
   withTZ('UTC', () => {
@@ -1187,7 +1200,7 @@ test('measurements CSV: app-only fields never reach the file; unknown types and 
 
 // ---------- backup ----------
 test('backups round-trip, count as the latest backup and restore the built-in library', () => {
-  const data = { exercises: [], workouts: [{ id: 'w' }], templates: [], measurements: [], kv: { meta: { lastBackupAt: 5 } } };
+  const data = { exercises: [], workouts: [{ id: 'w', startedAt: 1, exercises: [] }], templates: [], measurements: [], kv: { meta: { lastBackupAt: 5 } } };
   const now = new Date('2026-10-13T20:00:00Z');
   const back = core.parseBackup(core.makeBackup(data, '1.6.0', now), core.SEED_EXERCISES);
   assert.equal(back.data.workouts.length, 1);
@@ -1198,6 +1211,45 @@ test('backups round-trip, count as the latest backup and restore the built-in li
     assert.equal(e.message, 'The backup is damaged ({part}).');
     assert.deepEqual(e.vars, { part: 'workouts' });
   }
+});
+
+test('a backup with a damaged record is refused whole and names the list; a record saved twice keeps its later copy (#83)', () => {
+  const entry = { id: 'e', exerciseId: 'c-x', sets: [{ id: 's', type: 'normal', w: 20, r: 5 }] };
+  const ex = { id: 'c-x', name: 'X Lift (Cable)', category: 'machine', bodyPart: 'back', later: 'kept' };
+  const w = { id: 'w', name: 'A', startedAt: 1, endedAt: 2, templateId: null, exercises: [entry] };
+  const t = { id: 't', name: 'A', exercises: [{ exerciseId: 'c-x', sets: [{ type: 'normal', r: 5 }] }] };
+  const m = { id: 'm', type: 'bodyweight', value: 80, at: 1 };
+  const good = { exercises: [ex], workouts: [w], templates: [t], measurements: [m], kv: { settings: { unit: 'kg' } } };
+  const file = (patch, extra = {}) => JSON.stringify({ app: 'setlog', schema: 1, exportedAt: '2026-11-14T00:00:00Z', data: { ...good, ...patch }, ...extra });
+  const back = core.parseBackup(file({}), []).data;
+  for (const k of ['exercises', 'workouts', 'templates', 'measurements']) assert.deepEqual(back[k], good[k], `${k}: a complete record comes back as it was, unknown fields too`);
+  const refused = (part) => (e) => e.message === 'The backup is damaged ({part}).' && e.vars?.part === part;
+  // a record JSON can't hold leaves the field out (undefined) or writes null (NaN)
+  const damaged = {
+    exercises: [null, 'x', [], { ...ex, id: undefined }, { ...ex, id: '' }, { ...ex, id: 7 }, { ...ex, name: undefined }, { ...ex, name: 7 }, { ...ex, category: undefined }],
+    workouts: [{ ...w, id: undefined }, { ...w, startedAt: undefined }, { ...w, startedAt: '1' }, { ...w, startedAt: NaN }, { ...w, exercises: undefined }, { ...w, exercises: {} },
+      { ...w, exercises: [null] }, { ...w, exercises: [{ ...entry, exerciseId: undefined }] }, { ...w, exercises: [{ ...entry, sets: undefined }] }, { ...w, exercises: [{ ...entry, sets: [null] }] }],
+    templates: [{ ...t, id: undefined }, { ...t, name: undefined }, { ...t, exercises: undefined }, { ...t, exercises: [{ exerciseId: 'c-x' }] }, { ...t, exercises: [{ sets: [] }] }],
+    measurements: [{ ...m, id: undefined }, { ...m, type: undefined }, { ...m, at: '1' }, { ...m, at: undefined }, { ...m, value: NaN }, { ...m, value: undefined }],
+  };
+  for (const [part, records] of Object.entries(damaged)) {
+    for (const r of records) assert.throws(() => core.parseBackup(file({ [part]: [...good[part], r] }), core.SEED_EXERCISES), refused(part), `${part}: ${JSON.stringify(r)}`);
+  }
+  for (const part of ['exercises', 'workouts', 'templates', 'measurements']) assert.throws(() => core.parseBackup(file({ [part]: null }), []), refused(part), `${part}: null would restore as an empty list`);
+  assert.throws(() => core.parseBackup(file({ kv: ['x'] }), []), refused('kv'));
+  assert.throws(() => core.parseBackup(file({}, { data: [] }), []), /isn’t a Setlog backup file/);
+  assert.throws(() => core.parseBackup(file({}, { recovery: { active: { ...w, exercises: [{ exerciseId: 'c-x' }] } } }), []), refused('recovery'), 'the running workout is checked the same way');
+  // the same id twice: the later copy, in the place of the first, on the phone and the web alike
+  const twice = core.parseBackup(file({
+    exercises: [ex, { ...ex, name: 'X Lift 2' }],
+    workouts: [w, { ...w, id: 'w2' }, { ...w, name: 'B' }],
+    templates: [t, { ...t, name: 'B' }],
+    measurements: [m, { ...m, value: 81 }],
+  }), core.SEED_EXERCISES).data;
+  assert.deepEqual(twice.exercises.filter((e) => e.id === 'c-x').map((e) => e.name), ['X Lift 2']);
+  assert.deepEqual(twice.workouts.map((x) => [x.id, x.name]), [['w', 'B'], ['w2', 'A']]);
+  assert.deepEqual(twice.templates.map((x) => x.name), ['B']);
+  assert.deepEqual(twice.measurements.map((x) => x.value), [81]);
 });
 
 test('a backup never brings a running workout along; other kv keys stay', () => {
@@ -1211,7 +1263,7 @@ test('a backup never brings a running workout along; other kv keys stay', () => 
 
 test('recovery backups carry the running workout beside the data; old files restore as before', () => {
   const active = { id: 'a1', kind: 'workout', name: 'Push', startedAt: 10, exercises: [{ id: 'e', exerciseId: 'x', sets: [] }], updatedAt: 20 };
-  const data = { exercises: [], workouts: [{ id: 'w' }], templates: [], measurements: [], kv: { settings: { unit: 'kg' } } };
+  const data = { exercises: [], workouts: [{ id: 'w', startedAt: 1, exercises: [] }], templates: [], measurements: [], kv: { settings: { unit: 'kg' } } };
   const file = JSON.parse(core.makeBackup(data, '1.0.0', new Date(0), { active }));
   assert.deepEqual(file.recovery, { active }, 'the running workout is beside data, not in kv');
   assert.equal('active' in file.data.kv, false);
@@ -1345,6 +1397,24 @@ test('the German dictionary has no duplicate keys', () => {
   const seen = new Set(), dupes = [];
   for (const k of keys) { if (seen.has(k)) dupes.push(k); seen.add(k); }
   assert.deepEqual(dupes, []);
+});
+
+test('every German entry is a text the code can show, so unused ones don’t pile up (#87)', () => {
+  // the code that shows text: the app, the core's labels and messages, the website and its build
+  const files = [];
+  const walk = (d) => {
+    for (const f of fs.readdirSync(d)) {
+      const p = path.join(d, f);
+      if (fs.statSync(p).isDirectory()) { if (f !== 'node_modules') walk(p); } else if (/\.(m?js|tsx?|html)$/.test(f) && !/^(i18n-de|exercise-names-de)\.js$/.test(f)) files.push(p);
+    }
+  };
+  for (const d of ['app/src', 'core', 'web', 'scripts']) walk(path.join(ROOT, d));
+  const code = files.map(read).join('\n');
+  const literal = (k) => code.includes(k) || code.includes(k.replace(/'/g, "\\'"));
+  // plurals are made as one + 's' (f.plural in app/src/lib/format.ts): "workouts" from 'workout'
+  const plural = (k) => k.endsWith('s') && (code.includes(`'${k.slice(0, -1)}'`) || code.includes(`"${k.slice(0, -1)}"`));
+  const unused = Object.keys(DE).filter((k) => !literal(k) && !plural(k));
+  assert.deepEqual(unused, [], 'German entries no code uses: remove them from core/i18n-de.js');
 });
 
 // ---------- themes ----------
@@ -1658,8 +1728,8 @@ test('custom registry families browse and filter like catalogue families, and ke
 });
 
 test('custom family backups round-trip, old backups restore, and empty registry entries are removed', () => {
-  const ex = { id: 'c-moon', name: 'Moon Lift (Cable)', family: 'fc-moon-lift' };
-  const data = { exercises: [ex], workouts: [{ id: 'w', exercises: [{ exerciseId: ex.id }] }], templates: [], measurements: [],
+  const ex = { id: 'c-moon', name: 'Moon Lift (Cable)', category: 'machine', family: 'fc-moon-lift' };
+  const data = { exercises: [ex], workouts: [{ id: 'w', startedAt: 1, exercises: [{ exerciseId: ex.id, sets: [] }] }], templates: [], measurements: [],
     kv: { customFamilies: { 'fc-moon-lift': 'Moon Lift', 'fc-empty': 'Empty' } } };
   const restored = core.parseBackup(core.makeBackup(data, 'test')).data;
   assert.deepEqual(restored.exercises, data.exercises);
@@ -1896,7 +1966,7 @@ test('new built-in name collisions keep custom ids, logging fields, settings and
   assert.deepEqual(core.seedExerciseChanges(upgraded), []);
   assert.deepEqual(library, before);
   // Same path when restoring an old backup: references and metrics stay on the custom id.
-  const data = { exercises: library, workouts: [{ id: 'w', startedAt: 1, exercises: [{ id: 'entry', exerciseId: custom.id, sets: [{ id: 's', type: 'normal', w: 20, r: 10 }] }] }], templates: [{ id: 't', exercises: [{ exerciseId: custom.id, sets: [{ w: 15, r: 10 }] }] }], kv: { meta: { seedVersion: 1 } } };
+  const data = { exercises: library, workouts: [{ id: 'w', startedAt: 1, exercises: [{ id: 'entry', exerciseId: custom.id, sets: [{ id: 's', type: 'normal', w: 20, r: 10 }] }] }], templates: [{ id: 't', name: 'Shrugs', exercises: [{ exerciseId: custom.id, sets: [{ w: 15, r: 10 }] }] }], kv: { meta: { seedVersion: 1 } } };
   const restored = core.parseBackup(core.makeBackup(data, '1'), core.SEED_EXERCISES).data;
   assert.deepEqual(restored.exercises, upgraded);
   assert.deepEqual(restored.workouts, data.workouts);
@@ -2019,20 +2089,16 @@ test('routine comparison and both update paths pair sides, detect changes and re
   assert.equal(diff.sidesChanged, false, 'the same side counts in a different order still pair by side');
   assert.equal(diff.valueSets, 4);
   assert.equal(diff.structure, false);
-  assert.deepEqual(core.applyWorkoutToTemplate(T, W, { valuesOnly: true })[0].sets.map((s) => [s.side, s.w]), [['left', 27], ['right', 19], ['left', 29], ['right', 21]]);
   assert.deepEqual(core.progressTemplate(T, W, () => 'dumbbell').exercises[0].sets.map((s) => [s.side, s.w]), [['left', 27], ['right', 19], ['left', 29], ['right', 21]]);
   const tagged = { exercises: [E('curl', [sided('left', 20), sided('right', 15)])] };
   const untagged = [E('curl', [sided(undefined, 26), sided(undefined, 18)])];
   assert.equal(core.templateChanges({ exercises: untagged }, tagged).sidesChanged, true);
   assert.equal(core.templateChanges({ exercises: untagged }, tagged).structure, true);
-  assert.deepEqual(core.applyWorkoutToTemplate(untagged, tagged)[0].sets.map((s) => s.side), ['left', 'right']);
-  assert.ok(core.applyWorkoutToTemplate(untagged, tagged, { valuesOnly: true })[0].sets.every((s) => !('side' in s)));
+  assert.ok(core.progressTemplate(untagged, tagged, () => 'dumbbell').exercises[0].sets.every((s) => !('side' in s)), 'progression alone adds no sides');
   const layout = core.progressTemplate(untagged, tagged, () => 'dumbbell', { layout: true });
   assert.deepEqual(layout.exercises[0].sets.map((s) => [s.side, s.w]), [['left', 26], ['right', 18]], 'Update routine keeps better targets and saves the workout sides');
   const removed = { exercises: [E('curl', [sided(undefined, 30), sided(undefined, 22)])] };
   const oldSides = [E('curl', [sided('left', 26), sided('right', 18)])];
-  assert.deepEqual(core.applyWorkoutToTemplate(oldSides, removed, { valuesOnly: true })[0].sets.map((s) => s.side), ['left', 'right']);
-  assert.ok(core.applyWorkoutToTemplate(oldSides, removed)[0].sets.every((s) => !('side' in s)));
   assert.deepEqual(core.progressTemplate(oldSides, removed, () => 'dumbbell').exercises[0].sets.map((s) => s.side), ['left', 'right']);
   assert.ok(core.progressTemplate(oldSides, removed, () => 'dumbbell', { layout: true }).exercises[0].sets.every((s) => !('side' in s)));
   const changedCount = core.templateChanges({ exercises: [E('curl', [sided('left'), sided('left')])] }, tagged);
@@ -2301,18 +2367,17 @@ test('records in a running workout (#37): one set per exercise and metric, as in
   assert.deepEqual(recs(running([['normal', 100, 5]]), new Map()), {});
 });
 
-test('set totals (#38): warm-ups are never counted; failure and drop sets are; sides count row by row', () => {
+test('set totals (#38): warm-ups are never counted; failure and drop sets are; a bilateral exercise counts sides row by row', () => {
+  const total = (sets) => core.exerciseSetCount(sets, false).sets;
   const rows = [S('warmup', 40, 10), S('warmup', 60, 5), S('normal', 80, 5), S('failure', 80, 4), S('drop', 60, 8)];
-  assert.equal(core.setTotal(rows), 3);
-  assert.equal(core.setTotal([S('warmup', 40, 10)]), 0, 'a warm-up-only exercise has no sets');
-  assert.equal(core.setTotal([]), 0);
+  assert.equal(total(rows), 3);
+  assert.equal(total([S('warmup', 40, 10)]), 0, 'a warm-up-only exercise has no sets');
+  assert.equal(total([]), 0);
   // changing a set's type changes the total
   const changed = rows.map((x, i) => (i === 0 ? { ...x, type: 'normal' } : x));
-  assert.equal(core.setTotal(changed), 4);
-  // left and right rows are two rows here (the paired totals are #54)
-  assert.equal(core.setTotal([S('normal', 20, 10, { side: 'left' }), S('normal', 20, 10, { side: 'right' })]), 2);
-  const w = { exercises: [E('a', rows), E('b', [S('warmup', 20, 10)]), E('c', [S('normal', 10, 10)])] };
-  assert.equal(core.workoutSetCount(w), 4);
+  assert.equal(total(changed), 4);
+  // left and right rows of a bilateral exercise are two sets (a unilateral one pairs them, #54)
+  assert.equal(total([S('normal', 20, 10, { side: 'left' }), S('normal', 20, 10, { side: 'right' })]), 2);
 });
 
 test('removing an exercise from a superset (#39): a group left with one dissolves, Undo restores it, other groups stay', () => {
@@ -2530,8 +2595,6 @@ test('rep ranges (#44): progression moves the target inside the bounds, never th
   // the layout: paired sets keep their range, a new set takes the range of the set before it (same type and side), a drop set doesn't
   const lay = run([R(80, 8), R(80, 8)], [S('normal', 80, 9), S('normal', 80, 12), S('normal', 80, 9), S('drop', 60, 10)], { layout: true });
   assert.deepEqual(lay.exercises[0].sets, [R(80, 9), R(80, 10), R(80, 9), S('drop', 60, 10)]);
-  // Update values only (applyWorkoutToTemplate) keeps the range too
-  assert.deepEqual(core.applyWorkoutToTemplate([E('a', [R(80, 8)])], { exercises: [E('a', [S('normal', 80, 12)])] }, { valuesOnly: true })[0].sets, [R(80, 10)]);
   // the layout diff ignores ranges: same sets, same structure
   assert.equal(core.templateChanges({ exercises: [E('a', [R(80, 8)])] }, { exercises: [E('a', [S('normal', 80, 9)])] }).structure, false);
 });
