@@ -1,5 +1,5 @@
-// Sets per muscle's breakdown (#89): a muscle's row on Today opens the sets
-// behind its number, by exercise (most sets first) and per workout (newest
+// Sets per muscle's breakdown (#89): a muscle's row on Today, a 44 pt touch
+// target across the full width, opens the sets behind its number, by exercise (most sets first) and per workout (newest
 // first), adding up to the number on Today: warm-ups out, a repeated entry in
 // one row, a one-side exercise's pairs with its unpaired row. An exercise's
 // name opens the exercise, a workout row the workout; deleting a workout
@@ -77,6 +77,10 @@ for (const theme of ['light', 'dark']) {
   assert.equal(await id('muscle-chest').getAttribute('role'), 'button');
   await id('muscle-chest').scrollIntoViewIfNeeded();
   const before = await id('muscle-chest').boundingBox();
+  const armsRow = await id('muscle-arms').boundingBox();
+  const vw = page.viewportSize().width;
+  for (const b of [before, armsRow]) assert.ok(b.height >= 44 && b.x === 0 && b.width === vw, `a 44 pt row across the full width: ${JSON.stringify(b)}`);
+  assert.equal(armsRow.y, before.y + before.height, 'the rows meet: every tap between them lands on one');
   if (theme === 'light') await a.shot('today');
   await openMuscle(a, 'chest');
   assert.equal(await text('muscle-title'), 'Chest');
@@ -97,7 +101,7 @@ for (const theme of ['light', 'dark']) {
     for (const w of e.workouts) assert.match(await text(`muscle-workout-${e.exerciseId}-${w.id}`), new RegExp(` ${w.sets}$`));
   }
   await a.shot('chest');
-  ok(`${theme}: Today’s Chest row (a button) opens Chest: 11 sets in the last 7 days, Incline Bench Press 6 then Bench Press 5, each workout newest first with its sets (no warm-up, the repeated entry in one row), adding up to the core’s numbers`);
+  ok(`${theme}: Today’s Chest row (a button, 44 pt tall across the full width) opens Chest: 11 sets in the last 7 days, Incline Bench Press 6 then Bench Press 5, each workout newest first with its sets (no warm-up, the repeated entry in one row), adding up to the core’s numbers`);
 
   // a workout row opens the workout, the exercise's name the exercise; Back returns each time
   await id(`muscle-workout-${BENCH}-push1`).click();

@@ -112,7 +112,7 @@ Working sets per muscle over the last 7 days, as tallies.
 - Stems are sets done; with a target range, hairlines show the sets still missing to its lower end.
 - The count on the right in `t-headline`. Above the range, the count turns `ink-2`; it never turns red.
 - Muscles in a fixed order (chest, back, shoulders, arms, legs, then the finer split once the exercise library has it).
-- A row that can be tapped looks the same as one that can't: no chevron, only the pressed state (`paper-2`). Its touch area runs the full width and meets the rows above and below, so the layout doesn't move (Laurin, 14 Nov 2026).
+- A row that can be tapped has no chevron, only the pressed state (`paper-2`). It is at least 44 pt tall (Apple's minimum touch target) and runs the full width, and the rows meet, so they sit a little further apart than rows that can't be tapped (Laurin, 14 Nov 2026).
 
 ## NowLifting
 
