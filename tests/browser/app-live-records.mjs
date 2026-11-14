@@ -1,7 +1,8 @@
 // Records while lifting (#37): the session, Today's card, Now Lifting and the
 // summary count the same record sets, by the summary's rule. After a best of
 // 95 kg × 5, three sets of 100 kg × 5 are one record (the first); a better set
-// later takes it over, and unchecking that set gives it back.
+// later takes it over, and unchecking that set gives it back. With body weight in
+// volume, the records follow a body weight logged or deleted in the app (#84).
 import assert from 'node:assert/strict';
 import { launch, devices, grantWakeLock, APP, shots, storedData, selectTab } from './env.mjs';
 import { SEED_EXERCISES, SEED_VERSION } from '../../core/index.js';
@@ -105,7 +106,80 @@ await page.goto(`${APP}/history`);
 await id('history-records-live').waitFor();
 assert.equal((await id('history-records-live').innerText()).replace(/\s+/g, ' '), '1 record');
 ok('the summary and History count the same record');
-
 assert.deepEqual(errors, []);
+await ctx.close();
+
+// Body weight in a weighted bodyweight exercise's volume (#84): the records follow a
+// body weight logged or deleted while the app is open, so the same 10 kg × 8 as last
+// time is no record. The session is opened first, so the records are worked out
+// before the body weight changes; the change is made in the app, without a reload.
+const PULL = 'x-pull-up-weighted';
+async function bodyWeightCase(measurements, change) {
+  const pullData = {
+    exercises: SEED_EXERCISES,
+    workouts: [{ id: 'pull-before', name: 'Pull', startedAt: now - 3 * day, endedAt: now - 3 * day + 3600000, templateId: null,
+      exercises: [{ id: 'pe', exerciseId: PULL, sets: [{ id: 'p1', type: 'normal', w: 10, r: 8 }] }] }],
+    templates: [],
+    measurements,
+    kv: {
+      settings: { language: 'en', showExamples: false, appKeepAwake: false, bwWeighted: true },
+      meta: { seedVersion: SEED_VERSION, createdAt: 1000, lastBackupAt: now },
+      active: { id: 'pull-live', kind: 'workout', name: 'Pull', notes: '', startedAt: now - 600000, templateId: null, templateNotes: '', rest: null, updatedAt: now,
+        exercises: [{ id: 'pl', exerciseId: PULL, notes: '', showNotes: false, supersetId: null, restSec: 0,
+          sets: [{ id: 'q0', type: 'normal', w: '10', r: '8', d: '', t: '', rpe: '', done: false }] }] },
+    },
+  };
+  const c = await browser.newContext({ ...devices['iPhone 13'], viewport: { width: 390, height: 844 }, locale: 'en-US' });
+  await c.addInitScript(grantWakeLock);
+  await c.addInitScript((json) => { if (!localStorage.getItem('increment.data')) localStorage.setItem('increment.data', json); }, JSON.stringify(pullData));
+  const p = await c.newPage();
+  const errs = [];
+  p.on('pageerror', (e) => errs.push(String(e)));
+  const pid = (t) => p.getByTestId(t);
+  const pull = () => pid(`block-${PULL}`);
+  await p.goto(APP);
+  await pid('resume-workout').click();
+  await pull().waitFor();
+  await pid('minimize').click();
+  await selectTab(p, 'progress');
+  await pid('progress-body').click();
+  await change(p, pid);
+  // Back to the tabs (Body's screens hide the bar), still without a reload
+  for (let i = 0; i < 3 && !(await pid('tab-index').isVisible()); i++) { await p.goBack(); await p.waitForTimeout(300); }
+  await selectTab(p, 'index');
+  await pid('resume-workout').click();
+  await pull().waitFor();
+  await pull().locator('[data-testid^="check-"]').first().click();
+  await p.waitForTimeout(300);
+  const notes = await pull().locator('[data-testid^="notes-"]').first().innerText();
+  assert.doesNotMatch(notes, /Record/, 'no record chip');
+  assert.match(await pid('session-count').innerText(), /1 of 1 working sets · 100%$/);
+  const stored = await storedData(p);
+  assert.deepEqual(errs, []);
+  await c.close();
+  return stored.measurements;
+}
+
+// the first body weight: last time's 10 × 8 was 80, both are 90 × 8 now
+let kept = await bodyWeightCase([], async (p, pid) => {
+  await pid('log-bodyweight').click();
+  await pid('number-input').fill('80');
+  await pid('number-ok').click();
+  await p.getByTestId('toast').filter({ hasText: 'Body weight logged' }).waitFor();
+});
+assert.deepEqual(kept.map((m) => m.value), [80]);
+// a body weight deleted: last time used 70 (logged after the 90), both use 90 now
+kept = await bodyWeightCase([
+  { id: 'bw-70', type: 'bodyweight', value: 70, at: now - 5 * day },
+  { id: 'bw-90', type: 'bodyweight', value: 90, at: now - 10 * day },
+], async (p, pid) => {
+  await pid('measure-bodyweight').click();
+  await pid('entry-0').click();
+  await pid('measure-delete').click();
+  await p.getByTestId('toast').filter({ hasText: 'Entry deleted' }).waitFor();
+});
+assert.deepEqual(kept.map((m) => m.id), ['bw-90']);
+ok('a body weight logged or deleted while the app is open: the same weighted pull-up as last time is no record');
+
 await browser.close();
 console.log(`\n${passed} checks passed`);

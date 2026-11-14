@@ -468,16 +468,21 @@ function syncCalc() {
 }
 
 type Stats = ReturnType<typeof buildStats>;
-let statsFor: { workouts: Workout[]; exercises: Map<string, Exercise>; key: string } | null = null;
+let statsFor: { workouts: Workout[]; exercises: Map<string, Exercise>; measurements: Measurement[]; key: string } | null = null;
 let statsCache: Stats | null = null;
-/** Records, PRs and sessions per exercise; follows "Start history from" like the web app. */
+/**
+ * Records, PRs and sessions per exercise; follows "Start history from" like the web app.
+ * Rebuilt when the body weights change too: with "Count body weight in volume" a
+ * weighted bodyweight set's volume depends on them (#84).
+ */
 export function stats(s: State = state): Stats {
   const st = s.settings;
   const key = [st.formula, st.historyStart, st.dumbbellTwice, st.bwWeighted, st.bwAssisted].join(':');
-  if (!statsCache || !statsFor || statsFor.workouts !== s.workouts || statsFor.exercises !== s.exercises || statsFor.key !== key) {
+  if (!statsCache || !statsFor || statsFor.workouts !== s.workouts || statsFor.exercises !== s.exercises
+    || statsFor.measurements !== s.measurements || statsFor.key !== key) {
     const from = st.historyStart || 0;
     statsCache = buildStats(from ? s.workouts.filter((w) => w.startedAt >= from) : s.workouts, s.exercises, st.formula);
-    statsFor = { workouts: s.workouts, exercises: s.exercises, key };
+    statsFor = { workouts: s.workouts, exercises: s.exercises, measurements: s.measurements, key };
   }
   return statsCache;
 }
