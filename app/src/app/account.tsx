@@ -7,7 +7,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as WebBrowser from 'expo-web-browser';
 import { File } from 'expo-file-system';
 import {
-  DEFAULT_WARMUP, FORMULAS, REST_CHOICES, WEB_APP_URL, exportCSV, parsePlates, privacyPage, runningWorkoutChoice, startOfDay,
+  DEFAULT_WARMUP, FORMULAS, REST_CHOICES, WEB_APP_URL, exportCSV, exportMeasurementsCSV, parsePlates, privacyPage, runningWorkoutChoice, startOfDay,
 } from '@increment/core';
 
 import {
@@ -78,7 +78,13 @@ export default function AccountSheet() {
   const doBackup = () => backupNow(tr);
   const doCSV = async () => {
     const text = exportCSV({ workouts: s.workouts, exercises: s.exercises, unit: st.unit, distUnit: st.distUnit, unknownName: tr('Unknown exercise'), pairSides: st.pairSides !== false });
-    const r = await saveTextFile(`increment-workouts-${dateStamp()}.csv`, text, 'text/csv', 'public.comma-separated-values-text', tr('Export as CSV'));
+    const r = await saveTextFile(`increment-workouts-${dateStamp()}.csv`, text, 'text/csv', 'public.comma-separated-values-text', tr('Export workouts as CSV'));
+    toast(r === 'failed' ? tr('Sharing isn’t available here') : tr('CSV exported'));
+  };
+  // body measurements in the columns of Strong's measurement export, one file (#29)
+  const doMeasureCSV = async () => {
+    const text = exportMeasurementsCSV({ measurements: s.measurements, bodyUnit: bodyUnit(st), sizeUnit: lengthUnit(st) });
+    const r = await saveTextFile(`increment-measurements-${dateStamp()}.csv`, text, 'text/csv', 'public.comma-separated-values-text', tr('Export measurements as CSV'));
     toast(r === 'failed' ? tr('Sharing isn’t available here') : tr('CSV exported'));
   };
 
@@ -276,7 +282,8 @@ export default function AccountSheet() {
           onPress={busy ? undefined : doBackup} testID="backup-now" />
         <SettingRow symbol="square.and.arrow.down" title={tr('Restore from backup')} onPress={busy ? undefined : doRestore} testID="restore" />
         <SettingRow symbol="arrow.left.arrow.right" title={tr('Import from Strong')} sub={tr('In Strong: Settings → Export Workouts, then pick that CSV here')} onPress={busy ? undefined : doStrong} testID="strong-import" />
-        <SettingRow symbol="tablecells" title={tr('Export as CSV')} sub={tr('Spreadsheet-friendly, Strong column format')} onPress={doCSV} testID="export-csv" />
+        <SettingRow symbol="tablecells" title={tr('Export workouts as CSV')} sub={tr('Spreadsheet-friendly, Strong column format')} onPress={doCSV} testID="export-csv" />
+        <SettingRow symbol="ruler" title={tr('Export measurements as CSV')} onPress={doMeasureCSV} testID="export-measurements-csv" />
       </View>
       <Txt tone="ink2" style={[TYPE.subhead, { marginTop: SPACE.s2, paddingHorizontal: SPACE.s5 }]}>{tr('Which units did Strong use?')}</Txt>
       <View style={{ gap: SPACE.s2, marginTop: SPACE.s2, paddingHorizontal: SPACE.s5 }}>
