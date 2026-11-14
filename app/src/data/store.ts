@@ -518,8 +518,6 @@ export const suggestion = (s: State = state, now = Date.now()) => suggestTemplat
   | { template: Template; why: { kind: 'after' | 'weekday' | 'due'; name?: string; day?: number; at?: number } }
   | null;
 
-export const exerciseName = (id: string, s: State = state) => s.exercises.get(id)?.name;
-
 // ---------- settings ----------
 export async function setSetting<K extends keyof Settings>(key: K, value: Settings[K]) {
   const prev = state.settings;

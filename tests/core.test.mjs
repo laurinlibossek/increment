@@ -48,10 +48,13 @@ test('1RM formulas and records', () => {
   assert.ok(Math.abs(core.est1RM(100, 5, 'epley') - 116.667) < 0.001);
   assert.ok(Math.abs(core.est1RM(100, 5, 'brzycki') - 112.5) < 0.001);
   assert.equal(core.est1RM(100, 1, 'mayhew'), 100);
-  const bests = { e1rm: 116.67, weight: 100, volume: 500 };
-  assert.deepEqual(core.newRecords({ type: 'normal', w: 70, r: 10 }, 'barbell', bests, 'epley', Date.now()), ['volume']);
-  assert.deepEqual(core.newRecords({ type: 'warmup', w: 200, r: 10 }, 'barbell', bests, 'epley', Date.now()), []);
-  assert.deepEqual(core.newRecords({ type: 'normal', w: 20, r: 10 }, 'assisted_bw', { reps: 8 }, 'epley', Date.now()), ['reps']);
+  // a set's records against the stored bests, as the summary works them out
+  const bests = new Map([['bb', { e1rm: 116.67, weight: 100, volume: 500 }], ['as', { reps: 8 }]]);
+  const exById = new Map([['bb', { id: 'bb', category: 'barbell' }], ['as', { id: 'as', category: 'assisted_bw' }]]);
+  const prs = (exerciseId, set) => core.prsForNewWorkout({ startedAt: Date.now(), exercises: [{ exerciseId, sets: [{ id: 's', ...set }] }] }, { bests }, exById, 'epley').map((p) => p.metric);
+  assert.deepEqual(prs('bb', { type: 'normal', w: 70, r: 10 }), ['volume']);
+  assert.deepEqual(prs('bb', { type: 'warmup', w: 200, r: 10 }), []);
+  assert.deepEqual(prs('as', { type: 'normal', w: 20, r: 10 }), ['reps']);
   assert.deepEqual(core.loggedFields('cardio'), ['d', 't']);
 });
 
@@ -107,8 +110,10 @@ test('reps in reserve: 0 · 1 · 2+, stored on the set, RPE reads as it, survive
   core.rateSet(draft, null);
   assert.equal('rir' in draft, false);
   // templates don't take a set's rating as a target
-  const tpl = core.applyWorkoutToTemplate([E('a', [S('normal', 60, 8)])], { exercises: [E('a', [S('normal', 62.5, 8, { rir: 1 })])] }, { valuesOnly: true });
-  assert.equal('rir' in tpl[0].sets[0], false);
+  for (const layout of [false, true]) {
+    const tpl = core.progressTemplate([E('a', [S('normal', 60, 8)])], { exercises: [E('a', [S('normal', 62.5, 8, { rir: 1 })])] }, () => 'barbell', { layout });
+    assert.deepEqual(tpl.exercises[0].sets, [S('normal', 62.5, 8)], `layout ${layout}`);
+  }
   // Strong's CSV only knows RPE: 10 − reps left, 2+ → 8
   const exercises = new Map([['x', { id: 'x', name: 'Bench Press (Barbell)', category: 'barbell' }]]);
   const csv = core.exportCSV({ workouts: [{ id: 'w', name: 'Push', startedAt: Date.UTC(2026, 10, 3, 9), endedAt: Date.UTC(2026, 10, 3, 10), exercises: [E('x', [S('normal', 80, 8, { rir: 1 }), S('normal', 80, 8, { rir: 2 }), S('normal', 80, 8, { rir: 0 }), S('normal', 80, 8, { rpe: 8.5 }), S('normal', 80, 8)])] }], exercises });
@@ -285,15 +290,7 @@ test('progressTemplate with the layout keeps drop sets, failure sets and superse
   assert.deepEqual(exercises.map((e) => e.supersetId), ['g', 'g']);
 });
 
-test('applyWorkoutToTemplate: values only vs. the new structure; RPE is kept', () => {
-  const tpl = [E('a', [S('warmup', 20, 10), S('normal', 60, 8)], { notes: 'Pause reps' }), E('b', [{ type: 'normal', r: 8 }])];
-  const workout = { exercises: [E('a', [S('normal', 62.5, 8, { rpe: 8 }), S('failure', 62.5, 6)]), E('c', [{ type: 'normal', r: 12 }])] };
-  const values = core.applyWorkoutToTemplate(tpl, workout, { valuesOnly: true });
-  assert.deepEqual(values[0].sets, [S('warmup', 20, 10), S('normal', 62.5, 8, { rpe: 8 })]);
-  assert.equal(values.length, 2);
-  const all = core.applyWorkoutToTemplate(tpl, workout);
-  assert.deepEqual(all.map((e) => e.exerciseId), ['a', 'c']);
-  assert.equal(all[0].notes, 'Pause reps');
+test('cleanTemplateExercises: a copied routine keeps targets and RPE, without set ids, ticks or missing exercises', () => {
   const clean = core.cleanTemplateExercises([E('a', [S('normal', 60, 8, { rpe: 7, id: 'x', done: true })], { supersetId: 'g' }), E('gone', [])], (id) => id !== 'gone');
   assert.deepEqual(clean[0].sets, [S('normal', 60, 8, { rpe: 7 })]);
   assert.equal(clean.length, 1);
@@ -1000,8 +997,7 @@ test('logging times (#43): set by logging, gone on uncheck, kept by edits and ba
   const noTimes = (list) => list.every((e) => e.sets.every((x) => !('doneAt' in x)));
   const saveAs = core.templateFromDraft(core.templateDraft({ workout, settings: st }), { settings: st, exercises }).template;
   assert.ok(noTimes(saveAs.exercises), 'Save as routine');
-  assert.ok(noTimes(core.applyWorkoutToTemplate(saveAs.exercises, workout)), 'Update routine');
-  assert.ok(noTimes(core.applyWorkoutToTemplate(saveAs.exercises, workout, { valuesOnly: true })), 'Update routine values');
+  assert.ok(noTimes(core.progressTemplate(saveAs.exercises, workout, () => 'barbell', { layout: true }).exercises), 'Update routine');
   assert.ok(noTimes(core.progressTemplate(saveAs.exercises, workout, () => 'barbell').exercises), 'progression');
   assert.ok(noTimes(core.cleanTemplateExercises(workout.exercises)), 'cleaned routine');
   assert.ok(noTimes(core.copyTemplateRecord(saveAs, { hasExercise: () => true }).exercises), 'Duplicate');
@@ -2075,20 +2071,16 @@ test('routine comparison and both update paths pair sides, detect changes and re
   assert.equal(diff.sidesChanged, false, 'the same side counts in a different order still pair by side');
   assert.equal(diff.valueSets, 4);
   assert.equal(diff.structure, false);
-  assert.deepEqual(core.applyWorkoutToTemplate(T, W, { valuesOnly: true })[0].sets.map((s) => [s.side, s.w]), [['left', 27], ['right', 19], ['left', 29], ['right', 21]]);
   assert.deepEqual(core.progressTemplate(T, W, () => 'dumbbell').exercises[0].sets.map((s) => [s.side, s.w]), [['left', 27], ['right', 19], ['left', 29], ['right', 21]]);
   const tagged = { exercises: [E('curl', [sided('left', 20), sided('right', 15)])] };
   const untagged = [E('curl', [sided(undefined, 26), sided(undefined, 18)])];
   assert.equal(core.templateChanges({ exercises: untagged }, tagged).sidesChanged, true);
   assert.equal(core.templateChanges({ exercises: untagged }, tagged).structure, true);
-  assert.deepEqual(core.applyWorkoutToTemplate(untagged, tagged)[0].sets.map((s) => s.side), ['left', 'right']);
-  assert.ok(core.applyWorkoutToTemplate(untagged, tagged, { valuesOnly: true })[0].sets.every((s) => !('side' in s)));
+  assert.ok(core.progressTemplate(untagged, tagged, () => 'dumbbell').exercises[0].sets.every((s) => !('side' in s)), 'progression alone adds no sides');
   const layout = core.progressTemplate(untagged, tagged, () => 'dumbbell', { layout: true });
   assert.deepEqual(layout.exercises[0].sets.map((s) => [s.side, s.w]), [['left', 26], ['right', 18]], 'Update routine keeps better targets and saves the workout sides');
   const removed = { exercises: [E('curl', [sided(undefined, 30), sided(undefined, 22)])] };
   const oldSides = [E('curl', [sided('left', 26), sided('right', 18)])];
-  assert.deepEqual(core.applyWorkoutToTemplate(oldSides, removed, { valuesOnly: true })[0].sets.map((s) => s.side), ['left', 'right']);
-  assert.ok(core.applyWorkoutToTemplate(oldSides, removed)[0].sets.every((s) => !('side' in s)));
   assert.deepEqual(core.progressTemplate(oldSides, removed, () => 'dumbbell').exercises[0].sets.map((s) => s.side), ['left', 'right']);
   assert.ok(core.progressTemplate(oldSides, removed, () => 'dumbbell', { layout: true }).exercises[0].sets.every((s) => !('side' in s)));
   const changedCount = core.templateChanges({ exercises: [E('curl', [sided('left'), sided('left')])] }, tagged);
@@ -2357,18 +2349,17 @@ test('records in a running workout (#37): one set per exercise and metric, as in
   assert.deepEqual(recs(running([['normal', 100, 5]]), new Map()), {});
 });
 
-test('set totals (#38): warm-ups are never counted; failure and drop sets are; sides count row by row', () => {
+test('set totals (#38): warm-ups are never counted; failure and drop sets are; a bilateral exercise counts sides row by row', () => {
+  const total = (sets) => core.exerciseSetCount(sets, false).sets;
   const rows = [S('warmup', 40, 10), S('warmup', 60, 5), S('normal', 80, 5), S('failure', 80, 4), S('drop', 60, 8)];
-  assert.equal(core.setTotal(rows), 3);
-  assert.equal(core.setTotal([S('warmup', 40, 10)]), 0, 'a warm-up-only exercise has no sets');
-  assert.equal(core.setTotal([]), 0);
+  assert.equal(total(rows), 3);
+  assert.equal(total([S('warmup', 40, 10)]), 0, 'a warm-up-only exercise has no sets');
+  assert.equal(total([]), 0);
   // changing a set's type changes the total
   const changed = rows.map((x, i) => (i === 0 ? { ...x, type: 'normal' } : x));
-  assert.equal(core.setTotal(changed), 4);
-  // left and right rows are two rows here (the paired totals are #54)
-  assert.equal(core.setTotal([S('normal', 20, 10, { side: 'left' }), S('normal', 20, 10, { side: 'right' })]), 2);
-  const w = { exercises: [E('a', rows), E('b', [S('warmup', 20, 10)]), E('c', [S('normal', 10, 10)])] };
-  assert.equal(core.workoutSetCount(w), 4);
+  assert.equal(total(changed), 4);
+  // left and right rows of a bilateral exercise are two sets (a unilateral one pairs them, #54)
+  assert.equal(total([S('normal', 20, 10, { side: 'left' }), S('normal', 20, 10, { side: 'right' })]), 2);
 });
 
 test('removing an exercise from a superset (#39): a group left with one dissolves, Undo restores it, other groups stay', () => {
@@ -2586,8 +2577,6 @@ test('rep ranges (#44): progression moves the target inside the bounds, never th
   // the layout: paired sets keep their range, a new set takes the range of the set before it (same type and side), a drop set doesn't
   const lay = run([R(80, 8), R(80, 8)], [S('normal', 80, 9), S('normal', 80, 12), S('normal', 80, 9), S('drop', 60, 10)], { layout: true });
   assert.deepEqual(lay.exercises[0].sets, [R(80, 9), R(80, 10), R(80, 9), S('drop', 60, 10)]);
-  // Update values only (applyWorkoutToTemplate) keeps the range too
-  assert.deepEqual(core.applyWorkoutToTemplate([E('a', [R(80, 8)])], { exercises: [E('a', [S('normal', 80, 12)])] }, { valuesOnly: true })[0].sets, [R(80, 10)]);
   // the layout diff ignores ranges: same sets, same structure
   assert.equal(core.templateChanges({ exercises: [E('a', [R(80, 8)])] }, { exercises: [E('a', [S('normal', 80, 9)])] }).structure, false);
 });
