@@ -1399,6 +1399,24 @@ test('the German dictionary has no duplicate keys', () => {
   assert.deepEqual(dupes, []);
 });
 
+test('every German entry is a text the code can show, so unused ones don’t pile up (#87)', () => {
+  // the code that shows text: the app, the core's labels and messages, the website and its build
+  const files = [];
+  const walk = (d) => {
+    for (const f of fs.readdirSync(d)) {
+      const p = path.join(d, f);
+      if (fs.statSync(p).isDirectory()) { if (f !== 'node_modules') walk(p); } else if (/\.(m?js|tsx?|html)$/.test(f) && !/^(i18n-de|exercise-names-de)\.js$/.test(f)) files.push(p);
+    }
+  };
+  for (const d of ['app/src', 'core', 'web', 'scripts']) walk(path.join(ROOT, d));
+  const code = files.map(read).join('\n');
+  const literal = (k) => code.includes(k) || code.includes(k.replace(/'/g, "\\'"));
+  // plurals are made as one + 's' (f.plural in app/src/lib/format.ts): "workouts" from 'workout'
+  const plural = (k) => k.endsWith('s') && (code.includes(`'${k.slice(0, -1)}'`) || code.includes(`"${k.slice(0, -1)}"`));
+  const unused = Object.keys(DE).filter((k) => !literal(k) && !plural(k));
+  assert.deepEqual(unused, [], 'German entries no code uses: remove them from core/i18n-de.js');
+});
+
 // ---------- themes ----------
 
 test('weekStreak counts each week in one pass, the same as filtering per week', () => {
