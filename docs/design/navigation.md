@@ -8,11 +8,12 @@ Laurin's decision (6 Nov 2026): Today, Plan and Progress are the three tabs. Tru
 
 | Tab | SF Symbol | What it holds | Replaces |
 | --- | --- | --- | --- |
-| Today | `sun.max` | Up next (the routine to start), this week's sessions, sets per muscle for the last 7 days, recent records. At the top right, the magnifying glass opens Search and the avatar opens Account and settings. | Workout tab, Profile dashboard |
+| Today | `sun.max` | Up next (the routine to start), this week's sessions, sets per muscle for the last 7 days (a muscle opens the sets behind its number), recent records. At the top right, the magnifying glass opens Search and the avatar opens Account and settings. | Workout tab, Profile dashboard |
 | Plan | `list.bullet.rectangle.portrait` | The current block (mesocycle) with its weeks, routines and folders, examples. Search and + at the top right. | Templates on the Workout tab |
 | Progress | `chart.line.uptrend.xyaxis` | Last 30 days at a glance, then Workouts (history and calendar), Lifts (every exercise with its chart and records), Records, Body (measurements), Moving up. Search and the avatar (Account) at the top right, as on Today. | History, Exercises, Measure tabs |
 | TrueTrain | a plain symbol, to be chosen (no sparkles) | The membership. On the web: what TrueTrain is and that it's in the App Store and Google Play apps, with links. In the store apps: the same page with a free trial, and for members the coach itself (built in the private repository). | — |
 
+- **Sets per muscle's breakdown** (#89): tapping a muscle on Today pushes a Detail page (`/muscle/[id]`): the muscle in Title 1 with "19 sets in the last 7 days", those sets as a tally, then one section per exercise, most sets first (Laurin, 14 Nov 2026: by exercise). The exercise's name opens the exercise, with its count on the right; under it, one row per workout, newest first (the day and the workout's name, the sets, the rows a left/right pairing leaves out, the count), which opens the workout. It always adds up to the number on Today.
 - Today, Plan and Progress in this order, Today selected on launch. TrueTrain becomes the fourth tab once the store apps are live.
 - **Search** is a magnifying glass at the top right of Today, Plan and Progress, not a tab. It pushes the Search screen with Back and the field focused. Search keeps the exercise family rows, body-part chips, exact variations for typed queries, + for a new exercise, and the empty state with Create. Back returns to the tab it opened from.
 - **The free app is complete:** logging, history, charts, records, your own exercises, import, export and backups. The TrueTrain tab is the one place that explains the membership, on the web too; nothing else is locked, greyed out or advertised.

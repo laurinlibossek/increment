@@ -735,6 +735,65 @@ test('Today: working sets per muscle in the last 7 days, and a routine’s size'
   assert.equal(core.routineSize({ exercises: [{ exerciseId: 'bench', sets: sets(1) }] }, lib).minutes, 5, 'at least 5 minutes');
 });
 
+test('Sets per muscle’s breakdown (#89): by exercise, adding up to the number on Today', () => {
+  const now = new Date(2026, 10, 14, 12).getTime();
+  const lib = new Map([
+    ['bench', { id: 'bench', bodyPart: 'chest', category: 'barbell' }],
+    ['dip', { id: 'dip', bodyPart: 'chest', category: 'weighted_bw' }],
+    ['fly', { id: 'fly', bodyPart: 'chest', category: 'cable', unilateral: true }],
+    ['row', { id: 'row', bodyPart: 'back', category: 'barbell' }],
+    ['squat', { id: 'squat', bodyPart: 'legs', category: 'barbell' }],
+    ['run', { id: 'run', bodyPart: 'cardio', category: 'cardio' }],
+  ]);
+  const work = (n, w = 60) => Array.from({ length: n }, (_, i) => ({ type: 'normal', w, r: 8 - i }));
+  const warm = (n) => Array.from({ length: n }, () => ({ type: 'warmup', w: 20, r: 10 }));
+  const sides = (s) => [...s].map((x) => ({ type: 'normal', w: 20, r: 10, side: x === 'L' ? 'left' : 'right' }));
+  const at = (day, h = 8, min = 0) => new Date(2026, 10, day, h, min).getTime();
+  const w = (id, startedAt, exercises) => ({ id, name: `Workout ${id}`, startedAt, exercises: exercises.map(([exerciseId, sets]) => ({ exerciseId, sets })) });
+  const ws = [
+    w('w3', at(8, 0), [['dip', work(4)]]), // the window's first minute: in
+    w('w1', at(14), [['bench', [...warm(1), ...work(2)]], ['fly', sides('LRL')], ['squat', warm(2)], ['bench', work(1, 80)]]),
+    w('w4', at(7, 23, 59), [['bench', work(9)]]), // the evening before the window: out
+    w('w2', at(12), [['bench', work(3)], ['dip', work(2)], ['fly', sides('LL')], ['row', work(4)], ['gone', work(5)]]),
+    w('w5', at(14, 13), [['bench', work(5)]]), // later than now: out
+    w('w6', at(10), [['fly', sides('RR')], ['run', [{ type: 'normal', d: 5, t: 1500 }]]]),
+  ];
+
+  const chest = core.muscleSets(ws, lib, 'chest', { now });
+  assert.deepEqual([chest.muscle, chest.label, chest.sets, chest.unpaired], ['chest', 'Chest', 13, 5]);
+  assert.deepEqual(chest.exercises.map((e) => [e.exerciseId, e.sets, e.unpaired, e.workouts.map((x) => `${x.id}:${x.sets}/${x.unpaired}`)]), [
+    ['bench', 6, 0, ['w1:3/0', 'w2:3/0']],
+    ['dip', 6, 0, ['w2:2/0', 'w3:4/0']],
+    ['fly', 1, 5, ['w1:1/1', 'w2:0/2', 'w6:0/2']],
+  ], 'most sets first, bench before dip (done more recently); workouts newest first; left and right never pair across workouts');
+  const bench = chest.exercises[0].workouts[0];
+  assert.deepEqual([bench.name, bench.startedAt], ['Workout w1', at(14)]);
+  assert.deepEqual(bench.rows.map((r) => r.w), [60, 60, 80], 'warm-ups out; the repeated entry joins the same row, in logged order');
+  assert.deepEqual(chest.exercises[2].workouts[0].rows.map((r) => r.side), ['left', 'right', 'left'], 'the unpaired row is listed too');
+  assert.equal(ws[0].id, 'w3', 'the workouts aren’t reordered in place');
+
+  // adds up to Today's number, for every muscle
+  const today = core.setsPerMuscle(ws, lib, { now });
+  assert.deepEqual(today.map((m) => [m.muscle, m.sets]), [['chest', 13], ['back', 4]], 'cardio, warm-ups only and unknown exercises don’t count');
+  for (const m of today) {
+    const b = core.muscleSets(ws, lib, m.muscle, { now });
+    assert.equal(b.sets, m.sets, m.muscle);
+    assert.equal(b.exercises.reduce((n, e) => n + e.sets, 0), m.sets, `${m.muscle}: the exercises add up`);
+    for (const e of b.exercises) assert.equal(e.workouts.reduce((n, x) => n + x.sets, 0), e.sets, `${e.exerciseId}: the workouts add up`);
+  }
+  assert.deepEqual(core.muscleSets(ws, lib, 'back', { now }).exercises.map((e) => [e.exerciseId, e.sets]), [['row', 4]]);
+  assert.equal(core.muscleSets(ws, Object.fromEntries(lib), 'chest', { now, days: 14 }).sets, 22, '14 days take in the evening before; later than now stays out');
+
+  // a tie within one workout: in the order done
+  const tie = core.muscleSets([w('a', at(13), [['dip', work(2)], ['bench', work(2)]])], lib, 'chest', { now });
+  assert.deepEqual(tie.exercises.map((e) => e.exerciseId), ['dip', 'bench']);
+
+  // nothing to show
+  assert.deepEqual(core.muscleSets(ws, lib, 'legs', { now }), { muscle: 'legs', label: 'Legs', sets: 0, unpaired: 0, exercises: [] }, 'warm-ups only');
+  assert.deepEqual(core.muscleSets(ws, lib, 'cardio', { now }), { muscle: 'cardio', label: null, sets: 0, unpaired: 0, exercises: [] }, 'not a muscle');
+  assert.deepEqual(core.muscleSets([], lib, 'chest', { now }).exercises, []);
+});
+
 test('merging exercises: same logged fields only; the target keeps its own rest timer and notes', () => {
   const bench = { id: 'x-bench', category: 'barbell', restSec: null, notes: '', pinnedNote: 'Arch' };
   const db = { id: 'x-db', category: 'dumbbell', restSec: 90, notes: 'Slow', pinnedNote: 'Elbows in' };

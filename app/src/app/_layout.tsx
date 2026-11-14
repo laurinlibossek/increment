@@ -107,6 +107,7 @@ export default function RootLayout() {
               <Stack.Screen name="warmup" options={{ title: tr('Warm-up sets') }} />
               <Stack.Screen name="strong-import" options={{ title: '' }} />
               <Stack.Screen name="workout/[id]" options={{ title: '' }} />
+              <Stack.Screen name="muscle/[id]" options={{ title: '' }} />
               <Stack.Screen name="template/[id]" options={{ title: '' }} />
               <Stack.Screen name="exercise/[id]" options={{ title: '' }} />
               <Stack.Screen name="measure/[type]" options={{ title: '' }} />
