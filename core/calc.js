@@ -4,9 +4,7 @@ import { parseNum } from './units.js';
 
 export const WEIGHT_CATS = new Set(['barbell', 'dumbbell', 'machine', 'weighted_bw', 'assisted_bw']);
 export const usesWeight = (cat) => WEIGHT_CATS.has(cat);
-export const usesReps = (cat) => usesWeight(cat) || cat === 'reps';
 export const usesDistance = (cat) => cat === 'cardio';
-export const usesTime = (cat) => cat === 'cardio' || cat === 'duration';
 /** Categories where "heavier is better" records make sense */
 export const hasLoadRecords = (cat) => usesWeight(cat) && cat !== 'assisted_bw';
 /** The fields a set of this category is logged with: w(eight), r(eps), d(istance), t(ime). */
@@ -150,41 +148,6 @@ export function workoutVolume(w, exById) {
   return v;
 }
 
-/**
- * How many rows a number of sets shows (#38): every row but warm-ups, which
- * are logged and drawn (W rows, short strokes) but never counted. Normal,
- * failure and drop sets count. Rows with a side count one by one here, as
- * logging progress does; the summaries pair them (entriesSetCount, #54).
- */
-export function setTotal(sets) {
-  let n = 0;
-  for (const s of sets) if (isWorking(s)) n++;
-  return n;
-}
-
-/** A workout's rows, warm-ups left out (setTotal); its set total is entriesSetCount (#54). */
-export function workoutSetCount(w) {
-  let n = 0;
-  for (const e of w.exercises) n += setTotal(e.sets);
-  return n;
-}
-
-/** Best set of an exercise entry for summaries (highest e1RM, or most reps / distance / time). */
-export function bestSet(sets, cat, formula) {
-  let best = null, bestScore = -1;
-  for (const s of sets) {
-    if (!isWorking(s) && sets.some(isWorking)) continue;
-    let score;
-    if (hasLoadRecords(cat)) score = est1RM(s.w, s.r, formula) || (s.w || 0) * 0.001 + (s.r || 0) * 1e-6;
-    else if (cat === 'assisted_bw') score = (s.r || 0) - (s.w || 0) * 0.001;
-    else if (cat === 'reps') score = s.r || 0;
-    else if (cat === 'cardio') score = (s.d || 0) * 1e6 + (s.t || 0);
-    else score = s.t || 0;
-    if (score > bestScore) { bestScore = score; best = s; }
-  }
-  return best;
-}
-
 // ---------- PR metrics ----------
 export const PR_LABEL = {
   e1rm: 'Est. 1RM', weight: 'Weight', volume: 'Set volume', reps: 'Reps', distance: 'Distance', time: 'Time',
@@ -220,17 +183,6 @@ export function sessionsByExercise(workouts) {
     }
   }
   return out;
-}
-
-/**
- * Record metrics a single set beats on its own, compared with the stored bests
- * for its exercise. The records a workout shows are liveRecordSets /
- * prsForNewWorkout, which also weigh the workout's other sets.
- */
-export function newRecords(s, cat, bests, formula, at) {
-  if (!bests || !isWorking(s)) return [];
-  return Object.entries(metricsFor(s, cat, formula, at))
-    .filter(([k, v]) => bests[k] !== undefined && v > bests[k] + 1e-9).map(([k]) => k);
 }
 
 /**

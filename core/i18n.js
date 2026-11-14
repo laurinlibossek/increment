@@ -3,7 +3,6 @@
 import DE from './i18n-de.js';
 
 export const DICTIONARIES = { de: DE };
-export const LANGUAGES = ['en', 'de'];
 
 /** A tr(text, vars) function for `lang` that fills {placeholders} from `vars`. */
 export function translator(lang) {

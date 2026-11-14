@@ -158,38 +158,6 @@ export function templateChanges(template, workout) {
     || c.warmupsChanged || c.dropsChanged || c.failuresChanged || c.typesChanged || c.sidesChanged || c.supersetsChanged);
   return c;
 }
-/** Did a finished workout change the structure of its template? */
-export const templateDiffers = (template, workout) => templateChanges(template, workout).structure;
-
-/**
- * The template's exercises after saving a finished workout into it. `valuesOnly`
- * keeps the template's exercises and sets and copies the performed numbers into
- * the matching sets; otherwise the workout's structure and numbers replace them.
- */
-export function applyWorkoutToTemplate(templateExercises, workout, { valuesOnly = false } = {}) {
-  const { pairs } = pairEntries(templateExercises, workout.exercises);
-  if (valuesOnly) {
-    return templateExercises.map((e, ti) => {
-      const wi = pairs[ti];
-      if (wi < 0) return e;
-      const ws = workout.exercises[wi].sets;
-      const sp = pairSets(e.sets, ws);
-      return { ...e, sets: e.sets.map((s, i) => (sp[i] < 0 ? s : templateSet(setType(s), ws[sp[i]], s))) };
-    });
-  }
-  const tplOf = new Map();
-  pairs.forEach((wi, ti) => { if (wi >= 0) tplOf.set(wi, templateExercises[ti]); });
-  return workout.exercises.map((e, wi) => {
-    const out = { exerciseId: e.exerciseId, sets: e.sets.map((s) => templateSet(setType(s), s)) };
-    const notes = tplOf.get(wi)?.notes; // keep the template's own exercise notes
-    if (notes) out.notes = notes;
-    if (e.supersetId) out.supersetId = e.supersetId;
-    if (e.restSec !== null && e.restSec !== undefined) out.restSec = e.restSec;
-    if (e.focus) out.focus = e.focus;
-    return out;
-  });
-}
-
 // ---------- progressive overload ----------
 // What "better" means per kind of exercise, compared key by key: more weight
 // (or, for assisted exercises, less assistance), then more reps; for
