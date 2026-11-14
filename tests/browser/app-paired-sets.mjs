@@ -61,6 +61,15 @@ async function hasSide(page, setId) {
   await page.getByTestId('type-normal').waitFor({ state: 'hidden' });
   return n > 0;
 }
+// Discard closes the session with the router's back (history.go(-1)) once its dialog has answered; a page.goto
+// started before that is aborted by it (net::ERR_ABORTED, seen in CI), so wait until the URL has left the session.
+async function discardWorkout(page) {
+  const session = page.url();
+  await page.getByTestId('workout-menu').click();
+  await page.getByTestId('menu-discard').click();
+  await page.getByTestId('confirm-discard').click().catch(() => {});
+  await page.waitForURL((u) => u.href !== session);
+}
 async function editExercise(page, ex) {
   await page.goto(`${APP}/exercise/${ex}`);
   await page.getByTestId('exercise-options').click();
@@ -116,9 +125,7 @@ for (const theme of ['light', 'dark']) {
   await page.getByTestId(`block-${BENCH}`).waitFor();
   const benchIds = await page.getByTestId(`block-${BENCH}`).locator('[data-testid^="label-"]').evaluateAll((els) => els.map((e) => e.dataset.testid.slice('label-'.length)));
   assert.equal(await hasSide(page, benchIds[1]), false, 'bilateral: no Side');
-  await id('workout-menu').click();
-  await id('menu-discard').click();
-  await id('confirm-discard').click().catch(() => {});
+  await discardWorkout(page);
   await page.goto(`${APP}/template-edit?id=legacy`);
   await page.getByTestId(`block-${BENCH}`).waitFor();
   const legacyIds = await page.getByTestId(`block-${BENCH}`).locator('[data-testid^="label-"]').evaluateAll((els) => els.map((e) => e.dataset.testid.slice('label-'.length)));
@@ -246,7 +253,7 @@ for (const theme of ['light', 'dark']) {
   assert.equal((await storedData(page)).kv.active.exercises[0].sets[4].side, 'left');
   assert.match(await text('session-count'), /^2 of 3 working sets · 66%/, 'a lone left is a set of its own while logging');
   ok('starting it splits each set into Left and Right (saved in the routine) with last time’s numbers on both; no Clear; Add set goes on Left');
-  await id('workout-menu').click(); await id('menu-discard').click(); await id('confirm-discard').click().catch(() => {});
+  await discardWorkout(page);
 
   // the CSV: with pairs on, Single Leg Extension's L L L R goes out as one merged row and the two lone lefts
   const csvRows = async () => {
