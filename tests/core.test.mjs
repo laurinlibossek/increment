@@ -1187,7 +1187,7 @@ test('measurements CSV: app-only fields never reach the file; unknown types and 
 
 // ---------- backup ----------
 test('backups round-trip, count as the latest backup and restore the built-in library', () => {
-  const data = { exercises: [], workouts: [{ id: 'w' }], templates: [], measurements: [], kv: { meta: { lastBackupAt: 5 } } };
+  const data = { exercises: [], workouts: [{ id: 'w', startedAt: 1, exercises: [] }], templates: [], measurements: [], kv: { meta: { lastBackupAt: 5 } } };
   const now = new Date('2026-10-13T20:00:00Z');
   const back = core.parseBackup(core.makeBackup(data, '1.6.0', now), core.SEED_EXERCISES);
   assert.equal(back.data.workouts.length, 1);
@@ -1198,6 +1198,45 @@ test('backups round-trip, count as the latest backup and restore the built-in li
     assert.equal(e.message, 'The backup is damaged ({part}).');
     assert.deepEqual(e.vars, { part: 'workouts' });
   }
+});
+
+test('a backup with a damaged record is refused whole and names the list; a record saved twice keeps its later copy (#83)', () => {
+  const entry = { id: 'e', exerciseId: 'c-x', sets: [{ id: 's', type: 'normal', w: 20, r: 5 }] };
+  const ex = { id: 'c-x', name: 'X Lift (Cable)', category: 'machine', bodyPart: 'back', later: 'kept' };
+  const w = { id: 'w', name: 'A', startedAt: 1, endedAt: 2, templateId: null, exercises: [entry] };
+  const t = { id: 't', name: 'A', exercises: [{ exerciseId: 'c-x', sets: [{ type: 'normal', r: 5 }] }] };
+  const m = { id: 'm', type: 'bodyweight', value: 80, at: 1 };
+  const good = { exercises: [ex], workouts: [w], templates: [t], measurements: [m], kv: { settings: { unit: 'kg' } } };
+  const file = (patch, extra = {}) => JSON.stringify({ app: 'setlog', schema: 1, exportedAt: '2026-11-14T00:00:00Z', data: { ...good, ...patch }, ...extra });
+  const back = core.parseBackup(file({}), []).data;
+  for (const k of ['exercises', 'workouts', 'templates', 'measurements']) assert.deepEqual(back[k], good[k], `${k}: a complete record comes back as it was, unknown fields too`);
+  const refused = (part) => (e) => e.message === 'The backup is damaged ({part}).' && e.vars?.part === part;
+  // a record JSON can't hold leaves the field out (undefined) or writes null (NaN)
+  const damaged = {
+    exercises: [null, 'x', [], { ...ex, id: undefined }, { ...ex, id: '' }, { ...ex, id: 7 }, { ...ex, name: undefined }, { ...ex, name: 7 }, { ...ex, category: undefined }],
+    workouts: [{ ...w, id: undefined }, { ...w, startedAt: undefined }, { ...w, startedAt: '1' }, { ...w, startedAt: NaN }, { ...w, exercises: undefined }, { ...w, exercises: {} },
+      { ...w, exercises: [null] }, { ...w, exercises: [{ ...entry, exerciseId: undefined }] }, { ...w, exercises: [{ ...entry, sets: undefined }] }, { ...w, exercises: [{ ...entry, sets: [null] }] }],
+    templates: [{ ...t, id: undefined }, { ...t, name: undefined }, { ...t, exercises: undefined }, { ...t, exercises: [{ exerciseId: 'c-x' }] }, { ...t, exercises: [{ sets: [] }] }],
+    measurements: [{ ...m, id: undefined }, { ...m, type: undefined }, { ...m, at: '1' }, { ...m, at: undefined }, { ...m, value: NaN }, { ...m, value: undefined }],
+  };
+  for (const [part, records] of Object.entries(damaged)) {
+    for (const r of records) assert.throws(() => core.parseBackup(file({ [part]: [...good[part], r] }), core.SEED_EXERCISES), refused(part), `${part}: ${JSON.stringify(r)}`);
+  }
+  for (const part of ['exercises', 'workouts', 'templates', 'measurements']) assert.throws(() => core.parseBackup(file({ [part]: null }), []), refused(part), `${part}: null would restore as an empty list`);
+  assert.throws(() => core.parseBackup(file({ kv: ['x'] }), []), refused('kv'));
+  assert.throws(() => core.parseBackup(file({}, { data: [] }), []), /isn’t a Setlog backup file/);
+  assert.throws(() => core.parseBackup(file({}, { recovery: { active: { ...w, exercises: [{ exerciseId: 'c-x' }] } } }), []), refused('recovery'), 'the running workout is checked the same way');
+  // the same id twice: the later copy, in the place of the first, on the phone and the web alike
+  const twice = core.parseBackup(file({
+    exercises: [ex, { ...ex, name: 'X Lift 2' }],
+    workouts: [w, { ...w, id: 'w2' }, { ...w, name: 'B' }],
+    templates: [t, { ...t, name: 'B' }],
+    measurements: [m, { ...m, value: 81 }],
+  }), core.SEED_EXERCISES).data;
+  assert.deepEqual(twice.exercises.filter((e) => e.id === 'c-x').map((e) => e.name), ['X Lift 2']);
+  assert.deepEqual(twice.workouts.map((x) => [x.id, x.name]), [['w', 'B'], ['w2', 'A']]);
+  assert.deepEqual(twice.templates.map((x) => x.name), ['B']);
+  assert.deepEqual(twice.measurements.map((x) => x.value), [81]);
 });
 
 test('a backup never brings a running workout along; other kv keys stay', () => {
@@ -1211,7 +1250,7 @@ test('a backup never brings a running workout along; other kv keys stay', () => 
 
 test('recovery backups carry the running workout beside the data; old files restore as before', () => {
   const active = { id: 'a1', kind: 'workout', name: 'Push', startedAt: 10, exercises: [{ id: 'e', exerciseId: 'x', sets: [] }], updatedAt: 20 };
-  const data = { exercises: [], workouts: [{ id: 'w' }], templates: [], measurements: [], kv: { settings: { unit: 'kg' } } };
+  const data = { exercises: [], workouts: [{ id: 'w', startedAt: 1, exercises: [] }], templates: [], measurements: [], kv: { settings: { unit: 'kg' } } };
   const file = JSON.parse(core.makeBackup(data, '1.0.0', new Date(0), { active }));
   assert.deepEqual(file.recovery, { active }, 'the running workout is beside data, not in kv');
   assert.equal('active' in file.data.kv, false);
@@ -1658,8 +1697,8 @@ test('custom registry families browse and filter like catalogue families, and ke
 });
 
 test('custom family backups round-trip, old backups restore, and empty registry entries are removed', () => {
-  const ex = { id: 'c-moon', name: 'Moon Lift (Cable)', family: 'fc-moon-lift' };
-  const data = { exercises: [ex], workouts: [{ id: 'w', exercises: [{ exerciseId: ex.id }] }], templates: [], measurements: [],
+  const ex = { id: 'c-moon', name: 'Moon Lift (Cable)', category: 'machine', family: 'fc-moon-lift' };
+  const data = { exercises: [ex], workouts: [{ id: 'w', startedAt: 1, exercises: [{ exerciseId: ex.id, sets: [] }] }], templates: [], measurements: [],
     kv: { customFamilies: { 'fc-moon-lift': 'Moon Lift', 'fc-empty': 'Empty' } } };
   const restored = core.parseBackup(core.makeBackup(data, 'test')).data;
   assert.deepEqual(restored.exercises, data.exercises);
@@ -1896,7 +1935,7 @@ test('new built-in name collisions keep custom ids, logging fields, settings and
   assert.deepEqual(core.seedExerciseChanges(upgraded), []);
   assert.deepEqual(library, before);
   // Same path when restoring an old backup: references and metrics stay on the custom id.
-  const data = { exercises: library, workouts: [{ id: 'w', startedAt: 1, exercises: [{ id: 'entry', exerciseId: custom.id, sets: [{ id: 's', type: 'normal', w: 20, r: 10 }] }] }], templates: [{ id: 't', exercises: [{ exerciseId: custom.id, sets: [{ w: 15, r: 10 }] }] }], kv: { meta: { seedVersion: 1 } } };
+  const data = { exercises: library, workouts: [{ id: 'w', startedAt: 1, exercises: [{ id: 'entry', exerciseId: custom.id, sets: [{ id: 's', type: 'normal', w: 20, r: 10 }] }] }], templates: [{ id: 't', name: 'Shrugs', exercises: [{ exerciseId: custom.id, sets: [{ w: 15, r: 10 }] }] }], kv: { meta: { seedVersion: 1 } } };
   const restored = core.parseBackup(core.makeBackup(data, '1'), core.SEED_EXERCISES).data;
   assert.deepEqual(restored.exercises, upgraded);
   assert.deepEqual(restored.workouts, data.workouts);
