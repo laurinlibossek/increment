@@ -10,7 +10,7 @@ import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { ScrollView, Text, View } from 'react-native';
 import {
   BODY_PARTS, exerciseRecords, exerciseSeries, chartMetricsFor, chartMetricFor, hasLoadRecords, formulaLabel,
-  kgTo, kmTo, roundW, DAY, EXERCISE_RANGES, REST_CHOICES, canMergeExercises, startOfDay,
+  kgTo, kmTo, roundW, DAY, EXERCISE_RANGES, REST_CHOICES, canMergeExercises, daysAgo,
 } from '@increment/core';
 
 import {
@@ -101,7 +101,7 @@ function ExercisePage({ id }: { id: string }) {
   const label = (list: { id: string; label: string }[], key: string) => tr(list.find((x) => x.id === key)?.label || 'Other');
   /** today, yesterday, a weekday within the week, then the date */
   const when = (at: number, compact = false) => {
-    const days = Math.round((startOfDay(now) - startOfDay(at)) / DAY);
+    const days = daysAgo(at, now);
     if (days <= 0) return tr('Today');
     if (days === 1) return tr('Yesterday');
     if (days < 7) return f.date.weekdayLong(at);
