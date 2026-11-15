@@ -17,6 +17,8 @@ import { editExercise } from '@/lib/exerciseForm';
 import { useFormat } from '@/lib/format';
 import { useSearchFocus } from '@/ui/useSearchFocus';
 import { useTally } from '@/lib/theme';
+import { ENABLE_EXERCISE_THUMBNAILS } from '@/lib/exerciseThumbnails';
+import { ExerciseThumbnail, EXERCISE_THUMBNAIL_SIZE } from '@/ui/ExerciseThumbnail';
 import { Button, Empty } from '@/ui/kit';
 import { ListRow, SymbolIcon } from '@/ui/tally/ListRow';
 import { TabTitle } from '@/ui/tally/TabRoot';
@@ -81,7 +83,9 @@ export default function SearchScreen() {
         renderItem={({ item, index }) => {
           return (
             <ListRow first={index === 0} title={<Text style={[TYPE.body, { color: t.ink }]}>{item.title}</Text>}
-              testID={item.family ? `family-${item.id}` : `exercise-${item.exercise.id}`} chevron
+              lead={ENABLE_EXERCISE_THUMBNAILS ? <ExerciseThumbnail exerciseId={item.exercise.id} name={f.exName(item.exercise)} /> : undefined}
+              leadWidth={ENABLE_EXERCISE_THUMBNAILS ? EXERCISE_THUMBNAIL_SIZE : undefined}
+              testID={item.family ? `family-${item.id}` : `exercise-${item.exercise.id}`}
               subtitle={<Text style={[TYPE.footnote, { color: t.ink2 }]}>{item.subtitle}</Text>}
               onPress={() => router.push({ pathname: '/exercise/[id]', params: { id: item.exercise.id } })} />
           );

@@ -190,6 +190,7 @@ async function discard(page) {
   await id(page, 'lifts-search').fill('squat bb');
   await wait(page);
   assert.deepEqual(await page.locator('[data-testid^="lift-"]').evaluateAll((els) => els.map((e) => e.getAttribute('data-testid'))), ['lift-x-squat-barbell']);
+  assert.equal(await id(page, 'lift-x-squat-barbell').locator('[aria-hidden="true"]').count(), 0, 'Lifts rows have no chevron');
   await id(page, 'lift-x-squat-barbell').click();
   await id(page, 'exercise-options').waitFor();
   await page.goBack(); await page.goBack();

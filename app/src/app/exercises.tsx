@@ -1,7 +1,7 @@
 // Lifts (Progress → Lifts): the exercises you've done, the most recent first,
 // with how often and when. Every exercise in the library is under Search.
 import { useMemo, useState } from 'react';
-import { FlatList, TextInput, View } from 'react-native';
+import { FlatList, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { BODY_PARTS, matchExercise } from '@increment/core';
 
@@ -10,6 +10,8 @@ import { RADIUS, SPACE, TYPE } from '@/design/tally';
 import { useFormat } from '@/lib/format';
 import { useSearchFocus } from '@/ui/useSearchFocus';
 import { useTally } from '@/lib/theme';
+import { ENABLE_EXERCISE_THUMBNAILS } from '@/lib/exerciseThumbnails';
+import { ExerciseThumbnail, EXERCISE_THUMBNAIL_SIZE } from '@/ui/ExerciseThumbnail';
 import { Empty } from '@/ui/kit';
 import { ListRow, SymbolIcon } from '@/ui/tally/ListRow';
 
@@ -46,7 +48,9 @@ export default function LiftsScreen() {
         </View>
       ) : undefined}
       renderItem={({ item, index }) => (
-        <ListRow first={index === 0} title={f.exName(item.ex)} testID={`lift-${item.ex.id}`} chevron
+        <ListRow first={index === 0} title={ENABLE_EXERCISE_THUMBNAILS ? <Text style={[TYPE.body, { color: t.ink }]}>{f.exName(item.ex)}</Text> : f.exName(item.ex)} testID={`lift-${item.ex.id}`}
+          lead={ENABLE_EXERCISE_THUMBNAILS ? <ExerciseThumbnail exerciseId={item.ex.id} name={f.exName(item.ex)} /> : undefined}
+          leadWidth={ENABLE_EXERCISE_THUMBNAILS ? EXERCISE_THUMBNAIL_SIZE : undefined}
           subtitle={`${partLabel(item.ex.bodyPart)} · ${f.plural(item.n, 'time')} · ${f.relDayLower(item.last)}`}
           onPress={() => router.push({ pathname: '/exercise/[id]', params: { id: item.ex.id } })} />
       )}

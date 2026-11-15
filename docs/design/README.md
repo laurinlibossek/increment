@@ -77,7 +77,7 @@ Voice: plain, short, numbers first. The person is mid-set with sweaty hands; eve
 - SF Symbols on iOS and Material Symbols on Android, through `expo-symbols`, in the regular weight at the size of the text beside them. The previews here use SVG stand-ins drawn to match; they are not the shipped icons.
 - Outline symbols by default; the selected tab may use the fill variant.
 - Names: Today `sun.max`, Plan `list.bullet.rectangle.portrait`, Progress `chart.line.uptrend.xyaxis`, Search `magnifyingglass`, Workouts `calendar`, Lifts `dumbbell`, Records `rosette`, Body `figure.stand`, More `ellipsis`, Minimize `chevron.down`, Skip rest `forward.end`, Add `plus`, Build a split `square.grid.2x2`.
-- No emoji, illustrations, mascots or body maps. The only custom glyphs are the tally stroke and the block's Roman numerals.
+- No emoji, illustrations, mascots or body maps. A narrow exception: 56 pt exercise thumbnails in catalogue list rows only (Search, the exercise picker and Progress → Lifts), for recognition, never instruction or muscle highlighting. No thumbnail on the exercise page. These stay hidden until every built-in has its own approved drawing (#50/#51). The other custom glyphs are the tally stroke and the block's Roman numerals.
 - The logo is the app icon, a white Roman-numeral I on black (`assets/Logos`). Use it as it is on the splash screen and in About, nowhere else in the app.
 
 ## Don't
