@@ -356,8 +356,16 @@ try {
     assert.match(await b.page.getByTestId('choice-title').locator('..').innerText(), /Routine “Arms C”[\s\S]*Arms A[\s\S]*Arms C/);
     await b.id('conflict-keep-mine').click();
     await waitStored(b.page, (x) => x.templates[0].name === 'Arms C');
+    // a setting changed in A shows in B's open Plan without a reload (kv values as state, #99)
+    await b.page.goto(APP);
+    await b.id('tab-index').waitFor();
+    await selectTab(b.page, 'plan');
+    assert.equal(await b.id('hide-examples').count(), 0);
+    await examples(a, true);
+    await waitStored(a.page, (x) => x.kv.settings.showExamples === true);
+    await b.id('hide-examples').waitFor();
     assert.deepEqual([...a.errors, ...b.errors], []);
-    ok('two tabs: changes to different records both stay; a clean tab updates, an open editor keeps its edits and can’t save over a rename');
+    ok('two tabs: changes to different records both stay; a clean tab updates, also for a setting; an open editor keeps its edits and can’t save over a rename');
     await ctx.close();
   }
   {
