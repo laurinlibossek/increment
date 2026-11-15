@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BODY_PARTS, BODY_PART_LABEL, familyOf } from '@increment/core';
+import { BODY_PART_LABEL, familyOf } from '@increment/core';
 
 import { allSessions, useAppSelector } from '@/data/store';
 import type { Exercise } from '@/data/types';
@@ -17,7 +17,7 @@ import { useTally } from '@/lib/theme';
 import { ENABLE_EXERCISE_THUMBNAILS } from '@/lib/exerciseThumbnails';
 import { ExerciseThumbnail, EXERCISE_THUMBNAIL_SIZE } from '@/ui/ExerciseThumbnail';
 import { Button, Empty, SearchField } from '@/ui/kit';
-import { ChoiceChips } from '@/ui/tally/ChoiceChips';
+import { MuscleFilters } from '@/ui/MuscleFilters';
 import { ListRow, SymbolIcon } from '@/ui/tally/ListRow';
 
 export default function PickExercises() {
@@ -32,6 +32,7 @@ export default function PickExercises() {
   const multi = !familySelection && !!pick?.multi;
   const [q, setQ] = useState('');
   const [part, setPart] = useState('all');
+  const [muscle, setMuscle] = useState('all');
   const [chosen, setChosen] = useState<string[]>([]);
   const current = pick?.currentExerciseId ? exercises.get(pick.currentExerciseId) : undefined;
   const currentFamily = familyOf(current);
@@ -40,14 +41,13 @@ export default function PickExercises() {
   useEffect(() => () => { finishPick(null, pick); }, [pick]);
 
   const list = useMemo(() => {
-    const rows = exerciseBrowserRows(exercises, sessions, f, { query: q, part, accepts: pick?.accepts, customFamilies });
+    const rows = exerciseBrowserRows(exercises, sessions, f, { query: q, part, muscle, accepts: pick?.accepts, customFamilies });
     if (!q.trim() && current) {
       const at = rows.findIndex((r) => r.id === currentFamily || r.id === current.id);
       if (at > 0) rows.unshift(...rows.splice(at, 1));
     }
     return rows;
-  }, [exercises, sessions, f, q, part, pick, current, currentFamily, customFamilies]);
-  const parts = [{ value: 'all', label: tr('All') }, ...BODY_PARTS.map((b) => ({ value: b.id, label: tr(b.label) }))];
+  }, [exercises, sessions, f, q, part, muscle, pick, current, currentFamily, customFamilies]);
   const done = (ids: string[] | null) => { finishPick(ids, pick); router.back(); };
   const tap = (id: string) => {
     if (!multi) { done([id]); return; }
@@ -58,7 +58,7 @@ export default function PickExercises() {
     if (!ex) return;
     if (!multi) { done([ex.id]); return; }
     setChosen((cur) => [...cur, ex.id]);
-    setQ(''); setPart('all');
+    setQ(''); setPart('all'); setMuscle('all');
   };
   const toggle = (id: string) => setExpanded((cur) => { const next = new Set(cur); if (next.has(id)) next.delete(id); else next.add(id); return next; });
   const version = (ex: Exercise, first = false, nested = false, title = f.exName(ex), summary?: string) => {
@@ -116,7 +116,7 @@ export default function PickExercises() {
           <SymbolIcon name="plus" color={t.ink} />
         </Pressable>}
       </View>
-      <ChoiceChips label={tr('Body part')} testID="pick-parts" value={part} onChange={setPart} options={parts} />
+      <MuscleFilters region={part} muscle={muscle} onRegion={setPart} onMuscle={setMuscle} testID="pick" />
     </View>
     <FlatList data={list} keyExtractor={(r) => r.id} renderItem={({ item, index }) => renderRow(item, index)}
       keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" initialNumToRender={20}

@@ -29,6 +29,7 @@ export const CATEGORY_HELP = {
   duration: 'Time only, e.g. planks.',
 };
 
+/** @type {{ id: import('./types.js').Region, label: string }[]} */
 export const BODY_PARTS = [
   { id: 'chest', label: 'Chest' },
   { id: 'back', label: 'Back' },
@@ -40,9 +41,39 @@ export const BODY_PARTS = [
   { id: 'cardio', label: 'Cardio' },
   { id: 'other', label: 'Other' },
 ];
-export const BODY_PART_LABEL = Object.fromEntries(BODY_PARTS.map((b) => [b.id, b.label]));
+/** Sixteen main muscles, then the three non-muscle choices, in browsing order.
+ * @type {import('./types.js').MuscleDefinition[]} */
+export const MUSCLES = [
+  { id: 'chest', label: 'Chest', region: 'chest' },
+  { id: 'lats', label: 'Lats', region: 'back' },
+  { id: 'upper_back', label: 'Upper back', region: 'back' },
+  { id: 'lower_back', label: 'Lower back', region: 'back' },
+  { id: 'front_delts', label: 'Front delts', region: 'shoulders' },
+  { id: 'side_delts', label: 'Side delts', region: 'shoulders' },
+  { id: 'rear_delts', label: 'Rear delts', region: 'shoulders' },
+  { id: 'biceps', label: 'Biceps', region: 'arms' },
+  { id: 'triceps', label: 'Triceps', region: 'arms' },
+  { id: 'forearms', label: 'Forearms', region: 'arms' },
+  { id: 'quads', label: 'Quads', region: 'legs' },
+  { id: 'hamstrings', label: 'Hamstrings', region: 'legs' },
+  { id: 'glutes', label: 'Glutes', region: 'legs' },
+  { id: 'adductors', label: 'Adductors', region: 'legs' },
+  { id: 'calves', label: 'Calves', region: 'legs' },
+  { id: 'core', label: 'Core', region: 'core' },
+  { id: 'full', label: 'Full body', region: 'full' },
+  { id: 'cardio', label: 'Cardio', region: 'cardio' },
+  { id: 'other', label: 'Other', region: 'other' },
+];
+/** Labels for current muscles AND legacy regions. @type {Record<string, string>} */
+export const BODY_PART_LABEL = Object.fromEntries([...BODY_PARTS, ...MUSCLES].map((b) => [b.id, b.label]));
 
-export const SEED_VERSION = 3;
+/** @param {string | null | undefined} part @returns {import('./types.js').Region} */
+export function regionOf(part) {
+  return MUSCLES.find((m) => m.id === part)?.region
+    || BODY_PARTS.find((r) => r.id === part)?.id || 'other';
+}
+
+export const SEED_VERSION = 4;
 
 // Family membership comes from the catalogue by id, never from stored built-ins.
 export const SEED_EXERCISES = EXERCISE_CATALOGUE.flatMap((f) =>

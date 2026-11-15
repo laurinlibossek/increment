@@ -5,7 +5,7 @@
 import { Share } from 'react-native';
 import { router } from 'expo-router';
 import {
-  encodeTemplate, decodeTemplate, exerciseSetCount, isUnilateral, sideOf, usesWeight, CATEGORIES, BODY_PARTS, WEB_APP_URL,
+  encodeTemplate, decodeTemplate, exerciseSetCount, isUnilateral, sideOf, usesWeight, CATEGORIES, BODY_PART_LABEL, WEB_APP_URL,
 } from '@increment/core';
 
 import {
@@ -198,7 +198,7 @@ type Shared = {
 export async function offerSharedTemplate(text: string, f: F): Promise<boolean> {
   const { tr } = f;
   const p = decodeTemplate(text, {
-    categories: CATEGORIES.map((x) => x.id), bodyParts: BODY_PARTS.map((x) => x.id),
+    categories: CATEGORIES.map((x) => x.id), bodyParts: Object.keys(BODY_PART_LABEL),
   }) as Shared | null;
   if (!p) return false;
   const s = getState();

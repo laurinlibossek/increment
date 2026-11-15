@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, Stack } from 'expo-router';
-import { BODY_PARTS, BODY_PART_LABEL, CATEGORIES, CATEGORY_LABEL, canMergeExercises, exerciseFamily, strongExerciseFamily, strongImportProblems } from '@increment/core';
+import { MUSCLES, regionOf, BODY_PART_LABEL, CATEGORIES, CATEGORY_LABEL, canMergeExercises, exerciseFamily, strongExerciseFamily, strongImportProblems } from '@increment/core';
 
 import { saveStrongImport, useAppState, type StrongChoice, type StrongChoices, type StrongReview } from '@/data/store';
 import { SPACE, TYPE } from '@/design/tally';
@@ -37,10 +37,14 @@ function ExerciseReviewRow({ row, index, choice, change, problem }: {
     if (ids?.[0]) change({ kind: 'existing', exerciseId: ids[0] });
   };
   const chooseField = async (field: 'category' | 'bodyPart') => {
-    const options = field === 'category' ? CATEGORIES.filter((c) => row.categories.includes(c.id)) : BODY_PARTS;
+    const options = field === 'category' ? CATEGORIES.filter((c) => row.categories.includes(c.id)) : MUSCLES;
     const value = await actionSheet<string>({
-      title: tr(field === 'category' ? 'What you log' : 'Body part'),
-      actions: options.map((o) => ({ label: tr(o.label), value: o.id, checked: newChoice[field] === o.id, testID: `strong-option-${o.id}` })),
+      title: tr(field === 'category' ? 'What you log' : 'Muscle'),
+      actions: options.map((o) => {
+        const region = regionOf(o.id);
+        return { label: tr(o.label), value: o.id, checked: newChoice[field] === o.id, testID: `strong-option-${o.id}`,
+          group: field === 'bodyPart' && region !== o.id ? tr(BODY_PART_LABEL[region]) : undefined };
+      }),
     });
     if (value) change({ ...newChoice, [field]: value });
   };
@@ -74,7 +78,7 @@ function ExerciseReviewRow({ row, index, choice, change, problem }: {
         </View>
         <SettingRow title={tr('What you log')} value={tr(CATEGORY_LABEL[choice.category as keyof typeof CATEGORY_LABEL])}
           onPress={() => chooseField('category')} testID={`strong-category-${index}`} />
-        <SettingRow title={tr('Body part')} value={choice.bodyPart ? tr(BODY_PART_LABEL[choice.bodyPart as keyof typeof BODY_PART_LABEL]) : tr('Choose')}
+        <SettingRow title={tr('Muscle')} value={choice.bodyPart ? tr(BODY_PART_LABEL[choice.bodyPart as keyof typeof BODY_PART_LABEL]) : tr('Choose')}
           onPress={() => chooseField('bodyPart')} testID={`strong-body-${index}`} />
         {family && <Text testID={`strong-family-${index}`} style={[TYPE.footnote, { color: t.ink2, paddingHorizontal: SPACE.s5, paddingTop: SPACE.s3 }]}>
           {tr('Joins {family}', { family: f.lang === 'de' ? family.nameDe : family.name })}

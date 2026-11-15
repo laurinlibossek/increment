@@ -27,6 +27,7 @@ async function create(page, name) {
   await page.getByTestId('new-exercise').click();
   await page.getByTestId('exercise-name').waitFor();
   await page.getByTestId('exercise-name').blur();
+  await page.getByTestId('part-quads').click();
 }
 async function edit(page) {
   await page.getByTestId('exercise-options').click();
@@ -240,6 +241,7 @@ try {
     await page.getByTestId('plan-add').click(); await page.getByTestId('sheet-dialog').getByTestId('start-empty').click();
     await page.getByTestId('add-exercises').click(); await page.getByTestId('pick-new').click();
     await page.getByTestId('exercise-name').fill('Nested Squat (Cable)');
+    await page.getByTestId('part-quads').click();
     await page.getByTestId('exercise-family').click();
     await page.getByTestId('pick-title').filter({ visible: true, hasText: 'Variation of' }).waitFor();
     await page.getByTestId('pick-family-f-squat').filter({ visible: true }).click();

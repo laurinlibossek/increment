@@ -2,7 +2,7 @@
 // Today, the store app's first tab: the week strip, sets per muscle and the
 // size of the routine that is up next. Labels are English translation keys.
 import { startOfDay, startOfWeek, addDays } from './units.js';
-import { BODY_PARTS, BODY_PART_LABEL } from './seed.js';
+import { BODY_PARTS, BODY_PART_LABEL, MUSCLES, regionOf } from './seed.js';
 import { restFor } from './workout.js';
 import {
   entriesSetCount, exerciseLookup, exerciseSetCount, isUnilateral, setsByExercise,
@@ -54,8 +54,13 @@ export function weekStrip(workouts, { weekStart = 1, goal = 3, now = Date.now() 
   return { days, today, done, goal };
 }
 
-// Body parts that are muscles, in the order Sets per muscle lists them.
-const MUSCLES = ['chest', 'back', 'shoulders', 'arms', 'legs', 'core', 'full'];
+// Legacy region rows follow that region's muscles; cardio and Other never count.
+const MUSCLE_ROWS = BODY_PARTS.flatMap((r) => {
+  const muscles = MUSCLES.filter((m) => m.region === r.id);
+  return muscles.some((m) => m.id === r.id) ? muscles : [...muscles, r];
+}).filter((m) => m.id !== 'cardio' && m.id !== 'other');
+/** @type {Set<string>} */
+const countedParts = new Set(MUSCLE_ROWS.map((m) => m.id));
 
 /**
  * Each exercise of a muscle (its body part) in each workout of the last `days`
@@ -79,7 +84,7 @@ function eachMuscleExercise(workouts, exercises, { days, now }, fn) {
     if (w.startedAt < since || w.startedAt > now) continue;
     for (const [id, rows] of setsByExercise(w.exercises)) {
       const ex = get(id), muscle = ex?.bodyPart;
-      if (!muscle || !MUSCLES.includes(muscle)) continue;
+      if (!muscle || !countedParts.has(muscle)) continue;
       fn({ workout: w, exerciseId: id, muscle, rows, ...exerciseSetCount(rows, isUnilateral(ex)) });
     }
   }
@@ -99,7 +104,7 @@ export function setsPerMuscle(workouts, exercises, { days = 7, now = Date.now() 
   eachMuscleExercise(workouts, exercises, { days, now }, ({ muscle, sets }) => {
     if (sets) counts.set(muscle, (counts.get(muscle) || 0) + sets);
   });
-  return BODY_PARTS.filter((b) => counts.has(b.id)).map((b) => ({ muscle: b.id, label: b.label, sets: counts.get(b.id) || 0 }));
+  return MUSCLE_ROWS.filter((b) => counts.has(b.id)).map((b) => ({ muscle: b.id, label: b.label, sets: counts.get(b.id) || 0 }));
 }
 
 /**
@@ -131,7 +136,7 @@ export function muscleSets(workouts, exercises, muscle, { days = 7, now = Date.n
   // a stable sort: ties keep the order met, newest workout first
   const list = [...byExercise.values()].sort((a, b) => b.sets - a.sets);
   /** @type {string | null} */
-  const label = MUSCLES.includes(muscle) ? BODY_PART_LABEL[muscle] : null;
+  const label = countedParts.has(muscle) ? BODY_PART_LABEL[muscle] : null;
   return { muscle, label, sets, unpaired, exercises: list };
 }
 
@@ -242,7 +247,7 @@ export function routineSize(template, exercises, { defaultRest = 120, pair = tru
  */
 export function routineMuscles(template, exercises) {
   const get = exerciseLookup(exercises);
-  const parts = new Set(template.exercises.map((e) => get(e.exerciseId)?.bodyPart).filter((p) => !!p && MUSCLES.includes(p)));
+  const parts = new Set(template.exercises.map((e) => regionOf(get(e.exerciseId)?.bodyPart)).filter((p) => countedParts.has(p)));
   return BODY_PARTS.filter((b) => parts.has(b.id)).map((b) => ({ muscle: b.id, label: b.label }));
 }
 

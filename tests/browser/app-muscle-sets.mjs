@@ -35,13 +35,15 @@ const workouts = [
   // 10 days ago: outside the 7 days
   workout('old', 'Push', now - 10 * DAY, [[BENCH, [set(75, 8), set(75, 8), set(75, 8), set(75, 8), set(75, 8)]]]),
 ];
-const lib = new Map(SEED_EXERCISES.map((e) => [e.id, e]));
+const exercises = [...SEED_EXERCISES, { id: 'c-old-arms', name: 'Old arms exercise', category: 'machine', bodyPart: 'arms' }];
+workouts.push(workout('legacy', 'Old arms', now - DAY, [['c-old-arms', [set(10, 10)]]]));
+const lib = new Map(exercises.map((e) => [e.id, e]));
 const chest = muscleSets(workouts, lib, 'chest', { now });
-const arms = muscleSets(workouts, lib, 'arms', { now });
+const arms = muscleSets(workouts, lib, 'biceps', { now });
 assert.deepEqual([chest.sets, arms.sets, arms.unpaired], [11, 4, 1], 'the fixture as planned');
 
 const data = (language) => ({
-  exercises: SEED_EXERCISES, workouts, templates: [], measurements: [],
+  exercises, workouts, templates: [], measurements: [],
   kv: { settings: { language, showExamples: false, appKeepAwake: false }, meta: { seedVersion: SEED_VERSION, createdAt: 1000, lastBackupAt: Date.now() } },
 });
 
@@ -74,10 +76,17 @@ for (const theme of ['light', 'dark']) {
   await page.goto(`${APP}/`);
   await id('muscle-chest').waitFor();
   assert.equal(await text('muscle-chest'), 'Chest 11');
+  assert.equal(await text('muscle-biceps'), 'Biceps 4');
+  assert.equal(await text('muscle-arms'), 'Arms 1');
+  assert.ok((await id('muscle-arms').boundingBox()).y > (await id('muscle-biceps').boundingBox()).y);
+  await openMuscle(a, 'arms');
+  assert.equal(await text('muscle-title'), 'Arms');
+  assert.equal(await text('muscle-ex-link-c-old-arms'), 'Old arms exercise 1');
+  await page.goBack();
   assert.equal(await id('muscle-chest').getAttribute('role'), 'button');
   await id('muscle-chest').scrollIntoViewIfNeeded();
   const before = await id('muscle-chest').boundingBox();
-  const armsRow = await id('muscle-arms').boundingBox();
+  const armsRow = await id('muscle-biceps').boundingBox();
   const vw = page.viewportSize().width;
   for (const b of [before, armsRow]) assert.ok(b.height >= 44 && b.x === 0 && b.width === vw, `a 44 pt row across the full width: ${JSON.stringify(b)}`);
   assert.equal(armsRow.y, before.y + before.height, 'the rows meet: every tap between them lands on one');
@@ -121,14 +130,14 @@ for (const theme of ['light', 'dark']) {
   ok(`${theme}: a workout row opens the workout and the exercise’s name the exercise; Back returns to Chest, then to Today where it was`);
 
   // arms: a one-side exercise's pair, with its unpaired row
-  await openMuscle(a, 'arms');
+  await openMuscle(a, 'biceps');
   assert.equal(await text('muscle-total'), '4 sets in the last 7 days');
   assert.deepEqual(await order(page, 'muscle-ex-link-'), [CURL, CONC]);
   const twoDays = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(now - 2 * DAY);
   assert.equal(await text(`muscle-workout-${CONC}-arms`), `${twoDays} · Arms Left 12 kg × 10 · Right 12 kg × 10 · Left 12 kg × 8 1 unpaired 1`);
   assert.equal(await text(`muscle-ex-link-${CONC}`), 'Concentration Curl (Dumbbell) 1');
   await a.shot('arms');
-  ok(`${theme}: Arms: Bicep Curl 3, Concentration Curl 1 with Left/Right on its rows and “1 unpaired”`);
+  ok(`${theme}: Biceps: Bicep Curl 3, Concentration Curl 1 with Left/Right on its rows and “1 unpaired”`);
 
   if (theme === 'light') {
     // deleting a workout: the breakdown and Today follow
@@ -137,14 +146,14 @@ for (const theme of ['light', 'dark']) {
     await id('workout-options').click();
     await id('wo-menu-delete').click();
     await id('confirm-delete').click();
-    await page.waitForURL((u) => u.pathname === '/muscle/arms');
+    await page.waitForURL((u) => u.pathname === '/muscle/biceps');
     await id('muscle-empty').waitFor();
     assert.equal(await text('muscle-empty'), 'No sets in the last 7 days.');
     assert.equal(await page.locator('[data-testid^="muscle-ex-"]').count(), 0);
     await page.goBack();
     await id('muscle-chest').waitFor();
-    assert.equal(await page.getByTestId('muscle-arms').count(), 0, 'Today no longer lists Arms');
-    ok('deleting the arms workout from its page: Arms says “No sets in the last 7 days.” and Today drops the row');
+    assert.equal(await page.getByTestId('muscle-biceps').count(), 0, 'Today no longer lists Biceps');
+    ok('deleting the arms workout from its page: Biceps says “No sets in the last 7 days.” and Today drops the row');
 
     // links to a muscle without sets, and to something that isn't a muscle
     await page.goto(`${APP}/muscle/legs`);
@@ -174,7 +183,7 @@ for (const theme of ['light', 'dark']) {
   assert.match(await text(`muscle-workout-${BENCH}-push2`), /^Gestern · Push 80 kg × 8 · 80 kg × 7 · 70 kg × 10 3$/);
   await a.shot('chest');
   await page.goBack();
-  await openMuscle(a, 'arms');
+  await openMuscle(a, 'biceps');
   assert.match(await text(`muscle-workout-${CONC}-arms`), / · Arms Links 12 kg × 10 · Rechts 12 kg × 10 · Links 12 kg × 8 1 ohne Paar 1$/);
   await a.shot('arms');
   ok('German: Brust, “11 Sätze in den letzten 7 Tagen”, Gestern · Push, Links/Rechts and “1 ohne Paar”');

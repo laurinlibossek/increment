@@ -18,7 +18,7 @@ import { CONTROL, RADIUS, SPACE, TYPE } from '@/design/tally';
 import { useColors, useTally } from '@/lib/theme';
 import { hitTarget, Icon, type IconName } from './kit';
 
-export type SheetAction<T> = { label: string; value: T; destructive?: boolean; checked?: boolean; icon?: IconName; testID?: string };
+export type SheetAction<T> = { label: string; value: T; group?: string; destructive?: boolean; checked?: boolean; icon?: IconName; testID?: string };
 export type ChoiceOption<T> = { label: string; sub?: string; value: T; tone?: 'primary' | 'danger' | 'plain'; testID?: string };
 /** One line of a diff in a choice dialog: "+ Lat Pulldown (Cable) × 2" on diff-added, "− Pull Up × 3" on diff-removed. */
 export type DiffLine = { text: string; tone?: 'added' | 'removed' };
@@ -159,6 +159,7 @@ function Layer({ o }: { o: Open }) {
 
 function SheetView({ o }: { o: Extract<Open, { kind: 'sheet' }> }) {
   const c = useColors();
+  const { colors: t } = useTally();
   const { tr } = useLang();
   const insets = useSafeAreaInsets();
   return (
@@ -172,12 +173,15 @@ function SheetView({ o }: { o: Extract<Open, { kind: 'sheet' }> }) {
             </View>
           )}
           {o.actions.map((a, i) => (
-            <Pressable key={i} onPress={() => close(a.value)} accessibilityRole="button" accessibilityState={a.checked === undefined ? undefined : { selected: a.checked }} testID={a.testID}
-              style={({ pressed }) => [styles.action, { borderTopColor: c.line, borderTopWidth: i === 0 && !o.title && !o.message ? 0 : StyleSheet.hairlineWidth, backgroundColor: pressed ? c.surface2 : 'transparent' }]}>
-              {a.icon && <Icon name={a.icon} size={19} color={a.destructive ? c.danger : c.accentText} />}
-              <Text style={[TYPE.body, { color: a.destructive ? c.danger : c.accentText }]} numberOfLines={1}>{a.label}</Text>
-              {a.checked && <Icon name="check" size={17} color={c.accentText} />}
-            </Pressable>
+            <View key={i}>
+              {a.group && a.group !== o.actions[i - 1]?.group && <Text style={[TYPE.footnote, { color: t.ink2, paddingHorizontal: SPACE.s5, paddingTop: SPACE.s3, paddingBottom: SPACE.s2 }]}>{a.group}</Text>}
+              <Pressable onPress={() => close(a.value)} accessibilityRole="button" accessibilityState={a.checked === undefined ? undefined : { selected: a.checked }} testID={a.testID}
+                style={({ pressed }) => [styles.action, { borderTopColor: c.line, borderTopWidth: i === 0 && !o.title && !o.message ? 0 : StyleSheet.hairlineWidth, backgroundColor: pressed ? c.surface2 : 'transparent' }]}>
+                {a.icon && <Icon name={a.icon} size={19} color={a.destructive ? c.danger : c.accentText} />}
+                <Text style={[TYPE.body, { color: a.destructive ? c.danger : c.accentText }]} numberOfLines={1}>{a.label}</Text>
+                {a.checked && <Icon name="check" size={17} color={c.accentText} />}
+              </Pressable>
+            </View>
           ))}
         </ScrollView>
       </View>

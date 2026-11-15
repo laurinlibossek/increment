@@ -7,7 +7,7 @@ import {
 import { rpeFromRir } from './calc.js';
 import { isUnilateral, mergeSidePairs } from './set-sides.js';
 import { canMergeExercises } from './editing.js';
-import { BODY_PARTS, CATEGORIES, SEED_EXERCISES, MEASUREMENTS, MEASUREMENT_BY_ID } from './seed.js';
+import { MUSCLES, CATEGORIES, SEED_EXERCISES, MEASUREMENTS, MEASUREMENT_BY_ID } from './seed.js';
 import { strongNameKey, STRONG_EXERCISE_ALIASES, strongExerciseSuggestions, strongExerciseFamily } from './strong-matching.js';
 
 /**
@@ -172,16 +172,30 @@ function inferCategory(name, rows) {
   return 'machine';
 }
 
+// Specific movements precede broad words (leg curl before curl, RDL before deadlift).
 /** @type {[string, RegExp][]} */
 const BODY_RULES = [
+  ['other', /tibialis|external rotation|rotator cuff|neck/],
+  ['forearms', /reverse (grip bicep )?curl|wrist curl|farmer|dead hang/],
+  ['adductors', /adduct|copenhagen/],
+  ['calves', /calf|calves/],
+  ['hamstrings', /leg curl|hamstring|romanian|\brdl\b|stiff.?leg|good morning|glute ham raise|nordic hamstring/],
+  ['lower_back', /back extension \(machine\)/],
+  ['glutes', /reverse hyper|deadlift|rack pull|glute|hip thrust|hip abduct|pull through|kettlebell swing/],
+  ['hamstrings', /back ext|hyperext/],
+  ['quads', /squat|lunge|leg press|leg extension|step.?up|reverse nordic|quad/],
   ['cardio', /running|jog|cycling|bike|biking|rowing|swim|walk|elliptical|stair|ski erg|aerobic|cardio|hiking|treadmill|spinning|jump rope/],
-  ['core', /crunch|plank|sit ?up|leg raise|knee raise|\bab\b|abs|twist|hollow|l-sit|toes to bar|dead bug|pallof|wood ?chop|v-up|flutter/],
-  ['full', /clean|snatch|jerk|thruster|burpee|swing|get ?up|farmer|sled|battle rope/],
-  ['legs', /squat|lunge|\bleg|calf|calves|hip thrust|glute|romanian|\brdl\b|good morning|step ?up|abduct|adduct|hamstring|quad/],
-  ['chest', /bench|chest|\bfly\b|flye|crossover|push ?up|pec|dip/],
-  ['back', /row\b|rows\b|pull ?up|chin ?up|pulldown|pull-down|deadlift|\blat\b|shrug|back ext|hyperext|rack pull/],
-  ['shoulders', /overhead|shoulder|military|arnold|lateral|front raise|face pull|rear delt|reverse fly|upright|press/],
-  ['arms', /curl|tricep|skull|kickback|pushdown|extension|wrist/],
+  ['core', /crunch|plank|sit ?up|leg raise|knee raise|\bab\b|abs|twist|hollow|l-sit|toes to bar|dead bug|pallof|wood ?chop|v-up|flutter|side bend/],
+  ['full', /clean|snatch|jerk|thruster|burpee|get ?up|sled|battle rope/],
+  ['rear_delts', /face pull|rear delt|reverse fly/],
+  ['side_delts', /lateral raise|upright row|y.?raise|lu raise/],
+  ['front_delts', /overhead press|shoulder press|military press|arnold press|z press|push press|landmine press|front raise|handstand push/],
+  ['triceps', /tricep|skull|kickback|pushdown|jm press/],
+  ['lats', /high row/],
+  ['upper_back', /row\b|rows\b|shrug/],
+  ['chest', /spoto press|larsen press|bench|chest|\bfly\b|flye|crossover|push ?up|pec|dip|pullover \(dumbbell\)|floor press/],
+  ['lats', /pull ?up|chin ?up|pulldown|pull-down|\blat\b|pullover|keenan flap/],
+  ['biceps', /curl|bicep/],
 ];
 /** @param {string} name @returns {string} */
 function inferBodyPart(name) {
@@ -465,7 +479,7 @@ export function strongImportProblems(preview, choices, exercises) {
       if (!choice.name?.trim()) problem = 'Give the exercise a name';
       else if (names.has(strongNameKey(choice.name))) problem = 'An exercise with this name already exists';
       else if (!row.categories.includes(choice.category)) problem = 'Choose what this exercise logs';
-      else if (!BODY_PARTS.some((b) => b.id === choice.bodyPart)) problem = 'Choose a body part';
+      else if (!MUSCLES.some((b) => b.id === choice.bodyPart)) problem = 'Choose a muscle';
       names.add(strongNameKey(choice.name || ''));
     } else problem = 'Choose an exercise or create a new one';
     if (problem) problems.push({ name: row.name, problem });

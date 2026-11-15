@@ -34,7 +34,7 @@ export function MuscleVolume({ rows, accessibilityLabel, onPress, testID }: {
         const row = { flexDirection: 'row', alignItems: 'center', gap: SPACE.s3 } as const;
         const content = (
           <>
-            <Text style={[TYPE.subhead, { color: t.ink, width: 84 }]} numberOfLines={1}>{r.label}</Text>
+            <Text style={[TYPE.subhead, { color: t.ink, width: 84 }]}>{r.label}</Text>
             <View style={{ flex: 1, overflow: 'hidden' }} onLayout={i === 0 ? (e) => setWidth(e.nativeEvent.layout.width) : undefined}>
               {room > 0 && <Tally groups={fives(done, Math.min(missing, room - done))} label="" />}
             </View>
