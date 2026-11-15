@@ -10,7 +10,7 @@ import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { ScrollView, Text, View } from 'react-native';
 import {
   BODY_PARTS, exerciseRecords, exerciseSeries, chartMetricsFor, chartMetricFor, hasLoadRecords, formulaLabel,
-  kgTo, kmTo, roundW, DAY, EXERCISE_RANGES, REST_CHOICES, canMergeExercises, daysAgo,
+  kgTo, kmTo, roundW, DAY, EXERCISE_RANGES, REST_CHOICES, canMergeExercises,
 } from '@increment/core';
 
 import {
@@ -99,15 +99,6 @@ function ExercisePage({ id }: { id: string }) {
   const heroLabel = m.id === 'e1rm' ? tr('Estimated 1RM, best of last session') : tr('{metric}, last session', { metric: tr(m.label) });
 
   const label = (list: { id: string; label: string }[], key: string) => tr(list.find((x) => x.id === key)?.label || 'Other');
-  /** today, yesterday, a weekday within the week, then the date */
-  const when = (at: number, compact = false) => {
-    const days = daysAgo(at, now);
-    if (days <= 0) return tr('Today');
-    if (days === 1) return tr('Yesterday');
-    if (days < 7) return f.date.weekdayLong(at);
-    if (new Date(at).getFullYear() === new Date(now).getFullYear()) return f.date.dayMonth(at);
-    return compact ? `${f.date.monthShort(at)} ${new Date(at).getFullYear()}` : f.date.short(at);
-  };
 
   const load = hasLoadRecords(category);
   const best: Stat = load
@@ -118,7 +109,7 @@ function ExercisePage({ id }: { id: string }) {
   const stripStats: Stat[] = [
     { ...best, testID: 'exercise-best' },
     { label: tr('Sessions'), value: f.num(every.length, 0), testID: 'exercise-sessions' },
-    { label: tr('Last'), value: every.length ? when(every[0].startedAt, true) : '—', testID: 'exercise-last' },
+    { label: tr('Last'), value: every.length ? f.date.workoutDay(every[0].startedAt, { compact: true, now }) : '—', testID: 'exercise-last' },
   ];
 
   // a rep max only counts if no heavier weight was lifted for more reps
@@ -175,7 +166,7 @@ function ExercisePage({ id }: { id: string }) {
             <Row key={r} first={i === 0} testID={`repmax-${r}`}
               lead={<Text style={[{ ...TYPE.headline, color: t.ink, width: 58 }, tnum]}>{tr('{n} RM', { n: r })}</Text>}
               title={<Text style={[{ ...TYPE.body, color: t.ink }, tnum]}>{f.wu(v.w)}</Text>}
-              trailing={<Text style={{ ...TYPE.subhead, color: t.ink2 }}>{when(v.at)}</Text>} />
+              trailing={<Text style={{ ...TYPE.subhead, color: t.ink2 }}>{f.date.workoutDay(v.at, { now })}</Text>} />
           ))}
         </>
       )}
@@ -196,7 +187,7 @@ function ExercisePage({ id }: { id: string }) {
                   ))}
                 </Text>
               )}
-              trailing={<Text style={{ ...TYPE.subhead, color: t.ink2 }}>{when(x.startedAt)}</Text>} />
+              trailing={<Text style={{ ...TYPE.subhead, color: t.ink2 }}>{f.date.workoutDay(x.startedAt, { now })}</Text>} />
           ))}
           {every.length > limit && (
             <View style={{ paddingHorizontal: MARGIN, marginTop: SPACE.s3 }}>

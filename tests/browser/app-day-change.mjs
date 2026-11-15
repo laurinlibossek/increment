@@ -1,7 +1,7 @@
 // Screens with dates move on with the day (#36): at midnight while the app is
 // open, and when it comes back to the foreground days later. Uses Playwright's
 // clock, so no real waiting; the data never changes. Also the date dialog's Yesterday
-// on the day after a clock change (#86).
+// on the day after a clock change (#86), and last year's workouts on 1 January (#97).
 import assert from 'node:assert/strict';
 import { launch, devices, grantWakeLock, APP, shots, storedData, selectTab } from './env.mjs';
 import { SEED_EXERCISES, SEED_VERSION } from '../../core/index.js';
@@ -93,6 +93,36 @@ await ctx.close();
   assert.equal(await dayLabel(), 'Sat, Mar 28');
   await c.close();
   ok('on the Monday after the switch, the date dialog says Yesterday for Sunday');
+}
+
+// 1 January (#97): yesterday's workout was last year, and History and the exercise
+// page both call it Yesterday (History, and Records with it, used to show the date)
+{
+  const evening = (d) => new Date(2026, 11, d, 18, 0, 0).getTime();
+  const lastYear = {
+    ...data,
+    workouts: [31, 28, 20].map((d) => ({ id: `dec${d}`, name: 'Arms', startedAt: evening(d), endedAt: evening(d) + 45 * 60000, templateId: null,
+      exercises: [{ id: `e${d}`, exerciseId: 'x-bench-press-barbell', sets: [{ id: `s${d}`, type: 'normal', w: 60 + d, r: 8 }] }] })),
+    templates: [],
+  };
+  const c = await browser.newContext({ ...devices['iPhone 13'], viewport: { width: 390, height: 844 }, locale: 'en-US', timezoneId: 'Europe/Berlin' });
+  await c.addInitScript(grantWakeLock);
+  await c.addInitScript((json) => { if (!localStorage.getItem('increment.data')) localStorage.setItem('increment.data', json); }, JSON.stringify(lastYear));
+  const p = await c.newPage();
+  await p.clock.install({ time: new Date(2027, 0, 1, 10, 0, 0) });
+  await p.goto(`${APP}/history`);
+  const meta = (id) => p.getByTestId(`history-meta-${id}`).innerText();
+  await p.getByTestId('history-meta-dec31').waitFor();
+  assert.match(await meta('dec31'), /^Yesterday · /);
+  assert.match(await meta('dec28'), /^Monday · /);
+  assert.match(await meta('dec20'), /^Dec 20, 2026 · /);
+  await p.goto(`${APP}/exercise/x-bench-press-barbell`);
+  await p.getByTestId('exercise-last').waitFor();
+  assert.match(await p.getByTestId('exercise-last').innerText(), /Yesterday/);
+  assert.match(await p.getByTestId('ex-session-dec31').innerText(), /Yesterday/);
+  await p.screenshot({ path: `${OUT}/new-year.png` });
+  await c.close();
+  ok('on 1 January, History and the exercise page call 31 December Yesterday');
 }
 await browser.close();
 console.log(`\n${passed} checks passed`);
