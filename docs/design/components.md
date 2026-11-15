@@ -99,7 +99,7 @@ A full-width row: optional leading symbol, a title with an optional second line,
 **Rules**
 - `row-h` minimum, text on the `space-5` margin (or after the leading symbol), hairline separators inset to the text.
 - Subtitles in `t-footnote` `ink-2`: facts separated by " · ".
-- A chevron only when the row opens a page.
+- A chevron only when the row opens a page. Exceptions: Plan’s routine rows and Search/Lifts exercise rows open from the whole row without a chevron (Laurin, 15 Nov 2026). The picker keeps its open/closed family indicator: it shows expansion, not a link.
 - No cards around lists.
 
 ## MuscleVolume

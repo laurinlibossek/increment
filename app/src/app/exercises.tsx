@@ -46,7 +46,7 @@ export default function LiftsScreen() {
         </View>
       ) : undefined}
       renderItem={({ item, index }) => (
-        <ListRow first={index === 0} title={f.exName(item.ex)} testID={`lift-${item.ex.id}`} chevron
+        <ListRow first={index === 0} title={f.exName(item.ex)} testID={`lift-${item.ex.id}`}
           subtitle={`${partLabel(item.ex.bodyPart)} · ${f.plural(item.n, 'time')} · ${f.relDayLower(item.last)}`}
           onPress={() => router.push({ pathname: '/exercise/[id]', params: { id: item.ex.id } })} />
       )}

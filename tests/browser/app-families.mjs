@@ -42,6 +42,7 @@ for (const theme of ['light', 'dark']) {
   const search = page.getByTestId('exercise-search');
   if (!before) {
     assert.match(await page.getByTestId('family-f-squat').innerText(), /Squat[\s\S]*Legs · 17 variations/);
+    assert.equal(await page.getByTestId('family-f-squat').locator('[aria-hidden="true"]').count(), 0, 'Search family rows have no chevron');
     assert.match(await search.getAttribute('placeholder'), /Search 22 exercises/);
     assert.equal(await page.locator('[data-testid^="family-"]').count(), 3);
     assert.match(await page.getByTestId('exercise-c-own-row').innerText(), /My Row \(Upper\) \(Cybex Machine\)/);
@@ -55,6 +56,7 @@ for (const theme of ['light', 'dark']) {
   await shot(page, theme, 'search');
   await search.fill('smith squat');
   if (!before) {
+    assert.equal(await page.getByTestId(`exercise-${SMITH}`).locator('[aria-hidden="true"]').count(), 0, 'Search exercise rows have no chevron');
     assert.match(await page.getByTestId(`exercise-${SMITH}`).innerText(), /Squat \(Smith Machine\)/);
     assert.match(await page.getByTestId(`exercise-${FRONT_SMITH}`).innerText(), /Front Squat \(Smith Machine\)/);
     assert.equal(await page.getByTestId('family-f-squat').count(), 0);

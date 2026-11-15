@@ -81,7 +81,7 @@ export default function SearchScreen() {
         renderItem={({ item, index }) => {
           return (
             <ListRow first={index === 0} title={<Text style={[TYPE.body, { color: t.ink }]}>{item.title}</Text>}
-              testID={item.family ? `family-${item.id}` : `exercise-${item.exercise.id}`} chevron
+              testID={item.family ? `family-${item.id}` : `exercise-${item.exercise.id}`}
               subtitle={<Text style={[TYPE.footnote, { color: t.ink2 }]}>{item.subtitle}</Text>}
               onPress={() => router.push({ pathname: '/exercise/[id]', params: { id: item.exercise.id } })} />
           );
