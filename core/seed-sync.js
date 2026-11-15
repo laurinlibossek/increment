@@ -1,8 +1,7 @@
 // Shared by first start, catalogue upgrades and backup restore.
 import { SEED_EXERCISES } from './seed.js';
 import { familyOf } from './exercise-families.js';
-
-const nameKey = (name) => String(name).trim().toLowerCase().replace(/\s+/g, ' ');
+import { nameKey } from './search.js';
 
 /**
  * Return only records that must be added or updated. Existing ids always win:

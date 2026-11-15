@@ -1,6 +1,7 @@
 // Training math and derived statistics (history per exercise, PRs, records).
 // Labels are English; they double as translation keys in the apps.
 import { parseNum } from './units.js';
+import { exerciseLookup } from './set-sides.js';
 
 export const WEIGHT_CATS = new Set(['barbell', 'dumbbell', 'machine', 'weighted_bw', 'assisted_bw']);
 export const usesWeight = (cat) => WEIGHT_CATS.has(cat);
@@ -379,7 +380,7 @@ export function chartMetricFor(cat, chosen) {
  * without exercises that are gone or metrics they no longer have.
  */
 export function cleanChartMetrics(map, exercises) {
-  const get = exercises instanceof Map ? (id) => exercises.get(id) : (id) => (exercises || []).find((e) => e.id === id);
+  const get = exerciseLookup(exercises);
   /** @type {Record<string, string>} */
   const out = {};
   for (const [id, metric] of Object.entries(map && typeof map === 'object' ? map : {})) {

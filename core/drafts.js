@@ -96,6 +96,24 @@ export function newEntryDraft(exerciseId, sets = 1) {
   };
 }
 
+/**
+ * Supersets that group fewer than two entries of `list` dissolve (#39): their
+ * entries lose the id, deleted from records or set to null in a draft
+ * (`asNull`). With `only`, just those superset ids are checked. Returns the ids
+ * of the entries that left a superset (removeEntry's Undo puts them back).
+ */
+export function dissolveLoneSupersets(list, { only = null, asNull = false } = {}) {
+  const counts = new Map();
+  for (const e of list) if (e.supersetId) counts.set(e.supersetId, (counts.get(e.supersetId) || 0) + 1);
+  const left = [];
+  for (const e of list) {
+    if (!e.supersetId || counts.get(e.supersetId) >= 2 || (only && !only.includes(e.supersetId))) continue;
+    if (asNull) e.supersetId = null; else delete e.supersetId;
+    left.push(e.id);
+  }
+  return left;
+}
+
 export function remapSupersets(entries) {
   // fresh superset ids so drafts never share ids with stored records
   const map = new Map();
@@ -123,10 +141,7 @@ export function draftEntries(draft, st, exById, { onlyDone = false, keepEmpty = 
     if (e.focus) entry.focus = e.focus;
     out.push(entry);
   }
-  // drop superset ids that no longer group two or more entries
-  const counts = new Map();
-  for (const e of out) if (e.supersetId) counts.set(e.supersetId, (counts.get(e.supersetId) || 0) + 1);
-  for (const e of out) if (e.supersetId && counts.get(e.supersetId) < 2) delete e.supersetId;
+  dissolveLoneSupersets(out);
   return out;
 }
 

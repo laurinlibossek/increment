@@ -7,6 +7,9 @@
 
 import { EXERCISE_NAMES_DE } from './exercise-names-de.js';
 
+/** A name as a key: trimmed, lower case, single spaces ("Bench  Press " → "bench press"). */
+export const nameKey = (name) => String(name).trim().toLowerCase().replace(/\s+/g, ' ');
+
 export const EXERCISE_SEARCH_SHORTCUTS = {
   db: 'dumbbell', bb: 'barbell', ohp: 'overhead press', rdl: 'romanian deadlift', bp: 'bench press',
   dl: 'deadlift', kb: 'kettlebell', ez: 'ez bar', smith: 'smith', tri: 'triceps', tris: 'triceps', bi: 'bicep',

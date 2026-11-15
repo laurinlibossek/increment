@@ -7,6 +7,7 @@ import { entryToDraft, draftEntries, remapSupersets } from './drafts.js';
 import { cleanTemplateExercises, prescriptionKey } from './templates.js';
 import { loggedFields } from './calc.js';
 import { parseRepsInput } from './rep-range.js';
+import { nameKey } from './search.js';
 
 export const EDIT_MESSAGES = {
   templateName: 'Give the template a name',
@@ -158,8 +159,6 @@ export function folderNames(templates, extra = []) {
   const names = [...templates.map((t) => t.folder || ''), ...(extra || [])];
   return [...new Set(names.filter(Boolean))].sort((a, b) => a.localeCompare(b));
 }
-
-const nameKey = (s) => String(s).trim().toLowerCase().replace(/\s+/g, ' ');
 
 /**
  * The exercise with this name (any case and spacing), or null. `exercises` is a Map or a list.

@@ -9,7 +9,6 @@ import {
   Platform, Pressable, StyleSheet, Text, TextInput, View,
 } from 'react-native';
 import { router } from 'expo-router';
-import * as Haptics from 'expo-haptics';
 import {
   placeholders, restFor, addSet, joinSuperset, leaveSuperset, removeEntry, restoreEntry, replaceExercise, addWarmups, rateSet, setRir, setSetType,
   loggedFields, usesWeight, usesDistance, numToInput, parseNum, focusOptions, focusValues, uncheckSet, parseRepsInput, readinessKind, setChange, draftToSet, isUnilateral,
@@ -23,6 +22,7 @@ import type {
   DraftKey, EntryDraft, Exercise, SetDraft, Settings, SetType, WorkSet,
 } from '@/data/types';
 import { SPACE, TYPE, CONTROL } from '@/design/tally';
+import { haptic } from '@/lib/haptics';
 import { setLabels, useFormat } from '@/lib/format';
 import { pickExercises } from '@/lib/picker';
 import { useTally } from '@/lib/theme';
@@ -87,7 +87,7 @@ export const ExerciseBlock = memo(function ExerciseBlock({
   const removeSet = (i: number) => {
     const set = entry.sets[i];
     edit((e) => { e.sets.splice(i, 1); });
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+    haptic.warn();
     toast(tr('Set deleted'), { label: tr('Undo'), fn: () => edit((e) => { e.sets.splice(Math.min(i, e.sets.length), 0, set); }) });
   };
   const setMenu = async (i: number) => {
@@ -234,7 +234,7 @@ export const ExerciseBlock = memo(function ExerciseBlock({
       // a superset left with one exercise dissolves; Undo puts both back (#39)
       let removed: unknown = null;
       editDraft(draftKey, (d) => { removed = removeEntry(d.exercises, entry.id); });
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+      haptic.warn();
       toast(tr('{name} removed', { name }), { label: tr('Undo'), fn: () => editDraft(draftKey, (d) => { restoreEntry(d.exercises, removed); }) });
     }
   };

@@ -75,12 +75,14 @@ export function roundW(v, unit) {
 }
 
 // ---------- durations ----------
+/** Two digits: 7 -> "07" (clock times and dates). */
+export const pad2 = (n) => String(n).padStart(2, '0');
+
 /** seconds -> "1:05" / "1:02:03" */
 export function fmtClock(sec) {
   sec = Math.max(0, Math.round(sec || 0));
   const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
-  const ss = String(s).padStart(2, '0');
-  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`;
+  return h > 0 ? `${h}:${pad2(m)}:${pad2(s)}` : `${m}:${pad2(s)}`;
 }
 
 /** Digits typed right-to-left into a time field: "130" -> 90s, "13000" -> 1h30m */
@@ -95,7 +97,7 @@ export function secToDigits(sec) {
   if (sec === null || sec === undefined || !Number.isFinite(sec) || sec <= 0) return '';
   sec = Math.round(sec);
   const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
-  const str = (h ? String(h) + String(m).padStart(2, '0') : String(m)) + String(s).padStart(2, '0');
+  const str = (h ? String(h) + pad2(m) : String(m)) + pad2(s);
   return str.replace(/^0+(?=\d)/, '');
 }
 export function fmtDigits(d) {
