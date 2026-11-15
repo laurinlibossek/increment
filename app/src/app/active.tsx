@@ -223,14 +223,14 @@ function Running({ a, reveal }: { a: ActiveWorkout; reveal: { current: (ref: Tex
       effort: rated && entry ? (
         <View style={styles.effort}>
           <Text style={{ ...TYPE.subhead, color: t.ink2, flexShrink: 1 }}>{tr('Reps left?')}</Text>
-          <EffortPicker value={setRir(rated) as number | null} label={tr('Reps left?')} optionLabel={(n) => effortText(n, tr)}
+          <EffortPicker value={setRir(rated)} label={tr('Reps left?')} optionLabel={(n) => effortText(n, tr)}
             onChange={(v) => editActive((_d, e) => { const s = e.sets.find((x) => x.id === rated.id); if (s) rateSet(s, v); }, entry.id)} />
         </View>
       ) : undefined,
     };
   } else if (next) {
     const ex = exercises.get(next.entry.exerciseId);
-    const fields = (ex ? loggedFields(ex.category) : []) as Field[];
+    const fields = ex ? loggedFields(ex.category) : [];
     const vals = Object.fromEntries(fields.map((k) => [k, next.set[k] || nextPh?.[k] || ''])) as Record<Field, string>;
     const value = ex ? setValueText(vals, ex.category, f, tr) : '';
     bar = {

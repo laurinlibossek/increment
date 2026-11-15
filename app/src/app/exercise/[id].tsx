@@ -36,10 +36,7 @@ import {
 } from '@/ui/overlay';
 import { attempt } from '@/lib/saving';
 
-type Rec = { value: number; at: number; w?: number; r?: number; workoutId?: string } | null;
-type Records = Record<string, Rec> & { repMax: Map<number, { w: number; at: number; workoutId: string }> };
 type Session = { workoutId: string; startedAt: number; name: string; entry: Workout['exercises'][number] };
-type Metric = { id: string; label: string; kind: 'weight' | 'count' | 'distance' | 'time' | 'pace' };
 
 export default function ExerciseDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -57,16 +54,16 @@ function ExercisePage({ id }: { id: string }) {
   const counted = (stats(s).byExercise.get(id) || []) as Session[];
   const category = (ex?.category || 'barbell') as Category;
   const formula = s.settings.formula;
-  const metrics = chartMetricsFor(category) as Metric[];
+  const metrics = chartMetricsFor(category);
   // the chart chosen for this exercise, remembered (and in backups), else its default (#27)
-  const metricId = chartMetricFor(category, s.chartMetrics[id]) as string;
+  const metricId = chartMetricFor(category, s.chartMetrics[id]);
   const [chosenRange, setRange] = useState<string | null>(null);
   const [limit, setLimit] = useState(10);
   const m = metrics.find((x) => x.id === metricId) || metrics[0];
   const lowerBetter = m.kind === 'pace';
   // every session's value, oldest first; a record beats every session before it
   const series = useMemo(() => {
-    const raw = exerciseSeries(counted, category, m.id, formula) as { x: number; y: number }[];
+    const raw = exerciseSeries(counted, category, m.id, formula);
     let best: number | null = null;
     return raw.map((p) => {
       const record = best !== null && (lowerBetter ? p.y < best - 1e-9 : p.y > best + 1e-9);
@@ -74,7 +71,7 @@ function ExercisePage({ id }: { id: string }) {
       return { at: p.x, y: p.y, record };
     });
   }, [counted, category, m.id, formula, lowerBetter]);
-  const rec = useMemo(() => exerciseRecords(counted, category, formula) as unknown as Records, [counted, category, formula]);
+  const rec = useMemo(() => exerciseRecords(counted, category, formula), [counted, category, formula]);
 
   if (!ex) return <Page><Stack.Screen options={{ title: '' }} /><Empty title={tr('Exercise not found')} text={tr('It may have been merged or deleted.')} /></Page>;
 

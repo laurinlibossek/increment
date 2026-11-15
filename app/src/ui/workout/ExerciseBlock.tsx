@@ -70,7 +70,7 @@ export const ExerciseBlock = memo(function ExerciseBlock({
   const restSetId = useAppSelector((s) => (mode === 'active' && s.active?.rest?.entryId === entry.id ? s.active.rest.setId || null : null));
   if (!ex) return null;
   const cat = ex.category;
-  const fields = loggedFields(cat) as Field[];
+  const fields = loggedFields(cat);
   const rest = restFor(entry, ex, settings.defaultRest) as number;
   const labels = setLabels(entry.sets);
   const active = mode === 'active';
@@ -93,7 +93,7 @@ export const ExerciseBlock = memo(function ExerciseBlock({
   const setMenu = async (i: number) => {
     const set = entry.sets[i];
     // effort: reps left in reserve on a logged set; a template keeps its RPE target
-    const rir = setRir(set) as number | null;
+    const rir = setRir(set);
     const effort = mode === 'template'
       ? (usesWeight(cat) || cat === 'reps' ? { label: set.rpe ? `RPE (${set.rpe})` : tr('Add RPE'), value: 'rpe', testID: 'set-rpe' } : null)
       : { label: rir === null ? tr('Reps left') : `${tr('Reps left')} · ${effortText(rir, tr)}`, value: 'rir', testID: 'set-rir' };
@@ -312,7 +312,7 @@ export const ExerciseBlock = memo(function ExerciseBlock({
     const change = active && set.done && !warm && !record ? setChange(rows[i]?.prev, draftToSet(set, settings), cat) as { dir: number; key: string; diff: number } | null : null;
     if (record) notes.push({ text: tr('Record'), tone: 'up' });
     else if (change) notes.push({ text: changeText(change), tone: change.dir > 0 ? 'up' : 'down' });
-    const rir = setRir(set) as number | null;
+    const rir = setRir(set);
     // a failure set's F already says 0 in reserve
     if (mode === 'template') { if (set.rpe) notes.push({ text: `RPE ${set.rpe}` }); } else if (rir !== null && set.type !== 'failure' && (set.done || !active)) notes.push({ text: rirText(rir, tr) });
     const side = set.side ? set.side === 'left' ? tr('Left') : tr('Right') : '';

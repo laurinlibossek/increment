@@ -1106,7 +1106,7 @@ export async function finishActive(mode: 'done' | 'all', defaultName: string): P
   if (!a) return null;
   const now = Date.now();
   const workout = finishWorkout(a, { settings: state.settings, exercises: state.exercises, now, mode, defaultName }) as Workout;
-  const prs = prsForNewWorkout(workout, stats(), state.exercises, state.settings.formula) as Record_[];
+  const prs = prsForNewWorkout(workout, stats(), state.exercises, state.settings.formula);
   const t = workout.templateId ? state.templates.find((x) => x.id === workout.templateId) : null;
   const usedTemplate = t ? { ...t, lastUsedAt: now } : null;
   // one transaction: the workout, its routine's last use and the cleared running workout,
@@ -1132,7 +1132,7 @@ export async function finishActive(mode: 'done' | 'all', defaultName: string): P
   const workouts = state.workouts;
   // its place in the history by start time (the start can have been moved earlier)
   const number = workouts.filter((w) => w.startedAt <= workout.startedAt).length;
-  const result = { workout, prs, volume: workoutVolume(workout, state.exercises) as number, number };
+  const result = { workout, prs, volume: workoutVolume(workout, state.exercises), number };
   finished.set(workout.id, result);
   return result;
 }

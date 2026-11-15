@@ -49,7 +49,7 @@ const SessionContext = createContext<Session | null>(null);
 /** The running workout's logging and keypad; null in the editors. */
 export const useSession = () => useContext(SessionContext);
 
-const fieldsOf = (cat: Category) => loggedFields(cat) as Field[];
+const fieldsOf = (cat: Category) => loggedFields(cat);
 
 export function SessionProvider({ children, onTarget }: { children: ReactNode; onTarget?: (ref: TextInputInstance | null) => void }) {
   const f = useFormat();
@@ -232,7 +232,7 @@ export function KeypadHost() {
     const total = parseNum(value || ghost);
     if (total !== null && total > 0) {
       const bar = Number(settings.bar) || 0;
-      const p = platesFor(total, bar, settings.plates) as { plates: number[]; remainder: number };
+      const p = platesFor(total, bar, settings.plates);
       aside = {
         label: tr('Plates per side'),
         value: total <= bar ? tr('Empty bar') : `${p.remainder > 0 ? '≈ ' : ''}${p.plates.map((x) => f.num(x)).join(' · ')}`,
