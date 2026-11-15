@@ -6,7 +6,7 @@
 // plain ink-2 text (colour is earned).
 import { Pressable, Text, View } from 'react-native';
 
-import { RADIUS, TYPE } from '@/design/tally';
+import { CONTROL, RADIUS, TYPE } from '@/design/tally';
 import { useTally } from '@/lib/theme';
 import { Icon } from '@/ui/kit';
 
@@ -46,8 +46,8 @@ export function NumberDisplay({
     </View>
   ) : <Text style={{ ...TYPE.headline, color: t.ink2, fontVariant: ['tabular-nums'] }}>{change}</Text>;
   const labelText = !label ? null : onLabelPress ? (
-    <Pressable onPress={onLabelPress} accessibilityRole="button" hitSlop={10} testID={labelTestID}
-      style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', opacity: pressed ? 0.6 : 1 })}>
+    <Pressable onPress={onLabelPress} accessibilityRole="button" testID={labelTestID}
+      style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 4, minWidth: CONTROL.hitMin, minHeight: CONTROL.hitMin, marginVertical: -(CONTROL.hitMin - TYPE.footnote.lineHeight) / 2, alignSelf: 'flex-start', opacity: pressed ? 0.6 : 1 })}>
       <Text style={{ ...TYPE.footnote, color: t.ink2 }}>{label}</Text>
       <Icon name="chevronDown" size={11} color={t.ink2} />
     </Pressable>

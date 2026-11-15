@@ -13,6 +13,8 @@ import {
 import type { AnyDraft, DraftKey, EntryDraft } from '@/data/types';
 import { useFormat } from '@/lib/format';
 import { useColors } from '@/lib/theme';
+import { CONTROL } from '@/design/tally';
+import { hitTarget } from '@/ui/kit';
 import { ExerciseBlock, type EditorMode } from './ExerciseBlock';
 import { KEYBOARD_BAR } from './SetRow';
 
@@ -53,7 +55,7 @@ export function KeyboardDoneBar() {
   return (
     <InputAccessoryView nativeID={KEYBOARD_BAR} backgroundColor={c.surface2}>
       <View style={[styles.keys, { borderTopColor: c.line }]}>
-        <Pressable onPress={() => Keyboard.dismiss()} hitSlop={8} accessibilityRole="button">
+        <Pressable onPress={() => Keyboard.dismiss()} style={hitTarget} accessibilityRole="button">
           <Text style={{ color: c.accentText, fontSize: 17, fontWeight: '600' }}>{tr('Done')}</Text>
         </Pressable>
       </View>
@@ -62,5 +64,5 @@ export function KeyboardDoneBar() {
 }
 
 const styles = StyleSheet.create({
-  keys: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 16, paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth },
+  keys: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 16, paddingVertical: 0, minHeight: CONTROL.hitMin, borderTopWidth: StyleSheet.hairlineWidth },
 });

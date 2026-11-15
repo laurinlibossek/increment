@@ -1,15 +1,18 @@
 // Building blocks for every screen, in the web app's look: large titles,
 // grouped rows on a tinted background, rounded cards, filled and tinted buttons.
-import type { ReactNode } from 'react';
+import { useRef, type ReactNode, type RefObject } from 'react';
 import {
   ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
-  type StyleProp, type TextStyle, type ViewStyle,
+  type StyleProp, type TextStyle, type ViewStyle, type TextInputInstance,
 } from 'react-native';
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 
 import { useSearchFocus } from '@/ui/useSearchFocus';
 import { CONTROL, RADIUS, SPACE, TYPE } from '@/design/tally';
 import { useColors, type Colors } from '@/lib/theme';
+
+/** The layout box is the target on every platform; RN Web drops hitSlop. */
+export const hitTarget = { minWidth: CONTROL.hitMin, minHeight: CONTROL.hitMin, justifyContent: 'center' } as const;
 
 // ---------- icons ----------
 /** SF Symbol on iOS, Material Symbol on Android and web. */
@@ -175,7 +178,7 @@ function buttonLook(c: Colors, kind: ButtonProps['kind']) {
 export function IconButton({ icon, onPress, label, testID }: { icon: IconName; onPress: () => void; label: string; testID?: string }) {
   const c = useColors();
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} testID={testID} hitSlop={8}
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} testID={testID}
       style={({ pressed }) => [styles.iconBtn, { backgroundColor: pressed ? c.surface3 : 'transparent' }]}>
       <Icon name={icon} size={22} color={c.accentText} />
     </Pressable>
@@ -186,7 +189,7 @@ export function IconButton({ icon, onPress, label, testID }: { icon: IconName; o
 export function HeaderButton({ title, onPress, strong, testID }: { title: string; onPress: () => void; strong?: boolean; testID?: string }) {
   const c = useColors();
   return (
-    <Pressable onPress={onPress} hitSlop={SPACE.s3} accessibilityRole="button" testID={testID} style={{ paddingHorizontal: SPACE.s2, paddingVertical: SPACE.s1 }}>
+    <Pressable onPress={onPress} accessibilityRole="button" testID={testID} style={{ ...hitTarget, paddingHorizontal: SPACE.s2, paddingVertical: SPACE.s1 }}>
       <Text style={[strong ? TYPE.headline : TYPE.body, { color: c.accentText }]}>{title}</Text>
     </Pressable>
   );
@@ -221,15 +224,17 @@ export function Empty({ title, text, children }: { title: string; text?: string;
   );
 }
 
-export function SearchField({ value, onChange, placeholder, testID }: { value: string; onChange: (v: string) => void; placeholder: string; testID?: string }) {
+export function SearchField({ value, onChange, placeholder, testID, inputRef, label, style, iconTone = 'ink3' }: { value: string; onChange: (v: string) => void; placeholder: string; testID?: string; inputRef?: RefObject<TextInputInstance | null>; label?: string; style?: StyleProp<ViewStyle>; iconTone?: 'ink2' | 'ink3' }) {
   const c = useColors();
   const focus = useSearchFocus();
+  const ownRef = useRef<TextInputInstance>(null);
+  const ref = inputRef || ownRef;
   return (
-    <View style={[styles.search, { backgroundColor: c.surface3 }, focus.containerStyle]}>
-      <Icon name="search" size={16} color={c.ink3} />
-      <TextInput value={value} onChangeText={onChange} placeholder={placeholder} placeholderTextColor={c.ink3} testID={testID}
-        onFocus={focus.onFocus} onBlur={focus.onBlur} autoCorrect={false} autoCapitalize="none" clearButtonMode="while-editing" style={[TYPE.body, { flex: 1, minWidth: 0, color: c.ink, paddingVertical: SPACE.s2 }, focus.inputStyle]} />
-    </View>
+    <Pressable accessible={false} tabIndex={-1} onPress={() => ref.current?.focus()} testID={testID ? `${testID}-target` : undefined} style={[styles.search, { backgroundColor: c.surface3 }, focus.containerStyle, style]}>
+      <Icon name="search" size={16} color={c[iconTone]} />
+      <TextInput ref={ref} value={value} onChangeText={onChange} placeholder={placeholder} placeholderTextColor={c.ink3} testID={testID} accessibilityLabel={label || placeholder} returnKeyType="search"
+        onFocus={focus.onFocus} onBlur={focus.onBlur} autoCorrect={false} autoCapitalize="none" clearButtonMode="while-editing" style={[TYPE.body, { flex: 1, minWidth: 0, minHeight: CONTROL.hitMin, color: c.ink, paddingVertical: SPACE.s2 }, focus.inputStyle]} />
+    </Pressable>
   );
 }
 

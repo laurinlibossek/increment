@@ -17,7 +17,7 @@ import {
 } from '@/ui/kit';
 import { KeyboardDoneBar } from '@/ui/workout/DraftBlocks';
 import { KEYBOARD_BAR } from '@/ui/workout/SetRow';
-import { SPACE, TYPE } from '@/design/tally';
+import { CONTROL, SPACE, TYPE } from '@/design/tally';
 
 type Scheme = { barReps: number; steps: [number, number][] };
 type Row = [string, string];
@@ -67,7 +67,7 @@ export default function WarmupScreen() {
               <Txt tone="ink2" style={st.unit}>%  ×</Txt>
               {input(r, (v) => edit(i, 1, v), tr('Step {n} reps', { n: i + 1 }), `wu-reps-${i}`)}
               <Txt tone="ink2" style={[st.unit, { flex: 1 }]}>{tr('reps')}</Txt>
-              <Pressable onPress={() => setSteps(steps.filter((_, j) => j !== i))} hitSlop={8} accessibilityRole="button"
+              <Pressable onPress={() => setSteps(steps.filter((_, j) => j !== i))} accessibilityRole="button"
                 accessibilityLabel={tr('Remove step {n}', { n: i + 1 })} testID={`wu-remove-${i}`}
                 style={({ pressed }) => [st.remove, { backgroundColor: pressed ? c.surface3 : 'transparent' }]}>
                 <Icon name="close" size={16} color={c.ink3} />
@@ -88,7 +88,7 @@ export default function WarmupScreen() {
 const st = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 54, paddingHorizontal: 16, paddingVertical: 8 },
   hairline: { position: 'absolute', top: 0, left: 16, right: 0, height: StyleSheet.hairlineWidth },
-  input: { width: 64, height: 38, borderRadius: 9, textAlign: 'center', fontSize: 17, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  input: { width: 64, height: CONTROL.hitMin, borderRadius: 9, textAlign: 'center', fontSize: 17, fontWeight: '600', fontVariant: ['tabular-nums'] },
   unit: TYPE.subhead,
-  remove: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  remove: { width: CONTROL.hitMin, height: CONTROL.hitMin, margin: -(CONTROL.hitMin - 32) / 2, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
 });

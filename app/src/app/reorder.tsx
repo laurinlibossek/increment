@@ -14,7 +14,8 @@ import type { DraftKey, EntryDraft } from '@/data/types';
 import { haptic } from '@/lib/haptics';
 import { useFormat } from '@/lib/format';
 import { useColors } from '@/lib/theme';
-import { Icon } from '@/ui/kit';
+import { CONTROL } from '@/design/tally';
+import { hitTarget, Icon } from '@/ui/kit';
 
 const ROW = 64;
 type Drag = { from: number; over: number };
@@ -83,7 +84,7 @@ export default function Reorder() {
         <View style={{ flex: 1 }} />
         <Text style={{ color: c.ink, fontSize: 17, fontWeight: '700' }}>{tr('Reorder')}</Text>
         <View style={{ flex: 1, alignItems: 'flex-end' }}>
-          <Pressable onPress={() => router.back()} hitSlop={8} accessibilityRole="button" testID="reorder-done">
+          <Pressable onPress={() => router.back()} style={{ ...hitTarget, alignItems: 'flex-end', marginVertical: -(CONTROL.hitMin - 20) / 2 }} accessibilityRole="button" testID="reorder-done">
             <Text style={{ color: c.accentText, fontSize: 17, fontWeight: '700' }}>{tr('Done')}</Text>
           </Pressable>
         </View>

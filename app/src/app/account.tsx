@@ -247,9 +247,9 @@ export default function AccountSheet() {
       <View>
         <SettingRow first title={tr('1RM formula')} value={tr(formula.label)}
           onPress={() => pick(tr('1RM formula'), (FORMULAS as { id: string; label: string }[]).map((x) => ({ value: x.id, label: tr(x.label) })), st.formula, (v) => set('formula', v))} />
-        <SwitchSettingRow title={tr('Count dumbbells twice')} sub={tr('For volume')} value={!!st.dumbbellTwice} onChange={(v) => set('dumbbellTwice', v)} />
-        <SwitchSettingRow title={tr('Weighted bodyweight exercises')} sub={tr('Count body weight in volume')} value={!!st.bwWeighted} onChange={(v) => setBw('bwWeighted', v)} />
-        <SwitchSettingRow title={tr('Assisted bodyweight exercises')} sub={tr('Count body weight in volume')} value={!!st.bwAssisted} onChange={(v) => setBw('bwAssisted', v)} />
+        <SwitchSettingRow title={tr('Count dumbbells twice')} sub={tr('For volume')} value={!!st.dumbbellTwice} onChange={(v) => set('dumbbellTwice', v)} testID="set-dumbbell-twice" />
+        <SwitchSettingRow title={tr('Weighted bodyweight exercises')} sub={tr('Count body weight in volume')} value={!!st.bwWeighted} onChange={(v) => setBw('bwWeighted', v)} testID="set-bw-weighted" />
+        <SwitchSettingRow title={tr('Assisted bodyweight exercises')} sub={tr('Count body weight in volume')} value={!!st.bwAssisted} onChange={(v) => setBw('bwAssisted', v)} testID="set-bw-assisted" />
         <SettingRow title={tr('Start history from')} value={st.historyStart ? f.date.short(st.historyStart) : tr('All workouts')} onPress={historyStart} testID="set-history-start" />
       </View>
 

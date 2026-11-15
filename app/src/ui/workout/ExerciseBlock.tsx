@@ -352,31 +352,39 @@ export const ExerciseBlock = memo(function ExerciseBlock({
     <View accessibilityLabel={name} testID={`block-${ex.id}`} style={styles.block}>
       <View style={styles.head}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACE.s2 }}>
-          <Pressable onPress={menu} style={{ flex: 1, minWidth: 0, paddingVertical: 2 }} accessibilityRole="button" testID={`ex-title-${ex.id}`}>
+          <Pressable onPress={menu} style={{ flex: 1, minWidth: CONTROL.hitMin, minHeight: CONTROL.hitMin, justifyContent: 'center', paddingVertical: 2 }} accessibilityRole="button" testID={`ex-title-${ex.id}`}>
             <Text style={{ ...TYPE.title3, color: t.ink }} testID={`exercise-header-${ex.id}`}>{active ? f.exBase(ex) : name}</Text>
           </Pressable>
           {focusOpts.length > 0 && (
-            <Pressable onPress={pickFocus} hitSlop={6} accessibilityRole="button" testID={`focus-${ex.id}`}
+            <Pressable onPress={pickFocus} accessibilityRole="button" testID={`focus-${ex.id}`}
               accessibilityLabel={focus ? `${tr(FOCUS_LABEL[focus])}: ${fmtFocus(focus)}` : tr('Focus metric for {name}', { name })}
-              style={({ pressed }) => [styles.focus, { backgroundColor: focus || pressed ? t.paper3 : 'transparent' }]}>
-              <Icon name="trend" size={15} color={focus ? t.ink : t.ink3} />
-              {focus && <Text style={{ color: t.ink, fontSize: 13, fontWeight: '600', fontVariant: ['tabular-nums'] }} numberOfLines={1}>{fmtFocus(focus)}</Text>}
+              style={{ minWidth: CONTROL.hitMin, minHeight: CONTROL.hitMin, paddingHorizontal: (CONTROL.hitMin - 30) / 2, maxWidth: 140 + CONTROL.hitMin - 30, alignItems: 'center', justifyContent: 'center', marginHorizontal: -(CONTROL.hitMin - 30) / 2 }}>
+              {({ pressed }) => <View style={[styles.focus, { backgroundColor: focus || pressed ? t.paper3 : 'transparent' }]}>
+                <Icon name="trend" size={15} color={focus ? t.ink : t.ink3} />
+                {focus && <Text style={{ color: t.ink, fontSize: 13, fontWeight: '600', fontVariant: ['tabular-nums'] }} numberOfLines={1}>{fmtFocus(focus)}</Text>}
+              </View>}
             </Pressable>
           )}
-          <Pressable onPress={menu} hitSlop={4} accessibilityRole="button" accessibilityLabel={tr('Options for {name}', { name })} testID={`ex-menu-${ex.id}`}
+          <Pressable onPress={menu} accessibilityRole="button" accessibilityLabel={tr('Options for {name}', { name })} testID={`ex-menu-${ex.id}`}
             style={({ pressed }) => [styles.more, { backgroundColor: pressed ? t.paper3 : 'transparent' }]}>
             <Icon name="more" size={20} color={t.ink} />
           </Pressable>
         </View>
         {(facts.length > 0 || !!restText || !!lastText) && (
-          <Text style={{ ...TYPE.footnote, color: t.ink2 }} testID={`last-${ex.id}`}>
-            {facts.join(' · ')}
-            {restText ? <>
-              {facts.length ? ' · ' : ''}
-              <Text onPress={pickRest} accessibilityRole="button" accessibilityLabel={tr('Rest timer: {time}', { time: f.clock(rest) })}
-                testID={`rest-tag-${ex.id}`} style={{ fontVariant: ['tabular-nums'] }}>{restText}</Text>
-            </> : null}
-            {lastText ? `${facts.length || restText ? ' · ' : ''}${lastText}` : ''}
+          restText ? <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', minHeight: entry.showNotes ? CONTROL.hitMin : undefined }} testID={`last-${ex.id}`}>
+            {!!facts.length && <Text style={{ ...TYPE.footnote, color: t.ink2, flexShrink: 1 }}>{facts.join(' · ')}{restText || lastText ? ' · ' : ''}</Text>}
+            {/* Rest wraps together with the dot after it, so a wrapped line starts with "last time".
+                Its target extends down into the set-column heading, not up over the title. */}
+            <View style={{ flexDirection: 'row', zIndex: 1 }}>
+              <Pressable onPress={pickRest} accessibilityRole="button" accessibilityLabel={tr('Rest timer: {time}', { time: f.clock(rest) })}
+                testID={`rest-tag-${ex.id}`} style={{ minWidth: CONTROL.hitMin, minHeight: CONTROL.hitMin, marginBottom: -(CONTROL.hitMin - TYPE.footnote.lineHeight) }}>
+                <Text style={{ ...TYPE.footnote, color: t.ink2, fontVariant: ['tabular-nums'] }}>{restText}</Text>
+              </Pressable>
+              {!!lastText && <Text style={{ ...TYPE.footnote, color: t.ink2 }}>{' · '}</Text>}
+            </View>
+            {!!lastText && <Text style={{ ...TYPE.footnote, color: t.ink2, flexShrink: 1 }}>{lastText}</Text>}
+          </View> : <Text style={{ ...TYPE.footnote, color: t.ink2 }} testID={`last-${ex.id}`}>
+            {[facts.join(' · '), lastText].filter(Boolean).join(' · ')}
           </Text>
         )}
         {!!ready && active && <View style={{ marginTop: SPACE.s1 }}><Highlight chip testID={`ready-${ex.id}`}>{readyText(ready, tr)}</Highlight></View>}
@@ -424,6 +432,6 @@ const styles = StyleSheet.create({
   more: { width: CONTROL.hitMin, height: CONTROL.hitMin, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginRight: -12 },
   focus: { height: 30, minWidth: 30, maxWidth: 140, borderRadius: 15, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
   pinned: { flexDirection: 'row', gap: SPACE.s2, marginTop: SPACE.s2, alignItems: 'flex-start', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10 },
-  note: { marginTop: SPACE.s2, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15, minHeight: 44 },
+  note: { marginTop: SPACE.s2, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15, minHeight: CONTROL.hitMin },
   addSet: { flexDirection: 'row', alignItems: 'center', gap: SPACE.s2, alignSelf: 'flex-start', minHeight: CONTROL.hitMin, paddingHorizontal: SPACE.s5 },
 });
