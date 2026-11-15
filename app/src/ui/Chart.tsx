@@ -47,7 +47,7 @@ export function BarChart({
   const W = Math.max(width, SPACE.s5 * 10), H = height;
   const iw = W - padL - padR, ih = H - padT - padB;
   const max = Math.max(1, goal || 0, ...bars.map((b) => b.value));
-  const ticks = niceTicks(0, max, 3, { zero: true }) as number[];
+  const ticks = niceTicks(0, max, 3, { zero: true });
   const top = ticks[ticks.length - 1];
   const sy = (v: number) => padT + ih - (v / top) * ih;
   const band = iw / bars.length;

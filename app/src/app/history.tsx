@@ -100,9 +100,7 @@ function Calendar({ s, f }: { s: State; f: Format & { tr: (t: string, v?: Record
   const { tr } = f;
   const [month, setMonth] = useState(() => startOfMonth(Date.now()));
   const [sel, setSel] = useState<number | null>(null);
-  const cal = useMemo(() => calendarMonth(s.workouts, month, { weekStart: s.settings.weekStart }) as {
-    start: number; next: number; days: number[]; byDay: Map<number, Workout[]>; workouts: number; daysTrained: number; time: number;
-  }, [s.workouts, month, s.settings.weekStart]);
+  const cal = useMemo(() => calendarMonth(s.workouts, month, { weekStart: s.settings.weekStart }), [s.workouts, month, s.settings.weekStart]);
   const today = startOfDay(Date.now());
   const go = (n: number) => { setMonth(addMonths(month, n)); setSel(null); };
   const selected = sel !== null ? cal.byDay.get(sel) || [] : [];

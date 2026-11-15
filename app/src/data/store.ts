@@ -203,11 +203,11 @@ async function drain() {
     if (held.length) {
       // a change to a held record waits with it
       const keys = new Set(held.flatMap((b) => b.ops.map(writeKey)));
-      const s = splitBlocked(queue, keys) as { blocked: Batch[]; rest: Batch[] };
+      const s = splitBlocked(queue, keys);
       if (s.blocked.length) { hold(s.blocked); queue = s.rest; continue; }
     }
     const batches = queue.slice();
-    const ops = coalesceWrites(batches) as Op[];
+    const ops = coalesceWrites(batches);
     const expect = new Map(ops.map((op) => { const k = writeKey(op); return [k, staleKeys.has(k) ? -1 : revs.get(k) || 0]; }));
     try {
       const seq = await db.commit(ops, expect);
@@ -221,7 +221,7 @@ async function drain() {
     } catch (e) {
       if (e instanceof Conflict) {
         if (rebase(batches, e.saved)) continue;
-        const s = splitBlocked(batches, [...e.saved.keys()]) as { blocked: Batch[]; rest: Batch[] };
+        const s = splitBlocked(batches, [...e.saved.keys()]);
         for (const [k, v] of e.saved) if (s.blocked.some((b) => b.ops.some((op) => writeKey(op) === k))) conflictSaved.set(k, v);
         queue = [...s.rest, ...queue.filter((b) => !batches.includes(b))];
         hold(s.blocked);
@@ -268,7 +268,7 @@ function hold(batches: Batch[]) {
     b.reject(conflict);
     if (b.mode === 'shown') held.push(b);
   }
-  const mine = new Map((coalesceWrites(held) as Op[]).map((op) => [writeKey(op), op.value]));
+  const mine = new Map(coalesceWrites(held).map((op) => [writeKey(op), op.value]));
   setState({ conflicts: [...conflictSaved].filter(([k]) => mine.has(k)).map(([key, v]) => ({ key, mine: mine.get(key) ?? null, saved: v.value })) });
 }
 
@@ -368,8 +368,8 @@ export function catchUp(): Promise<void> {
         if (c.all) {
           // everything, after a restore elsewhere or a long time away: records gone there go here too
           const saved = new Map<string, Saved>();
-          for (const [k, v] of recordsOf(c.all.data) as Map<string, unknown>) saved.set(k, { value: v, rev: c.all.revs.get(k) || 0 });
-          for (const k of recordsOf(currentData()).keys() as Iterable<string>) if (!saved.has(k)) saved.set(k, { value: null, rev: 0 });
+          for (const [k, v] of recordsOf(c.all.data)) saved.set(k, { value: v, rev: c.all.revs.get(k) || 0 });
+          for (const k of recordsOf(currentData()).keys()) if (!saved.has(k)) saved.set(k, { value: null, rev: 0 });
           takeIn(saved);
         } else if (c.changed?.size) takeIn(c.changed);
         lastSeen = c.seq;
@@ -588,7 +588,7 @@ function replaceEverything(data: Data, active: ActiveWorkout | null, patch: Part
     held = [];
     conflictSaved.clear();
     staleKeys.clear();
-    revs = new Map([...(recordsOf(all).keys() as Iterable<string>)].map((k) => [k, seq]));
+    revs = new Map([...recordsOf(all).keys()].map((k) => [k, seq]));
     lastSeen = seq;
     for (const b of dropped) b.reject(new Error('Replaced'));
     setState({ ...fromData(all), ...patch, saveProblem: null, conflicts: [] });

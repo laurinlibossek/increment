@@ -58,7 +58,7 @@ export function LineChart({
   }
 
   const ys = points.map((p) => p.value);
-  const ticks = niceTicks(Math.min(...ys), Math.max(...ys), 4, { time }) as number[];
+  const ticks = niceTicks(Math.min(...ys), Math.max(...ys), 4, { time });
   const dec = tickDecimals(ticks) as number;
   const tickText = ticks.map((v) => formatAxis(v, dec));
   // the values sit on the trailing side; leave room for the longest one
