@@ -51,7 +51,9 @@ for (const theme of ['light', 'dark']) {
   // Today and the routine page show the prescription
   await page.goto(APP);
   await id('up-next').waitFor();
-  assert.match(await id('up-next').innerText(), /Bench Press \(Barbell\) × 8–10, Squat \(Barbell\)(?! ×)/);
+  // a row per exercise (#116): the range after the name, none for Squat
+  assert.equal((await id('up-next-ex-0').innerText()).replace(/\s+/g, ' '), 'Bench Press (Barbell) 8–10');
+  assert.equal((await id('up-next-ex-1').innerText()).trim(), 'Squat (Barbell)');
   if (theme === 'light') await page.screenshot({ path: `${OUT}/today.png` });
   await page.goto(`${APP}/template/push`);
   assert.match(await id('template-exercise-0').innerText(), /2 sets · 40 × 10, 80 × 8–10/);
@@ -135,7 +137,7 @@ for (const theme of ['light', 'dark']) {
   const { ctx, page, errors, id, setId } = await open(data('de'), { locale: 'de-DE' });
   await page.goto(APP);
   await id('up-next').waitFor();
-  assert.match(await id('up-next').innerText(), /× 8–10/);
+  assert.match(await id('up-next-ex-0').innerText(), /8–10$/);
   await page.goto(`${APP}/template/push`);
   await id('start-template').click();
   await id(`block-${BENCH}`).waitFor();
@@ -144,7 +146,7 @@ for (const theme of ['light', 'dark']) {
   await id(`in-r-${s1}`).click();
   assert.match(await id('keypad-aside').innerText(), /Wiederholungsbereich\s*8–10/);
   await page.screenshot({ path: `${OUT}/session-de.png` });
-  ok('German: “× 8–10” on Today, “8–10 Wdh.” beside the set and “Wiederholungsbereich” on the keypad');
+  ok('German: “8–10” after the name on Today, “8–10 Wdh.” beside the set and “Wiederholungsbereich” on the keypad');
   assert.deepEqual(errors, []);
   await ctx.close();
 }

@@ -145,12 +145,25 @@ A number with its unit and label, sized by importance: `t-number-xl` for the one
 
 ## RoutineCard
 
-A routine as something to start: where it sits in the block, its name, its exercises, a tally of its sets, and Start.
+A routine as something to start: where it sits in the block, its name, its exercises with their strokes, and Start.
 
-**You provide** the routine, its place in the block if there is one, and the estimated time (from the sets and rest times).
+**You provide** the routine, its place in the block if there is one, and the estimated time (from how long it took, #114).
 
 **Rules**
 - `paper-2`, `radius-l`, `space-5` padding. The only card style in the app; the current block on Plan uses it too.
+- Three levels of text, never one grey block (#116):
+  - the lead ("Up next", "In progress") in `t-footnote` semibold `accent`, with the reason after it in `ink-2`;
+  - the name in `t-title-1`, with "12 sets · about 55 min" under it in `t-subhead` `ink-2`;
+  - then a row per exercise:
+    - the name in `t-subhead` `ink`, cut short at the end;
+    - the routine's rep range in `ink-2`, which keeps its place and never breaks;
+    - the exercise's strokes on the right;
+    - `line` hairlines between rows.
+- At most six exercise rows, then "& 2 more". A running workout shows its strokes and progress instead of rows.
+- Plan's routine rows follow the same levels:
+  - the name in `t-headline`, with last done on its right in `t-footnote` `ink-2`;
+  - the exercises in `t-subhead` `ink-2`;
+  - then the sets and minutes semibold in `ink`, followed by the muscles in `ink-2`.
 - At most one Start button per screen: on Today the Up next card has it; on Plan rows open the routine and Start is inside.
 - Never nest a card in a card.
 

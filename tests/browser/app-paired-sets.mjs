@@ -93,7 +93,7 @@ for (const theme of ['light', 'dark']) {
   // Plan: the routine's prescribed rows, paired; the rest unpaired
   await selectTab(page, 'plan');
   await id('template-pairs').waitFor();
-  assert.match(await text('template-facts-pairs'), /· 5 sets · 3 unpaired ·/);
+  assert.match(await text('template-facts-pairs'), / 5 sets · 3 unpaired · about /);
   await shot('plan');
   ok(`${theme}: Sets per muscle counts pairs (arms 2, legs 3 with the Strong workout, chest 3); Plan says “5 sets · 3 unpaired”`);
 
@@ -139,7 +139,7 @@ for (const theme of ['light', 'dark']) {
   await page.goto(APP);
   for (const [m, n] of [['chest', 3], ['arms', 2], ['legs', 3]]) assert.match(await text(`muscle-${m}`), new RegExp(` ${n}$`), m);
   await selectTab(page, 'plan');
-  assert.match(await text('template-facts-pairs'), /· 10 sets ·/);
+  assert.match(await text('template-facts-pairs'), / 10 sets · about /);
   assert.doesNotMatch(await text('template-facts-pairs'), /unpaired/);
   await page.goto(`${APP}/template/pairs`);
   assert.match(await text('template-exercise-1'), /3 sets/);
@@ -202,7 +202,7 @@ for (const theme of ['light', 'dark']) {
   await page.goto(APP);
   await selectTab(page, 'plan');
   await id('template-split').waitFor();
-  assert.match(await text('template-facts-split'), /· 2 sets · about/, 'no sides: each set covered both legs');
+  assert.match(await text('template-facts-split'), / 2 sets · about/, 'no sides: each set covered both legs');
   await page.goto(`${APP}/workout/old-curl`);
   await id('workout-title').waitFor();
   assert.equal(await text('workout-sets'), 'Sets 2');
@@ -275,7 +275,7 @@ for (const theme of ['light', 'dark']) {
   await page.goto(APP);
   await selectTab(page, 'plan');
   await id('template-pairs').waitFor();
-  assert.match(await text('template-facts-pairs'), /· 5 Sätze · 3 ohne Paar ·/);
+  assert.match(await text('template-facts-pairs'), / 5 Sätze · 3 ohne Paar · etwa /);
   await shot('plan');
   await page.goto(`${APP}/account`);
   await id('set-pair-sides').scrollIntoViewIfNeeded();

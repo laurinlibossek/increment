@@ -622,7 +622,7 @@ export default {
   Start: 'Starten',
   'Up next': 'Als Nächstes',
   'Empty workout': 'Leeres Training',
-  'In progress · since {time}': 'Läuft · seit {time}',
+  'In progress': 'Läuft',
   'about {n} min': 'etwa {n} min',
   '{done} of {goal} sessions': '{done} von {goal} Einheiten',
   '{done} of {total} working sets': '{done} von {total} Arbeitssätzen',
@@ -634,7 +634,7 @@ export default {
   // Sets per muscle's breakdown (#89)
   '{sets} in the last 7 days': '{sets} in den letzten 7 Tagen',
   '{names} & {n} more': '{names} und {n} weitere',
-  'not done yet': 'noch nicht gemacht',
+  '& {n} more': 'und {n} weitere',
   'Examples hidden — turn them back on in Account': 'Beispiele ausgeblendet – unter Account wieder einschalten',
   'Last 30 days': 'Letzte 30 Tage',
   'Last 12 weeks': 'Letzte 12 Wochen',

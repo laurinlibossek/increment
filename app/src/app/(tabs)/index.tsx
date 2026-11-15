@@ -5,7 +5,7 @@
 import { useMemo } from 'react';
 import { Text, View } from 'react-native';
 import { router } from 'expo-router';
-import { entryRepRange, routineSize, setsPerMuscle, weekStrip } from '@increment/core';
+import { entriesSetCount, entryRepRange, routineSize, setsPerMuscle, weekStrip } from '@increment/core';
 
 import { suggestion, useAppState } from '@/data/store';
 import type { Template } from '@/data/types';
@@ -26,6 +26,8 @@ import { useSessionView } from '@/ui/workout/MiniBar';
 import { useToday } from '@/lib/useNow';
 
 type Why = { kind: 'after' | 'weekday' | 'due'; name?: string; day?: number; at?: number };
+/** Up next lists this many exercises, then "& 2 more" (#116). */
+const UP_NEXT_ROWS = 6;
 
 export default function TodayTab() {
   const s = useAppState();
@@ -56,7 +58,7 @@ export default function TodayTab() {
   if (s.active && session) {
     const a = s.active;
     card = (
-      <RoutineCard testID="now-card" context={tr('In progress · since {time}', { time: f.date.time(a.startedAt) })} name={a.name}
+      <RoutineCard testID="now-card" lead={tr('In progress')} context={tr('since {time}', { time: f.date.time(a.startedAt) })} name={a.name}
         tally={{ groups: session.groups, label: f.progressText(session).label }}
         facts={f.progressText(session).text}
         start={{ title: tr('Resume workout'), onPress: openWorkout, testID: 'resume-workout' }} />
@@ -66,19 +68,29 @@ export default function TodayTab() {
     const entries = tpl.exercises.filter((e) => s.exercises.has(e.exerciseId));
     // minutes from how long this routine took you, else your pace in general (#114)
     const size = routineSize(tpl, s.exercises, { defaultRest: s.settings.defaultRest, pair: s.settings.pairSides, workouts: s.workouts });
-    const groups: StrokeState[][] = entries.map((e) => e.sets.map((x) => (x.type === 'warmup' ? 'warmupPending' : 'pending')));
+    // a row per exercise (#116), the first six: its name, the range the routine
+    // prescribes (#44) and its strokes, warm-ups half height
+    const pair = s.settings.pairSides;
+    const rows = entries.slice(0, UP_NEXT_ROWS).map((e) => {
+      const r = entryRepRange(e);
+      return {
+        name: f.exName(s.exercises.get(e.exerciseId)),
+        range: r ? `${f.num(r[0], 0)}–${f.num(r[1], 0)}` : undefined,
+        strokes: e.sets.map((x): StrokeState => (x.type === 'warmup' ? 'warmupPending' : 'pending')),
+        label: f.setsText(entriesSetCount([e], s.exercises, { pair })),
+      };
+    });
+    const more = entries.length - rows.length;
     card = (
-      <RoutineCard testID="up-next" context={`${tr('Up next')} · ${why(sug.why)}`} name={tpl.name}
-        // with the range a routine prescribes for an exercise (#44): "Bench Press × 8–10"
-        exercises={entries.map((e) => { const r = entryRepRange(e); return `${f.exName(s.exercises.get(e.exerciseId))}${r ? ` × ${r[0]}–${r[1]}` : ''}`; })}
-        tally={{ groups, label: f.setsText(size) }}
-        facts={[f.plural(size.exercises, 'exercise'), f.setsText(size), size.minutes ? tr('about {n} min', { n: size.minutes }) : ''].filter(Boolean).join(' · ')}
+      <RoutineCard testID="up-next" lead={tr('Up next')} context={why(sug.why)} name={tpl.name}
+        summary={[f.setsText(size), size.minutes ? tr('about {n} min', { n: size.minutes }) : ''].filter(Boolean).join(' · ')}
+        exercises={rows} more={more > 0 ? tr('& {n} more', { n: more }) : undefined}
         onPress={() => router.push({ pathname: '/template/[id]', params: { id: tpl.id } })}
         start={{ title: tr('Start'), onPress: () => beginWorkout({ template: tpl }, f), testID: 'start-suggested' }} />
     );
   } else {
     card = (
-      <RoutineCard testID="up-next" context={tr('Up next')} name={tr('Empty workout')}
+      <RoutineCard testID="up-next" lead={tr('Up next')} name={tr('Empty workout')}
         facts={tr('Add exercises as you go, or start a routine from Plan.')}
         start={{ title: tr('Start an empty workout'), onPress: () => beginWorkout({}, f), testID: 'start-empty' }} />
     );

@@ -34,15 +34,16 @@ await page.goto(APP);
 await page.getByTestId('tab-index').waitFor();
 const before = await storedData(page);
 const eyebrow = (text) => page.getByText(text, { exact: true }).first().waitFor();
-const routine = () => page.getByTestId('template-arms').innerText();
+// when the routine was last done, beside its name on Plan (#116)
+const routine = () => page.getByTestId('template-when-arms').innerText();
 
 await eyebrow('Monday, November 9');
 await selectTab(page, 'plan');
-assert.match(await routine(), /today/);
+assert.equal(await routine(), 'Today');
 
 // midnight passes while the app is open
 await page.clock.runFor('03:00');
-await page.getByTestId('template-arms').getByText(/yesterday/).waitFor();
+await page.getByTestId('template-when-arms').getByText('Yesterday', { exact: true }).waitFor();
 await selectTab(page, 'index');
 await eyebrow('Tuesday, November 10');
 await page.screenshot({ path: `${OUT}/after-midnight.png` });
@@ -59,7 +60,7 @@ for (const state of ['hidden', 'visible']) {
 }
 await eyebrow('Friday, November 13');
 await selectTab(page, 'plan');
-assert.doesNotMatch(await routine(), /today|yesterday/);
+assert.equal(await routine(), '4 days ago');
 ok('coming back to the app days later shows the right day everywhere');
 
 assert.deepEqual(await storedData(page), before, 'only the screens change, not the data');
