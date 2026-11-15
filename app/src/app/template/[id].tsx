@@ -79,7 +79,7 @@ export default function TemplatePreview() {
             return x.w || x.r || x.t || x.d ? f.setText(x, exr.category, true) : null;
           }).filter(Boolean);
           // a one-side exercise's prescribed rows as left/right pairs (#54)
-          const sub = f.setsText(exerciseSetCount(e.sets, isUnilateral(exr), { pair: s.settings.pairSides !== false }))
+          const sub = f.setsText(exerciseSetCount(e.sets, isUnilateral(exr), { pair: s.settings.pairSides }))
             + (targets.length ? ' · ' + [...new Set(targets)].join(', ') : '')
             + (e.restSec ? ` · ${tr('rest {time}', { time: f.clock(e.restSec) })}` : '');
           const r = ready.get(e);

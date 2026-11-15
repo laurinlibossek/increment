@@ -195,7 +195,7 @@ function WorkoutRow({ w, s, f, first, day = true }: { w: Workout; s: State; f: F
   const { tr } = f;
   const prs = stats(s).prsByWorkout.get(w.id) || [];
   const recordSets = new Set<string>(prs.map((p: { setId: string }) => p.setId));
-  const sets = entriesSetCount(w.exercises, s.exercises, { pair: s.settings.pairSides !== false }) as { sets: number; unpaired: number };
+  const sets = entriesSetCount(w.exercises, s.exercises, { pair: s.settings.pairSides }) as { sets: number; unpaired: number };
   const tallyLine = [f.setsText(sets), recordSets.size ? f.plural(recordSets.size, 'record') : ''].filter(Boolean).join(' · ');
   const vol = workoutVolume(w, s.exercises);
   const meta = [day ? f.date.workoutDay(w.startedAt) : '', hm((w.endedAt || w.startedAt) - w.startedAt), vol > 0 ? f.volume(vol) : ''].filter(Boolean).join(' · ');

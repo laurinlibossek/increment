@@ -819,6 +819,32 @@ test('merging exercises: same logged fields only; the target keeps its own rest 
   assert.equal(JSON.stringify(ws), before, 'the records passed in stay as they were');
 });
 
+test('settings: a stored value of the wrong type gets the default, so screens need no fallback (#98)', () => {
+  const D = core.DEFAULT_SETTINGS;
+  assert.deepEqual(core.withDefaults(undefined), D);
+  assert.deepEqual(core.withDefaults(null), D);
+  assert.deepEqual(core.withDefaults([1, 2]), D, 'a list is no settings object');
+  // a damaged or hand-edited backup
+  const st = core.withDefaults({
+    pairSides: null, showExamples: 'false', weeklyGoal: '4', defaultRest: null, bar: Number.NaN, unit: 5, theme: 0,
+    plates: { 0: 20 }, warmup: [10], historyStart: '2026-01-01', bodyUnit: 2, sizeUnit: false,
+  });
+  for (const k of ['pairSides', 'showExamples', 'weeklyGoal', 'defaultRest', 'bar', 'unit', 'theme', 'plates', 'warmup', 'historyStart', 'bodyUnit', 'sizeUnit']) {
+    assert.deepEqual(st[k], D[k], `${k} falls back to its default`);
+  }
+  // values of the right type are kept, null too where null means "not set"
+  const kept = { pairSides: false, showExamples: false, weeklyGoal: 5, defaultRest: 90, bar: 15, unit: 'lb', theme: 'dark', templateSort: 'recent',
+    plates: [20, 10], warmup: { barReps: 8, steps: [[50, 5]] }, historyStart: 1700000000000, bodyUnit: 'kg', sizeUnit: 'in' };
+  assert.deepEqual(core.withDefaults(kept), { ...D, ...kept });
+  assert.equal(core.withDefaults({ historyStart: null, bodyUnit: null }).historyStart, null);
+  assert.equal(core.withDefaults({ historyStart: 5, bodyUnit: null }).bodyUnit, null);
+  // a newer version's setting survives; a stored "__proto__" stays a plain key
+  assert.equal(core.withDefaults({ comingSoon: 'x' }).comingSoon, 'x');
+  const odd = core.withDefaults(JSON.parse('{"__proto__": {"unit": "lb"}}'));
+  assert.equal(odd.unit, 'kg');
+  assert.equal(Object.getPrototypeOf(odd), Object.prototype);
+});
+
 test('warm-up scheme from the editor: decimal commas, empty and odd rows dropped, sorted', () => {
   assert.deepEqual(core.warmupFromInput('8', [['60', '3'], ['42,5', '5'], ['', '4'], ['100', '1'], ['70', '0'], ['85', '1,4']]),
     { barReps: 8, steps: [[42.5, 5], [60, 3], [85, 1]] });

@@ -1,5 +1,6 @@
 // Default settings, shared by every app. Stored settings are merged over these,
-// so a backup from an older version gets new settings at their defaults.
+// so a backup from an older version gets new settings at their defaults, and a
+// stored value of the wrong type (null, a number as text) gets the default too.
 import { DEFAULT_WARMUP } from './calc.js';
 import { parseNum } from './units.js';
 
@@ -35,8 +36,31 @@ export const DEFAULT_SETTINGS = {
   plates: KG_PLATES,
 };
 
-/** The stored settings over the defaults. */
-export const withDefaults = (stored) => ({ ...DEFAULT_SETTINGS, ...(stored || {}) });
+/** Settings whose default is null ("not set"): null or a value of this type. */
+const NULLABLE = { historyStart: 'number', bodyUnit: 'string', sizeUnit: 'string' };
+
+/** Whether a stored value can stand in for the default of `key`. */
+function fits(key, value) {
+  const d = DEFAULT_SETTINGS[key];
+  if (key in NULLABLE) return value === null || (NULLABLE[key] === 'number' ? Number.isFinite(value) : typeof value === NULLABLE[key]);
+  if (Array.isArray(d)) return Array.isArray(value);
+  if (typeof d === 'object') return !!value && typeof value === 'object' && !Array.isArray(value);
+  if (typeof d === 'number') return Number.isFinite(value);
+  return typeof value === typeof d;
+}
+
+/**
+ * The stored settings over the defaults (#98): a stored value is kept when it
+ * has the default's type, so every screen can read every setting as it is,
+ * without a fallback of its own. Keys without a default are kept as they are
+ * (a newer version's settings survive a round trip through this one).
+ */
+export function withDefaults(stored) {
+  const own = (k) => Object.prototype.hasOwnProperty.call(DEFAULT_SETTINGS, k);
+  const kept = stored && typeof stored === 'object' && !Array.isArray(stored)
+    ? Object.entries(stored).filter(([k, v]) => !own(k) || fits(k, v)) : [];
+  return { ...DEFAULT_SETTINGS, ...Object.fromEntries(kept) };
+}
 
 /**
  * Settings after changing one. Switching the lifting unit swaps the default

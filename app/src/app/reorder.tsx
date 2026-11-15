@@ -24,7 +24,7 @@ export default function Reorder() {
   const key: DraftKey = draft === 'edit' ? 'edit' : 'active';
   const a = useAppSelector((s) => getDraft(key, s));
   const exercises = useAppSelector((s) => s.exercises);
-  const pair = useAppSelector((s) => s.settings.pairSides !== false);
+  const pair = useAppSelector((s) => s.settings.pairSides);
   const f = useFormat();
   const { tr } = f;
   const c = useColors();

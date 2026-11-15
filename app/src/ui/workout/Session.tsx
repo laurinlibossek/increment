@@ -298,7 +298,7 @@ export function useSessionStrokes(a: ActiveWorkout, live: string | null) {
         return setStroke(x, live, recs);
       }));
     }
-    const { done, total, percent } = sessionProgress(a.exercises, exercises, { pair: settings.pairSides !== false });
+    const { done, total, percent } = sessionProgress(a.exercises, exercises, { pair: settings.pairSides });
     return { byEntry, done, total, percent, records };
   }, [a.exercises, live, exercises, workouts, settings]); // eslint-disable-line react-hooks/exhaustive-deps
 }
@@ -320,7 +320,7 @@ export function UnitRows({
   const f = useFormat();
   const { tr } = f;
   const exercises = useAppSelector((x) => x.exercises);
-  const pair = useAppSelector((x) => x.settings.pairSides !== false);
+  const pair = useAppSelector((x) => x.settings.pairSides);
   const templateId = useAppSelector((x) => x.active?.templateId ?? null);
   const [drag, setDrag] = useState<{ from: number; over: number } | null>(null);
   const dragRef = useRef(drag);

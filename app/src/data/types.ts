@@ -95,6 +95,7 @@ export interface Measurement {
 export type ThemeSetting = 'system' | 'light' | 'dark' | 'strawberry-matcha' | 'intense-red';
 export type LanguageSetting = 'auto' | 'en' | 'de';
 
+/** Every key has a value of its type: core's withDefaults fills and checks them (#98). */
 export interface Settings {
   unit: 'kg' | 'lb';
   distUnit: 'km' | 'mi';
@@ -114,6 +115,14 @@ export interface Settings {
   sizeUnit: 'cm' | 'in' | null;
   defaultRest: number;
   askTemplateUpdate: boolean;
+  /** iPhone/Android app: a notification when rest is over. */
+  restAlert: boolean;
+  sound: boolean;
+  /** Web app: the screen stays on during a workout. */
+  keepAwake: boolean;
+  /** iPhone/Android app: the screen stays on during a workout. */
+  appKeepAwake: boolean;
+  templateSort: 'name' | 'recent';
   prevSource: 'any' | 'template';
   bar: number;
   plates: number[];

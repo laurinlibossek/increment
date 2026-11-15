@@ -56,7 +56,7 @@ function lines(key: string, v: unknown, f: F): string[] {
     const out = rec.name ? [String(rec.name)] : [];
     for (const e of rec.exercises || []) {
       const exercise = ex.get(e.exerciseId);
-      const count = exerciseSetCount(e.sets, isUnilateral(exercise), { pair: settings.pairSides !== false });
+      const count = exerciseSetCount(e.sets, isUnilateral(exercise), { pair: settings.pairSides });
       out.push(`${exercise ? f.exName(exercise) : f.tr('Unknown exercise')}: ${f.setsText(count)}`);
     }
     return out;
