@@ -653,7 +653,7 @@ export function strongNothingNew(preview: StrongReview): boolean {
   try {
     const r = resolveStrongImport(preview, {}, {
       exercises: state.exercises, workouts: state.workouts, aliases: state.strongAliases,
-    }) as { stats: { notesAdded: number } };
+    });
     return !r.stats.notesAdded;
   } catch { return false; }
 }
@@ -661,11 +661,10 @@ export function strongNothingNew(preview: StrongReview): boolean {
 export async function saveStrongImport(preview: StrongReview, choices: StrongChoices) {
   const r = resolveStrongImport(preview, choices, {
     exercises: state.exercises, workouts: state.workouts, aliases: state.strongAliases,
-  }) as { exercises: Exercise[]; workouts: Workout[]; aliases: Record<string, string>;
-    noteUpdates: { id: string; notes?: string; entries: [number, string][] }[];
-    stats: { workouts: number; notesAdded: number; duplicates: number; omitted: { sets: number; workouts: number; exercises: string[] } } };
+  });
   const exercises = new Map(state.exercises);
-  for (const e of r.exercises) exercises.set(e.id, e);
+  // core keeps the category the person chose for a new exercise as a string
+  for (const e of r.exercises) exercises.set(e.id, e as Exercise);
   // notes for workouts that are already here (older imports that dropped them)
   const updated = new Map<string, Workout>();
   for (const u of r.noteUpdates) {

@@ -1,3 +1,4 @@
+// @ts-check
 // Strong CSV: reading Strong's export (both of its layouts) and writing one.
 // Plain functions: the app passes in what they need to know about its data.
 import {
@@ -9,10 +10,48 @@ import { canMergeExercises } from './editing.js';
 import { BODY_PARTS, CATEGORIES, SEED_EXERCISES, MEASUREMENTS, MEASUREMENT_BY_ID } from './seed.js';
 import { strongNameKey, STRONG_EXERCISE_ALIASES, strongExerciseSuggestions, strongExerciseFamily } from './strong-matching.js';
 
+/**
+ * @typedef {import('./types.js').SetLike} SetLike
+ * @typedef {import('./types.js').ExerciseLike} ExerciseLike
+ * @typedef {import('./types.js').Exercises} Exercises
+ *
+ * A set read from a Strong export: numbers in kg, km and seconds.
+ * @typedef {{ id: string, type: 'normal' | 'warmup' | 'drop' | 'failure', w?: number, r?: number, d?: number, t?: number, rpe?: number }} StrongSet
+ *
+ * One exercise block of a workout in the file, under its Strong name.
+ * @typedef {{ name: string, sets: StrongSet[], notes: string, restSec: number | null }} StrongEntry
+ *
+ * One workout in the file (its date and name).
+ * @typedef {{ startedAt: number, name: string, durationSec: number, notes: string, entries: StrongEntry[] }} StrongWorkout
+ *
+ * A Strong name no exercise matches: the review asks what it is (#40).
+ * @typedef {{ name: string, sessions: number, category: string, bodyPart: string, categories: string[],
+ *   blocked?: 'negative' | 'mixed', exact?: string, omit: { sets: number, workouts: number },
+ *   suggestions: { id: string, score: number, preselect: boolean }[] }} StrongReviewRow
+ *
+ * What parseStrongCSV read, nothing saved yet: the workouts, the names that
+ * matched an exercise (name -> id) and the ones to review.
+ * @typedef {{ groups: StrongWorkout[], matches: Record<string, string>, review: StrongReviewRow[],
+ *   stats: { workouts: number, sets: number, duplicates: number, matchedExercises: number, skippedRows: number,
+ *     restRows: number, hasWeightUnitColumn: boolean, first: number | null, last: number | null } }} StrongPreview
+ *
+ * What to do with a reviewed name: an existing exercise, a new one, or leave it out (#40).
+ * @typedef {{ kind: 'existing', exerciseId: string } | { kind: 'new', name: string, category: string, bodyPart: string }
+ *   | { kind: 'skip' }} StrongChoice
+ *
+ * A workout already in the app, as the import compares with it.
+ * @typedef {{ id: string, startedAt: number, name: string, notes?: string, exercises: { exerciseId: string, notes?: string }[] }} KnownWorkout
+ */
+
+/** Whether a number of a set is there and above 0. @param {number | undefined} v */
+const pos = (v) => (v ?? 0) > 0;
+
 // ---------- CSV ----------
+/** The delimiter of a CSV's first line: `;`, a tab or `,`. @param {string} text @returns {string} */
 export function detectDelimiter(text) {
   const nl = text.search(/\r?\n/);
   const line = nl >= 0 ? text.slice(0, nl) : text;
+  /** @param {string} ch */
   const count = (ch) => {
     let n = 0, q = false;
     for (const c of line) { if (c === '"') q = !q; else if (c === ch && !q) n++; }
@@ -24,11 +63,15 @@ export function detectDelimiter(text) {
   return ',';
 }
 
+/** A CSV's rows of cells; blank rows are left out. @param {string} text @param {string} [delim] @returns {string[][]} */
 export function parseCSV(text, delim) {
   text = String(text).replace(/^\uFEFF/, '');
   delim = delim || detectDelimiter(text);
+  /** @type {string[][]} */
   const rows = [];
-  let row = [], field = '', q = false, i = 0;
+  /** @type {string[]} */
+  let row = [];
+  let field = '', q = false, i = 0;
   const n = text.length;
   while (i < n) {
     const c = text[i];
@@ -49,14 +92,17 @@ export function parseCSV(text, delim) {
   return rows.filter((r) => r.some((f) => f.trim() !== ''));
 }
 
+/** @param {unknown} v */
 const csvCell = (v) => {
   const s = v === null || v === undefined ? '' : String(v);
   return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
 };
 
 // ---------- dates & durations ----------
+/** @param {string[]} samples @returns {(str: unknown) => number | null} */
 function parseDateFactory(samples) {
   // decide day-first vs month-first for slash dates from the data itself
+  /** @type {boolean | null} */
   let dayFirst = null;
   for (const s of samples) {
     const m = /^(\d{1,2})\/(\d{1,2})\/\d{2,4}/.exec(s.trim());
@@ -85,6 +131,7 @@ function parseDateFactory(samples) {
   };
 }
 
+/** A Strong duration ("1:05", "1h 5m", "45m", or minutes) in seconds; 0 when there's none. @param {unknown} str @returns {number} */
 export function parseDuration(str) {
   const s = String(str || '').trim().toLowerCase();
   if (!s) return 0;
@@ -104,12 +151,13 @@ export function parseDuration(str) {
 }
 
 // ---------- category / body part inference ----------
+/** @param {string} name @param {StrongSet[]} rows */
 function inferCategory(name, rows) {
   const n = name.toLowerCase();
-  const anyDist = rows.some((r) => r.d > 0);
+  const anyDist = rows.some((r) => pos(r.d));
   const anyW = rows.some((r) => r.w != null && r.w !== 0);
-  const anyR = rows.some((r) => r.r > 0);
-  const anyT = rows.some((r) => r.t > 0);
+  const anyR = rows.some((r) => pos(r.r));
+  const anyT = rows.some((r) => pos(r.t));
   if (anyDist) return 'cardio';
   if (anyW) {
     if (n.includes('(assisted)')) return 'assisted_bw';
@@ -124,6 +172,7 @@ function inferCategory(name, rows) {
   return 'machine';
 }
 
+/** @type {[string, RegExp][]} */
 const BODY_RULES = [
   ['cardio', /running|jog|cycling|bike|biking|rowing|swim|walk|elliptical|stair|ski erg|aerobic|cardio|hiking|treadmill|spinning|jump rope/],
   ['core', /crunch|plank|sit ?up|leg raise|knee raise|\bab\b|abs|twist|hollow|l-sit|toes to bar|dead bug|pallof|wood ?chop|v-up|flutter/],
@@ -134,10 +183,10 @@ const BODY_RULES = [
   ['shoulders', /overhead|shoulder|military|arnold|lateral|front raise|face pull|rear delt|reverse fly|upright|press/],
   ['arms', /curl|tricep|skull|kickback|pushdown|extension|wrist/],
 ];
-/** @returns {string} */
+/** @param {string} name @returns {string} */
 function inferBodyPart(name) {
   const n = name.toLowerCase();
-  for (const [part, re] of BODY_RULES) if (re.test(n)) return String(part);
+  for (const [part, re] of BODY_RULES) if (re.test(n)) return part;
   return 'other';
 }
 
@@ -145,17 +194,25 @@ function inferBodyPart(name) {
 /**
  * Notes a stored workout lacks but the import has. Exercises pair by id and
  * occurrence. Returns { id, notes?, entries: [[index, note]] } or null.
+ * @param {KnownWorkout} w
+ * @param {string} notes
+ * @param {{ exerciseId: string, notes?: string }[]} entries
+ * @returns {{ id: string, notes?: string, entries: [number, string][] } | null}
  */
 function missingNotes(w, notes, entries) {
+  /** @type {{ id: string, notes?: string, entries: [number, string][] }} */
   const u = { id: w.id, entries: [] };
   if (notes && !w.notes) u.notes = notes;
+  /** @type {Map<string, number>} */
   const seen = new Map();
+  /** @type {Map<string, number>} */
   const at = new Map();
   w.exercises.forEach((e, i) => {
     const n = seen.get(e.exerciseId) || 0;
     seen.set(e.exerciseId, n + 1);
     at.set(`${e.exerciseId}#${n}`, i);
   });
+  /** @type {Map<string, number>} */
   const seen2 = new Map();
   for (const e of entries) {
     const n = seen2.get(e.exerciseId) || 0;
@@ -193,6 +250,10 @@ const HEADER_ALIASES = {
  *  - workouts: workouts already in the app, to skip duplicates
  *  - defaultName: name for rows without a workout name
  * Errors carry English messages that double as translation keys.
+ * @param {string} text
+ * @param {{ weightUnit?: string, distUnit?: string, exercises?: Exercises, aliases?: Record<string, string>,
+ *   workouts?: { startedAt: number, name: string }[], defaultName?: string }} [opts]
+ * @returns {StrongPreview}
  */
 export function parseStrongCSV(text, opts = {}) {
   const { workouts: known = [], defaultName = 'Workout' } = opts;
@@ -200,6 +261,7 @@ export function parseStrongCSV(text, opts = {}) {
   const rows = parseCSV(text);
   if (rows.length < 2) throw new Error('The file is empty or not a CSV export.');
   const header = rows[0].map((h) => h.trim().toLowerCase());
+  /** @type {Record<string, number>} */
   const col = {};
   for (const [key, names] of Object.entries(HEADER_ALIASES)) {
     col[key] = header.findIndex((h) => names.includes(h));
@@ -207,11 +269,13 @@ export function parseStrongCSV(text, opts = {}) {
   if (col.date < 0 || col.exercise < 0) {
     throw new Error('This doesn’t look like a Strong export — it needs “Date” and “Exercise Name” columns.');
   }
+  /** @param {string[]} r @param {string} key */
   const get = (r, key) => (col[key] >= 0 ? (r[col[key]] ?? '').trim() : '');
   const parseDate = parseDateFactory(rows.slice(1, 200).map((r) => get(r, 'date')));
   const defW = opts.weightUnit || 'kg';
   const defD = opts.distUnit || 'km';
 
+  /** @type {Map<string, StrongWorkout>} */
   const groups = new Map();
   let skippedRows = 0;
   let restRows = 0;
@@ -245,10 +309,11 @@ export function parseStrongCSV(text, opts = {}) {
     if (note && !last.notes) last.notes = note;
     if (order.includes('rest')) {
       const sec = parseNum(get(r, 'seconds'));
-      if (sec > 0) last.restSec = Math.round(sec);
+      if (sec !== null && sec > 0) last.restSec = Math.round(sec);
       restRows++;
       continue;
     }
+    /** @type {StrongSet['type']} */
     let type = 'normal';
     if (order === 'w') type = 'warmup';
     else if (order === 'd') type = 'drop';
@@ -265,25 +330,27 @@ export function parseStrongCSV(text, opts = {}) {
     const reps = parseNum(get(r, 'reps'));
     const t = parseNum(get(r, 'seconds'));
     const rpe = parseNum(get(r, 'rpe'));
+    /** @type {StrongSet} */
     const set = { id: uid(), type };
     if (w !== null && w !== 0) set.w = Math.round(w * 10000) / 10000;
     if (reps !== null && reps > 0) set.r = Math.round(reps);
     if (d !== null && d > 0) set.d = Math.round(d * 100000) / 100000;
     if (t !== null && t > 0) set.t = Math.round(t);
     if (rpe !== null && rpe > 0) set.rpe = rpe;
-    if (set.r > 0 && set.w === undefined) set.w = 0;
-    if (!(set.r > 0 || set.d > 0 || set.t > 0)) { skippedRows++; continue; }
+    if (pos(set.r) && set.w === undefined) set.w = 0;
+    if (!(pos(set.r) || pos(set.d) || pos(set.t))) { skippedRows++; continue; }
     last.sets.push(set);
   }
 
   // One review row per Strong name, counting distinct sessions, not sets or
   // repeated exercise blocks in the same session. Rest-only rows don't count.
+  /** @type {Map<string, { name: string, sets: StrongSet[], sessions: Set<string> }>} */
   const rowsByName = new Map();
   for (const g of groups.values()) {
     for (const e of g.entries.filter((e) => e.sets.length)) {
       const key = strongNameKey(e.name);
-      if (!rowsByName.has(key)) rowsByName.set(key, { name: e.name, sets: [], sessions: new Set() });
-      const item = rowsByName.get(key);
+      let item = rowsByName.get(key);
+      if (!item) rowsByName.set(key, item = { name: e.name, sets: [], sessions: new Set() });
       item.sets.push(...e.sets);
       item.sessions.add(workoutKey(g.startedAt, g.name));
     }
@@ -297,6 +364,7 @@ export function parseStrongCSV(text, opts = {}) {
     return true;
   });
   // what leaving an exercise out would leave out: its sets in the workouts that are new
+  /** @type {Map<string, { sets: number, workouts: Set<StrongWorkout> }>} */
   const freshCounts = new Map();
   for (const g of fresh) {
     for (const e of g.entries.filter((x) => x.sets.length)) {
@@ -309,20 +377,26 @@ export function parseStrongCSV(text, opts = {}) {
   }
   const byName = new Map(exercises.map((e) => [strongNameKey(e.name), e]));
   const byId = new Map(exercises.map((e) => [e.id, e]));
+  /** @type {Map<string, string>} */
   const shippedAliases = new Map(Object.entries(STRONG_EXERCISE_ALIASES).map(([name, id]) => [strongNameKey(name), id]));
-  const aliases = new Map([...shippedAliases, ...Object.entries(opts.aliases || {}).map(([name, id]) => [strongNameKey(name), id])]);
-  const matches = {}, review = [];
+  const aliases = new Map(shippedAliases);
+  for (const [name, id] of Object.entries(opts.aliases || {})) aliases.set(strongNameKey(name), id);
+  /** @type {Record<string, string>} */
+  const matches = {};
+  /** @type {StrongReviewRow[]} */
+  const review = [];
   for (const { name, sets, sessions } of rowsByName.values()) {
     const category = inferCategory(name, sets);
     const categories = strongImportCategories(sets);
     // every match, the exact name included, has to log the fields these sets have (#40)
+    /** @param {ExerciseLike | false | undefined} ex */
     const fits = (ex) => !!ex && categories.includes(ex.category) && canMergeExercises({ id: null, category }, ex);
     const exact = byName.get(strongNameKey(name));
     const aliasId = aliases.get(strongNameKey(name));
     // A catalogue upgrade can preserve a same-name custom instead of adding
     // the built-in id. Its existing identity is the alias target in that case.
     const seedTarget = shippedAliases.get(strongNameKey(name)) === aliasId && SEED_EXERCISES.find((e) => e.id === aliasId);
-    const target = byId.get(aliasId) || (seedTarget && byName.get(strongNameKey(seedTarget.name)));
+    const target = (aliasId && byId.get(aliasId)) || (seedTarget && byName.get(strongNameKey(seedTarget.name)));
     const match = fits(exact) ? exact : fits(target) ? target : null;
     if (match) { Object.defineProperty(matches, name, { value: match.id, enumerable: true }); continue; }
     const part = inferBodyPart(name);
@@ -330,7 +404,7 @@ export function parseStrongCSV(text, opts = {}) {
     review.push({
       name, sessions: sessions.size, category, bodyPart: part === 'other' ? '' : part, categories,
       // nothing can import these sets as they are: the only way on is leaving the exercise out
-      ...(categories.length ? {} : { blocked: sets.some((x) => x.w < 0) ? 'negative' : 'mixed' }),
+      ...(categories.length ? {} : { blocked: sets.some((x) => (x.w ?? 0) < 0) ? /** @type {const} */ ('negative') : /** @type {const} */ ('mixed') }),
       // an exercise with this exact name logs other fields
       ...(exact ? { exact: exact.id } : {}),
       omit: { sets: counts?.sets || 0, workouts: counts?.workouts.size || 0 },
@@ -349,21 +423,34 @@ export function parseStrongCSV(text, opts = {}) {
   };
 }
 
-/** Categories that retain the fields actually logged. None for a negative load (#40: never its absolute value) or a mixture. */
+/**
+ * Categories that retain the fields actually logged. None for a negative load (#40: never its absolute value) or a mixture.
+ * @param {{ w?: number, r?: number, d?: number, t?: number }[]} sets
+ * @returns {string[]}
+ */
 export function strongImportCategories(sets) {
-  if (sets.some((s) => s.w < 0)) return [];
-  const w = sets.some((s) => s.w != null && s.w !== 0), r = sets.some((s) => s.r > 0);
-  const d = sets.some((s) => s.d > 0), t = sets.some((s) => s.t > 0);
+  if (sets.some((s) => (s.w ?? 0) < 0)) return [];
+  const w = sets.some((s) => s.w != null && s.w !== 0), r = sets.some((s) => pos(s.r));
+  const d = sets.some((s) => pos(s.d)), t = sets.some((s) => pos(s.t));
   if ((r || w) && (d || t)) return []; // no supported category logs this mixture
   const category = d ? 'cardio' : t ? 'duration' : w ? 'machine' : 'reps';
   return CATEGORIES.filter((c) => canMergeExercises({ id: null, category }, { id: c.id, category: c.id })).map((c) => c.id);
 }
+/** @param {number} at @param {string} name */
 const workoutKey = (at, name) => Math.floor(at / 1000) + '|' + name;
 
-/** Validation also runs at import, so bypassing a disabled button cannot save guesses. */
+/**
+ * What still has to be decided before the import, per reviewed name. Validation
+ * also runs at import, so bypassing a disabled button cannot save guesses.
+ * @param {{ review: StrongReviewRow[] }} preview
+ * @param {Record<string, StrongChoice | undefined>} choices
+ * @param {Exercises} exercises
+ * @returns {{ name: string, problem: string }[]}
+ */
 export function strongImportProblems(preview, choices, exercises) {
   const all = [...(exercises instanceof Map ? exercises.values() : exercises)];
   const names = new Set(all.map((e) => strongNameKey(e.name)));
+  /** @type {{ name: string, problem: string }[]} */
   const problems = [];
   for (const row of preview.review) {
     const choice = choices[row.name];
@@ -386,10 +473,11 @@ export function strongImportProblems(preview, choices, exercises) {
   return problems;
 }
 
-/** Turn a fully decided review into records to save together. Never mutates the preview or stored data.
- * @param {any} preview
- * @param {any} choices
- * @param {any} opts
+/**
+ * Turn a fully decided review into records to save together. Never mutates the preview or stored data.
+ * @param {StrongPreview} preview
+ * @param {Record<string, StrongChoice | undefined>} choices
+ * @param {{ exercises?: Exercises, workouts?: KnownWorkout[], aliases?: Record<string, string> }} [opts]
  */
 export function resolveStrongImport(preview, choices, opts = {}) {
   const { exercises = [], workouts: known = [], aliases = {} } = opts;
@@ -399,13 +487,17 @@ export function resolveStrongImport(preview, choices, opts = {}) {
   const ids = new Set(all.map((e) => e.id));
   const byName = new Map(Object.entries(preview.matches).map(([name, id]) => [strongNameKey(name), id]));
   if ([...byName.values()].some((id) => !ids.has(id))) throw new Error('The exercise library changed. Pick the file again.');
-  const newExercises = [], remembered = new Map(Object.entries({ ...STRONG_EXERCISE_ALIASES, ...aliases }));
+  /** @type {{ id: string, name: string, category: string, bodyPart: string, family?: string, imported: true, createdAt: number }[]} */
+  const newExercises = [];
+  /** @type {Map<string, string>} */
+  const remembered = new Map(Object.entries({ ...STRONG_EXERCISE_ALIASES, ...aliases }));
   // left out: not imported, and not remembered, so the file can be imported again once fixed
   const skipped = new Set(preview.review.filter((row) => choices[row.name]?.kind === 'skip').map((row) => strongNameKey(row.name)));
   for (const row of preview.review) {
-    const choice = choices[row.name];
+    // strongImportProblems above refused a row without a choice
+    const choice = /** @type {StrongChoice} */ (choices[row.name]);
     if (choice.kind === 'skip') continue;
-    let id = choice.exerciseId;
+    let id = choice.kind === 'existing' ? choice.exerciseId : '';
     if (choice.kind === 'new') {
       id = 'c-' + slug(choice.name);
       if (!slug(choice.name) || ids.has(id)) id = 'c-' + uid();
@@ -423,7 +515,10 @@ export function resolveStrongImport(preview, choices, opts = {}) {
   const keyOf = workoutKey;
   const existing = new Map(known.map((w) => [keyOf(w.startedAt, w.name), w]));
   const existingKeys = new Set(existing.keys());
+  /** @type {{ id: string, name: string, notes: string, startedAt: number, endedAt: number, templateId: null,
+   *   exercises: { id: string, exerciseId: string, sets: StrongSet[], notes?: string, restSec?: number }[], source: 'strong' }[]} */
   const workouts = [];
+  /** @type {NonNullable<ReturnType<typeof missingNotes>>[]} */
   const noteUpdates = [];
   let duplicates = 0;
   let setCount = 0;
@@ -438,7 +533,9 @@ export function resolveStrongImport(preview, choices, opts = {}) {
       if (!kept.length) omitted.workouts++;
     }
     const entries = kept.map((e) => {
-      const entry = { id: uid(), exerciseId: byName.get(strongNameKey(e.name)), sets: e.sets };
+      // every name kept matched an exercise or was decided above
+      /** @type {(typeof workouts)[number]['exercises'][number]} */
+      const entry = { id: uid(), exerciseId: /** @type {string} */ (byName.get(strongNameKey(e.name))), sets: e.sets };
       if (e.notes) entry.notes = e.notes;
       if (e.restSec) entry.restSec = e.restSec;
       return entry;
@@ -463,7 +560,7 @@ export function resolveStrongImport(preview, choices, opts = {}) {
       endedAt: g.startedAt + Math.max(60, g.durationSec || 0) * 1000,
       templateId: null,
       exercises: entries,
-      source: 'strong',
+      source: /** @type {const} */ ('strong'),
     });
   }
   workouts.sort((a, b) => a.startedAt - b.startedAt);
@@ -487,20 +584,23 @@ export function resolveStrongImport(preview, choices, opts = {}) {
 }
 
 // ---------- CSV export (Strong-compatible) ----------
-/** Workout duration the way Strong writes it ("1h 5m", "45m"), whatever the app language. */
+/** Workout duration the way Strong writes it ("1h 5m", "45m"), whatever the app language. @param {number} [ms] */
 export function strongDuration(ms) {
   const min = Math.max(0, Math.round((ms || 0) / 60000));
   const h = Math.floor(min / 60), m = min % 60;
   if (!h) return `${m}m`;
   return m ? `${h}h ${m}m` : `${h}h`;
 }
+/** @param {number} t */
 function isoLocal(t) {
   const d = new Date(t);
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
 }
 /** A number as Strong writes it: always with a decimal point (20.0, 8.0, 62.5), never fewer decimals than it has. */
+/** @param {number} n */
 const strongNumber = (n) => (Number.isInteger(n) ? n.toFixed(1) : String(n));
 /** A text cell Strong always quotes (names, the first row's notes), even empty. */
+/** @param {unknown} v */
 const quoted = (v) => '"' + String(v ?? '').replace(/"/g, '""') + '"';
 
 /**
@@ -517,6 +617,10 @@ const quoted = (v) => '"' + String(v ?? '').replace(/"/g, '""') + '"';
  * `pairSides` (Account → "Count left/right sets together", #54): a unilateral
  * exercise's left and right sets go out as one row each pair, as Strong logs
  * them (mergeSidePairs); off, every side is its own row.
+ * @param {{ workouts: { startedAt: number, endedAt?: number, name: string, notes?: string,
+ *   exercises: { exerciseId: string, notes?: string, sets: SetLike[] }[] }[], exercises: Map<string, ExerciseLike>,
+ *   unit?: string, distUnit?: string, unknownName?: string, pairSides?: boolean }} o
+ * @returns {string}
  */
 export function exportCSV({ workouts, exercises, unit = 'kg', distUnit = 'km', unknownName = 'Unknown exercise', pairSides = false }) {
   const st = { unit, distUnit };
@@ -531,6 +635,7 @@ export function exportCSV({ workouts, exercises, unit = 'kg', distUnit = 'km', u
       const rows = pairSides && isUnilateral(ex) ? mergeSidePairs(e.sets) : e.sets;
       let n = 0;
       rows.forEach((s, i) => {
+        /** @type {string} */
         let order;
         if (s.type === 'warmup') order = 'W';
         else if (s.type === 'drop') order = 'D';
@@ -563,6 +668,7 @@ export function exportCSV({ workouts, exercises, unit = 'kg', distUnit = 'km', u
  * that tier's export corrects them here, in one place. English in every language,
  * like the stored exercise names.
  */
+/** @type {Record<string, string>} */
 export const MEASUREMENT_CSV_NAMES = {
   bodyweight: 'Weight', bodyfat: 'Body Fat', calories: 'Calorie Intake',
   neck: 'Neck', shoulders: 'Shoulders', chest: 'Chest',
@@ -578,6 +684,10 @@ const MEASUREMENT_ORDER = Object.fromEntries(MEASUREMENTS.map((m, i) => [m.id, i
  * `sizeUnit` to 0.1, calories whole. Body fat is a fraction with the unit %,
  * as Strong writes it, but not cut to one decimal the way Strong's file is
  * (14% → 0.1 there): 14% → 0.14, 14.5% → 0.145 (Laurin, 14 Nov 2026, #29).
+ * @param {string} kind
+ * @param {number} value
+ * @param {{ bodyUnit?: string, sizeUnit?: string }} [o]
+ * @returns {{ value: number, unit: string }}
  */
 export function measurementCsvValue(kind, value, { bodyUnit = 'kg', sizeUnit = 'cm' } = {}) {
   if (kind === 'weight') return { value: roundW(kgTo(value, bodyUnit), bodyUnit), unit: bodyUnit };
@@ -595,6 +705,8 @@ export function measurementCsvValue(kind, value, { bodyUnit = 'kg', sizeUnit = '
  * 2026). Nothing is quoted: no cell can hold a comma. Types the app doesn't
  * know and values that aren't numbers are left out. One newline at the end,
  * like the workout CSV.
+ * @param {{ measurements?: { type: string, value: number, at: number }[] | null, bodyUnit?: string, sizeUnit?: string }} o
+ * @returns {string}
  */
 export function exportMeasurementsCSV({ measurements, bodyUnit = 'kg', sizeUnit = 'cm' }) {
   const lines = ['Date,Measurement Type,Value,Unit,Source'];
