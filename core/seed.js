@@ -83,7 +83,7 @@ export function regionOf(part) {
     || BODY_PARTS.find((r) => r.id === part)?.id || 'other';
 }
 
-export const SEED_VERSION = 4;
+export const SEED_VERSION = 5;
 
 // Family membership comes from the catalogue by id, never from stored built-ins.
 export const SEED_EXERCISES = EXERCISE_CATALOGUE.flatMap((f) =>

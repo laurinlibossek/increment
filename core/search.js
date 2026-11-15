@@ -20,6 +20,7 @@ export const EXERCISE_SEARCH_SHORTCUTS = {
   sldl: 'stiff leg deadlift', ssb: 'safety bar squat', bss: 'bulgarian split squat',
   jm: 'jm press', yraise: 'y raise', lu: 'lu raise', cuff: 'cuffed',
   ffess: 'front foot elevated split squat', ghr: 'glute ham raise', sz: 'sz stange',
+  hyperextension: 'back extension',
 };
 
 const fold = (/** @type {unknown} */ s) => String(s).toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');

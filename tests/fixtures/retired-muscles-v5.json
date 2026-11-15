@@ -1,0 +1,267 @@
+{
+  "x-bench-dip": [
+    "Bench Dip",
+    "arms",
+    "triceps"
+  ],
+  "x-deadlift-dumbbell": [
+    "Deadlift (Dumbbell)",
+    "back",
+    "glutes"
+  ],
+  "x-block-pull-barbell": [
+    "Block Pull (Barbell)",
+    "back",
+    "glutes"
+  ],
+  "x-romanian-deadlift-trap-bar": [
+    "Romanian Deadlift (Trap Bar)",
+    "legs",
+    "hamstrings"
+  ],
+  "x-single-leg-romanian-deadlift-kettlebell": [
+    "Single Leg Romanian Deadlift (Kettlebell)",
+    "legs",
+    "hamstrings"
+  ],
+  "x-b-stance-romanian-deadlift-dumbbell": [
+    "B Stance Romanian Deadlift (Dumbbell)",
+    "legs",
+    "hamstrings"
+  ],
+  "x-chest-supported-row-cable": [
+    "Chest Supported Row (Cable)",
+    "back",
+    "upper_back"
+  ],
+  "x-seal-row-dumbbell": [
+    "Seal Row (Dumbbell)",
+    "back",
+    "upper_back"
+  ],
+  "x-inverted-row": [
+    "Inverted Row",
+    "back",
+    "upper_back"
+  ],
+  "x-row-band": [
+    "Row (Band)",
+    "back",
+    "upper_back"
+  ],
+  "x-pull-up-band": [
+    "Pull Up (Band)",
+    "back",
+    "lats"
+  ],
+  "x-neutral-grip-pull-up-weighted": [
+    "Neutral Grip Pull Up (Weighted)",
+    "back",
+    "lats"
+  ],
+  "x-shrug-trap-bar": [
+    "Shrug (Trap Bar)",
+    "back",
+    "upper_back"
+  ],
+  "x-shrug-cable": [
+    "Shrug (Cable)",
+    "back",
+    "upper_back"
+  ],
+  "x-overhead-press-kettlebell": [
+    "Overhead Press (Kettlebell)",
+    "shoulders",
+    "front_delts"
+  ],
+  "x-overhead-press-cable": [
+    "Overhead Press (Cable)",
+    "shoulders",
+    "front_delts"
+  ],
+  "x-single-arm-overhead-press-dumbbell": [
+    "Single Arm Overhead Press (Dumbbell)",
+    "shoulders",
+    "front_delts"
+  ],
+  "x-z-press-dumbbell": [
+    "Z Press (Dumbbell)",
+    "shoulders",
+    "front_delts"
+  ],
+  "x-push-press-dumbbell": [
+    "Push Press (Dumbbell)",
+    "shoulders",
+    "front_delts"
+  ],
+  "x-lateral-raise-band": [
+    "Lateral Raise (Band)",
+    "shoulders",
+    "side_delts"
+  ],
+  "x-front-raise-barbell": [
+    "Front Raise (Barbell)",
+    "shoulders",
+    "front_delts"
+  ],
+  "x-front-raise-plate": [
+    "Front Raise (Plate)",
+    "shoulders",
+    "front_delts"
+  ],
+  "x-upright-row-barbell": [
+    "Upright Row (Barbell)",
+    "shoulders",
+    "side_delts"
+  ],
+  "x-upright-row-smith-machine": [
+    "Upright Row (Smith Machine)",
+    "shoulders",
+    "side_delts"
+  ],
+  "x-face-pull-band": [
+    "Face Pull (Band)",
+    "shoulders",
+    "rear_delts"
+  ],
+  "x-reverse-fly-dumbbell": [
+    "Reverse Fly (Dumbbell)",
+    "shoulders",
+    "rear_delts"
+  ],
+  "x-reverse-fly-band": [
+    "Reverse Fly (Band)",
+    "shoulders",
+    "rear_delts"
+  ],
+  "x-external-rotation-band": [
+    "External Rotation (Band)",
+    "shoulders",
+    "other"
+  ],
+  "x-bicep-curl-band": [
+    "Bicep Curl (Band)",
+    "arms",
+    "biceps"
+  ],
+  "x-hammer-curl-band": [
+    "Hammer Curl (Band)",
+    "arms",
+    "biceps"
+  ],
+  "x-cross-body-hammer-curl-dumbbell": [
+    "Cross Body Hammer Curl (Dumbbell)",
+    "arms",
+    "biceps"
+  ],
+  "x-triceps-pushdown-band": [
+    "Triceps Pushdown (Band)",
+    "arms",
+    "triceps"
+  ],
+  "x-squat-dumbbell": [
+    "Squat (Dumbbell)",
+    "legs",
+    "quads"
+  ],
+  "x-squat-bodyweight": [
+    "Squat (Bodyweight)",
+    "legs",
+    "quads"
+  ],
+  "x-hack-squat-barbell": [
+    "Hack Squat (Barbell)",
+    "legs",
+    "quads"
+  ],
+  "x-goblet-squat-kettlebell": [
+    "Goblet Squat (Kettlebell)",
+    "legs",
+    "quads"
+  ],
+  "x-bulgarian-split-squat": [
+    "Bulgarian Split Squat",
+    "legs",
+    "quads"
+  ],
+  "x-lunge": [
+    "Lunge",
+    "legs",
+    "quads"
+  ],
+  "x-lateral-lunge-dumbbell": [
+    "Lateral Lunge (Dumbbell)",
+    "legs",
+    "quads"
+  ],
+  "x-step-up-barbell": [
+    "Step Up (Barbell)",
+    "legs",
+    "quads"
+  ],
+  "x-step-up-bodyweight": [
+    "Step Up (Bodyweight)",
+    "legs",
+    "quads"
+  ],
+  "x-seated-good-morning-barbell": [
+    "Seated Good Morning (Barbell)",
+    "legs",
+    "glutes"
+  ],
+  "x-sliding-leg-curl": [
+    "Sliding Leg Curl",
+    "legs",
+    "hamstrings"
+  ],
+  "x-nordic-hamstring-curl-band": [
+    "Nordic Hamstring Curl (Band)",
+    "legs",
+    "hamstrings"
+  ],
+  "x-hip-thrust-bodyweight": [
+    "Hip Thrust (Bodyweight)",
+    "legs",
+    "glutes"
+  ],
+  "x-glute-bridge": [
+    "Glute Bridge",
+    "legs",
+    "glutes"
+  ],
+  "x-single-leg-hip-thrust": [
+    "Single Leg Hip Thrust",
+    "legs",
+    "glutes"
+  ],
+  "x-single-leg-glute-bridge": [
+    "Single Leg Glute Bridge",
+    "legs",
+    "glutes"
+  ],
+  "x-glute-kickback-band": [
+    "Glute Kickback (Band)",
+    "legs",
+    "glutes"
+  ],
+  "x-hip-abduction-band": [
+    "Hip Abduction (Band)",
+    "legs",
+    "glutes"
+  ],
+  "x-standing-calf-raise-bodyweight": [
+    "Standing Calf Raise (Bodyweight)",
+    "legs",
+    "calves"
+  ],
+  "x-seated-calf-raise-dumbbell": [
+    "Seated Calf Raise (Dumbbell)",
+    "legs",
+    "calves"
+  ],
+  "x-box-jump": [
+    "Box Jump",
+    "legs",
+    "quads"
+  ]
+}
