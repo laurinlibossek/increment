@@ -264,7 +264,7 @@ function Running({ a, reveal }: { a: ActiveWorkout; reveal: { current: (ref: Tex
             <View style={styles.titleRow}>
               <TextInput ref={nameRef} value={a.name} onChangeText={(v) => patchActive({ name: v })} onFocus={session.close} accessibilityLabel={tr('Workout name')} testID="workout-name"
                 returnKeyType="done" style={[styles.name, { color: t.ink }]} />
-              <Pressable onPress={changeStart} accessibilityRole="button" accessibilityHint={tr('Change start time')} testID="start-time" style={{ minWidth: CONTROL.hitMin, minHeight: CONTROL.hitMin, justifyContent: 'center', marginVertical: -(CONTROL.hitMin - 28) / 2 }}>
+              <Pressable onPress={changeStart} accessibilityRole="button" accessibilityHint={tr('Change start time')} testID="start-time" style={{ minWidth: CONTROL.hitMin, minHeight: CONTROL.hitMin, alignItems: 'flex-end', justifyContent: 'center', marginVertical: -(CONTROL.hitMin - 28) / 2 }}>
                 <View testID="started-at"><Elapsed since={a.startedAt} /></View>
               </Pressable>
             </View>

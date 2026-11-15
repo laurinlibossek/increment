@@ -373,12 +373,16 @@ export const ExerciseBlock = memo(function ExerciseBlock({
         {(facts.length > 0 || !!restText || !!lastText) && (
           restText ? <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', minHeight: entry.showNotes ? CONTROL.hitMin : undefined }} testID={`last-${ex.id}`}>
             {!!facts.length && <Text style={{ ...TYPE.footnote, color: t.ink2, flexShrink: 1 }}>{facts.join(' · ')}{restText || lastText ? ' · ' : ''}</Text>}
-            {/* Extend down into the set-column heading, not up over the title. */}
-            {!!restText && <Pressable onPress={pickRest} accessibilityRole="button" accessibilityLabel={tr('Rest timer: {time}', { time: f.clock(rest) })}
-              testID={`rest-tag-${ex.id}`} style={{ minWidth: CONTROL.hitMin, minHeight: CONTROL.hitMin, zIndex: 1, marginBottom: -(CONTROL.hitMin - TYPE.footnote.lineHeight) }}>
-              <Text style={{ ...TYPE.footnote, color: t.ink2, fontVariant: ['tabular-nums'] }}>{restText}</Text>
-            </Pressable>}
-            {!!lastText && <Text style={{ ...TYPE.footnote, color: t.ink2, flexShrink: 1 }}>{restText ? ' · ' : ''}{lastText}</Text>}
+            {/* Rest wraps together with the dot after it, so a wrapped line starts with "last time".
+                Its target extends down into the set-column heading, not up over the title. */}
+            <View style={{ flexDirection: 'row', zIndex: 1 }}>
+              <Pressable onPress={pickRest} accessibilityRole="button" accessibilityLabel={tr('Rest timer: {time}', { time: f.clock(rest) })}
+                testID={`rest-tag-${ex.id}`} style={{ minWidth: CONTROL.hitMin, minHeight: CONTROL.hitMin, marginBottom: -(CONTROL.hitMin - TYPE.footnote.lineHeight) }}>
+                <Text style={{ ...TYPE.footnote, color: t.ink2, fontVariant: ['tabular-nums'] }}>{restText}</Text>
+              </Pressable>
+              {!!lastText && <Text style={{ ...TYPE.footnote, color: t.ink2 }}>{' · '}</Text>}
+            </View>
+            {!!lastText && <Text style={{ ...TYPE.footnote, color: t.ink2, flexShrink: 1 }}>{lastText}</Text>}
           </View> : <Text style={{ ...TYPE.footnote, color: t.ink2 }} testID={`last-${ex.id}`}>
             {[facts.join(' · '), lastText].filter(Boolean).join(' · ')}
           </Text>

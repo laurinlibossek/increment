@@ -91,6 +91,16 @@ async function neighbours(page, exercise) {
   }
 }
 
+// The grey line under the name wraps in parts (facts, Rest and its dot, last time):
+// a wrapped part starts with a word, never with the "·" that joined it to Rest.
+async function noLeadingDot(page, exercise) {
+  const parts = await page.getByTestId(`last-${exercise}`).evaluate(el => [...el.children].map(c => c.innerText.trim()));
+  assert.ok(parts.length > 1 && parts.every(p => !p.startsWith('·')), `a part of the grey line starts with "·": ${parts.join(' | ')}`);
+  const rest = await page.getByTestId(`rest-tag-${exercise}`).boundingBox();
+  const dot = await page.getByTestId(`rest-tag-${exercise}`).evaluate(el => el.nextElementSibling?.getBoundingClientRect().y);
+  if (dot !== undefined) assert.ok(Math.abs(dot - rest.y) < 1, 'the dot after Rest stays on its line');
+}
+
 try {
   for (const theme of review ? ['light', 'dark'] : ['light']) {
     const data = JSON.parse(fs.readFileSync(BACKUP, 'utf8')).data;
@@ -198,6 +208,7 @@ try {
     if (!before) {
       const a = await id(`rest-tag-${exercise}`).boundingBox(), b = await id(`ex-note-${exercise}`).boundingBox();
       assert.ok(a.y + a.height <= b.y + 0.5, 'Rest must not overlap the note input');
+      await noLeadingDot(page, exercise);
     }
     await id(`ex-menu-${exercise}`).click(); await page.getByRole('button', { name: 'Remove note', exact: true }).click();
     await id('start-time').click(); await id('day-prev').waitFor(); await screen('start-time'); await id('dialog-cancel').click();
@@ -222,6 +233,7 @@ try {
       await neighbours(page, exercise);
       const meta = await id(`last-${exercise}`).boundingBox();
       assert.ok(meta.x >= 0 && meta.x + meta.width <= 320, 'facts stay within 320 px');
+      await noLeadingDot(page, exercise);
     }
     await page.setViewportSize({ width: 390, height: 844 });
     await go(`/summary/${latest.id}`, 'summary-done'); await screen('summary');
