@@ -9,7 +9,7 @@ import { useMemo, useState } from 'react';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { ScrollView, Text, View } from 'react-native';
 import {
-  BODY_PARTS, exerciseRecords, exerciseSeries, chartMetricsFor, chartMetricFor, hasLoadRecords, formulaLabel,
+  BODY_PART_LABEL, exerciseRecords, exerciseSeries, chartMetricsFor, chartMetricFor, hasLoadRecords, formulaLabel,
   kgTo, kmTo, roundW, DAY, EXERCISE_RANGES, REST_CHOICES, canMergeExercises,
 } from '@increment/core';
 
@@ -96,7 +96,6 @@ function ExercisePage({ id }: { id: string }) {
   const change = number(Math.abs(diff)) !== number(0) ? `${diff > 0 ? '+' : '−'}${withUnit(Math.abs(diff))}` : undefined;
   const heroLabel = m.id === 'e1rm' ? tr('Estimated 1RM, best of last session') : tr('{metric}, last session', { metric: tr(m.label) });
 
-  const label = (list: { id: string; label: string }[], key: string) => tr(list.find((x) => x.id === key)?.label || 'Other');
 
   const load = hasLoadRecords(category);
   const best: Stat = load
@@ -135,7 +134,7 @@ function ExercisePage({ id }: { id: string }) {
       <View style={{ paddingHorizontal: MARGIN }}>
         <Text style={{ ...TYPE.title1, color: t.ink }} accessibilityRole="header" testID="exercise-title">{f.exBase(ex)}</Text>
         <Text style={{ ...TYPE.footnote, color: t.ink2 }} testID="exercise-equipment">
-          {[f.exEquipment(ex), label(BODY_PARTS, ex.bodyPart), ex.hidden ? tr('Hidden') : ''].filter(Boolean).join(' · ')}
+          {[f.exEquipment(ex), tr(BODY_PART_LABEL[ex.bodyPart] || 'Other'), ex.hidden ? tr('Hidden') : ''].filter(Boolean).join(' · ')}
         </Text>
         <ExerciseFamilyChips exercise={ex} />
 

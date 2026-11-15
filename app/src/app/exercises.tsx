@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { FlatList, Text, View } from 'react-native';
 import { router } from 'expo-router';
-import { BODY_PARTS, matchExercise } from '@increment/core';
+import { BODY_PART_LABEL, matchExercise } from '@increment/core';
 
 import { allSessions, useAppState } from '@/data/store';
 import { SPACE, TYPE } from '@/design/tally';
@@ -26,7 +26,7 @@ export default function LiftsScreen() {
     .filter((x) => x.ex && x.n)
     .sort((a, b) => b.last - a.last) as { ex: NonNullable<ReturnType<typeof s.exercises.get>>; n: number; last: number }[], [sessions, s.exercises]);
   const list = useMemo(() => done.filter((x) => matchExercise(x.ex, q)), [done, q]);
-  const partLabel = (id: string) => tr(BODY_PARTS.find((b) => b.id === id)?.label || 'Other');
+  const partLabel = (id: string) => tr(BODY_PART_LABEL[id] || 'Other');
 
   return (
     <FlatList

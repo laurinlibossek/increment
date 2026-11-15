@@ -7,12 +7,11 @@ import {
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BODY_PARTS } from '@increment/core';
 
 import { allSessions, useAppState } from '@/data/store';
 import { CONTROL, RADIUS, SPACE, TYPE } from '@/design/tally';
 import { exerciseBrowserRows } from '@/lib/exerciseBrowser';
-import { ChoiceChips } from '@/ui/tally/ChoiceChips';
+import { MuscleFilters } from '@/ui/MuscleFilters';
 import { editExercise } from '@/lib/exerciseForm';
 import { useFormat } from '@/lib/format';
 import { useTally } from '@/lib/theme';
@@ -30,6 +29,7 @@ export default function SearchScreen() {
   const insets = useSafeAreaInsets();
   const [q, setQ] = useState('');
   const [part, setPart] = useState('all');
+  const [muscle, setMuscle] = useState('all');
   const input = useRef<TextInputInstance>(null);
   const sessions = allSessions(s);
   // Focus on every arrival, including Back from an exercise.
@@ -38,9 +38,8 @@ export default function SearchScreen() {
     return () => clearTimeout(timer);
   }, []));
 
-  const list = useMemo(() => exerciseBrowserRows(s.exercises, sessions, f, { query: q, part, customFamilies: s.customFamilies }), [s.exercises, s.customFamilies, sessions, q, part, f]);
+  const list = useMemo(() => exerciseBrowserRows(s.exercises, sessions, f, { query: q, part, muscle, customFamilies: s.customFamilies }), [s.exercises, s.customFamilies, sessions, q, part, muscle, f]);
   const total = useMemo(() => [...s.exercises.values()].filter((e) => !e.hidden).length, [s.exercises]);
-  const parts = [{ id: 'all', label: tr('All') }, ...BODY_PARTS.map((b) => ({ id: b.id, label: tr(b.label) }))];
   const create = async () => {
     const ex = await editExercise({ name: q.trim() });
     if (ex) router.push({ pathname: '/exercise/[id]', params: { id: ex.id } });
@@ -57,7 +56,7 @@ export default function SearchScreen() {
       <TabTitle title={tr('Search')} right={plus} />
       <View style={{ paddingHorizontal: SPACE.s5, gap: SPACE.s3, marginBottom: SPACE.s3 }}>
         <SearchField style={{ paddingHorizontal: 14 }} iconTone="ink2" value={q} onChange={setQ} placeholder={tr('Search {n} exercises', { n: total })} label={tr('Search')} testID="exercise-search" inputRef={input} />
-        <ChoiceChips label={tr('Body part')} testID="search-parts" value={part} onChange={setPart} options={parts.map((p) => ({ value: p.id, label: p.label }))} />
+        <MuscleFilters region={part} muscle={muscle} onRegion={setPart} onMuscle={setMuscle} testID="search" />
       </View>
     </View>
   );

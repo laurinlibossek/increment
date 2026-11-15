@@ -1,5 +1,5 @@
 // Create a custom exercise (from the picker or the Exercises tab) or edit
-// one: name, what it logs, body part and notes. Opened through
+// one: name, what it logs, main muscle and notes. Opened through
 // editExercise() in lib/exerciseForm.ts.
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -8,7 +8,7 @@ import {
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-  BODY_PARTS, CATEGORIES, CATEGORY_HELP, exerciseBaseName, exerciseFamily, familyOf, isUnilateral, loggedFields, shippedUnilateral, suggestExerciseFamily,
+  BODY_PART_LABEL, MUSCLES, MUSCLE_GROUPS, CATEGORIES, CATEGORY_HELP, exerciseBaseName, exerciseFamily, familyOf, isUnilateral, loggedFields, shippedUnilateral, suggestExerciseFamily,
   usesDistance,
 } from '@increment/core';
 
@@ -16,29 +16,31 @@ import {
   addExercise, allSessions, findExercise, getState, updateExercise, useAppSelector,
 } from '@/data/store';
 import type { Category } from '@/data/types';
-import { CONTROL, RADIUS, SPACE, TYPE } from '@/design/tally';
+import { CONTROL, SPACE, TYPE } from '@/design/tally';
 import { currentForm, finishForm } from '@/lib/exerciseForm';
 import { useFormat } from '@/lib/format';
 import { PICK_NONE, pickExercises } from '@/lib/picker';
-import { useColors } from '@/lib/theme';
+import { useColors, useTally } from '@/lib/theme';
 import { hitTarget, Cell, Field, Group, SectionTitle, Txt,
 } from '@/ui/kit';
 import { OverlayHost, ask, toast } from '@/ui/overlay';
 import { ListRow } from '@/ui/tally/ListRow';
 import { SwitchSettingRow } from '@/ui/tally/SettingRow';
+import { ChoiceChips } from '@/ui/tally/ChoiceChips';
 import { couldntSave } from '@/lib/saving';
 
 export default function ExerciseForm() {
   const f = useFormat();
   const { tr } = f;
   const c = useColors();
+  const { colors: t } = useTally();
   const customFamilies = useAppSelector((s) => s.customFamilies);
   const insets = useSafeAreaInsets();
   const [form] = useState(() => currentForm());
   const ex = form?.id ? getState().exercises.get(form.id) || null : null;
   const [name, setName] = useState(ex?.name || form?.name || '');
   const [category, setCategory] = useState<Category>(ex?.category || 'machine');
-  const [bodyPart, setBodyPart] = useState(ex?.bodyPart || 'chest');
+  const [bodyPart, setBodyPart] = useState(ex?.bodyPart || '');
   const [notes, setNotes] = useState(ex?.notes || '');
   // unilateral (#54): the ones we ship stay so; any other exercise is bilateral until turned on
   const locked = shippedUnilateral(ex);
@@ -71,6 +73,7 @@ export default function ExerciseForm() {
     try {
       const n = name.trim();
       if (!n) { toast(tr('Give the exercise a name')); return; }
+      if (!bodyPart) { toast(tr('Choose a muscle')); return; }
       const dupe = findExercise(n);
       if (dupe && dupe.id !== ex?.id) { toast(tr('“{name}” already exists', { name: dupe.name })); return; }
       const used = ex ? allSessions().get(ex.id)?.length || 0 : 0;
@@ -144,16 +147,18 @@ export default function ExerciseForm() {
           ))}
         </Group>
         <Txt tone="ink2" style={[TYPE.footnote, { marginTop: SPACE.s2, paddingHorizontal: SPACE.s1 }]} testID="exercise-category-help">{tr((CATEGORY_HELP as Record<string, string>)[category])}</Txt>
-        <SectionTitle>{tr('Body part')}</SectionTitle>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.s2 }}>
-          {BODY_PARTS.map((b) => {
-            const on = bodyPart === b.id;
-            return (
-              <Pressable key={b.id} onPress={() => setBodyPart(b.id)} accessibilityRole="radio" accessibilityState={{ checked: on }} testID={`part-${b.id}`}
-                style={{ minHeight: CONTROL.hitMin, justifyContent: 'center', paddingHorizontal: SPACE.s4, paddingVertical: SPACE.s2, borderRadius: RADIUS.capsule, backgroundColor: on ? c.chipOn : c.surface }}>
-                <Text style={[TYPE.subhead, { color: on ? c.chipOnInk : c.ink2 }]}>{tr(b.label)}</Text>
-              </Pressable>
-            );
+        <SectionTitle>{tr('Muscle')}</SectionTitle>
+        {!!ex?.bodyPart && !MUSCLES.some((m) => m.id === bodyPart) && <Text testID="exercise-legacy-muscle" style={[TYPE.footnote, { color: t.ink2, marginBottom: SPACE.s3 }]}>
+          {tr('Counted as {region} until you pick a muscle.', { region: tr(BODY_PART_LABEL[ex.bodyPart] || 'Other') })}
+        </Text>}
+        <View style={{ gap: SPACE.s3 }}>
+          {MUSCLE_GROUPS.map((group) => {
+            const label = tr(group.region ? BODY_PART_LABEL[group.region] : 'Muscle');
+            return <View key={group.region || 'own'} style={{ gap: SPACE.s2 }}>
+              {!!group.region && <Text style={[TYPE.footnote, { color: t.ink2 }]}>{label}</Text>}
+              <ChoiceChips wrap options={group.muscles.map((m) => ({ value: m.id, label: tr(m.label) }))}
+                value={bodyPart} onChange={setBodyPart} label={label} testID="part" />
+            </View>;
           })}
         </View>
         {!usesDistance(category) && <View style={{ marginTop: SPACE.s6, marginHorizontal: -SPACE.s5 }}>

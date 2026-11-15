@@ -297,7 +297,7 @@ const store = (page) => storedData(page);
   await id(page, 'exercise-name').waitFor();
   assert.equal(await id(page, 'exercise-name').inputValue(), 'My Zercher Squat');
   await id(page, 'cat-barbell').click();
-  await id(page, 'part-legs').click();
+  await id(page, 'part-quads').click();
   await page.screenshot({ path: `${OUT}/06-new-exercise.png` });
   await id(page, 'exercise-save').click();
   await wait(page, 500);
@@ -308,7 +308,7 @@ const store = (page) => storedData(page);
   await id(page, 'jump-c-my-zercher-squat').click();
   await wait(page, 300);
   assert.equal(await block(page, 'c-my-zercher-squat').count(), 1);
-  ok('the picker creates “My Zercher Squat” (barbell, legs) and adds it to the workout');
+  ok('the picker creates “My Zercher Squat” (barbell, quads) and adds it to the workout');
 
   // finish (Squat and My Zercher get a set each), then the exercise page
   await inputs(page, 'c-my-zercher-squat', 'w').first().fill('60');

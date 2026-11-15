@@ -1,7 +1,7 @@
 // @ts-check
 // Families help people find and swap variations. History always uses exercise id.
 import { EXERCISE_CATALOGUE } from './exercise-catalogue.js';
-import { SEED_EXERCISES } from './seed.js';
+import { SEED_EXERCISES, regionOf } from './seed.js';
 import { exerciseBaseName } from './search.js';
 import { exerciseEquipment, compareExerciseEquipment } from './exercise-equipment.js';
 import { slug, uid } from './units.js';
@@ -172,13 +172,15 @@ export function lastLoggedExercise(members, sessions) {
 
 /** Browse rows for Search and the picker. Uses the person's actual library.
  * Hidden and rejected members never count or become the row's opening target.
- * The usual member supplies the body part even when it is hidden or rejected.
+ * Without a region/muscle filter the usual member supplies the body part, even
+ * when hidden or rejected. With a filter, only matching members can open or
+ * expand, and the first matching member supplies the label.
  * Family ids absent from both the catalogue and registry show exercises alone.
  * @param {any[] | Map<string, any>} exercises
  * @param {Map<string, any[]>} sessions
- * @param {{ accepts?: (exercise: any) => boolean, customFamilies?: Record<string, string> }} [options]
+ * @param {{ accepts?: (exercise: any) => boolean, customFamilies?: Record<string, string>, region?: string, muscle?: string }} [options]
  */
-export function exerciseBrowseRows(exercises, sessions, { accepts = () => true, customFamilies = {} } = {}) {
+export function exerciseBrowseRows(exercises, sessions, { accepts = () => true, customFamilies = {}, region = 'all', muscle = 'all' } = {}) {
   const all = exercises instanceof Map ? [...exercises.values()] : exercises;
   const rows = [], seen = new Set();
   for (const ex of all) {
@@ -187,11 +189,11 @@ export function exerciseBrowseRows(exercises, sessions, { accepts = () => true, 
     if (seen.has(id)) continue;
     seen.add(id);
     const members = (family ? familyMemberGroups(id, all).flatMap((g) => g.members.map((m) => m.exercise)) : [ex])
-      .filter((e) => !e.hidden && accepts(e));
+      .filter((e) => !e.hidden && accepts(e) && (region === 'all' || regionOf(e.bodyPart) === region) && (muscle === 'all' || e.bodyPart === muscle));
     if (!members.length) continue;
     const usual = family ? familyMembers(id, all, { includeHidden: true })[0] : ex;
     const exercise = lastLoggedExercise(members, sessions);
-    rows.push({ id, family: family || null, members, exercise, bodyPart: usual.bodyPart,
+    rows.push({ id, family: family || null, members, exercise, bodyPart: region === 'all' && muscle === 'all' ? usual.bodyPart : members[0].bodyPart,
       lastAt: sessions.get(exercise.id)?.[0]?.startedAt });
   }
   return rows;

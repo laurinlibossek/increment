@@ -41,7 +41,7 @@ for (const theme of ['light', 'dark']) {
   await openSearch(page);
   const search = page.getByTestId('exercise-search');
   if (!before) {
-    assert.match(await page.getByTestId('family-f-squat').innerText(), /Squat[\s\S]*Legs · 17 variations/);
+    assert.match(await page.getByTestId('family-f-squat').innerText(), /Squat[\s\S]*Quads · 17 variations/);
     assert.equal(await page.getByTestId('family-f-squat').locator('[aria-hidden="true"]').count(), 0, 'Search family rows have no chevron');
     assert.match(await search.getAttribute('placeholder'), /Search 22 exercises/);
     assert.equal(await page.locator('[data-testid^="family-"]').count(), 3);
@@ -49,7 +49,8 @@ for (const theme of ['light', 'dark']) {
     const order = await page.locator('[data-testid^="family-"], [data-testid="exercise-c-own-row"]').allInnerTexts();
     assert.deepEqual(order.map((t) => t.split('\n')[0]), ['Bicep Curl', 'Dead Hang', 'My Row (Upper) (Cybex Machine)', 'Squat']);
     await page.getByTestId('search-parts-other').click();
-    assert.equal(await page.getByTestId('family-f-squat').count(), 0, 'a custom Other member does not change the usual family body part');
+    assert.equal(await page.getByTestId('family-f-squat').count(), 1, 'the family offers its matching custom Other member');
+    assert.match(await page.getByTestId('family-f-squat').innerText(), /Other/);
     await page.getByTestId('search-parts-all').click();
     ok(`${theme}: family rows, visible counts, alphabetical order, custom row and usual-version body-part filter`);
   }
@@ -68,7 +69,7 @@ for (const theme of ['light', 'dark']) {
   if (!before) {
     assert.ok(page.url().includes(SMITH), 'family opens the latest logged version, including history before a filter');
     assert.equal(await page.getByTestId('exercise-title').innerText(), 'Squat');
-    assert.equal(await page.getByTestId('exercise-equipment').innerText(), 'Smith Machine · Legs');
+    assert.equal(await page.getByTestId('exercise-equipment').innerText(), 'Smith Machine · Quads');
     assert.match(await page.getByTestId('exercise-sessions').innerText(), /2/);
     assert.match(await page.getByTestId(`family-equipment-${SMITH}`).getAttribute('aria-selected'), /true/);
     ok(`${theme}: family opens the last logged version with an equipment/body-part header and its own sessions`);
@@ -103,7 +104,7 @@ for (const theme of ['light', 'dark']) {
   if (!before) {
     assert.equal(await page.getByTestId('family-exercises').count(), 0);
     assert.equal(await page.getByTestId('family-equipment').count(), 0);
-    assert.equal(await page.getByTestId('exercise-equipment').innerText(), 'Arms', 'no empty equipment separator');
+    assert.equal(await page.getByTestId('exercise-equipment').innerText(), 'Forearms', 'no empty equipment separator');
   }
   await shot(page, theme, 'single');
   await backToSearch(page);
@@ -141,7 +142,7 @@ for (const theme of ['light', 'dark']) {
   await page.getByTestId(`block-${SMITH}`).waitFor();
   if (!before) {
     assert.equal(await page.getByTestId(`exercise-header-${SMITH}`).innerText(), 'Squat');
-    assert.match(await page.getByTestId(`last-${SMITH}`).innerText(), /^Smith Machine · Legs/);
+    assert.match(await page.getByTestId(`last-${SMITH}`).innerText(), /^Smith Machine · Quads/);
     assert.match(await page.locator('body').innerText(), /Squat \(Barbell\)/, 'Up next names the exact other variation');
     ok(`${theme}: picker expands inline and picks multiple IDs; the session splits its current header and keeps Up next exact`);
   }

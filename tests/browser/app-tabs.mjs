@@ -231,6 +231,7 @@ async function discard(page) {
   await page.getByText('Nothing found', { exact: true }).waitFor();
   await page.getByRole('button', { name: 'Create “Navigation test exercise”', exact: true }).click();
   assert.equal(await id(page, 'exercise-name').inputValue(), 'Navigation test exercise');
+  await id(page, 'part-chest').click();
   await id(page, 'exercise-save').click();
   await id(page, 'exercise-title').waitFor();
   assert.equal(await id(page, 'exercise-title').innerText(), 'Navigation test exercise');

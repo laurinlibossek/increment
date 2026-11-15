@@ -110,12 +110,13 @@ Custom exercises always use a letter tile; an undrawn built-in uses the same fal
 
 Working sets per muscle over the last 7 days, as tallies.
 
-**You provide** sets per muscle (counted from the log: each exercise counts toward its own body part only). The store version may pass a target range per muscle; the open app passes none. Optionally what a row does when tapped: on Today it opens the sets behind its number (#89).
+**You provide** sets per muscle (counted from the log: each exercise counts toward its main muscle only; an old region value counts under that region). The store version may pass a target range per muscle; the open app passes none. Optionally what a row does when tapped: on Today it opens the sets behind its number (#89).
 
 **Rules**
 - Stems are sets done; with a target range, hairlines show the sets still missing to its lower end.
 - The count on the right in `t-headline`. Above the range, the count turns `ink-2`; it never turns red.
-- Muscles in a fixed order (chest, back, shoulders, arms, legs, then the finer split once the exercise library has it).
+- Muscles in `MUSCLES` order, with any legacy region row after its muscles. Full body counts; Cardio and Other do not.
+- Long muscle labels wrap, so the full name stays visible in German too.
 - A row that can be tapped has no chevron, only the pressed state (`paper-2`). It is at least 44 pt tall (Apple's minimum touch target) and runs the full width, and the rows meet, so they sit a little further apart than rows that can't be tapped (Laurin, 14 Nov 2026).
 - Every tappable element’s own layout box is at least 44 × 44 pt (`CONTROL.hitMin` in both directions). `hitSlop` does not count: react-native-web ignores it. Remove it once the box meets the minimum.
 - Keep a small visible shape inside a centred 44 pt Pressable, or use minimum dimensions with padding and matching negative margins to preserve spacing. Adjacent targets may touch but must not overlap. Inputs inside a larger target are focused by that wrapper (as in `SetField`).

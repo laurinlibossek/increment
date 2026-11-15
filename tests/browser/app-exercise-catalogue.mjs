@@ -39,7 +39,7 @@ function checkUpgrade(actual, before) {
   assert.equal(actual.kv.meta.seedVersion, SEED_VERSION);
   assert.equal(actual.kv.meta.createdAt, 123);
   // existing ids stay (cut built-ins too, #45: no migration); only the missing built-ins come in
-  assert.equal(actual.exercises.length, withSeedExercises(before.exercises).length);
+  assert.deepEqual(actual.exercises.slice().sort((a, b) => a.id.localeCompare(b.id)), withSeedExercises(before.exercises).sort((a, b) => a.id.localeCompare(b.id)));
   assert.ok(SEED_EXERCISES.every((e) => e.name === 'Kelso Shrug (Dumbbell)' || actual.exercises.some((x) => x.id === e.id)), 'every built-in is there');
   assert.deepEqual(actual.exercises.find((e) => e.id === before.exercises[0].id), before.exercises[0]);
   assert.deepEqual(actual.exercises.find((e) => e.id === 'c-kelso'), { ...before.exercises.at(-1), family: 'f-kelso-shrug' });
@@ -68,7 +68,7 @@ try {
     await search.fill('bayesian');
     await page.getByTestId('exercise-x-bayesian-curl-cable').click();
     assert.equal(await page.getByTestId('exercise-title').innerText(), 'Bayesian Curl');
-    assert.equal(await page.getByTestId('exercise-equipment').innerText(), 'Cable · Arms');
+    assert.equal(await page.getByTestId('exercise-equipment').innerText(), 'Cable · Biceps');
     ok('a new catalogue entry opens its own exercise page');
     assert.deepEqual(errors, []);
     await ctx.close();

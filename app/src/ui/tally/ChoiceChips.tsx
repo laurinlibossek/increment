@@ -4,8 +4,8 @@ import { Pressable, ScrollView, Text, View, type ScrollViewInstance } from 'reac
 import { CONTROL, RADIUS, SPACE } from '@/design/tally';
 import { useTally } from '@/lib/theme';
 
-export function ChoiceChips({ options, value, onChange, label, testID }: {
-  options: { value: string; label: string }[]; value: string; onChange: (value: string) => void; label: string; testID?: string;
+export function ChoiceChips({ options, value, onChange, label, testID, wrap = false }: {
+  options: { value: string; label: string }[]; value: string; onChange: (value: string) => void; label: string; testID?: string; wrap?: boolean;
 }) {
   const { colors: t } = useTally();
   const scroll = useRef<ScrollViewInstance>(null);
@@ -19,10 +19,7 @@ export function ChoiceChips({ options, value, onChange, label, testID }: {
     if (next !== offset.current) { offset.current = next; scroll.current?.scrollTo({ x: next, animated: false }); }
   };
   useEffect(reveal, [value]);
-  return <ScrollView ref={scroll} horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" testID={testID}
-    onLayout={(e) => { viewport.current = e.nativeEvent.layout.width; reveal(); }}
-    onScroll={(e) => { offset.current = e.nativeEvent.contentOffset.x; }} scrollEventThrottle={16}
-    accessibilityLabel={label} style={{ marginHorizontal: -1 }} contentContainerStyle={{ gap: SPACE.s2, paddingHorizontal: 1 }}>
+  const chips = <>
     {options.map((o) => <Pressable key={o.value} onPress={() => onChange(o.value)} accessibilityRole="button" aria-selected={o.value === value}
       accessibilityLabel={o.label} testID={testID ? `${testID}-${o.value}` : undefined}
       onLayout={(e) => { positions.current.set(o.value, e.nativeEvent.layout); if (o.value === value) reveal(); }}
@@ -31,5 +28,12 @@ export function ChoiceChips({ options, value, onChange, label, testID }: {
         <Text style={{ fontSize: 14, fontWeight: '600', color: o.value === value ? t.paper : t.ink2 }}>{o.label}</Text>
       </View>
     </Pressable>)}
+  </>;
+  if (wrap) return <View accessibilityLabel={label} style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.s2 }}>{chips}</View>;
+  return <ScrollView ref={scroll} horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" testID={testID}
+    onLayout={(e) => { viewport.current = e.nativeEvent.layout.width; reveal(); }}
+    onScroll={(e) => { offset.current = e.nativeEvent.contentOffset.x; }} scrollEventThrottle={16}
+    accessibilityLabel={label} style={{ marginHorizontal: -1 }} contentContainerStyle={{ gap: SPACE.s2, paddingHorizontal: 1 }}>
+    {chips}
   </ScrollView>;
 }
