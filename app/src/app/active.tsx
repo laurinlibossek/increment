@@ -10,7 +10,6 @@ import {
   type ScrollViewInstance, type TextInputInstance, type ViewInstance,
 } from 'react-native';
 import { router } from 'expo-router';
-import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useKeepAwake } from 'expo-keep-awake';
 import {
@@ -20,6 +19,7 @@ import {
 import {
   adjustRest, discardActive, editActive, getState, patchActive, previousSets, setPinnedNote, skipRest, startRest, useAppSelector, useSettings,
 } from '@/data/store';
+import { haptic } from '@/lib/haptics';
 import { attempt } from '@/lib/saving';
 import { PinnedNote } from '@/ui/PinnedNote';
 import type { ActiveWorkout, EntryDraft, SetDraft } from '@/data/types';
@@ -142,7 +142,7 @@ function Running({ a, reveal }: { a: ActiveWorkout; reveal: { current: (ref: Tex
   const discard = async () => {
     const cur = getState().active;
     if (!cur || !(await confirmDiscard(cur, tr('Discard this workout?'), tr))) return;
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+    haptic.warn();
     session.close();
     discardActive();
     router.back();

@@ -3,6 +3,7 @@
 import { Platform, Share } from 'react-native';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
+import { pad2 } from '@increment/core';
 
 /**
  * 'dismissed': the iPhone's share sheet was closed without saving or sending the
@@ -11,10 +12,9 @@ import * as Sharing from 'expo-sharing';
  */
 export type SaveResult = 'shared' | 'downloaded' | 'dismissed' | 'failed';
 
-const pad = (n: number) => String(n).padStart(2, '0');
 export const dateStamp = (t = Date.now()) => {
   const d = new Date(t);
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 };
 
 export async function saveTextFile(name: string, text: string, mime: string, uti: string, dialogTitle: string): Promise<SaveResult> {

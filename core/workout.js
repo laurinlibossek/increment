@@ -8,7 +8,7 @@ import {
   usesWeight, setIsValid, loggedFields, warmupSets, prsForNewWorkout, countsVolume, setVolume, isWorking, normRir,
 } from './calc.js';
 import {
-  newSetDraft, setToDraft, draftToSet, entryToDraft, newEntryDraft, remapSupersets, draftEntries,
+  newSetDraft, setToDraft, draftToSet, entryToDraft, newEntryDraft, remapSupersets, draftEntries, dissolveLoneSupersets,
 } from './drafts.js';
 import { pairSets } from './templates.js';
 import { nextSide, sideOf, splitSides } from './set-sides.js';
@@ -430,10 +430,7 @@ export function joinSuperset(list, entry, other) {
   const id = other.supersetId || uid();
   other.supersetId = id;
   entry.supersetId = id;
-  if (old && old !== id) {
-    const left = list.filter((e) => e.supersetId === old);
-    if (left.length < 2) for (const e of left) e.supersetId = null;
-  }
+  if (old && old !== id) dissolveLoneSupersets(list, { only: [old], asNull: true });
   // keep the group together: this entry goes right after the group's last one
   list.splice(list.indexOf(entry), 1);
   const lastOfGroup = list.map((e, i) => (e.supersetId === id ? i : -1)).filter((i) => i >= 0).pop();
@@ -443,8 +440,7 @@ export function joinSuperset(list, entry, other) {
 export function leaveSuperset(list, entry) {
   const id = entry.supersetId;
   entry.supersetId = null;
-  const rest = list.filter((e) => e.supersetId === id);
-  if (rest.length < 2) for (const e of rest) e.supersetId = null;
+  if (id) dissolveLoneSupersets(list, { only: [id], asNull: true });
 }
 
 /**
@@ -457,11 +453,7 @@ export function removeEntry(list, id) {
   if (index < 0) return null;
   const [entry] = list.splice(index, 1);
   const supersetId = entry.supersetId || null;
-  const dissolved = [];
-  if (supersetId) {
-    const rest = list.filter((e) => e.supersetId === supersetId);
-    if (rest.length < 2) for (const e of rest) { e.supersetId = null; dissolved.push(e.id); }
-  }
+  const dissolved = supersetId ? dissolveLoneSupersets(list, { only: [supersetId], asNull: true }) : [];
   return { entry: JSON.parse(JSON.stringify(entry)), index, supersetId, dissolved };
 }
 
@@ -476,9 +468,7 @@ export function restoreEntry(list, removed) {
 /** A stored routine's entries without an exercise (deleted from the library): supersets left with one exercise dissolve (#39). */
 export function withoutExercise(entries, exerciseId) {
   const out = entries.filter((e) => e.exerciseId !== exerciseId).map((e) => ({ ...e }));
-  const counts = new Map();
-  for (const e of out) if (e.supersetId) counts.set(e.supersetId, (counts.get(e.supersetId) || 0) + 1);
-  for (const e of out) if (e.supersetId && counts.get(e.supersetId) < 2) delete e.supersetId;
+  dissolveLoneSupersets(out);
   return out;
 }
 

@@ -11,7 +11,7 @@ import {
   Animated, BackHandler, Keyboard, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { daysAgo, startOfDay } from '@increment/core';
+import { daysAgo, pad2, startOfDay } from '@increment/core';
 
 import { useLang } from '@/lib/i18n';
 import { RADIUS, SPACE, TYPE } from '@/design/tally';
@@ -263,8 +263,6 @@ function PromptView({ o }: { o: Extract<Open, { kind: 'prompt' }> }) {
 }
 
 // ---------- day and time ----------
-const pad2 = (n: number) => String(n).padStart(2, '0');
-
 /** A day stepper (‹ Today ›) and HH:MM fields. Calls onChange with the time in ms. */
 function DayTime({ value, onChange, max }: { value: number; onChange: (t: number) => void; max?: number }) {
   const c = useColors();

@@ -1,7 +1,7 @@
 // Strong CSV: reading Strong's export (both of its layouts) and writing one.
 // Plain functions: the app passes in what they need to know about its data.
 import {
-  uid, slug, parseNum, KG_PER_LB, KM_PER_MI, kgTo, kmTo, roundW,
+  uid, slug, parseNum, KG_PER_LB, KM_PER_MI, kgTo, kmTo, roundW, pad2,
 } from './units.js';
 import { rpeFromRir } from './calc.js';
 import { isUnilateral, mergeSidePairs } from './set-sides.js';
@@ -487,7 +487,6 @@ export function resolveStrongImport(preview, choices, opts = {}) {
 }
 
 // ---------- CSV export (Strong-compatible) ----------
-function pad(n) { return String(n).padStart(2, '0'); }
 /** Workout duration the way Strong writes it ("1h 5m", "45m"), whatever the app language. */
 export function strongDuration(ms) {
   const min = Math.max(0, Math.round((ms || 0) / 60000));
@@ -497,7 +496,7 @@ export function strongDuration(ms) {
 }
 function isoLocal(t) {
   const d = new Date(t);
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
 }
 /** A number as Strong writes it: always with a decimal point (20.0, 8.0, 62.5), never fewer decimals than it has. */
 const strongNumber = (n) => (Number.isInteger(n) ? n.toFixed(1) : String(n));

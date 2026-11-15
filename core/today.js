@@ -3,9 +3,9 @@
 import { startOfDay, startOfWeek, addDays } from './units.js';
 import { BODY_PARTS, BODY_PART_LABEL } from './seed.js';
 import { restFor } from './workout.js';
-import { entriesSetCount, exerciseSetCount, isUnilateral, setsByExercise } from './set-sides.js';
-
-const lookup = (exercises) => (exercises instanceof Map ? (id) => exercises.get(id) : (id) => exercises?.[id]);
+import {
+  entriesSetCount, exerciseLookup, exerciseSetCount, isUnilateral, setsByExercise,
+} from './set-sides.js';
 
 /** Index of the day a time falls on in a list of day starts, or -1. */
 function dayIndex(days, t) {
@@ -58,7 +58,7 @@ const MUSCLES = ['chest', 'back', 'shoulders', 'arms', 'legs', 'core', 'full'];
  * breakdown always adds up to the number on Today (#89).
  */
 function eachMuscleExercise(workouts, exercises, { days, now }, fn) {
-  const get = lookup(exercises);
+  const get = exerciseLookup(exercises);
   const since = startOfDay(addDays(now, -(days - 1)));
   for (const w of workouts) {
     if (w.startedAt < since || w.startedAt > now) continue;
@@ -123,7 +123,7 @@ const WORK_SEC = 45, WARMUP_SEC = 30, WARMUP_REST_SEC = 60;
  * Exercises missing from the library are left out.
  */
 export function routineSize(template, exercises, { defaultRest = 120, pair = true } = {}) {
-  const get = lookup(exercises);
+  const get = exerciseLookup(exercises);
   const entries = template.exercises.filter((e) => get(e.exerciseId));
   const { sets, unpaired } = entriesSetCount(entries, exercises, { pair });
   let sec = 0, all = 0, lastRest = 0;
@@ -147,7 +147,7 @@ export function routineSize(template, exercises, { defaultRest = 120, pair = tru
  * [{ muscle, label }]. Exercises missing from the library are left out.
  */
 export function routineMuscles(template, exercises) {
-  const get = lookup(exercises);
+  const get = exerciseLookup(exercises);
   const parts = new Set(template.exercises.map((e) => get(e.exerciseId)?.bodyPart).filter((p) => MUSCLES.includes(p)));
   return BODY_PARTS.filter((b) => parts.has(b.id)).map((b) => ({ muscle: b.id, label: b.label }));
 }

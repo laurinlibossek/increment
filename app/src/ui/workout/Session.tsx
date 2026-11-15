@@ -9,7 +9,6 @@ import {
 import {
   Animated, AppState, Keyboard, PanResponder, Platform, Pressable, StyleSheet, Text, View, type TextInputInstance,
 } from 'react-native';
-import * as Haptics from 'expo-haptics';
 import {
   checkOffSet, placeholders, restFor, currentAfterLog, loggedFields, platesFor, parseNum,
   numToInput, digitsToSec, secToDigits, fmtDigits, weightStep, moveUnit, BODY_PART_LABEL, sessionProgress,
@@ -20,6 +19,7 @@ import {
 } from '@/data/store';
 import type { ActiveWorkout, Category, EntryDraft } from '@/data/types';
 import { SPACE, TYPE } from '@/design/tally';
+import { haptic } from '@/lib/haptics';
 import { setLabels, useFormat } from '@/lib/format';
 import { useTally } from '@/lib/theme';
 import { toast } from '@/ui/overlay';
@@ -121,14 +121,14 @@ export function SessionProvider({ children, onTarget }: { children: ReactNode; o
     if (r.problem) {
       setShake({ id: setId, n: Date.now() });
       toast(tr(r.problem));
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+      haptic.warn();
       return false;
     }
     const after = getState().active!;
     // the record haptic only when this set now holds a record (an equal set doesn't, #37)
     const record = activeRecords().has(setId);
-    if (record) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-    else Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    if (record) haptic.success();
+    else haptic.tap();
     if (r.rest && r.rest > 0) startRest(r.rest, f.exName(ex), { entryId, setId });
     // the set finished its exercise (a superset: its last round): it stays on screen until the person moves on (#60)
     const stay = currentAfterLog(after, entryId);
@@ -215,7 +215,7 @@ export function KeypadHost() {
         write(field === 'r' ? String(Math.round(n)) : numToInput(n, field === 'd' ? 3 : 2));
       }
       fresh.current = false;
-      Haptics.selectionAsync().catch(() => {});
+      haptic.select();
       return;
     }
     const maxLength = field === 'r' ? 3 : field === 't' ? 6 : 7;
@@ -339,14 +339,14 @@ export function UnitRows({
       dy.setValue(0);
       set({ from: i, over: i });
       onDragging?.(true);
-      Haptics.selectionAsync().catch(() => {});
+      haptic.select();
     },
     move: (y: number) => {
       const d = dragRef.current;
       if (!d) return;
       dy.setValue(y);
       const over = Math.max(0, Math.min(unitsRef.current.length - 1, Math.round(d.from + y / ROW_H)));
-      if (over !== d.over) { set({ ...d, over }); Haptics.selectionAsync().catch(() => {}); }
+      if (over !== d.over) { set({ ...d, over }); haptic.select(); }
     },
     end: () => {
       const d = dragRef.current;

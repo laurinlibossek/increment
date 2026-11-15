@@ -42,7 +42,9 @@ export function exerciseSetCount(sets, unilateral, { pair = true } = {}) {
   return { sets: pairs, unpaired: rows - 2 * pairs };
 }
 
-const lookup = (exercises) => (exercises instanceof Map ? (id) => exercises.get(id) : (id) => exercises?.[id]);
+/** Exercises by id, from the Map the apps keep or a list (a backup's). */
+export const exerciseLookup = (exercises) => (exercises instanceof Map
+  ? (id) => exercises.get(id) : (id) => (exercises || []).find((e) => e.id === id));
 
 /** An exercise's rows across its entries: repeated entries in one workout pair with each other. */
 export function setsByExercise(entries) {
@@ -61,7 +63,7 @@ export function setsByExercise(entries) {
  * Returns { sets, unpaired }.
  */
 export function entriesSetCount(entries, exercises, { pair = true } = {}) {
-  const get = lookup(exercises);
+  const get = exerciseLookup(exercises);
   let sets = 0, unpaired = 0;
   for (const [id, rows] of setsByExercise(entries)) {
     const n = exerciseSetCount(rows, isUnilateral(get(id)), { pair });
@@ -109,7 +111,7 @@ export function setSlots(sets, unilateral, { pair = true } = {}) {
  * logged; null without working sets. Returns { done, total, percent }.
  */
 export function sessionProgress(entries, exercises, { pair = true } = {}) {
-  const get = lookup(exercises);
+  const get = exerciseLookup(exercises);
   let done = 0, total = 0;
   for (const [id, rows] of setsByExercise(entries)) {
     for (const slot of setSlots(rows, isUnilateral(get(id)), { pair })) {

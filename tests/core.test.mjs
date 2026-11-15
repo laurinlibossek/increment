@@ -721,7 +721,7 @@ test('Today: working sets per muscle in the last 7 days, and a routine’s size'
     { muscle: 'chest', label: 'Chest', sets: 5 },
     { muscle: 'back', label: 'Back', sets: 3 },
   ], 'chest first; warm-ups, cardio and unknown exercises don’t count');
-  assert.deepEqual(core.setsPerMuscle(ws, Object.fromEntries(lib), { now, days: 14 }).map((m) => m.sets), [14, 3]);
+  assert.deepEqual(core.setsPerMuscle(ws, [...lib.values()], { now, days: 14 }).map((m) => m.sets), [14, 3]);
   assert.deepEqual(core.setsPerMuscle([], lib, { now }), []);
 
   const t = { exercises: [
@@ -782,7 +782,7 @@ test('Sets per muscle’s breakdown (#89): by exercise, adding up to the number 
     for (const e of b.exercises) assert.equal(e.workouts.reduce((n, x) => n + x.sets, 0), e.sets, `${e.exerciseId}: the workouts add up`);
   }
   assert.deepEqual(core.muscleSets(ws, lib, 'back', { now }).exercises.map((e) => [e.exerciseId, e.sets]), [['row', 4]]);
-  assert.equal(core.muscleSets(ws, Object.fromEntries(lib), 'chest', { now, days: 14 }).sets, 22, '14 days take in the evening before; later than now stays out');
+  assert.equal(core.muscleSets(ws, [...lib.values()], 'chest', { now, days: 14 }).sets, 22, '14 days take in the evening before; later than now stays out');
 
   // a tie within one workout: in the order done
   const tie = core.muscleSets([w('a', at(13), [['dip', work(2)], ['bench', work(2)]])], lib, 'chest', { now });
@@ -2312,7 +2312,7 @@ test('muscle and routine totals (#54): pairs within one exercise and one workout
   const rights = { startedAt: now - 1000, exercises: [E('curl', [sided('right'), sided('right')])] };
   assert.deepEqual(muscles([lefts, rights]), [], 'left in one workout, right in another: no pair');
   assert.deepEqual(core.entriesSetCount(lefts.exercises, lib), { sets: 0, unpaired: 2 });
-  assert.deepEqual(core.entriesSetCount(lefts.exercises, Object.fromEntries(lib), { pair: false }), { sets: 2, unpaired: 0 });
+  assert.deepEqual(core.entriesSetCount(lefts.exercises, [...lib.values()], { pair: false }), { sets: 2, unpaired: 0 });
   // the preference never changes muscle totals
   assert.deepEqual(muscles([{ startedAt: now, exercises: entries }], { pair: false }), muscles([{ startedAt: now, exercises: entries }]));
   // an exercise missing from the library counts its rows

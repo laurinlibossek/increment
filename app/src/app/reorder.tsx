@@ -6,12 +6,12 @@ import {
   Animated, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, View,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { exerciseSetCount, isUnilateral, moveItem } from '@increment/core';
 
 import { editDraft, getDraft, useAppSelector } from '@/data/store';
 import type { DraftKey, EntryDraft } from '@/data/types';
+import { haptic } from '@/lib/haptics';
 import { useFormat } from '@/lib/format';
 import { useColors } from '@/lib/theme';
 import { Icon } from '@/ui/kit';
@@ -43,7 +43,7 @@ export default function Reorder() {
       if (dragRef.current) return;
       dy.setValue(0);
       set({ from: i, over: i });
-      Haptics.selectionAsync().catch(() => {});
+      haptic.select();
     },
     move: (y: number) => {
       const d = dragRef.current;

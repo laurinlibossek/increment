@@ -1,7 +1,6 @@
-// The app's charts: a line over time (the Tally LineChart, ui/tally/LineChart.tsx,
-// with the props Measure was built with) and a column chart in ink with dotted
-// grid lines; touch a bar for its value. The axis maths is the shared core's
-// (core/chart.js).
+// The column chart (weekly workouts on Progress): ink columns with dotted grid
+// lines; touch a bar for its value. The line chart is the Tally one
+// (ui/tally/LineChart.tsx). The axis maths is the shared core's (core/chart.js).
 import { useState } from 'react';
 import {
   Platform, StyleSheet, Text, View, type LayoutChangeEvent,
@@ -14,10 +13,7 @@ import { niceTicks } from '@increment/core';
 import { RADIUS, SPACE, TYPE } from '@/design/tally';
 import { useFormat } from '@/lib/format';
 import { useColors } from '@/lib/theme';
-import { LineChart as TallyLineChart } from '@/ui/tally/LineChart';
-
-// SVG text in a browser falls back to a serif font; use the system one
-const FONT = Platform.OS === 'web' ? 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' : undefined;
+import { SVG_FONT as FONT } from '@/ui/tally/LineChart';
 
 function useWidth(): [number, (e: LayoutChangeEvent) => void] {
   const [w, setW] = useState(0);
@@ -33,26 +29,6 @@ function Tip({ left, width, value, sub }: { left: number; width: number; value: 
     <View pointerEvents="none" style={[styles.tip, { left: x - half, backgroundColor: c.chart }]} testID="chart-tip">
       <Text style={[TYPE.headline, { color: c.primaryInk, textAlign: 'center' }]} numberOfLines={1}>{value}</Text>
       <Text style={[TYPE.caption, { color: c.primaryInk, textAlign: 'center' }]} numberOfLines={1}>{sub}</Text>
-    </View>
-  );
-}
-
-type Point = { x: number; y: number };
-
-/**
- * points oldest first, x = ms, y in display units. The Tally line chart
- * (ui/tally/LineChart.tsx) with this file's older props, for Measure.
- */
-export function LineChart({
-  points, height = SPACE.s12 * 4, fmtAxis = (v: number) => String(v), fmtVal = (v: number) => String(v), time = false, emptyText, label, testID,
-}: {
-  points: Point[]; height?: number; fmtAxis?: (v: number, dec: number) => string; fmtVal?: (v: number) => string;
-  time?: boolean; emptyText: string; label: string; testID?: string;
-}) {
-  return (
-    <View style={{ marginTop: SPACE.s4 }}>
-      <TallyLineChart points={points.map((p) => ({ at: p.x, value: p.y }))} height={height} formatAxis={fmtAxis} formatValue={fmtVal}
-        time={time} emptyText={emptyText} label={label} testID={testID} />
     </View>
   );
 }
