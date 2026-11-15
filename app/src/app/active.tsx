@@ -22,7 +22,7 @@ import {
 import { haptic } from '@/lib/haptics';
 import { attempt } from '@/lib/saving';
 import { PinnedNote } from '@/ui/PinnedNote';
-import type { ActiveWorkout, EntryDraft, SetDraft } from '@/data/types';
+import type { ActiveWorkout } from '@/data/types';
 import { SPACE, TYPE, CONTROL } from '@/design/tally';
 import { useFormat } from '@/lib/format';
 import { pickExercises } from '@/lib/picker';
@@ -45,10 +45,6 @@ import type { Field } from '@/ui/workout/SetRow';
 import { effortText, setValueText } from '@/ui/workout/text';
 
 function KeepAwake() { useKeepAwake('workout'); return null; }
-
-type Unit = { id: string; entries: EntryDraft[] };
-/** core sessionState: the unit on screen and the set to log next */
-type SessionAt = { units: Unit[]; unit: Unit | null; next: { entry: EntryDraft; set: SetDraft; index: number } | null };
 
 export default function ActiveWorkoutScreen() {
   const current = useAppSelector((s) => s.active);
@@ -100,10 +96,10 @@ function Running({ a, reveal }: { a: ActiveWorkout; reveal: { current: (ref: Tex
   const [dragging, setDragging] = useState(false);
 
   // ---------- where the session is ----------
-  const st = useMemo(() => sessionState(a, { current: a.current ?? null, restEntryId: a.rest?.entryId ?? null }) as SessionAt, [a]);
+  const st = useMemo(() => sessionState(a, { current: a.current ?? null, restEntryId: a.rest?.entryId ?? null }), [a]);
   const live = st.next?.set.id ?? null;
   // the exercise on screen is done (#60): it stays until the person moves on with "Next: {exercise}"
-  const ahead = useMemo(() => (st.unit && !st.next ? nextUnit(a, st.unit.id) as { entries: EntryDraft[] } | null : null), [a, st]);
+  const ahead = useMemo(() => (st.unit && !st.next ? nextUnit(a, st.unit.id) : null), [a, st]);
   const strokes = useSessionStrokes(a, live);
   const at = st.unit ? st.units.indexOf(st.unit) : -1;
   const before = at > 0 ? st.units.slice(0, at) : [];
@@ -199,7 +195,7 @@ function Running({ a, reveal }: { a: ActiveWorkout; reveal: { current: (ref: Tex
   const next = st.next;
   const nextPh = useMemo(() => {
     if (!next) return null;
-    const rows = placeholders(next.entry, previousSets(next.entry.exerciseId, { templateId: a.templateId }), settings) as { ph: Record<string, string> }[];
+    const rows = placeholders(next.entry, previousSets(next.entry.exerciseId, { templateId: a.templateId }), settings);
     return rows[next.index]?.ph || {};
   }, [next, a.templateId, settings]);
   const exercises = useAppSelector((s) => s.exercises);

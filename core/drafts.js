@@ -15,8 +15,13 @@ import { repRange, withRepRange, parseRepsInput } from './rep-range.js';
  * @typedef {import('./types.js').SetDraftLike} SetDraftLike
  */
 
-/** A new empty set while editing. @param {string} [type] @param {object} [extra] */
-export function newSetDraft(type = 'normal', extra = {}) {
+/**
+ * A new empty set while editing; `type` stays the literal it's given.
+ * @template {string} [T='normal']
+ * @param {T} [type]
+ * @param {object} [extra]
+ */
+export function newSetDraft(type = /** @type {T} */ ('normal'), extra = {}) {
   return { id: uid(), type, w: '', r: '', d: '', t: '', rpe: '', done: false, ...extra };
 }
 

@@ -1,16 +1,33 @@
+// @ts-check
 // Templates: comparing a finished workout with the template it came from,
 // writing it back, and cleaning template data. Plain data in, plain data out.
 import { remapSupersets } from './drafts.js';
 import { sideOf } from './set-sides.js';
 import { repRange, withRepRange, clampReps } from './rep-range.js';
 
+/**
+ * An exercise of a routine or a workout: which exercise, its sets and its own settings.
+ * @typedef {{ exerciseId: string, sets: any[], supersetId?: string | null, notes?: string, restSec?: number | null, focus?: string | null }} Entry
+ */
+
+/** @type {string[]} */
 const VALUE_KEYS = ['w', 'r', 'd', 't'];
+/** @param {any} s @returns {string} */
 const setType = (s) => s.type || 'normal';
-/** How many sets of a kind: 'straight' (normal and failure sets, the working sets), 'warmup', 'drop', 'failure'. */
+/**
+ * How many sets of a kind: 'straight' (normal and failure sets, the working sets), 'warmup', 'drop', 'failure'.
+ * @param {any[]} sets
+ * @param {string} kind
+ */
 const count = (sets, kind) => sets.filter((s) => (kind === 'straight' ? ['normal', 'failure'].includes(setType(s)) : setType(s) === kind)).length;
+/** @param {any} s */
 const setBucket = (s) => (setType(s) === 'warmup' ? 'warmup' : 'work');
 
-/** "exerciseId#n" per entry, so the n-th Bench Press pairs with the n-th Bench Press. */
+/**
+ * "exerciseId#n" per entry, so the n-th Bench Press pairs with the n-th Bench Press.
+ * @param {{ exerciseId: string }[]} entries
+ * @returns {string[]}
+ */
 export function entryKeys(entries) {
   const n = new Map();
   return entries.map((e) => {
@@ -19,16 +36,24 @@ export function entryKeys(entries) {
     return `${e.exerciseId}#${i}`;
   });
 }
-/** For each template entry, the index of the matching workout entry (or -1). */
+/**
+ * For each template entry, the index of the matching workout entry (or -1).
+ * @param {{ exerciseId: string }[]} tplEntries
+ * @param {{ exerciseId: string }[]} woEntries
+ * @returns {{ pairs: number[], tk: string[], wk: string[] }}
+ */
 function pairEntries(tplEntries, woEntries) {
   const tk = entryKeys(tplEntries), wk = entryKeys(woEntries);
   const at = new Map(wk.map((k, i) => [k, i]));
-  return { pairs: tk.map((k) => (at.has(k) ? at.get(k) : -1)), tk, wk };
+  return { pairs: tk.map((k) => at.get(k) ?? -1), tk, wk };
 }
 /**
  * For each template set, the index of the workout set it lines up with (or -1).
  * Warm-ups pair only with warm-ups. When both lists carry sides, each side
  * (and untagged sets) pairs separately in order; otherwise use the old order.
+ * @param {any[]} tplSets
+ * @param {any[]} woSets
+ * @returns {number[]}
  */
 export function pairSets(tplSets, woSets, { split = false } = {}) {
   // `split` (the ghost values, #54): when only these sets have sides, the k-th left and the k-th right
@@ -43,7 +68,7 @@ export function pairSets(tplSets, woSets, { split = false } = {}) {
     });
   }
   const sided = tplSets.some(sideOf) && woSets.some(sideOf);
-  const bucket = (s) => `${setBucket(s)}:${sided ? sideOf(s) || 'none' : ''}`;
+  const bucket = (/** @type {any} */ s) => `${setBucket(s)}:${sided ? sideOf(s) || 'none' : ''}`;
   const pos = new Map(), used = new Map();
   woSets.forEach((s, i) => {
     const b = bucket(s);
@@ -57,6 +82,7 @@ export function pairSets(tplSets, woSets, { split = false } = {}) {
     return j === undefined ? -1 : j;
   });
 }
+/** @param {any} a @param {any} b */
 function sameValues(a, b) {
   for (const k of VALUE_KEYS) {
     const x = a[k] ?? null, y = b[k] ?? null;
@@ -65,14 +91,27 @@ function sameValues(a, b) {
   }
   return true;
 }
-/** A routine set of `type` with the numbers of `from`; side and rep range (#44) come from `meta`. */
+/**
+ * A routine set of `type` with the numbers of `from`; side and rep range (#44) come from `meta`.
+ * @param {string} type
+ * @param {any} from
+ * @param {any} [meta]
+ * @returns {any}
+ */
 function templateSet(type, from, meta = from) {
+  /** @type {Record<string, any>} */
   const o = { type };
   for (const k of [...VALUE_KEYS, 'rpe']) if (from[k] !== null && from[k] !== undefined) o[k] = from[k];
   if (sideOf(meta)) o.side = sideOf(meta);
   return withRepRange(o, repRange(meta));
 }
-/** Superset grouping as "key → first key of its group", over the given keys only. */
+/**
+ * Superset grouping as "key → first key of its group", over the given keys only.
+ * @param {{ supersetId?: string | null }[]} entries
+ * @param {string[]} keys
+ * @param {Set<string>} only
+ * @returns {Map<string, string>}
+ */
 function supersetLeaders(entries, keys, only) {
   const leader = new Map(), first = new Map();
   entries.forEach((e, i) => {
@@ -91,10 +130,19 @@ function supersetLeaders(entries, keys, only) {
  * supersets differ; `valueSets` counts template sets whose numbers would change
  * with "Update values only"; `added` and `removed` are the exercise ids of the
  * entries only the workout or only the template has.
+ * @param {{ exercises: Entry[] }} template
+ * @param {{ exercises: Entry[] }} workout
  */
 export function templateChanges(template, workout) {
   const T = template.exercises, W = workout.exercises;
   const { pairs, tk, wk } = pairEntries(T, W);
+  /**
+   * @type {{ addedExercises: number, removedExercises: number, reordered: boolean, addedSets: number, removedSets: number,
+   *   typesChanged: boolean, sidesChanged: boolean, supersetsChanged: boolean, valueSets: number, structure: boolean,
+   *   added: string[], removed: string[],
+   *   sets: { exerciseId: string, from: number, to: number, added?: boolean, removed?: boolean }[],
+   *   warmupsChanged: boolean, dropsChanged: boolean, failuresChanged: boolean }}
+   */
   const c = {
     addedExercises: 0, removedExercises: 0, reordered: false, addedSets: 0, removedSets: 0,
     typesChanged: false, sidesChanged: false, supersetsChanged: false, valueSets: 0, structure: false,
@@ -107,7 +155,9 @@ export function templateChanges(template, workout) {
     sets: [],
     warmupsChanged: false, dropsChanged: false, failuresChanged: false,
   };
+  /** @type {number[]} */
   const order = [];
+  /** @type {Set<string>} */
   const matched = new Set();
   pairs.forEach((wi, ti) => {
     if (wi < 0) {
@@ -131,7 +181,7 @@ export function templateChanges(template, workout) {
     c.addedSets += ws.length - paired;
     for (const side of ['left', 'right']) {
       for (const bucket of ['warmup', 'work']) {
-        const n = (sets) => sets.filter((s) => sideOf(s) === side && setBucket(s) === bucket).length;
+        const n = (/** @type {any[]} */ sets) => sets.filter((s) => sideOf(s) === side && setBucket(s) === bucket).length;
         if (n(ts) !== n(ws)) c.sidesChanged = true;
       }
     }
@@ -162,6 +212,7 @@ export function templateChanges(template, workout) {
 // What "better" means per kind of exercise, compared key by key: more weight
 // (or, for assisted exercises, less assistance), then more reps; for
 // time-only exercises (planks, holds) more time. Cardio is compareCardio.
+/** @type {Record<string, ['w' | 'r' | 'd' | 't', number][]>} */
 const BETTER = {
   barbell: [['w', 1], ['r', 1]],
   dumbbell: [['w', 1], ['r', 1]],
@@ -171,15 +222,20 @@ const BETTER = {
   reps: [['r', 1]],
   duration: [['t', 1]],
 };
+/** @param {any} s @param {string} k @returns {number} */
 const valueOf = (s, k) => (Number.isFinite(Number(s[k])) && s[k] !== null && s[k] !== '' ? Number(s[k]) : 0);
+/** @param {any} s */
 const hasNumbers = (s) => VALUE_KEYS.some((k) => valueOf(s, k) !== 0);
 
+/** @param {number} d */
 const sign = (d) => (d > 1e-6 ? 1 : d < -1e-6 ? -1 : 0);
 
 /**
  * Cardio (distance and time): more distance, or the same distance in less
  * time (faster). A set without a time can't be faster; sets without any
  * distance are compared like a time-only exercise (more time).
+ * @param {any} routineSet
+ * @param {any} doneSet
  */
 function compareCardio(routineSet, doneSet) {
   const rd = valueOf(routineSet, 'd'), dd = valueOf(doneSet, 'd');
@@ -197,6 +253,10 @@ function compareCardio(routineSet, doneSet) {
  * less assistance; for time-only exercises more time; for cardio more
  * distance, or the same distance in less time. A routine set without numbers
  * is beaten by any done set that has some.
+ * @param {any} routineSet
+ * @param {any} doneSet
+ * @param {string} category
+ * @returns {number}
  */
 export function compareSets(routineSet, doneSet, category) {
   if (!hasNumbers(doneSet)) return hasNumbers(routineSet) ? -1 : 0;
@@ -217,6 +277,10 @@ export function compareSets(routineSet, doneSet, category) {
  * 'd' or 't') and `diff` that value's change in stored units (kg, reps, km,
  * seconds; for assisted exercises less assistance is a negative diff that's
  * better). Null when nothing changed or either set has no numbers.
+ * @param {any} prevSet
+ * @param {any} doneSet
+ * @param {string} category
+ * @returns {{ dir: number, key: string, diff: number } | null}
  */
 export function setChange(prevSet, doneSet, category) {
   if (!prevSet || !doneSet || !hasNumbers(prevSet) || !hasNumbers(doneSet)) return null;
@@ -229,7 +293,14 @@ export function setChange(prevSet, doneSet, category) {
   return { dir, key, diff: Math.round((valueOf(doneSet, key) - valueOf(prevSet, key)) * 1000) / 1000 };
 }
 
-/** The routine set with the done set's numbers; its own type, targets (RPE) and rep range stay. */
+/**
+ * The routine set with the done set's numbers; its own type, targets (RPE) and rep range stay.
+ * @param {any} routineSet
+ * @param {any} doneSet
+ * @param {string} [type]
+ * @param {any} [sideFrom]
+ * @returns {any}
+ */
 function raisedSet(routineSet, doneSet, type = setType(routineSet), sideFrom = routineSet) {
   const o = { ...routineSet, type };
   delete o.side;
@@ -242,6 +313,8 @@ function raisedSet(routineSet, doneSet, type = setType(routineSet), sideFrom = r
  * The done set as the routine set can take it: its reps moved inside the
  * routine set's rep range (#44), so 80 × 12 against 8–10 counts as 80 × 10
  * and 82.5 × 6 as 82.5 × 8. The workout keeps what was done.
+ * @param {any} routineSet
+ * @param {any} doneSet
  */
 function withinRange(routineSet, doneSet) {
   const range = repRange(routineSet);
@@ -263,12 +336,16 @@ function withinRange(routineSet, doneSet) {
  * the range of the set before it of the same type and side.
  * `categoryOf(exerciseId)` gives each exercise's category.
  * Returns { exercises, raised }: `raised` counts the sets whose numbers went up.
+ * @param {Entry[]} templateExercises
+ * @param {{ exercises: Entry[] }} workout
+ * @param {(exerciseId: string) => string} categoryOf
+ * @returns {{ exercises: any[], raised: number }}
  */
 export function progressTemplate(templateExercises, workout, categoryOf, { layout = false } = {}) {
   const T = templateExercises, W = workout.exercises;
   const { pairs } = pairEntries(T, W);
   let raised = 0;
-  const better = (r, d, exerciseId) => compareSets(r, d, categoryOf(exerciseId)) > 0;
+  const better = (/** @type {any} */ r, /** @type {any} */ d, /** @type {string} */ exerciseId) => compareSets(r, d, categoryOf(exerciseId)) > 0;
   if (!layout) {
     const exercises = T.map((e, ti) => {
       const wi = pairs[ti];
@@ -290,6 +367,7 @@ export function progressTemplate(templateExercises, workout, categoryOf, { layou
   pairs.forEach((wi, ti) => { if (wi >= 0) tplOf.set(wi, T[ti]); });
   const exercises = W.map((we, wi) => {
     const te = tplOf.get(wi);
+    /** @type {any[]} */
     let sets;
     if (!te) sets = we.sets.map((s) => templateSet(setType(s), s));
     else {
@@ -299,6 +377,7 @@ export function progressTemplate(templateExercises, workout, categoryOf, { layou
       sets = we.sets.map((s, j) => {
         const r = routineOf.get(j);
         const key = `${setType(s)}:${sideOf(s) || ''}`;
+        /** @type {any} */
         let out;
         if (!r) out = withRepRange(templateSet(setType(s), s), rangeBefore.get(key) || null);
         else if (!better(r, withinRange(r, s), we.exerciseId)) out = raisedSet(r, {}, setType(s), s);
@@ -307,6 +386,7 @@ export function progressTemplate(templateExercises, workout, categoryOf, { layou
         return out;
       });
     }
+    /** @type {Record<string, any>} */
     const out = { exerciseId: we.exerciseId, sets };
     if (te?.notes) out.notes = te.notes; // the routine's own exercise notes stay
     if (we.supersetId) out.supersetId = we.supersetId;
@@ -324,13 +404,13 @@ export function progressTemplate(templateExercises, workout, categoryOf, { layou
  * @param {(id: string) => boolean} [hasExercise]
  */
 export function cleanTemplateExercises(exercises, hasExercise = () => true) {
-  return remapSupersets(JSON.parse(JSON.stringify(exercises)).map((e) => ({
+  return remapSupersets(/** @type {any[]} */ (JSON.parse(JSON.stringify(exercises))).map((e) => ({
     exerciseId: e.exerciseId,
     notes: e.notes,
     supersetId: e.supersetId,
     restSec: e.restSec,
     focus: e.focus,
-    sets: e.sets.map((s) => templateSet(setType(s), s)),
+    sets: e.sets.map((/** @type {any} */ s) => templateSet(setType(s), s)),
   }))).filter((e) => hasExercise(e.exerciseId));
 }
 
@@ -338,7 +418,11 @@ export function cleanTemplateExercises(exercises, hasExercise = () => true) {
 // ---------- weight increase recommended (#49) ----------
 const STRAIGHT = new Set(['normal', 'failure']);
 
-/** Which prompt an exercise of this category can get: more weight, less assistance, or none (reps only, time, cardio). */
+/**
+ * Which prompt an exercise of this category can get: more weight, less assistance, or none (reps only, time, cardio).
+ * @param {string} category
+ * @returns {'weight' | 'assistance' | null}
+ */
 export function readinessKind(category) {
   if (category === 'assisted_bw') return 'assistance';
   return ['barbell', 'dumbbell', 'machine', 'weighted_bw'].includes(category) ? 'weight' : null;
@@ -349,9 +433,11 @@ export function readinessKind(category) {
  * exercise its sets' types, sides, weights and rep ranges, and the reps of
  * sets without a range. A ranged set's target is left out, since progression
  * moves it inside the range.
+ * @param {any[] | null | undefined} exercises
+ * @returns {string}
  */
 export function prescriptionKey(exercises) {
-  return JSON.stringify((exercises || []).map((e) => [e.exerciseId, e.sets.map((s) => {
+  return JSON.stringify((exercises || []).map((e) => [e.exerciseId, e.sets.map((/** @type {any} */ s) => {
     const range = repRange(s);
     return [setType(s), sideOf(s) || '', s.w ?? null, range || (s.r ?? null)];
   })]));
@@ -370,19 +456,24 @@ export function prescriptionKey(exercises) {
  * count either way. A workout from before the routine's prescription last
  * changed (`prescribedAt`, stamped by the editor) counts for nothing.
  * `categoryOf(exerciseId)` gives each exercise's category.
+ * @param {{ id: string, exercises: Entry[], prescribedAt?: number }} template
+ * @param {any} workout
+ * @param {(exerciseId: string) => string} categoryOf
+ * @returns {('weight' | 'assistance' | null)[]}
  */
 export function routineReadiness(template, workout, categoryOf) {
   const T = template.exercises;
   const none = T.map(() => null);
   if (!workout || workout.templateId !== template.id) return none;
-  if (Number.isFinite(template.prescribedAt) && !(workout.startedAt >= template.prescribedAt)) return none;
+  const prescribedAt = template.prescribedAt;
+  if (prescribedAt !== undefined && Number.isFinite(prescribedAt) && !(workout.startedAt >= prescribedAt)) return none;
   const { pairs } = pairEntries(T, workout.exercises);
   return T.map((e, ti) => {
     const kind = readinessKind(categoryOf(e.exerciseId));
     const prescribed = e.sets.filter((s) => STRAIGHT.has(setType(s)));
     if (!kind || !prescribed.length || prescribed.some((s) => !repRange(s)) || pairs[ti] < 0) return null;
     const sided = prescribed.some(sideOf);
-    const bucket = (s) => (sided ? sideOf(s) || 'none' : '');
+    const bucket = (/** @type {any} */ s) => (sided ? sideOf(s) || 'none' : '');
     const done = new Map();
     for (const s of workout.exercises[pairs[ti]].sets) {
       if (!STRAIGHT.has(setType(s))) continue;
