@@ -625,7 +625,7 @@ export async function deleteAllData() {
  */
 export function backupText(appVersion: string, active: ActiveWorkout | null = state.active) {
   const { kv: { active: _running, ...kv }, ...lists } = currentData();
-  return makeBackup({ ...lists, kv }, appVersion, new Date(), { active }) as string;
+  return makeBackup({ ...lists, kv }, appVersion, new Date(), { active });
 }
 
 export const markBackedUp = () => setMeta({ lastBackupAt: Date.now() });
@@ -787,8 +787,8 @@ export async function mergeExercise(fromId: string, intoId: string) {
     const exercises = new Map(state.exercises);
     exercises.delete(fromId);
     exercises.set(intoId, target);
-    const movedWorkouts = moveExerciseEntries(state.workouts, fromId, intoId) as Workout[];
-    const movedTemplates = moveExerciseEntries(state.templates, fromId, intoId) as Template[];
+    const movedWorkouts = moveExerciseEntries(state.workouts, fromId, intoId);
+    const movedTemplates = moveExerciseEntries(state.templates, fromId, intoId);
     const swap = <T extends { id: string }>(list: T[], changed: T[]) => {
       if (!changed.length) return list;
       const byId = new Map(changed.map((x) => [x.id, x]));
@@ -797,9 +797,9 @@ export async function mergeExercise(fromId: string, intoId: string) {
     // the merged exercise's chart goes; the target keeps its own (#27)
     const { customFamilies, chartMetrics, chartOps } = withoutGoneExercise(fromId, exercises);
     const patch: Partial<State> = { exercises, customFamilies, chartMetrics, workouts: swap(state.workouts, movedWorkouts), templates: swap(state.templates, movedTemplates) };
-    const [active] = state.active ? moveExerciseEntries([state.active], fromId, intoId) as ActiveWorkout[] : [];
+    const [active] = state.active ? moveExerciseEntries([state.active], fromId, intoId) : [];
     if (active) patch.active = active;
-    const [edit] = state.edit ? moveExerciseEntries([state.edit], fromId, intoId) as EditDraft[] : [];
+    const [edit] = state.edit ? moveExerciseEntries([state.edit], fromId, intoId) : [];
     if (edit) patch.edit = edit;
     if (state.edit?.exPatches?.[fromId]) {
       const d = (patch.edit || state.edit) as EditDraft;
@@ -831,7 +831,7 @@ export async function saveWorkout(w: Workout, routine: Template | null = null) {
 export async function setPinnedNote(templateId: string, note: string) {
   const t = state.templates.find((x) => x.id === templateId);
   if (!t) return;
-  const next = withPinnedNote(t, note) as Template;
+  const next = withPinnedNote(t, note);
   setState({ templates: state.templates.map((x) => (x.id === templateId ? next : x)) });
   await save([docOp('templates', next)]);
 }
@@ -1056,7 +1056,7 @@ export async function saveWorkoutEdit(defaultName: string): Promise<{ problem?: 
   // the routine's pinned note, edited here, is saved with the workout (#33)
   const routine = d.templateId ? state.templates.find((x) => x.id === d.templateId) : null;
   const pinned = routine && d.pinnedNote !== undefined && (d.pinnedNote.trim() || undefined) !== routine.pinnedNote
-    ? withPinnedNote(routine, d.pinnedNote) as Template : null;
+    ? withPinnedNote(routine, d.pinnedNote) : null;
   await saveWorkout(r.workout, pinned);
   await applyExercisePatches(d);
   setState({ edit: { ...d, dirty: false } });
