@@ -22,11 +22,12 @@ import { editExercise } from '@/lib/exerciseForm';
 import { pickExercises } from '@/lib/picker';
 import { useFormat } from '@/lib/format';
 import { useTally } from '@/lib/theme';
-import {
-  MARGIN, Row, SectionHead, StatStrip, tnum, type Stat,
-} from '@/ui/facts';
+import { MARGIN, tnum } from '@/ui/facts';
 import { Button, Empty, IconButton, Page } from '@/ui/kit';
 import { LineChart, type LineChartPoint } from '@/ui/tally/LineChart';
+import { ListRow } from '@/ui/tally/ListRow';
+import { SectionHeader } from '@/ui/tally/SectionHeader';
+import { StatStrip, type Stat } from '@/ui/tally/StatStrip';
 import { NumberDisplay } from '@/ui/tally/NumberDisplay';
 import { SegmentedControl } from '@/ui/tally/SegmentedControl';
 import { ExerciseFamilyChips } from '@/ui/exerciseFamilyChips';
@@ -161,21 +162,21 @@ function ExercisePage({ id }: { id: string }) {
 
       {repMaxes.length > 0 && (
         <>
-          <SectionHead title={tr('Rep maxes')} />
+          <SectionHeader title={tr('Rep maxes')} />
           {repMaxes.map(([r, v], i) => (
-            <Row key={r} first={i === 0} testID={`repmax-${r}`}
+            <ListRow key={r} first={i === 0} testID={`repmax-${r}`}
               lead={<Text style={[{ ...TYPE.headline, color: t.ink, width: 58 }, tnum]}>{tr('{n} RM', { n: r })}</Text>}
               title={<Text style={[{ ...TYPE.body, color: t.ink }, tnum]}>{f.wu(v.w)}</Text>}
-              trailing={<Text style={{ ...TYPE.subhead, color: t.ink2 }}>{f.date.workoutDay(v.at, { now })}</Text>} />
+              trailing={f.date.workoutDay(v.at, { now })} />
           ))}
         </>
       )}
 
       {every.length > 0 && (
         <>
-          <SectionHead title={tr('History')} scope={tr('Since {date}', { date: f.date.short(every[every.length - 1].startedAt) })} />
+          <SectionHeader title={tr('History')} scope={tr('Since {date}', { date: f.date.short(every[every.length - 1].startedAt) })} />
           {every.slice(0, limit).map((x, i) => (
-            <Row key={x.workoutId + x.entry.id} first={i === 0} chevron testID={`ex-session-${x.workoutId}`}
+            <ListRow key={x.workoutId + x.entry.id} first={i === 0} chevron testID={`ex-session-${x.workoutId}`}
               onPress={() => router.push({ pathname: '/workout/[id]', params: { id: x.workoutId } })}
               title={x.name}
               subtitle={(
@@ -187,7 +188,7 @@ function ExercisePage({ id }: { id: string }) {
                   ))}
                 </Text>
               )}
-              trailing={<Text style={{ ...TYPE.subhead, color: t.ink2 }}>{f.date.workoutDay(x.startedAt, { now })}</Text>} />
+              trailing={f.date.workoutDay(x.startedAt, { now })} />
           ))}
           {every.length > limit && (
             <View style={{ paddingHorizontal: MARGIN, marginTop: SPACE.s3 }}>
@@ -199,7 +200,7 @@ function ExercisePage({ id }: { id: string }) {
 
       {(!!ex.notes || !!ex.pinnedNote) && (
         <>
-          <SectionHead title={tr('How to')} action={{ title: tr('Edit'), onPress: () => editExercise({ id: ex.id }), testID: 'howto-edit' }} />
+          <SectionHeader title={tr('How to')} action={{ title: tr('Edit'), onPress: () => editExercise({ id: ex.id }), testID: 'howto-edit' }} />
           <View style={{ paddingHorizontal: MARGIN, gap: SPACE.s3 }}>
             {!!ex.pinnedNote && (
               <View style={{ gap: 2 }}>

@@ -20,9 +20,13 @@ import { useLang } from '@/lib/i18n';
 import { useTally } from '@/lib/theme';
 import { announceRoutine, routineLine, useRoutineResult } from '@/lib/workout';
 import {
-  hm, Mark, MARGIN, Row, SectionHead, StatStrip, workoutStrokes, WorkoutTally,
+  hm, MARGIN, tnum, workoutStrokes, WorkoutTally,
 } from '@/ui/facts';
 import { Empty } from '@/ui/kit';
+import { Highlight } from '@/ui/tally/Highlight';
+import { ListRow } from '@/ui/tally/ListRow';
+import { SectionHeader } from '@/ui/tally/SectionHeader';
+import { StatStrip } from '@/ui/tally/StatStrip';
 import { OverlayHost } from '@/ui/overlay';
 
 type Pr = { exerciseId: string; metric: string; value: number; setId?: string };
@@ -123,7 +127,7 @@ export default function Summary() {
 
         {rows.length > 0 && (
           <>
-            <SectionHead title={tr('Records')} />
+            <SectionHeader title={tr('Records')} />
             {rows.map(({ exerciseId, lead, others }, i) => {
               const ex = exercises.get(exerciseId);
               const set = lead.setId ? setById.get(lead.setId) : undefined;
@@ -133,9 +137,10 @@ export default function Summary() {
                 ...others.map((o) => `${label(o.metric)} ${value(o.metric, o.value)}`),
               ].filter(Boolean).join(' · ');
               return (
-                <Row key={exerciseId} first={i === 0} testID={`pr-${exerciseId}`}
-                  title={f.exName(ex) || tr('Unknown exercise')} subtitle={line}
-                  trailing={<Mark>{value(lead.metric, lead.value)}</Mark>} />
+                <ListRow key={exerciseId} first={i === 0} testID={`pr-${exerciseId}`}
+                  title={f.exName(ex) || tr('Unknown exercise')}
+                  subtitle={<Text style={[{ ...TYPE.footnote, color: t.ink2 }, tnum]} numberOfLines={2}>{line}</Text>}
+                  right={<Highlight style={TYPE.headline}>{value(lead.metric, lead.value)}</Highlight>} />
               );
             })}
           </>
@@ -144,20 +149,20 @@ export default function Summary() {
         {/* a slot the store version can fill (phase 7) */}
         {!!w.notes && (
           <>
-            <SectionHead title={tr('Notes')} />
+            <SectionHeader title={tr('Notes')} />
             <Text style={{ ...TYPE.subhead, color: t.ink, paddingHorizontal: MARGIN }}>{w.notes}</Text>
           </>
         )}
 
         {!!routineText && (
           <>
-            <SectionHead title={tr('Routine')} />
+            <SectionHeader title={tr('Routine')} />
             <Text style={{ ...TYPE.subhead, color: t.ink, paddingHorizontal: MARGIN }} testID="routine-line">{routineText}</Text>
           </>
         )}
 
         <View style={{ marginTop: SPACE.s6 }}>
-          <Row first title={tr('View in history')} chevron onPress={viewInHistory} testID="view-in-history" />
+          <ListRow first title={tr('View in history')} chevron onPress={viewInHistory} testID="view-in-history" />
         </View>
       </ScrollView>
       <OverlayHost />
