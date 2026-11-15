@@ -47,7 +47,8 @@ async function scroll(locator, fraction = 1) {
 
 // Measure the actual rendered foreground and its composed ancestor background.
 // Placeholders and disabled controls are intentionally outside this readable-text
-// rule. SVG labels use their fill; symbols have no prose text to check.
+// rule. SVG labels use their fill (an aria-hidden outline behind one is skipped);
+// symbols have no prose text to check.
 async function readable(locator) {
   const rows = await locator.evaluate(root => {
     const rgba = value => {
@@ -66,6 +67,9 @@ async function readable(locator) {
     for (const candidate of candidates) {
       const text = candidate.text.replace(/\s+/g, ' ').trim(), element = candidate.element;
       if (!text || !element || /[\uE000-\uF8FF]/.test(text) || element.closest('[aria-disabled="true"], [disabled]')) continue;
+      // the paper-coloured outline behind an SVG label (the weekly chart's goal, #122)
+      // is hidden from screen readers and isn't text; the label drawn over it is measured
+      if (element.namespaceURI === 'http://www.w3.org/2000/svg' && element.closest('[aria-hidden="true"]')) continue;
       const rect = element.getBoundingClientRect();
       if (rect.width <= 0 || rect.height <= 0 || rect.bottom <= 0 || rect.top >= innerHeight || rect.right <= 0 || rect.left >= innerWidth) continue;
       const chain = [];

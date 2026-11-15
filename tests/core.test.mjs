@@ -644,6 +644,15 @@ test('chart ticks, weekly counts and the streak', () => {
   assert.equal(core.tickDecimals([1, 1.25, 1.5]), 2);
   assert.equal(core.tickDecimals([0.1, 0.2, 0.3]), 1);
   assert.equal(core.tickDecimals([5]), 0);
+  // labels kept apart (#122): "Goal 5" at the start of the line and a week's "5" above its bar
+  assert.deepEqual(core.labelBox('Goal 5', 32, 40, 10), { x0: 32, x1: 68, y0: 30, y1: 43 });
+  assert.deepEqual(core.labelBox('5', 50, 40, 10, 'middle'), { x0: 47, x1: 53, y0: 30, y1: 43 });
+  assert.deepEqual(core.labelBox('5', 50, 40, 10, 'end'), { x0: 44, x1: 50, y0: 30, y1: 43 });
+  const goalBox = core.labelBox('Goal 5', 32, 40, 10);
+  assert.equal(core.boxesOverlap(goalBox, core.labelBox('5', 60, 40, 10, 'middle')), true, 'a week at the goal, under the label');
+  assert.equal(core.boxesOverlap(goalBox, core.labelBox('5', 60, 60, 10, 'middle')), false, 'a lower week');
+  assert.equal(core.boxesOverlap(goalBox, core.labelBox('5', 300, 40, 10, 'middle')), false, 'a week further right');
+  assert.equal(core.boxesOverlap(goalBox, core.labelBox('5', 71, 40, 10, 'middle')), false, 'boxes that only touch');
   const now = new Date(2026, 9, 21, 12).getTime(); // a Wednesday
   const day = (d) => new Date(2026, 9, d, 18).getTime();
   const ws = [day(20), day(19), day(14), day(13), day(12), day(6)].map((t) => ({ startedAt: t }));
