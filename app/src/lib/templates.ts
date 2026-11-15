@@ -51,7 +51,7 @@ export function templateShareText(t: Template, f: F) {
       // a left and a right count as one set (#72), so each value says its side
       return v && labels[i] === 'W' ? `W ${v}` : v && side ? `${tr(side === 'left' ? 'Left' : 'Right')} ${v}` : v;
     }).filter(Boolean);
-    const count = exerciseSetCount(x.sets, isUnilateral(ex), { pair: s.settings.pairSides !== false });
+    const count = exerciseSetCount(x.sets, isUnilateral(ex), { pair: s.settings.pairSides });
     lines.push(`• ${f.exName(ex)}: ${f.setsText(count)}${sets.length ? ` (${sets.join(', ')})` : ''}`);
   }
   lines.push('', tr('Add it to Increment: open this link, or copy it and choose Routines ⋯ → Add shared routine in the app.'),
@@ -164,8 +164,8 @@ export async function folderMenu(name: string, count: number, f: F) {
 export async function templatesMenu(f: F) {
   const { tr } = f;
   const s = getState();
-  const sort = s.settings.templateSort || 'name';
-  const showExamples = s.settings.showExamples !== false;
+  const sort = s.settings.templateSort;
+  const showExamples = s.settings.showExamples;
   const c = await actionSheet<string>({
     title: tr('Routines'),
     actions: [

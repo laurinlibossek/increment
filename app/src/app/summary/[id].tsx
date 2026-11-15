@@ -33,7 +33,7 @@ export default function Summary() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const workouts = useAppSelector((s) => s.workouts);
   const exercises = useAppSelector((s) => s.exercises);
-  const pairSides = useAppSelector((s) => s.settings.pairSides !== false);
+  const pairSides = useAppSelector((s) => s.settings.pairSides);
   const f = useFormat();
   const { tr } = f;
   const { locale } = useLang();

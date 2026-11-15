@@ -247,7 +247,7 @@ function Running({ a, reveal }: { a: ActiveWorkout; reveal: { current: (ref: Tex
 
   return (
     <View style={{ flex: 1, backgroundColor: t.paper }}>
-      {settings.appKeepAwake === true && <KeepAwake />}
+      {settings.appKeepAwake && <KeepAwake />}
       <View style={[styles.top, { paddingTop: top + SPACE.s1 }]}>
         <Pressable onPress={() => { session.close(); router.back(); }} accessibilityRole="button" accessibilityLabel={tr('Minimize workout')} testID="minimize"
           style={({ pressed }) => [styles.iconBtn, { backgroundColor: pressed ? t.paper3 : 'transparent' }]}>

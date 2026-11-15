@@ -37,7 +37,7 @@ export default function TodayTab() {
   // the date, the week, the suggestion and the last seven days follow the day (#36)
   const today = useToday();
   const sug = useMemo(() => (s.active ? null : suggestion(s)), [s.templates, s.workouts, !s.active, today]); // eslint-disable-line react-hooks/exhaustive-deps
-  const goal = s.settings.weeklyGoal || 3;
+  const goal = s.settings.weeklyGoal;
   const week = useMemo(() => weekStrip(s.workouts, { weekStart: s.settings.weekStart, goal }) as {
     days: { start: number; done: number; planned: boolean }[]; today: number; done: number; goal: number;
   }, [s.workouts, s.settings.weekStart, goal, today]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -66,7 +66,7 @@ export default function TodayTab() {
   } else if (sug) {
     const tpl = sug.template as Template;
     const entries = tpl.exercises.filter((e) => s.exercises.has(e.exerciseId));
-    const size = routineSize(tpl, s.exercises, { defaultRest: s.settings.defaultRest, pair: s.settings.pairSides !== false }) as { exercises: number; sets: number; unpaired: number; minutes: number };
+    const size = routineSize(tpl, s.exercises, { defaultRest: s.settings.defaultRest, pair: s.settings.pairSides }) as { exercises: number; sets: number; unpaired: number; minutes: number };
     const groups: StrokeState[][] = entries.map((e) => e.sets.map((x) => (x.type === 'warmup' ? 'warmupPending' : 'pending')));
     card = (
       <RoutineCard testID="up-next" context={`${tr('Up next')} · ${why(sug.why)}`} name={tpl.name}

@@ -28,7 +28,7 @@ export default function ProgressTab() {
   const f = useFormat();
   const { tr } = f;
   const { colors: t } = useTally();
-  const goal = s.settings.weeklyGoal || 3;
+  const goal = s.settings.weeklyGoal;
   // the 30 days and the backup reminder move on with the day (#36)
   const today = useToday();
 

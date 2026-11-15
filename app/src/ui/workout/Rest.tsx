@@ -14,7 +14,7 @@ export function RestWatcher() {
   const r = useAppSelector((s) => s.active?.rest || null);
   const end = r?.end;
   const label = r?.label || '';
-  const alerts = useAppSelector((s) => s.settings.restAlert !== false);
+  const alerts = useAppSelector((s) => s.settings.restAlert);
   const { tr } = useLang();
   useEffect(() => {
     if (!end || !alerts) { cancelRestAlert(); return; }

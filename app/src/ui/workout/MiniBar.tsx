@@ -48,14 +48,14 @@ export function sessionView(a: ActiveWorkout, records: Map<string, unknown>, exe
 
 export function useSessionView() {
   const s = useAppState();
-  return useMemo(() => (s.active ? sessionView(s.active, activeRecords(s), s.exercises, s.settings.pairSides !== false) : null),
+  return useMemo(() => (s.active ? sessionView(s.active, activeRecords(s), s.exercises, s.settings.pairSides) : null),
     [s.active, s.exercises, s.settings, s.workouts]); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
 export function MiniBar({ placement = 'regular', surface = 'raised' }: { placement?: 'regular' | 'inline'; surface?: 'none' | 'raised' }) {
   const a = useAppSelector((s) => s.active);
   const exercises = useAppSelector((s) => s.exercises);
-  const pair = useAppSelector((s) => s.settings.pairSides !== false);
+  const pair = useAppSelector((s) => s.settings.pairSides);
   const view = useSessionView();
   const now = useNow(1000, !!a);
   const f = useFormat();
