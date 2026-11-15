@@ -77,7 +77,7 @@ export async function finishFlow(f: F) {
   for (const e of a.exercises) for (const x of e.sets) if (x.done) done++;
   const pending = pendingSets(a, {
     exercises: s.exercises, settings: s.settings, previousSets: (id: string, templateId: string | null) => previousSets(id, { templateId }),
-  }) as { set: { id: string }; filled: Record<string, unknown> }[];
+  });
   if (!done && !pending.length) {
     const ok = await ask({
       title: tr('Nothing logged yet'), message: tr('Check off at least one set to save this workout. Discard it instead?'),

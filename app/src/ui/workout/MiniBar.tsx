@@ -8,7 +8,7 @@ import { Platform, View } from 'react-native';
 import { isUnilateral, sessionProgress, sessionState, setSlots, sideOf } from '@increment/core';
 
 import { activeRecords, skipRest, useAppSelector, useAppState } from '@/data/store';
-import type { ActiveWorkout, EntryDraft, Exercise, SetDraft } from '@/data/types';
+import type { ActiveWorkout, EntryDraft, Exercise } from '@/data/types';
 import { useFormat } from '@/lib/format';
 import { useNow } from '@/lib/useNow';
 import { openWorkout } from '@/lib/workout';
@@ -29,9 +29,8 @@ export const DOCK_SPACE = CONTROL.accessoryH + SPACE.s4;
  * set counts once both sides are logged (sessionProgress, #72).
  */
 export function sessionView(a: ActiveWorkout, records: Map<string, unknown>, exercises: Map<string, Exercise>, pair: boolean) {
-  type Next = { next: { entry: EntryDraft; set: SetDraft } | null };
   // a finished exercise stays on the workout's screen (#60); Now Lifting already names the set that comes next in order
-  const next = (sessionState(a, { current: a.current ?? null }) as Next).next || (sessionState(a) as Next).next;
+  const next = sessionState(a, { current: a.current ?? null }).next || sessionState(a).next;
   let recordCount = 0;
   const all: StrokeState[][] = a.exercises.map((e) => e.sets.map((s) => {
     if (s.done && records.has(s.id)) recordCount++;

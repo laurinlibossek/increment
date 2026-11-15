@@ -498,7 +498,7 @@ export function activeRecords(s: State = state): Map<string, string[]> {
   const st = stats(s);
   if (!s.active) return new Map();
   if (!recordsFor || recordsFor.active !== s.active || recordsFor.stats !== st || recordsFor.settings !== s.settings) {
-    recordsCache = liveRecordSets(s.active, st.bests, s.exercises, s.settings) as Map<string, string[]>;
+    recordsCache = liveRecordSets(s.active, st.bests, s.exercises, s.settings);
     recordsFor = { active: s.active, stats: st, settings: s.settings };
   }
   return recordsCache;

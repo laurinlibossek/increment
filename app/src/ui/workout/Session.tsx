@@ -114,8 +114,8 @@ export function SessionProvider({ children, onTarget }: { children: ReactNode; o
     const ex = entry && s.exercises.get(entry.exerciseId);
     if (!a || !entry || i < 0 || !ex) return false;
     const settings = s.settings;
-    const rows = placeholders(entry, previousSets(ex.id, { templateId: a.templateId }), settings) as { ph: Record<string, string> }[];
-    const rest = restFor(entry, ex, settings.defaultRest) as number;
+    const rows = placeholders(entry, previousSets(ex.id, { templateId: a.templateId }), settings);
+    const rest = restFor(entry, ex, settings.defaultRest);
     let r: { problem?: string; rest?: number } = {};
     editActive((d, e) => { r = checkOffSet(d, e, i, { category: ex.category, ph: rows[i].ph, rest, settings }); }, entryId);
     if (r.problem) {
@@ -157,7 +157,7 @@ function TargetGuard() {
 
 /** The exercise's real step for the −/+ keys, in the person's unit. */
 function stepFor(field: Field, cat: Category, settings: ReturnType<typeof getState>['settings']) {
-  if (field === 'w') return weightStep(cat, settings) as number;
+  if (field === 'w') return weightStep(cat, settings);
   if (field === 'r') return 1;
   if (field === 'd') return 0.1;
   return 15;
@@ -184,7 +184,7 @@ export function KeypadHost() {
   const set = entry.sets[i];
   const cat = ex.category;
   const field = target.field;
-  const rows = placeholders(entry, prev, settings) as { ph: Record<string, string> }[];
+  const rows = placeholders(entry, prev, settings);
   const ghost = rows[i]?.ph[field] || '';
   const value = set[field];
   const decimal = f.num(1.5).replace(/\d/g, '') || '.';
