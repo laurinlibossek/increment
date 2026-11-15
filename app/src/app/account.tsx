@@ -158,7 +158,7 @@ export default function AccountSheet() {
       value: st.plates.map((p) => f.num(p, 2)).join('  '), ok: tr('Save'),
     });
     if (v === null) return;
-    const plates = parsePlates(v) as number[];
+    const plates = parsePlates(v);
     if (!plates.length) { toast(tr('Enter at least one plate')); return; }
     set('plates', plates);
   };

@@ -37,6 +37,18 @@
  *
  * A set total: complete sets and the rows a left/right pairing leaves out (#54).
  * @typedef {{ sets: number, unpaired: number }} SetCount
+ *
+ * The settings that turn stored numbers into typed text and back.
+ * @typedef {{ unit: string, distUnit: string }} UnitSettings
+ *
+ * A set as saved: numbers in kg, km and seconds.
+ * @typedef {{ id: string, type: string, w?: number, r?: number, rMin?: number, rMax?: number,
+ *   d?: number, t?: number, rpe?: number, rir?: number, side?: string, doneAt?: number }} StoredSet
+ *
+ * A set while it's edited (drafts.js): its numbers as the text typed, in the
+ * display units; `orig` keeps the stored number behind an untouched text.
+ * @typedef {{ id: string, type: string, w: string, r: string, d: string, t: string, rpe: string, done: boolean,
+ *   rir?: number, side?: string, rNow?: number, doneAt?: number, orig?: Record<string, [string, number]> }} SetDraftLike
  */
 
 export {};
