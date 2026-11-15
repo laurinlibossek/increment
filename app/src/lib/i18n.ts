@@ -44,6 +44,6 @@ export function useLang() {
       // keep "."
     }
     configureUnits({ decimal });
-    return { lang, locale, tr: translator(lang) as Tr };
+    return { lang, locale, tr: translator(lang) };
   }, [lang]);
 }

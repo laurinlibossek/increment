@@ -1,3 +1,4 @@
+// @ts-check
 // The suggested workout: which template probably comes next, from what usually
 // follows the last one and what is usually done on this weekday.
 import { DAY } from './units.js';
@@ -11,6 +12,12 @@ import { DAY } from './units.js';
  * Returns { template, why: { kind: 'after'|'weekday'|'due', ... } } or null.
  */
 const SUGGEST_DECAY = 0.6;
+/**
+ * @template {{ id: string, name: string, archived?: boolean }} T
+ * @param {T[]} templates
+ * @param {{ templateId?: string | null, startedAt: number }[]} workouts
+ * @returns {{ template: T, why: { kind: 'weekday', day: number } | { kind: 'after', name: string } | { kind: 'due', at: number } } | null}
+ */
 export function suggestTemplate(templates, workouts, now = Date.now()) {
   const live = new Map(templates.filter((t) => !t.archived).map((t) => [t.id, t]));
   const seq = workouts
@@ -18,7 +25,7 @@ export function suggestTemplate(templates, workouts, now = Date.now()) {
     .sort((a, b) => a.startedAt - b.startedAt);
   if (seq.length < 2) return null;
   const last = seq[seq.length - 1];
-  const ids = [...new Set(seq.map((w) => w.templateId))];
+  const ids = /** @type {string[]} */ ([...new Set(seq.map((w) => w.templateId))]);
 
   // what followed the last template before (newer transitions weigh more)
   const after = new Map();
@@ -45,20 +52,25 @@ export function suggestTemplate(templates, workouts, now = Date.now()) {
     dayCount++;
   }
   const lastDone = new Map(seq.map((w) => [w.templateId, w.startedAt]));
+  /** @type {{ id: string, score: number, a: number, d: number } | null} */
   let best = null;
   for (const id of ids) {
     const a = afterTotal ? (after.get(id) || 0) / afterTotal : 0;
     const d = dayCount >= 2 ? (onDay.get(id) || 0) / dayTotal : 0;
     // tie-breaker: the longer it hasn't been done, the more likely it's due
-    const due = (now - lastDone.get(id)) / (120 * DAY) * 0.1;
+    const due = (now - /** @type {number} */ (lastDone.get(id))) / (120 * DAY) * 0.1;
     const score = 0.6 * a + 0.4 * d + due;
     if (!best || score > best.score) best = { id, score, a, d };
   }
-  const template = live.get(best.id);
+  if (!best) return null;
+  // every id comes from a workout of a live template, so these are all there
+  const template = /** @type {T} */ (live.get(best.id));
+  const lastName = /** @type {T} */ (live.get(/** @type {string} */ (last.templateId))).name;
+  /** @type {{ kind: 'weekday', day: number } | { kind: 'after', name: string } | { kind: 'due', at: number }} */
   let why;
   if (best.d >= 0.6 && (onDayCount.get(best.id) || 0) >= 2 && best.d >= best.a) why = { kind: 'weekday', day: today };
-  else if (best.a > 0) why = { kind: 'after', name: live.get(last.templateId).name };
-  else why = { kind: 'due', at: lastDone.get(best.id) };
+  else if (best.a > 0) why = { kind: 'after', name: lastName };
+  else why = { kind: 'due', at: /** @type {number} */ (lastDone.get(best.id)) };
   return { template, why };
 }
 

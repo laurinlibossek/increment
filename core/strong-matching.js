@@ -1,3 +1,4 @@
+// @ts-check
 // Conservative Strong-name matching. Search can match fragments; import
 // suggestions must account for every word of the movement's name.
 import { canMergeExercises } from './editing.js';
@@ -6,7 +7,7 @@ import { familyOf, exerciseFamilyBaseKey } from './exercise-families.js';
 import { EXERCISE_EQUIPMENT_ORDER } from './exercise-equipment.js';
 
 /** Exact import identity ignores case and whitespace, as before. */
-export const strongNameKey = (name) => String(name).trim().toLowerCase().replace(/\s+/g, ' ');
+export const strongNameKey = (/** @type {unknown} */ name) => String(name).trim().toLowerCase().replace(/\s+/g, ' ');
 
 export const STRONG_EXERCISE_ALIASES = Object.freeze({
   'Bench Press - Close Grip (Barbell)': 'x-close-grip-bench-press-barbell',
@@ -17,12 +18,14 @@ export const STRONG_EXERCISE_ALIASES = Object.freeze({
   'Hip Adductor (Machine)': 'x-hip-adduction-machine',
 });
 
+/** @param {unknown} s @returns {string[]} */
 const words = (s) => String(s).toLowerCase().normalize('NFD').replace(/\p{M}/gu, '')
   .replace(/['’]/g, '')
   .replace(/[^\p{L}\p{N}]+/gu, ' ').trim().split(/\s+/).filter(Boolean)
   .map((w) => w.length > 2 && !/ss$/.test(w) ? w.replace(/ies$/, 'y').replace(/s$/, '') : w)
-  .flatMap((w, i, tokens) => ['db', 'bb', 'ez', 'kb', 'pullup', 'pushup', 'chinup', 'situp'].includes(w) && !(w === 'ez' && tokens[i + 1] === 'bar') ? EXERCISE_SEARCH_SHORTCUTS[w].split(' ') : [w]);
+  .flatMap((w, i, tokens) => ['db', 'bb', 'ez', 'kb', 'pullup', 'pushup', 'chinup', 'situp'].includes(w) && !(w === 'ez' && tokens[i + 1] === 'bar') ? /** @type {Record<string, string>} */ (EXERCISE_SEARCH_SHORTCUTS)[w].split(' ') : [w]);
 
+/** @param {string} name */
 function nameParts(name) {
   const bracket = /\s*\(([^()]*)\)\s*$/.exec(name);
   let base = words(bracket ? name.slice(0, bracket.index) : name);
@@ -40,6 +43,7 @@ function nameParts(name) {
   return { base, equipment };
 }
 
+/** @param {string} a @param {string} b */
 function distance(a, b) {
   let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
   for (let i = 1; i <= a.length; i++) {
@@ -50,6 +54,7 @@ function distance(a, b) {
   return prev[b.length];
 }
 
+/** @param {string[]} a @param {string[]} b @returns {number | null} */
 function wordDistance(a, b) {
   if (!a.length) return null;
   // "Lat Pull Down", "Pull-Ups", "Skull Crushers": only the spacing differs
@@ -64,9 +69,15 @@ function wordDistance(a, b) {
   return score / a.length;
 }
 
-/** At most three compatible candidates, closest first; no partial-word overlap. */
+/**
+ * At most three compatible candidates, closest first; no partial-word overlap.
+ * @param {string} name @param {string} category
+ * @param {any[] | Map<string, any>} exercises
+ * @returns {{ id: string, score: number, preselect: boolean }[]}
+ */
 export function strongExerciseSuggestions(name, category, exercises) {
   const source = nameParts(name);
+  /** @type {{ id: string, score: number, preselect: boolean, base: string }[]} */
   const candidates = [];
   for (const ex of exercises instanceof Map ? exercises.values() : exercises) {
     if (!canMergeExercises({ id: null, category }, ex)) continue;
@@ -86,7 +97,7 @@ export function strongExerciseSuggestions(name, category, exercises) {
   return candidates.slice(0, 3).map(({ id, score, preselect }, i) => ({ id, score, preselect: i === 0 && preselect }));
 }
 
-/** Only an exact base name joins a family. No spelling, plural or word guesses. */
+/** Only an exact base name joins a family. No spelling, plural or word guesses. @param {string} name @param {any[] | Map<string, any>} exercises */
 export function strongExerciseFamily(name, exercises) {
   const base = exerciseFamilyBaseKey(name);
   const families = new Set();

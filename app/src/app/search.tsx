@@ -40,7 +40,7 @@ export default function SearchScreen() {
 
   const list = useMemo(() => exerciseBrowserRows(s.exercises, sessions, f, { query: q, part, customFamilies: s.customFamilies }), [s.exercises, s.customFamilies, sessions, q, part, f]);
   const total = useMemo(() => [...s.exercises.values()].filter((e) => !e.hidden).length, [s.exercises]);
-  const parts = [{ id: 'all', label: tr('All') }, ...(BODY_PARTS as { id: string; label: string }[]).map((b) => ({ id: b.id, label: tr(b.label) }))];
+  const parts = [{ id: 'all', label: tr('All') }, ...BODY_PARTS.map((b) => ({ id: b.id, label: tr(b.label) }))];
   const create = async () => {
     const ex = await editExercise({ name: q.trim() });
     if (ex) router.push({ pathname: '/exercise/[id]', params: { id: ex.id } });

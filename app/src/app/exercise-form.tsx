@@ -147,7 +147,7 @@ export default function ExerciseForm() {
         <Txt tone="ink2" style={[TYPE.footnote, { marginTop: SPACE.s2, paddingHorizontal: SPACE.s1 }]} testID="exercise-category-help">{tr((CATEGORY_HELP as Record<string, string>)[category])}</Txt>
         <SectionTitle>{tr('Body part')}</SectionTitle>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.s2 }}>
-          {(BODY_PARTS as { id: string; label: string }[]).map((b) => {
+          {BODY_PARTS.map((b) => {
             const on = bodyPart === b.id;
             return (
               <Pressable key={b.id} onPress={() => setBodyPart(b.id)} accessibilityRole="radio" accessibilityState={{ checked: on }} testID={`part-${b.id}`}

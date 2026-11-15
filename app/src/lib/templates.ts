@@ -198,7 +198,7 @@ type Shared = {
 export async function offerSharedTemplate(text: string, f: F): Promise<boolean> {
   const { tr } = f;
   const p = decodeTemplate(text, {
-    categories: (CATEGORIES as { id: string }[]).map((x) => x.id), bodyParts: (BODY_PARTS as { id: string }[]).map((x) => x.id),
+    categories: CATEGORIES.map((x) => x.id), bodyParts: BODY_PARTS.map((x) => x.id),
   }) as Shared | null;
   if (!p) return false;
   const s = getState();

@@ -1,3 +1,4 @@
+// @ts-check
 // Equipment tab order; logging categories and stored names stay unchanged.
 // Plate sits with the free weights; the remaining order is Laurin's review order.
 export const EXERCISE_EQUIPMENT_ORDER = Object.freeze([
@@ -6,10 +7,12 @@ export const EXERCISE_EQUIPMENT_ORDER = Object.freeze([
 ]);
 
 /** The trailing bracket, including legacy Strong qualifiers (Weighted/Assisted/Single Arm). */
+/** @param {{ name?: string } | null | undefined} ex @returns {string} */
 export function exerciseEquipment(ex) {
   return ex?.name?.match(/\(([^()]*)\)\s*$/)?.[1] || '';
 }
 
+/** @param {{ name?: string, category?: string } | null | undefined} ex */
 function equipmentRank(ex) {
   const equipment = exerciseEquipment(ex);
   // Unbracketed bodyweight exercises keep their empty display label, but sort
@@ -23,6 +26,7 @@ function equipmentRank(ex) {
 }
 
 /** Stable equipment comparison within one movement, without changing its records. */
+/** @param {{ name?: string, category?: string } | null | undefined} a @param {{ name?: string, category?: string } | null | undefined} b */
 export function compareExerciseEquipment(a, b) {
   return equipmentRank(a) - equipmentRank(b);
 }

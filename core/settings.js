@@ -1,3 +1,4 @@
+// @ts-check
 // Default settings, shared by every app. Stored settings are merged over these,
 // so a backup from an older version gets new settings at their defaults, and a
 // stored value of the wrong type (null, a number as text) gets the default too.
@@ -36,12 +37,12 @@ export const DEFAULT_SETTINGS = {
   plates: KG_PLATES,
 };
 
-/** Settings whose default is null ("not set"): null or a value of this type. */
+/** Settings whose default is null ("not set"): null or a value of this type. @type {Record<string, string>} */
 const NULLABLE = { historyStart: 'number', bodyUnit: 'string', sizeUnit: 'string' };
 
-/** Whether a stored value can stand in for the default of `key`. */
+/** Whether a stored value can stand in for the default of `key`. @param {string} key @param {unknown} value */
 function fits(key, value) {
-  const d = DEFAULT_SETTINGS[key];
+  const d = /** @type {Record<string, unknown>} */ (DEFAULT_SETTINGS)[key];
   if (key in NULLABLE) return value === null || (NULLABLE[key] === 'number' ? Number.isFinite(value) : typeof value === NULLABLE[key]);
   if (Array.isArray(d)) return Array.isArray(value);
   if (typeof d === 'object') return !!value && typeof value === 'object' && !Array.isArray(value);
@@ -54,9 +55,11 @@ function fits(key, value) {
  * has the default's type, so every screen can read every setting as it is,
  * without a fallback of its own. Keys without a default are kept as they are
  * (a newer version's settings survive a round trip through this one).
+ * @param {unknown} stored
+ * @returns {typeof DEFAULT_SETTINGS & Record<string, unknown>}
  */
 export function withDefaults(stored) {
-  const own = (k) => Object.prototype.hasOwnProperty.call(DEFAULT_SETTINGS, k);
+  const own = (/** @type {string} */ k) => Object.prototype.hasOwnProperty.call(DEFAULT_SETTINGS, k);
   const kept = stored && typeof stored === 'object' && !Array.isArray(stored)
     ? Object.entries(stored).filter(([k, v]) => !own(k) || fits(k, v)) : [];
   return { ...DEFAULT_SETTINGS, ...Object.fromEntries(kept) };
@@ -83,9 +86,12 @@ export function changeSetting(settings, key, value) {
  * The warm-up scheme from what was typed in its editor: reps with the empty
  * bar, and [percent, reps] rows. Rows without a percent between 0 and 100 or
  * without reps are dropped; the rest are sorted by percent.
+ * @param {unknown} barReps
+ * @param {[unknown, unknown][] | null | undefined} steps
+ * @returns {{ barReps: number, steps: [number, number][] }}
  */
 export function warmupFromInput(barReps, steps) {
-  const clean = (steps || []).map(([p, r]) => [parseNum(p), Math.round(parseNum(r) || 0)])
-    .filter(([p, r]) => p > 0 && p < 100 && r > 0).sort((a, b) => a[0] - b[0]);
+  const clean = /** @type {[number, number][]} */ ((steps || []).map(([p, r]) => [parseNum(p), Math.round(parseNum(r) || 0)])
+    .filter(([p, r]) => p !== null && p > 0 && p < 100 && r !== null && r > 0)).sort((a, b) => a[0] - b[0]);
   return { barReps: Math.max(0, Math.round(parseNum(barReps) || 0)), steps: clean };
 }
