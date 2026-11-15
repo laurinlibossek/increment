@@ -3,7 +3,7 @@
 // join this list later; docs/design/navigation.md.)
 import { useCallback, useMemo, useRef, useState } from 'react';
 import {
-  FlatList, Pressable, Text, TextInput, type TextInputInstance, View,
+  FlatList, Pressable, Text, type TextInputInstance, View,
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,11 +15,10 @@ import { exerciseBrowserRows } from '@/lib/exerciseBrowser';
 import { ChoiceChips } from '@/ui/tally/ChoiceChips';
 import { editExercise } from '@/lib/exerciseForm';
 import { useFormat } from '@/lib/format';
-import { useSearchFocus } from '@/ui/useSearchFocus';
 import { useTally } from '@/lib/theme';
 import { ENABLE_EXERCISE_THUMBNAILS } from '@/lib/exerciseThumbnails';
 import { ExerciseThumbnail, EXERCISE_THUMBNAIL_SIZE } from '@/ui/ExerciseThumbnail';
-import { Button, Empty } from '@/ui/kit';
+import { Button, Empty, SearchField } from '@/ui/kit';
 import { ListRow, SymbolIcon } from '@/ui/tally/ListRow';
 import { TabTitle } from '@/ui/tally/TabRoot';
 
@@ -30,7 +29,6 @@ export default function SearchScreen() {
   const { colors: t } = useTally();
   const insets = useSafeAreaInsets();
   const [q, setQ] = useState('');
-  const focus = useSearchFocus();
   const [part, setPart] = useState('all');
   const input = useRef<TextInputInstance>(null);
   const sessions = allSessions(s);
@@ -48,7 +46,7 @@ export default function SearchScreen() {
     if (ex) router.push({ pathname: '/exercise/[id]', params: { id: ex.id } });
   };
   const plus = (
-    <Pressable onPress={create} accessibilityRole="button" accessibilityLabel={tr('New exercise')} testID="new-exercise" hitSlop={4}
+    <Pressable onPress={create} accessibilityRole="button" accessibilityLabel={tr('New exercise')} testID="new-exercise"
       style={({ pressed }) => ({ width: CONTROL.hitMin, height: CONTROL.hitMin, borderRadius: RADIUS.capsule, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? t.paper2 : t.paper3 })}>
       <SymbolIcon name="plus" size={22} color={t.ink} />
     </Pressable>
@@ -58,12 +56,7 @@ export default function SearchScreen() {
     <View>
       <TabTitle title={tr('Search')} right={plus} />
       <View style={{ paddingHorizontal: SPACE.s5, gap: SPACE.s3, marginBottom: SPACE.s3 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACE.s2, borderRadius: RADIUS.capsule, paddingHorizontal: 14, backgroundColor: t.paper3, ...focus.containerStyle }}>
-          <SymbolIcon name="magnifyingglass" size={16} color={t.ink2} />
-          <TextInput ref={input} value={q} onChangeText={setQ} placeholder={tr('Search {n} exercises', { n: total })} placeholderTextColor={t.ink3}
-            testID="exercise-search" accessibilityLabel={tr('Search')} onFocus={focus.onFocus} onBlur={focus.onBlur} autoCorrect={false} autoCapitalize="none" clearButtonMode="while-editing" returnKeyType="search"
-            style={[TYPE.body, { flex: 1, minWidth: 0, color: t.ink, paddingVertical: 10 }, focus.inputStyle]} />
-        </View>
+        <SearchField style={{ paddingHorizontal: 14 }} iconTone="ink2" value={q} onChange={setQ} placeholder={tr('Search {n} exercises', { n: total })} label={tr('Search')} testID="exercise-search" inputRef={input} />
         <ChoiceChips label={tr('Body part')} testID="search-parts" value={part} onChange={setPart} options={parts.map((p) => ({ value: p.id, label: p.label }))} />
       </View>
     </View>

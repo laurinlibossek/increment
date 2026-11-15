@@ -264,7 +264,7 @@ function Running({ a, reveal }: { a: ActiveWorkout; reveal: { current: (ref: Tex
             <View style={styles.titleRow}>
               <TextInput ref={nameRef} value={a.name} onChangeText={(v) => patchActive({ name: v })} onFocus={session.close} accessibilityLabel={tr('Workout name')} testID="workout-name"
                 returnKeyType="done" style={[styles.name, { color: t.ink }]} />
-              <Pressable onPress={changeStart} accessibilityRole="button" accessibilityHint={tr('Change start time')} testID="start-time" hitSlop={8}>
+              <Pressable onPress={changeStart} accessibilityRole="button" accessibilityHint={tr('Change start time')} testID="start-time" style={{ minWidth: CONTROL.hitMin, minHeight: CONTROL.hitMin, justifyContent: 'center', marginVertical: -(CONTROL.hitMin - 28) / 2 }}>
                 <View testID="started-at"><Elapsed since={a.startedAt} /></View>
               </Pressable>
             </View>
@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
   iconBtn: { width: CONTROL.hitMin, height: CONTROL.hitMin, borderRadius: CONTROL.hitMin / 2, alignItems: 'center', justifyContent: 'center' },
   head: { paddingHorizontal: SPACE.s5 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.s3 },
-  name: { ...TYPE.title1, flex: 1, minWidth: 0, paddingVertical: 2, paddingHorizontal: 0 },
+  name: { ...TYPE.title1, flex: 1, minWidth: CONTROL.hitMin, minHeight: CONTROL.hitMin, marginVertical: -(CONTROL.hitMin - TYPE.title1.lineHeight - 4) / 2, paddingVertical: 2, paddingHorizontal: 0 },
   hero: { marginTop: SPACE.s3 },
   notes: { borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10, marginTop: SPACE.s3, fontSize: 15, minHeight: 60 },
   effort: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: SPACE.s3 },

@@ -14,9 +14,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { daysAgo, pad2, startOfDay } from '@increment/core';
 
 import { useLang } from '@/lib/i18n';
-import { RADIUS, SPACE, TYPE } from '@/design/tally';
+import { CONTROL, RADIUS, SPACE, TYPE } from '@/design/tally';
 import { useColors, useTally } from '@/lib/theme';
-import { Icon, type IconName } from './kit';
+import { hitTarget, Icon, type IconName } from './kit';
 
 export type SheetAction<T> = { label: string; value: T; destructive?: boolean; checked?: boolean; icon?: IconName; testID?: string };
 export type ChoiceOption<T> = { label: string; sub?: string; value: T; tone?: 'primary' | 'danger' | 'plain'; testID?: string };
@@ -294,11 +294,11 @@ function DayTime({ value, onChange, max }: { value: number; onChange: (t: number
   return (
     <View style={{ gap: SPACE.s3, marginTop: SPACE.s4 }}>
       <View style={[styles.dayRow, { backgroundColor: c.surface2 }]}>
-        <Pressable onPress={() => shift(-1)} hitSlop={8} accessibilityRole="button" accessibilityLabel={tr('Day before')} testID="day-prev" style={styles.dayBtn}>
+        <Pressable onPress={() => shift(-1)} accessibilityRole="button" accessibilityLabel={tr('Day before')} testID="day-prev" style={styles.dayBtn}>
           <Text style={[TYPE.numberM, { color: c.accentText }]}>‹</Text>
         </Pressable>
         <Text style={[TYPE.headline, { color: c.ink, flex: 1, textAlign: 'center' }]} testID="day-label">{label}</Text>
-        <Pressable onPress={() => canNext && shift(1)} disabled={!canNext} accessibilityState={{ disabled: !canNext }} hitSlop={8} accessibilityRole="button" accessibilityLabel={tr('Day after')} testID="day-next"
+        <Pressable onPress={() => canNext && shift(1)} disabled={!canNext} accessibilityState={{ disabled: !canNext }} accessibilityRole="button" accessibilityLabel={tr('Day after')} testID="day-next"
           style={[styles.dayBtn, { opacity: canNext ? 1 : 0.3 }]}>
           <Text style={[TYPE.numberM, { color: c.accentText }]}>›</Text>
         </Pressable>
@@ -375,7 +375,7 @@ function ToastView({ t }: { t: Toast }) {
       <View style={[styles.toast, { backgroundColor: c.ink }]} accessibilityLiveRegion="polite" testID="toast">
         <Text style={[TYPE.subhead, { color: c.bg, flexShrink: 1 }]}>{t.text}</Text>
         {t.action && (
-          <Pressable onPress={() => { hideToast(); t.action!.fn(); }} accessibilityRole="button" hitSlop={8} testID="toast-action">
+          <Pressable onPress={() => { hideToast(); t.action!.fn(); }} accessibilityRole="button" testID="toast-action" style={{ ...hitTarget, paddingHorizontal: SPACE.s2, marginHorizontal: -SPACE.s2, marginVertical: -(CONTROL.hitMin - TYPE.body.lineHeight) / 2 }}>
             <Text style={[TYPE.headline, { color: c.bg, textDecorationLine: 'underline' }]}>{t.action.label}</Text>
           </Pressable>
         )}
@@ -393,7 +393,7 @@ const styles = StyleSheet.create({
   dialog: { width: '100%', maxWidth: 380, borderRadius: RADIUS.l, padding: SPACE.s5 },
   choice: { borderRadius: RADIUS.capsule, paddingVertical: SPACE.s3, paddingHorizontal: SPACE.s4, minHeight: 48, justifyContent: 'center' },
   dayRow: { flexDirection: 'row', alignItems: 'center', borderRadius: RADIUS.m, height: 48, paddingHorizontal: SPACE.s2 },
-  dayBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  dayBtn: { width: CONTROL.hitMin, height: CONTROL.hitMin, margin: -(CONTROL.hitMin - 40) / 2, alignItems: 'center', justifyContent: 'center' },
   timeInput: { ...TYPE.title1, width: 64, height: 52, borderRadius: RADIUS.m, textAlign: 'center', fontVariant: ['tabular-nums'] },
   numInput: { ...TYPE.numberL, minWidth: 140, height: 56, borderRadius: RADIUS.m, textAlign: 'center', fontVariant: ['tabular-nums'], paddingHorizontal: SPACE.s3 },
   promptInput: { ...TYPE.body, marginTop: SPACE.s4, borderRadius: RADIUS.m, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: SPACE.s3, paddingVertical: SPACE.s3, textAlignVertical: 'top' },

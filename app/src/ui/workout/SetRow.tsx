@@ -9,7 +9,7 @@ import { memo, useEffect, useRef } from 'react';
 import { Platform, Pressable, TextInput, type TextInputInstance } from 'react-native';
 import { fmtDigits } from '@increment/core';
 
-import { RADIUS, TYPE } from '@/design/tally';
+import { CONTROL, RADIUS, TYPE } from '@/design/tally';
 import { useTally } from '@/lib/theme';
 
 /** The "Done" bar above the iPhone number pad (DraftBlocks → KeyboardDoneBar). */
@@ -20,7 +20,7 @@ export const FIELD_W: Record<Field, number> = { w: 92, r: 64, d: 92, t: 92 };
 /** the routine editor's reps while they hold a range, "10–12" (#44) */
 const RANGE_W = 84;
 /** Every field is this tall, boxed or not, so a row doesn't change height when its set becomes the one being logged. */
-export const FIELD_H = 44;
+export const FIELD_H = CONTROL.hitMin;
 
 /** A field's width: one field on its own (reps only, a duration) is wider; the routine editor's reps widen for a range. */
 export const fieldWidth = (field: Field, single = false, range = false) => (single ? FIELD_W.t : range ? RANGE_W : FIELD_W[field]);
@@ -76,7 +76,7 @@ export const SetField = memo(function SetField({
   const box = boxed || !!editing;
   return (
     // the box: tapping its edge types into the number too
-    <Pressable onPress={() => ref.current?.focus()} accessible={false}
+    <Pressable onPress={() => ref.current?.focus()} accessible={false} testID={testID.replace(/^in-/, 'field-')}
       style={{
         width: fieldWidth(field, single, wide || (range && value.includes('–'))), height: FIELD_H, borderRadius: RADIUS.m, justifyContent: 'center',
         backgroundColor: editing ? t.paper : box ? t.paper3 : 'transparent',

@@ -37,17 +37,17 @@ export function CapsuleButton({
   const h = small ? 36 : CONTROL.buttonH;
   return (
     <Pressable onPress={onPress} disabled={disabled} aria-disabled={!!disabled} accessibilityState={{ disabled: !!disabled }} accessibilityRole="button" accessibilityLabel={label} testID={testID}
-      hitSlop={small ? (CONTROL.hitMin - h) / 2 : undefined}
-      style={({ pressed }) => ({
+      style={({ pressed }) => ({ minWidth: CONTROL.hitMin, minHeight: Math.max(CONTROL.hitMin, h), marginVertical: small ? -(CONTROL.hitMin - h) / 2 : 0, justifyContent: 'center', alignSelf: block ? 'stretch' : 'auto', opacity: disabled ? 0.45 : pressed ? 0.8 : 1 })}>
+      <View style={{
         minHeight: h, paddingHorizontal: small ? SPACE.s4 : SPACE.s6, borderRadius: RADIUS.capsule,
         flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACE.s2,
-        backgroundColor: kind === 'primary' ? t.primary : t.paper3, opacity: disabled ? 0.45 : pressed ? 0.8 : 1,
-        alignSelf: block ? 'stretch' : 'auto',
-      })}>
+        backgroundColor: kind === 'primary' ? t.primary : t.paper3,
+      }}>
       {icon}
       <Text numberOfLines={1} style={{
         color: kind === 'primary' ? t.onPrimary : t.accent, fontSize: small ? 15 : 17, lineHeight: small ? 20 : 22, fontWeight: '600', fontVariant: ['tabular-nums'],
       }}>{title}</Text>
+      </View>
     </Pressable>
   );
 }
@@ -135,8 +135,8 @@ export function RestBar({ end, total, labels, onAdjust, onSkip, effort, next }: 
       </View>
       <DrainBar end={end} total={total} />
       {next && (
-        <Pressable onPress={next.onPress} accessibilityRole="button" testID="rest-next" hitSlop={8}
-          style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', minHeight: 28, opacity: pressed ? 0.6 : 1 })}>
+        <Pressable onPress={next.onPress} accessibilityRole="button" testID="rest-next"
+          style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', minHeight: CONTROL.hitMin, marginVertical: -(CONTROL.hitMin - 28) / 2, opacity: pressed ? 0.6 : 1 })}>
           <Text numberOfLines={1} style={{ ...TYPE.subhead, fontWeight: '600', color: t.accent }}>{next.label}</Text>
         </Pressable>
       )}

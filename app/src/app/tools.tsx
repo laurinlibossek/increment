@@ -44,7 +44,7 @@ export default function Tools() {
         <View style={{ flex: 1 }} />
         <Text style={[TYPE.headline, { color: c.ink }]}>{tr('Tools')}</Text>
         <View style={{ flex: 1, alignItems: 'flex-end' }}>
-          <Pressable onPress={() => router.back()} hitSlop={SPACE.s2} style={styles.done} accessibilityRole="button" testID="tools-done">
+          <Pressable onPress={() => router.back()} style={styles.done} accessibilityRole="button" testID="tools-done">
             <Text style={[TYPE.headline, { color: c.ink }]}>{tr('Done')}</Text>
           </Pressable>
         </View>

@@ -20,17 +20,19 @@ export function EffortPicker({
 }) {
   const { colors: t } = useTally();
   return (
-    <View accessibilityRole="radiogroup" accessibilityLabel={label} style={{ flexDirection: 'row', alignItems: 'center', gap: SPACE.s2 }} testID="effort">
+    <View accessibilityRole="radiogroup" accessibilityLabel={label} style={{ flexDirection: 'row', alignItems: 'center', gap: SPACE.s2, minHeight: CONTROL.hitMin, marginVertical: -(CONTROL.hitMin - 36) / 2 }} testID="effort">
       {OPTIONS.map((n) => {
         const on = value === n;
         return (
-          <Pressable key={n} onPress={() => onChange(on ? null : n)} hitSlop={{ top: 4, bottom: 4 }}
+          <Pressable key={n} onPress={() => onChange(on ? null : n)}
             accessibilityRole="radio" accessibilityState={{ checked: on }} aria-pressed={on} accessibilityLabel={optionLabel(n)} testID={`effort-${n}`}
-            style={({ pressed }) => ({
+            style={({ pressed }) => ({ minWidth: CONTROL.hitMin, height: CONTROL.hitMin, justifyContent: 'center', opacity: pressed ? 0.8 : 1 })}>
+            <View style={{
               minWidth: CONTROL.hitMin, height: 36, paddingHorizontal: 12, borderRadius: RADIUS.capsule,
-              alignItems: 'center', justifyContent: 'center', backgroundColor: on ? t.ink : t.paper3, opacity: pressed ? 0.8 : 1,
-            })}>
-            <Text style={{ color: on ? t.paper : t.ink, fontSize: 15, fontWeight: '600', fontVariant: ['tabular-nums'] }}>{n === 2 ? '2+' : String(n)}</Text>
+              alignItems: 'center', justifyContent: 'center', backgroundColor: on ? t.ink : t.paper3,
+            }}>
+              <Text style={{ color: on ? t.paper : t.ink, fontSize: 15, fontWeight: '600', fontVariant: ['tabular-nums'] }}>{n === 2 ? '2+' : String(n)}</Text>
+            </View>
           </Pressable>
         );
       })}

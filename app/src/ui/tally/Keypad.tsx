@@ -7,7 +7,7 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import { AccessibilityInfo, Animated, PanResponder, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { RADIUS, SPACE, TYPE } from '@/design/tally';
+import { CONTROL, RADIUS, SPACE, TYPE } from '@/design/tally';
 import { useTally } from '@/lib/theme';
 
 export type KeypadKey = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | 'dec' | 'back' | 'minus' | 'plus' | 'next';
@@ -114,7 +114,7 @@ export function Keypad({
     <Animated.View testID="keypad" accessibilityViewIsModal={false} onLayout={(e) => { height.current = e.nativeEvent.layout.height; }}
       style={[styles.sheet, { backgroundColor: t.paper2, borderTopColor: t.line, paddingBottom: Math.max(insets.bottom, SPACE.s4), transform: [{ translateY: y }] }]}>
       <View {...pan.panHandlers} testID="keypad-drag">
-        <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel={labels.close} testID="keypad-close" hitSlop={8} style={styles.grabHit}>
+        <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel={labels.close} testID="keypad-close" style={styles.grabHit}>
           <View style={[styles.grab, { backgroundColor: t.paper3 }]} />
         </Pressable>
         <View style={styles.head}>
@@ -159,7 +159,7 @@ export function Keypad({
 
 const styles = StyleSheet.create({
   sheet: { borderTopLeftRadius: RADIUS.l, borderTopRightRadius: RADIUS.l, paddingHorizontal: SPACE.s4, borderTopWidth: StyleSheet.hairlineWidth },
-  grabHit: { alignSelf: 'center', paddingVertical: SPACE.s2, paddingHorizontal: SPACE.s6 },
+  grabHit: { alignSelf: 'center', zIndex: 1, minHeight: CONTROL.hitMin, justifyContent: 'flex-start', marginBottom: -(CONTROL.hitMin - 5 - SPACE.s2 * 2), paddingVertical: SPACE.s2, paddingHorizontal: SPACE.s6 },
   grab: { width: 36, height: 5, borderRadius: 3 },
   head: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: SPACE.s3, paddingHorizontal: 6, paddingBottom: SPACE.s3 },
   grid: { flexDirection: 'row', gap: SPACE.s2 },

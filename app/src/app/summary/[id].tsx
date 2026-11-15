@@ -63,7 +63,7 @@ export default function Summary() {
   const top = Platform.OS === 'ios' ? 0 : insets.top;
   const bar = (
     <View style={{ flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: SPACE.s2, paddingTop: top + 6 }}>
-      <Pressable onPress={close} hitSlop={8} accessibilityRole="button" testID="summary-done"
+      <Pressable onPress={close} accessibilityRole="button" testID="summary-done"
         style={{ minHeight: 44, minWidth: 44, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' }}>
         <Text style={{ ...TYPE.headline, color: t.ink }}>{tr('Done')}</Text>
       </Pressable>

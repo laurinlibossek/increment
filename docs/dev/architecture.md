@@ -123,6 +123,8 @@ The app is built in the Tally design language: ink on paper, one stroke per set,
 
 ## Gotchas
 
+- **Touch targets:** react-native-web drops `hitSlop`. Size the actual layout box to `CONTROL.hitMin` in both directions instead, with a smaller visible shape inside when needed. The browser touch-target suite measures those boxes; set inputs and web switches delegate their padded area to explicitly measured wrappers.
+
 - **App, `useAppSelector`:** a selector that builds a new array or object on every call makes React loop ("Maximum update depth exceeded", minified error #185). Select stored objects and derive with `useMemo`.
 - **App, SDK 58 (4 Nov 2026):**
   - `src/app/+html.tsx` must place `headNodes` and `bodyNodes` from `useServerDocumentContext()` (`expo-router/html`); `bodyNodes` carries the JavaScript bundles, so without it the web export is a page that never starts.

@@ -124,7 +124,7 @@ const has = async (page, re) => (typeof re === 'string' ? new RegExp(re.replace(
   await openSearch(page);
   await page.getByTestId('exercise-search').fill('bench bb');
   await page.waitForTimeout(300);
-  const rows = await page.locator('[data-testid^="exercise-"]:not([data-testid="exercise-search"])').allInnerTexts();
+  const rows = await page.locator('[data-testid^="exercise-"]:not([data-testid="exercise-search"]):not([data-testid$="-target"])').allInnerTexts();
   // the app is German here, so built-ins show their German names (search still takes the English ones)
   assert.ok(rows.length >= 1 && rows.every((r) => /bankdrücken/i.test(r) && /langhantel/i.test(r)), rows.join(' | '));
   assert.match(rows.find((r) => r.startsWith('Bankdrücken (Langhantel)')) || '', /Brust · \d+ ?Mal/);

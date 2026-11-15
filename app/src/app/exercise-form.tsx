@@ -21,8 +21,7 @@ import { currentForm, finishForm } from '@/lib/exerciseForm';
 import { useFormat } from '@/lib/format';
 import { PICK_NONE, pickExercises } from '@/lib/picker';
 import { useColors } from '@/lib/theme';
-import {
-  Cell, Field, Group, SectionTitle, Txt,
+import { hitTarget, Cell, Field, Group, SectionTitle, Txt,
 } from '@/ui/kit';
 import { OverlayHost, ask, toast } from '@/ui/overlay';
 import { ListRow } from '@/ui/tally/ListRow';
@@ -123,12 +122,12 @@ export default function ExerciseForm() {
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       <View style={[styles.bar, { paddingTop: top + SPACE.s3 }]}>
-        <Pressable onPress={() => close(null)} disabled={saving} hitSlop={SPACE.s2} accessibilityRole="button" testID="exercise-cancel" style={{ flex: 1 }}>
+        <Pressable onPress={() => close(null)} disabled={saving} accessibilityRole="button" testID="exercise-cancel" style={{ ...hitTarget, flex: 1, marginVertical: -(CONTROL.hitMin - TYPE.body.lineHeight) / 2 }}>
           <Text style={[TYPE.body, { color: c.accentText }]}>{tr('Cancel')}</Text>
         </Pressable>
         <Text style={[TYPE.headline, { color: c.ink }]}>{ex ? tr('Edit exercise') : tr('New exercise')}</Text>
         <View style={{ flex: 1, alignItems: 'flex-end' }}>
-          <Pressable onPress={save} disabled={saving} hitSlop={SPACE.s2} accessibilityRole="button" testID="exercise-save">
+          <Pressable onPress={save} disabled={saving} accessibilityRole="button" testID="exercise-save" style={{ ...hitTarget, alignItems: 'flex-end', marginVertical: -(CONTROL.hitMin - TYPE.body.lineHeight) / 2 }}>
             <Text style={[TYPE.headline, { color: saving ? c.ink3 : c.accentText }]}>{tr('Save')}</Text>
           </Pressable>
         </View>
