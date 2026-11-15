@@ -30,10 +30,10 @@
  * @typedef {Map<string, ExerciseLike> | ExerciseLike[]} Exercises
  *
  * A finished workout.
- * @typedef {{ id: string, name?: string, startedAt: number, templateId?: string | null, exercises: LoggedEntry[] }} WorkoutLike
+ * @typedef {{ id: string, name?: string, startedAt: number, endedAt?: number, templateId?: string | null, exercises: LoggedEntry[] }} WorkoutLike
  *
  * A routine (stored as a template).
- * @typedef {{ exercises: EntryLike[] }} RoutineLike
+ * @typedef {{ id?: string, exercises: EntryLike[] }} RoutineLike
  *
  * A set total: complete sets and the rows a left/right pairing leaves out (#54).
  * @typedef {{ sets: number, unpaired: number }} SetCount

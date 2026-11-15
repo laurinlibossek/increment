@@ -121,8 +121,7 @@ export function muscleSets(workouts, exercises, muscle, { days = 7, now = Date.n
   /** @type {Map<string, { exerciseId: string, sets: number, unpaired: number, workouts: { id: string, name: string | undefined, startedAt: number, sets: number, unpaired: number, rows: Row[] }[] }>} */
   const byExercise = new Map();
   let sets = 0, unpaired = 0;
-  const newestFirst = [...workouts].sort((a, b) => b.startedAt - a.startedAt);
-  eachMuscleExercise(newestFirst, exercises, { days, now }, ({ workout: w, exerciseId, muscle: m, rows, sets: n, unpaired: u }) => {
+  eachMuscleExercise(newestFirst(workouts), exercises, { days, now }, ({ workout: w, exerciseId, muscle: m, rows, sets: n, unpaired: u }) => {
     if (m !== muscle || !(n || u)) return;
     let e = byExercise.get(exerciseId);
     if (!e) byExercise.set(exerciseId, e = { exerciseId, sets: 0, unpaired: 0, workouts: [] });
@@ -136,24 +135,89 @@ export function muscleSets(workouts, exercises, muscle, { days = 7, now = Date.n
   return { muscle, label, sets, unpaired, exercises: list };
 }
 
-// Rough time per set, for the estimate on a routine card.
+// Rough time per set, for the estimate on a routine card before there's history.
 const WORK_SEC = 45, WARMUP_SEC = 30, WARMUP_REST_SEC = 60;
+// The estimate from history (#114): this routine's last 5 sessions, else the
+// last 10 of any kind; sessions under 2 minutes (imports without a duration
+// are saved as 1 minute long) or over 4 hours (Finish forgotten) don't count.
+const ROUTINE_SESSIONS = 5, ANY_SESSIONS = 10;
+const MIN_SESSION_MS = 2 * 60000, MAX_SESSION_MS = 4 * 3600000;
+
+/** Minutes to show: rounded to 5, at least 5. @param {number} sec */
+const roundMinutes = (sec) => Math.max(5, Math.round(sec / 60 / 5) * 5);
+
+/** The middle value of a list that isn't empty. @param {number[]} xs */
+function median(xs) {
+  const s = [...xs].sort((a, b) => a - b), m = s.length >> 1;
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+}
+
+/** @type {WeakMap<WorkoutLike[], WorkoutLike[]>} */
+const sortedCache = new WeakMap();
+/** The workouts newest first, sorted once per list (every row on Plan asks). @param {WorkoutLike[]} workouts */
+function newestFirst(workouts) {
+  let sorted = sortedCache.get(workouts);
+  if (!sorted) { sorted = [...workouts].sort((a, b) => b.startedAt - a.startedAt); sortedCache.set(workouts, sorted); }
+  return sorted;
+}
+
+/**
+ * Seconds per working set the person took (#114): each session's length over
+ * its working sets (entriesSetCount, with `pair` as for the routine), the
+ * median of this routine's last 5 usable sessions, else of the last 10 of any
+ * kind. Skipped: unfinished, under 2 minutes, over 4 hours, no working sets.
+ * Null without a usable session.
+ * @param {WorkoutLike[]} workouts
+ * @param {Exercises} exercises
+ * @param {string | undefined} routineId
+ * @param {boolean} pair
+ * @returns {{ pace: number, basis: 'routine' | 'all' } | null}
+ */
+function historyPace(workouts, exercises, routineId, pair) {
+  /** @type {number[]} */
+  const mine = [];
+  /** @type {number[]} */
+  const any = [];
+  for (const w of newestFirst(workouts)) {
+    if (mine.length >= ROUTINE_SESSIONS && any.length >= ANY_SESSIONS) break;
+    const ours = !!routineId && w.templateId === routineId && mine.length < ROUTINE_SESSIONS;
+    if (!ours && any.length >= ANY_SESSIONS) continue;
+    const ms = (w.endedAt ?? NaN) - w.startedAt;
+    if (!(ms >= MIN_SESSION_MS && ms <= MAX_SESSION_MS)) continue;
+    const { sets } = entriesSetCount(w.exercises, exercises, { pair });
+    if (!sets) continue;
+    const pace = ms / 1000 / sets;
+    if (ours) mine.push(pace);
+    if (any.length < ANY_SESSIONS) any.push(pace);
+  }
+  if (mine.length) return { pace: median(mine), basis: 'routine' };
+  if (any.length) return { pace: median(any), basis: 'all' };
+  return null;
+}
 
 /**
  * A routine's size for its card: exercises, working sets and about how many
- * minutes it takes (each set's work plus the rest after it, the last set
- * without; rounded to 5 minutes). Sets are the prescribed rows' entriesSetCount
- * (#54): `pair` (Account → "Count left/right sets together") counts complete
- * left/right pairs, and `unpaired` the rows left out. Minutes count every row.
- * Exercises missing from the library are left out.
+ * minutes it takes, rounded to 5 minutes (at least 5). Sets are the prescribed
+ * rows' entriesSetCount (#54): `pair` (Account → "Count left/right sets
+ * together") counts complete left/right pairs, and `unpaired` the rows left
+ * out. Exercises missing from the library are left out.
+ * Minutes (#114): given the finished `workouts`, the person's own pace (see
+ * historyPace: this routine's sessions, else any) times the routine's working
+ * sets, `basis` 'routine' or 'all'. Without usable history, `basis` 'formula':
+ * each row's work (45 s, a warm-up 30 s) plus the rest after it (a warm-up's at
+ * most 1 minute), the last row without.
  * @param {RoutineLike} template
  * @param {Exercises} exercises
- * @returns {{ exercises: number, sets: number, unpaired: number, minutes: number }}
+ * @param {{ defaultRest?: number, pair?: boolean, workouts?: WorkoutLike[] }} [options]
+ * @returns {{ exercises: number, sets: number, unpaired: number, minutes: number, basis: 'routine' | 'all' | 'formula' }}
  */
-export function routineSize(template, exercises, { defaultRest = 120, pair = true } = {}) {
+export function routineSize(template, exercises, { defaultRest = 120, pair = true, workouts } = {}) {
   const get = exerciseLookup(exercises);
   const entries = template.exercises.filter((e) => get(e.exerciseId));
   const { sets, unpaired } = entriesSetCount(entries, exercises, { pair });
+  const size = { exercises: entries.length, sets, unpaired };
+  const history = workouts && sets ? historyPace(workouts, exercises, template.id, pair) : null;
+  if (history) return { ...size, minutes: roundMinutes(history.pace * sets), basis: history.basis };
   let sec = 0, all = 0, lastRest = 0;
   for (const e of entries) {
     const rest = restFor(e, get(e.exerciseId), defaultRest) || 0;
@@ -165,8 +229,7 @@ export function routineSize(template, exercises, { defaultRest = 120, pair = tru
     }
   }
   sec -= lastRest; // nothing to rest for after the last set
-  const minutes = all ? Math.max(5, Math.round(sec / 60 / 5) * 5) : 0;
-  return { exercises: entries.length, sets, unpaired, minutes };
+  return { ...size, minutes: all ? roundMinutes(sec) : 0, basis: 'formula' };
 }
 
 /**

@@ -79,7 +79,8 @@ export default function PlanTab() {
     const names = x.exercises.map((e) => s.exercises.get(e.exerciseId)).filter((e) => !!e).map((e) => f.exName(e));
     const { shown, more } = namesPreview(names);
     const list = more ? tr('{names} & {n} more', { names: shown.join(', '), n: more }) : shown.join(', ');
-    const size = routineSize(x, s.exercises, { defaultRest: s.settings.defaultRest, pair: s.settings.pairSides });
+    // minutes from how long this routine took you, else your pace in general (#114)
+    const size = routineSize(x, s.exercises, { defaultRest: s.settings.defaultRest, pair: s.settings.pairSides, workouts: s.workouts });
     const muscles = routineMuscles(x, s.exercises).map((m) => tr(m.label)).join(', ');
     const at = x.example ? 0 : lastUsed(x, s.workouts);
     const when = x.example ? '' : at ? f.relDayLower(at) : tr('not done yet');
