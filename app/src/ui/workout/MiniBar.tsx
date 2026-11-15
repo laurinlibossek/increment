@@ -71,7 +71,7 @@ export function MiniBar({ placement = 'regular', surface = 'raised' }: { placeme
   function setText(e: EntryDraft, index: number) {
     const set = e.sets[index];
     if (set.type === 'warmup') return tr('warm-up set');
-    const slots = setSlots(e.sets, isUnilateral(exercises.get(e.exerciseId)), { pair }) as SetDraft[][];
+    const slots = setSlots(e.sets, isUnilateral(exercises.get(e.exerciseId)), { pair });
     return tr('set {n} of {total}', { n: slots.findIndex((slot) => slot.includes(set)) + 1, total: slots.length });
   }
   const side = entry && entry.sets[cur!.set].type !== 'warmup' ? sideOf(entry.sets[cur!.set]) : undefined;

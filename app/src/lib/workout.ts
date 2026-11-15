@@ -31,7 +31,7 @@ export function openWorkout() { router.push('/active'); }
 function loggedSets(a: ActiveWorkout) {
   const { exercises, settings } = getState();
   const done = a.exercises.map((e) => ({ ...e, sets: e.sets.filter((x) => x.done) }));
-  return (entriesSetCount(done, exercises, { pair: settings.pairSides }) as { sets: number }).sets;
+  return entriesSetCount(done, exercises, { pair: settings.pairSides }).sets;
 }
 
 export function confirmDiscard(a: ActiveWorkout, title: string, tr: Tr) {

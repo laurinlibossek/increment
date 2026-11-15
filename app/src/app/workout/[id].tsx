@@ -61,7 +61,7 @@ export default function WorkoutDetail() {
   const vol = workoutVolume(w, s.exercises) as number;
   const prs = st.prsByWorkout.get(w.id) || [];
   const recordSets = new Set<string>(prs.map((p: { setId: string }) => p.setId));
-  const sets = entriesSetCount(w.exercises, s.exercises, { pair: s.settings.pairSides }) as { sets: number; unpaired: number };
+  const sets = entriesSetCount(w.exercises, s.exercises, { pair: s.settings.pairSides });
   const shown = kgTo(vol || 0, f.unit);
   const label = (k: string) => tr((PR_LABEL as Record<string, string>)[k] || k);
   const tallyLine = [f.setsText(sets), recordSets.size ? f.plural(recordSets.size, 'record') : ''].filter(Boolean).join(' · ');
