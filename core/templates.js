@@ -320,6 +320,8 @@ export function progressTemplate(templateExercises, workout, categoryOf, { layou
 /**
  * A template's exercises as stored: only known exercises, only the fields a
  * template keeps, fresh superset ids. `hasExercise(id)` says which exist.
+ * @param {any[]} exercises
+ * @param {(id: string) => boolean} [hasExercise]
  */
 export function cleanTemplateExercises(exercises, hasExercise = () => true) {
   return remapSupersets(JSON.parse(JSON.stringify(exercises)).map((e) => ({

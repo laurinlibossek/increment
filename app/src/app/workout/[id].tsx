@@ -58,7 +58,7 @@ export default function WorkoutDetail() {
   if (!w) return <Page><Empty title={tr('Workout not found')} text={tr('It may have been deleted.')} /></Page>;
 
   const st = stats(s);
-  const vol = workoutVolume(w, s.exercises) as number;
+  const vol = workoutVolume(w, s.exercises);
   const prs = st.prsByWorkout.get(w.id) || [];
   const recordSets = new Set<string>(prs.map((p: { setId: string }) => p.setId));
   const sets = entriesSetCount(w.exercises, s.exercises, { pair: s.settings.pairSides });

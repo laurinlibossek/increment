@@ -1,3 +1,4 @@
+// @ts-check
 // Families help people find and swap variations. History always uses exercise id.
 import { EXERCISE_CATALOGUE } from './exercise-catalogue.js';
 import { SEED_EXERCISES } from './seed.js';
@@ -7,16 +8,19 @@ import { slug, uid } from './units.js';
 
 /** English/German family names and ordered exercise ids; no stored migration. */
 export const EXERCISE_FAMILIES = EXERCISE_CATALOGUE.map(({ members, ...family }) => ({
-  ...family, members: members.map((e) => e.id),
+  ...family, members: members.map((/** @type {{ id: string }} */ e) => e.id),
 }));
 export const FAMILY_BY_ID = Object.fromEntries(EXERCISE_FAMILIES.map((f) => [f.id, f]));
-const familyByExerciseId = new Map(EXERCISE_FAMILIES.flatMap((f) => f.members.map((id) => [id, f.id])));
+/** @type {Map<string, string>} */
+const familyByExerciseId = new Map(EXERCISE_FAMILIES.flatMap((f) => f.members.map((/** @type {string} */ id) => /** @type {[string, string]} */ ([id, f.id]))));
 const memberOrder = new Map(SEED_EXERCISES.map((e, i) => [e.id, i]));
 
 /**
  * Family id, or undefined for an ungrouped custom exercise. An explicit family
  * wins, including null (opt out) and ids for custom families introduced later.
  * Renaming/hiding a built-in cannot change its catalogue membership.
+ * @param {{ id: string, family?: string | null } | null | undefined} ex
+ * @returns {string | null | undefined}
  */
 export function familyOf(ex) {
   if (!ex) return undefined;
@@ -37,7 +41,7 @@ export function exerciseFamily(id, customFamilies = {}) {
 }
 
 /** Exact English base identity: only the last bracket, case and spaces differ. */
-export const exerciseFamilyBaseKey = (name) => exerciseBaseName({ name }, 'en').toLowerCase().replace(/\s+/g, '');
+export const exerciseFamilyBaseKey = (/** @type {string} */ name) => exerciseBaseName({ name }, 'en').toLowerCase().replace(/\s+/g, '');
 
 /** Suggest a unique existing family first, otherwise one ungrouped custom exercise.
  * No spelling, partial-word, punctuation or plural matching. Nothing is changed.
@@ -85,6 +89,7 @@ export function changeExerciseFamily(exercise, selection, exercises, customFamil
   let registry = { ...customFamilies };
   let next = exercise;
   if (!exercise.builtin && !familyByExerciseId.has(exercise.id) && selection !== undefined) {
+    /** @type {string | null | undefined} */
     let family = selection;
     if (selection !== null && !exerciseFamily(selection, registry)) {
       const picked = all.get(selection);
@@ -110,6 +115,9 @@ export function changeExerciseFamily(exercise, selection, exercises, customFamil
  * follow in their input order. Uses the actual stored objects (names, categories,
  * hidden flags), never copies from the catalogue. Accepts an array or a Map.
  * Hidden exercises are excluded unless includeHidden is true.
+ * @param {string | null | undefined} familyId
+ * @param {any[] | Map<string, any>} [exercises]
+ * @returns {any[]}
  */
 export function familyMembers(familyId, exercises = SEED_EXERCISES, { includeHidden = false } = {}) {
   if (!familyId) return [];
@@ -131,11 +139,13 @@ export function familyMembers(familyId, exercises = SEED_EXERCISES, { includeHid
  * @returns {{ name: string, members: { equipment: string, exercise: any }[] }[]}
  */
 export function familyMemberGroups(familyId, exercises = SEED_EXERCISES, options = {}) {
+  /** @type {Map<string, { name: string, members: { equipment: string, exercise: any }[] }>} */
   const groups = new Map();
   for (const exercise of familyMembers(familyId, exercises, options)) {
     const name = exerciseBaseName(exercise, 'en');
-    if (!groups.has(name)) groups.set(name, { name, members: [] });
-    groups.get(name).members.push({ equipment: exerciseEquipment(exercise), exercise });
+    let group = groups.get(name);
+    if (!group) groups.set(name, group = { name, members: [] });
+    group.members.push({ equipment: exerciseEquipment(exercise), exercise });
   }
   return [...groups.values()].map((group) => {
     // familyMembers puts built-ins first in catalogue order, so a group's usual version leads it

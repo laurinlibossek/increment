@@ -74,7 +74,7 @@ export default function Summary() {
   const r = finishResult(w.id);
   const prs = (r ? r.prs : stats().prsByWorkout.get(w.id) || []) as Pr[];
   const number = r ? r.number : workouts.filter((x) => x.startedAt <= w.startedAt).length;
-  const volume = r ? r.volume : workoutVolume(w, exercises) as number;
+  const volume = r ? r.volume : workoutVolume(w, exercises);
   // left/right pairs of one-side exercises count as one set (#54); the rest stay visible as unpaired
   const sets = entriesSetCount(w.exercises, exercises, { pair: pairSides });
   const recordSets = new Set(prs.map((p) => p.setId).filter((x): x is string => !!x));
