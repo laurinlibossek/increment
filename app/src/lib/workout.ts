@@ -175,7 +175,7 @@ export async function progressRoutine(workout: Workout) {
   if (s.settings.askTemplateUpdate === false || !workout.templateId) return null;
   const t = routineOf(workout.templateId);
   if (!t || t.example) return null;
-  const diff = templateChanges(t, workout) as TemplateDiff;
+  const diff = templateChanges(t, workout);
   const { exercises, raised } = progressTemplate(t.exercises, workout, categoryOf) as { exercises: TemplateEntry[]; raised: number };
   if (!raised && !diff.structure) return null;
   const before = JSON.parse(JSON.stringify(t.exercises)) as TemplateEntry[];
@@ -200,7 +200,7 @@ export function routineReady(t: Template | null | undefined): Readiness[] {
   const s = getState();
   if (t.example || s.settings.askTemplateUpdate === false) return t.exercises.map(() => null);
   const latest = s.workouts.find((w) => w.templateId === t.id) || null; // newest first
-  return routineReadiness(t, latest, categoryOf) as Readiness[];
+  return routineReadiness(t, latest, categoryOf);
 }
 
 /** The same for a running workout's entries, matched to the routine's by exercise and occurrence. */
@@ -209,8 +209,8 @@ export function workoutReady(a: ActiveWorkout | null): Map<string, Readiness> {
   const t = a?.templateId ? routineOf(a.templateId) : null;
   if (!a || !t) return out;
   const ready = routineReady(t);
-  const byKey = new Map((entryKeys(t.exercises) as string[]).map((k, i) => [k, ready[i]]));
-  (entryKeys(a.exercises) as string[]).forEach((k, i) => { const r = byKey.get(k); if (r) out.set(a.exercises[i].id, r); });
+  const byKey = new Map(entryKeys(t.exercises).map((k, i) => [k, ready[i]]));
+  entryKeys(a.exercises).forEach((k, i) => { const r = byKey.get(k); if (r) out.set(a.exercises[i].id, r); });
   return out;
 }
 

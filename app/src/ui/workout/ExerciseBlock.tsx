@@ -272,7 +272,7 @@ export const ExerciseBlock = memo(function ExerciseBlock({
   const restText = active && rest > 0 ? tr('Rest {time}', { time: f.clock(rest) }) : '';
   const target = session?.target;
   // the routine editor: "Weight increase recommended" needs a range on every working set (#49)
-  const kind = mode === 'template' ? readinessKind(cat) as Readiness : null;
+  const kind = mode === 'template' ? readinessKind(cat) : null;
   const working = kind ? entry.sets.filter((x) => x.type === 'normal' || x.type === 'failure') : [];
   const ranged = working.filter((x) => parseRepsInput(x.r)?.range).length;
   const rangeHint = ranged > 0 && ranged < working.length
@@ -309,7 +309,7 @@ export const ExerciseBlock = memo(function ExerciseBlock({
     const tick: TickState = set.done ? (record ? 'record' : 'done') : isLive ? 'live' : 'pending';
     const notes: SetNote[] = [];
     // logged: the change since last time's paired set, or Record (no comparison for warm-ups or a first time)
-    const change = active && set.done && !warm && !record ? setChange(rows[i]?.prev, draftToSet(set, settings), cat) as { dir: number; key: string; diff: number } | null : null;
+    const change = active && set.done && !warm && !record ? setChange(rows[i]?.prev, draftToSet(set, settings), cat) : null;
     if (record) notes.push({ text: tr('Record'), tone: 'up' });
     else if (change) notes.push({ text: changeText(change), tone: change.dir > 0 ? 'up' : 'down' });
     const rir = setRir(set);
