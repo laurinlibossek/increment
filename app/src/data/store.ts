@@ -1067,7 +1067,7 @@ export function startWorkout(from: { template?: Template | null; fromWorkout?: W
   const uni = (id: string) => isUnilateral(state.exercises.get(id));
   // a routine's unilateral sets without a side become left and right ones, in the routine too (#54),
   // so progression, readiness and Update routine compare side with side
-  const split = from.template && !from.template.example ? splitRoutine(from.template, uni) as Template | null : null;
+  const split = from.template && !from.template.example ? splitRoutine(from.template, uni) : null;
   if (split) saveTemplate(split).catch(() => {});
   const active = newActiveWorkout({
     template: split || from.template || null, fromWorkout: from.fromWorkout || null, hasExercise: (id: string) => state.exercises.has(id),

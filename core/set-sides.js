@@ -1,3 +1,4 @@
+// @ts-check
 // Sides (#54). Exercises are bilateral unless unilateral: the unilateral ones
 // we ship are always unilateral (UNILATERAL_NAMES), and any other exercise,
 // built-in or custom, is unilateral when the person turns it on (its
@@ -6,12 +7,26 @@
 // unilateral exercise's complete left/right pairs.
 import { UNILATERAL_IDS } from './exercise-catalogue.js';
 
-export const sideOf = (set) => set?.side === 'left' || set?.side === 'right' ? set.side : undefined;
+/**
+ * @typedef {import('./types.js').Side} Side
+ * @typedef {import('./types.js').SetLike} SetLike
+ * @typedef {import('./types.js').EntryLike} EntryLike
+ * @typedef {import('./types.js').ExerciseLike} ExerciseLike
+ * @typedef {import('./types.js').Exercises} Exercises
+ * @typedef {import('./types.js').RoutineLike} RoutineLike
+ * @typedef {import('./types.js').SetCount} SetCount
+ */
 
-/** A unilateral exercise we ship: always unilateral, the person can't turn it off. */
+/** A set's side, if it has one. @param {SetLike | undefined} set @returns {Side | undefined} */
+export const sideOf = (set) => {
+  const side = set?.side;
+  return side === 'left' || side === 'right' ? side : undefined;
+};
+
+/** A unilateral exercise we ship: always unilateral, the person can't turn it off. @param {ExerciseLike | null | undefined} ex */
 export const shippedUnilateral = (ex) => !!ex && UNILATERAL_IDS.has(ex.id);
 
-/** Whether an exercise is unilateral: one we ship as unilateral, or one the person turned on; otherwise bilateral. */
+/** Whether an exercise is unilateral: one we ship as unilateral, or one the person turned on; otherwise bilateral. @param {ExerciseLike | null | undefined} ex */
 export function isUnilateral(ex) {
   return shippedUnilateral(ex) || ex?.unilateral === true;
 }
@@ -25,7 +40,10 @@ export function isUnilateral(ex) {
  * (Laurin, 12 Nov 2026). With `pair` off (Account → "Count left/right sets
  * together") every working row counts. `unpaired` is what a paired count
  * leaves out: one side's extra rows, and rows without a side among sided
- * ones (a side probably forgotten). Returns { sets, unpaired }.
+ * ones (a side probably forgotten).
+ * @param {SetLike[]} sets
+ * @param {boolean} unilateral
+ * @returns {SetCount}
  */
 export function exerciseSetCount(sets, unilateral, { pair = true } = {}) {
   let left = 0, right = 0, none = 0;
@@ -42,16 +60,27 @@ export function exerciseSetCount(sets, unilateral, { pair = true } = {}) {
   return { sets: pairs, unpaired: rows - 2 * pairs };
 }
 
-/** Exercises by id, from the Map the apps keep or a list (a backup's). */
+/**
+ * Exercises by id, from the Map the apps keep or a list (a backup's).
+ * @param {Exercises | undefined} exercises
+ * @returns {(id: string) => ExerciseLike | undefined}
+ */
 export const exerciseLookup = (exercises) => (exercises instanceof Map
   ? (id) => exercises.get(id) : (id) => (exercises || []).find((e) => e.id === id));
 
-/** An exercise's rows across its entries: repeated entries in one workout pair with each other. */
+/**
+ * An exercise's rows across its entries: repeated entries in one workout pair with each other.
+ * @template {EntryLike} E
+ * @param {E[]} entries
+ * @returns {Map<string, E['sets'][number][]>}
+ */
 export function setsByExercise(entries) {
+  /** @type {Map<string, E['sets'][number][]>} */
   const groups = new Map();
   for (const e of entries) {
-    if (!groups.has(e.exerciseId)) groups.set(e.exerciseId, []);
-    groups.get(e.exerciseId).push(...e.sets);
+    let rows = groups.get(e.exerciseId);
+    if (!rows) groups.set(e.exerciseId, rows = []);
+    rows.push(...e.sets);
   }
   return groups;
 }
@@ -59,8 +88,10 @@ export function setsByExercise(entries) {
 /**
  * The set total of one workout's or one routine's entries (#54): each
  * exercise's exerciseSetCount, its repeated entries together; never pairs
- * across workouts or exercises. `exercises` maps id → exercise (Map or object).
- * Returns { sets, unpaired }.
+ * across workouts or exercises.
+ * @param {EntryLike[]} entries
+ * @param {Exercises} exercises
+ * @returns {SetCount}
  */
 export function entriesSetCount(entries, exercises, { pair = true } = {}) {
   const get = exerciseLookup(exercises);
@@ -73,6 +104,7 @@ export function entriesSetCount(entries, exercises, { pair = true } = {}) {
   return { sets, unpaired };
 }
 
+/** @type {Record<Side, Side>} */
 const OTHER = { left: 'right', right: 'left' };
 
 /**
@@ -83,20 +115,29 @@ const OTHER = { left: 'right', right: 'left' };
  * (bilateral, pairs off, rows without a side, one side's extra rows). Slots
  * come in the order of their first row: L R L R and R R L L both give
  * [L1, R1], [L2, R2].
+ * @template {SetLike} S
+ * @param {S[]} sets
+ * @param {boolean} unilateral
+ * @returns {S[][]}
  */
 export function setSlots(sets, unilateral, { pair = true } = {}) {
   const rows = sets.filter((s) => s.type !== 'warmup');
   if (!unilateral || !pair || !rows.some((s) => sideOf(s))) return rows.map((s) => [s]);
   const lefts = rows.filter((s) => sideOf(s) === 'left'), rights = rows.filter((s) => sideOf(s) === 'right');
+  /** @type {Map<S, S>} */
   const partner = new Map();
   for (let k = 0; k < Math.min(lefts.length, rights.length); k++) {
     partner.set(lefts[k], rights[k]);
     partner.set(rights[k], lefts[k]);
   }
-  const slots = [], placed = new Set();
+  /** @type {S[][]} */
+  const slots = [];
+  /** @type {Set<S>} */
+  const placed = new Set();
   for (const s of rows) {
     if (placed.has(s)) continue;
-    const slot = partner.has(s) ? [s, partner.get(s)] : [s];
+    const other = partner.get(s);
+    const slot = other ? [s, other] : [s];
     for (const x of slot) placed.add(x);
     slots.push(slot);
   }
@@ -108,7 +149,10 @@ export function setSlots(sets, unilateral, { pair = true } = {}) {
  * counted in set slots (setSlots), so a unilateral set counts as logged once
  * both its sides are; an exercise's repeated entries pair with each other.
  * `percent` is rounded down, so it reads 100 only when every working set is
- * logged; null without working sets. Returns { done, total, percent }.
+ * logged; null without working sets.
+ * @param {EntryLike[]} entries
+ * @param {Exercises} exercises
+ * @returns {{ done: number, total: number, percent: number | null }}
  */
 export function sessionProgress(entries, exercises, { pair = true } = {}) {
   const get = exerciseLookup(exercises);
@@ -128,6 +172,9 @@ export function sessionProgress(entries, exercises, { pair = true } = {}) {
  * pattern goes on: after one side the other (L, R, L, R), after the same side
  * twice that side again (R, R, then L, L the person set up); the first is
  * left. Warm-ups need none.
+ * @param {SetLike[]} sets
+ * @param {string} [type]
+ * @returns {Side | undefined}
  */
 export function nextSide(sets, type = 'normal') {
   if (type === 'warmup') return undefined;
@@ -143,6 +190,9 @@ export function nextSide(sets, type = 'normal') {
  * into a left and a right one (#54): an old set (Strong, or from before the
  * exercise was unilateral) covered both sides. Warm-ups and sided sets stay.
  * Returns the same array when nothing needs splitting.
+ * @template {SetLike} S
+ * @param {S[]} sets
+ * @returns {S[]}
  */
 export function splitSides(sets) {
   if (!sets.some((s) => s.type !== 'warmup' && !sideOf(s))) return sets;
@@ -153,6 +203,10 @@ export function splitSides(sets) {
  * The routine with its unilateral exercises' sets split (splitSides), or null
  * when nothing changed. Starting a workout saves it, so progression, readiness
  * and Update routine compare left with left and right with right.
+ * @template {RoutineLike} T
+ * @param {T} template
+ * @param {(exerciseId: string) => boolean} isUnilateral
+ * @returns {T | null}
  */
 export function splitRoutine(template, isUnilateral) {
   let changed = false;
@@ -172,21 +226,29 @@ export function splitRoutine(template, isUnilateral) {
  * as Strong logs it: the average weight, distance and time, the average reps
  * rounded down (never more than was done), the harder side's reps in reserve.
  * A side without a partner and sets without a side stay their own rows.
+ * @template {SetLike} S
+ * @param {S[]} sets
+ * @returns {S[]}
  */
 export function mergeSidePairs(sets) {
+  /** @param {S} a @param {S} b @param {'w' | 'r' | 'd' | 't'} k @returns {number | null | undefined} */
   const avg = (a, b, k) => {
     const x = a[k], y = b[k];
     if (x === undefined || x === null) return y;
     if (y === undefined || y === null) return x;
     return (x + y) / 2;
   };
-  const partner = new Map(), lefts = new Map(), rights = new Map();
+  /** @type {Map<number, number>} */
+  const partner = new Map();
+  /** @type {Map<string, number[]>} */
+  const lefts = new Map(), rights = new Map();
   sets.forEach((s, i) => {
     const side = sideOf(s);
     if (!side) return;
     const map = side === 'left' ? lefts : rights, t = s.type || 'normal';
-    if (!map.has(t)) map.set(t, []);
-    map.get(t).push(i);
+    let at = map.get(t);
+    if (!at) map.set(t, at = []);
+    at.push(i);
   });
   for (const [t, ls] of lefts) {
     const rs = rights.get(t) || [];
@@ -196,14 +258,16 @@ export function mergeSidePairs(sets) {
       partner.set(b, -1);
     }
   }
+  /** @type {S[]} */
   const out = [];
   sets.forEach((s, i) => {
-    if (partner.get(i) === -1) return;
-    if (!partner.has(i)) { out.push(s); return; }
-    const o = sets[partner.get(i)];
+    const p = partner.get(i);
+    if (p === -1) return;
+    if (p === undefined) { out.push(s); return; }
+    const o = sets[p];
     const m = { ...s };
     delete m.side;
-    for (const k of ['w', 'd', 't']) { const v = avg(s, o, k); if (v !== undefined && v !== null) m[k] = k === 't' ? Math.round(v) : Math.round(v * 1000) / 1000; }
+    for (const k of /** @type {const} */ (['w', 'd', 't'])) { const v = avg(s, o, k); if (v !== undefined && v !== null) m[k] = k === 't' ? Math.round(v) : Math.round(v * 1000) / 1000; }
     const r = avg(s, o, 'r');
     if (r !== undefined && r !== null) m.r = Math.floor(r);
     const rirs = [s.rir, o.rir].filter((x) => typeof x === 'number');
