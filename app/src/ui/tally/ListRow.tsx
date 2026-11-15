@@ -52,6 +52,8 @@ type Props = {
   /** Extra row content under the title and metadata, such as a workout tally. */
   children?: ReactNode;
   symbol?: SymbolName;
+  /** A column before the title, such as an exercise page's "5 RM". */
+  lead?: ReactNode;
   /** A value ("214", "81.4 kg") or a tally. */
   trailing?: string | { tally: StrokeState[][]; label: string };
   /** Anything else at the end, before the chevron (a ⋯ button). */
@@ -67,7 +69,7 @@ type Props = {
   checked?: boolean;
 };
 
-export function ListRow({ title, subtitle, children, symbol, trailing, right, chevron, onPress, first, testID, accessibilityLabel, checked }: Props) {
+export function ListRow({ title, subtitle, children, symbol, lead, trailing, right, chevron, onPress, first, testID, accessibilityLabel, checked }: Props) {
   const { colors: t } = useTally();
   const inset = symbol ? SPACE.s5 + 30 + SPACE.s3 : SPACE.s5;
   const body = (pressed: boolean) => (
@@ -77,6 +79,7 @@ export function ListRow({ title, subtitle, children, symbol, trailing, right, ch
     }}>
       {!first && <View style={{ position: 'absolute', top: 0, right: 0, left: inset, height: 0.5, backgroundColor: t.line }} />}
       {symbol && <View style={{ width: 30, alignItems: 'center' }}><SymbolIcon name={symbol} size={22} color={t.ink2} /></View>}
+      {lead}
       <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
         {typeof title === 'string' ? <Text style={[TYPE.body, { color: t.ink }]} numberOfLines={1}>{title}</Text> : title}
         {!!subtitle && (typeof subtitle === 'string' ? <Text style={[TYPE.footnote, { color: t.ink2, fontVariant: ['tabular-nums'] }]} numberOfLines={1}>{subtitle}</Text> : subtitle)}

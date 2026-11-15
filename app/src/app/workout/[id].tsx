@@ -22,8 +22,10 @@ import { openTemplateEditor, shareText } from '@/lib/templates';
 import { beginWorkout } from '@/lib/workout';
 import { useTally } from '@/lib/theme';
 import {
-  hm, Mark, MARGIN, SectionHeadLink, StatStrip, tnum, workoutStrokes, WorkoutTally,
+  hm, MARGIN, SectionHeadLink, tnum, workoutStrokes, WorkoutTally,
 } from '@/ui/facts';
+import { Highlight } from '@/ui/tally/Highlight';
+import { StatStrip } from '@/ui/tally/StatStrip';
 import {
   Button, Empty, IconButton, Page,
 } from '@/ui/kit';
@@ -131,7 +133,7 @@ export default function WorkoutDetail() {
                     <Text style={[{ ...TYPE.body, color: x.type === 'warmup' ? t.ink2 : t.ink }, tnum]} numberOfLines={1}>{f.setText(x, ex?.category, vol > 0)}</Text>
                     {!!footnote && <Text style={{ ...TYPE.footnote, color: t.ink2 }} numberOfLines={1}>{footnote}</Text>}
                   </View>
-                  {flags ? <View><Mark style={{ ...TYPE.footnote, fontWeight: '600' }} testID={`record-${x.id}`}>{tr('Record')}</Mark></View>
+                  {flags ? <View><Highlight style={{ ...TYPE.footnote, fontWeight: '600' }} testID={`record-${x.id}`}>{tr('Record')}</Highlight></View>
                     : oneRm ? <Text style={[{ ...TYPE.footnote, color: t.ink2 }, tnum]}>{`1RM ${f.e1rm(oneRm)}`}</Text> : null}
                 </View>
               );
