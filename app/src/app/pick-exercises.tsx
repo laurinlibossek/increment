@@ -14,6 +14,8 @@ import { useFormat } from '@/lib/format';
 import { editExercise } from '@/lib/exerciseForm';
 import { currentPick, finishPick, PICK_NONE } from '@/lib/picker';
 import { useTally } from '@/lib/theme';
+import { ENABLE_EXERCISE_THUMBNAILS } from '@/lib/exerciseThumbnails';
+import { ExerciseThumbnail, EXERCISE_THUMBNAIL_SIZE } from '@/ui/ExerciseThumbnail';
 import { Button, Empty, SearchField } from '@/ui/kit';
 import { ChoiceChips } from '@/ui/tally/ChoiceChips';
 import { ListRow, SymbolIcon } from '@/ui/tally/ListRow';
@@ -67,7 +69,8 @@ export default function PickExercises() {
     return <Pressable key={ex.id} onPress={() => tap(ex.id)} accessibilityRole={multi ? 'checkbox' : familySelection ? 'radio' : 'button'} aria-checked={multi ? on : familySelection ? picked : undefined}
       aria-current={isCurrent || undefined} testID={`pick-${ex.id}`} style={({ pressed }) => ({ backgroundColor: on ? t.paper3 : pressed ? t.paper2 : t.paper })}>
       <View style={{ minHeight: CONTROL.rowH, paddingVertical: SPACE.s3, paddingLeft: nested ? SPACE.s8 : SPACE.s5, paddingRight: SPACE.s5, flexDirection: 'row', alignItems: 'center', gap: SPACE.s3 }}>
-        {!first && <View style={{ position: 'absolute', top: 0, left: nested ? SPACE.s8 : SPACE.s5, right: 0, height: StyleSheet.hairlineWidth, backgroundColor: t.line }} />}
+        {!first && <View style={{ position: 'absolute', top: 0, left: (nested ? SPACE.s8 : SPACE.s5) + (ENABLE_EXERCISE_THUMBNAILS ? EXERCISE_THUMBNAIL_SIZE + SPACE.s3 : 0), right: 0, height: StyleSheet.hairlineWidth, backgroundColor: t.line }} />}
+        {ENABLE_EXERCISE_THUMBNAILS && <ExerciseThumbnail exerciseId={ex.id} name={f.exName(ex)} />}
         <View style={{ flex: 1, minWidth: 0, gap: SPACE.s1 }}>
           <Text style={[TYPE.body, { color: t.ink }]}>{title}</Text>
           <Text style={[TYPE.footnote, { color: t.ink2 }]}>{subtitle}</Text>
@@ -80,6 +83,8 @@ export default function PickExercises() {
   const renderRow = (row: ExerciseBrowseRow, index: number) => {
     // Choosing, not opening: the current family is ticked and no row has a chevron.
     if (familySelection && row.family) return <ListRow title={<Text style={[TYPE.body, { color: t.ink }]}>{row.title}</Text>}
+      lead={ENABLE_EXERCISE_THUMBNAILS ? <ExerciseThumbnail exerciseId={row.exercise.id} name={f.exName(row.exercise)} /> : undefined}
+      leadWidth={ENABLE_EXERCISE_THUMBNAILS ? EXERCISE_THUMBNAIL_SIZE : undefined}
       subtitle={<Text style={[TYPE.footnote, { color: t.ink2 }]}>{row.subtitle}</Text>} checked={pick?.selected === row.id} right={tick(pick?.selected === row.id)}
       onPress={() => done([row.id])} testID={`pick-family-${row.id}`} />;
     if (!row.family || row.members.length === 1) return version(row.members[0], index === 0 && !familySelection, false, row.title, row.subtitle);
@@ -87,6 +92,8 @@ export default function PickExercises() {
     return <View>
       <ListRow first={index === 0} title={<Text style={[TYPE.body, { color: t.ink }]}>{row.title}</Text>}
         subtitle={<Text style={[TYPE.footnote, { color: t.ink2 }]}>{row.subtitle}</Text>}
+        lead={ENABLE_EXERCISE_THUMBNAILS ? <ExerciseThumbnail exerciseId={row.exercise.id} name={f.exName(row.exercise)} /> : undefined}
+        leadWidth={ENABLE_EXERCISE_THUMBNAILS ? EXERCISE_THUMBNAIL_SIZE : undefined}
         onPress={() => toggle(row.id)} testID={`pick-family-${row.id}`}
         right={<SymbolIcon name={open ? 'chevron.down' : 'chevron.right'} size={16} color={t.ink2} />} />
       {open && <View testID={`pick-members-${row.id}`}>{row.members.map((ex, i) => version(ex, i === 0, true))}</View>}
