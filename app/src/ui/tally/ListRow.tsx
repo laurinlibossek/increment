@@ -54,6 +54,8 @@ type Props = {
   symbol?: SymbolName;
   /** A column before the title, such as an exercise page's "5 RM". */
   lead?: ReactNode;
+  /** Inset the hairline past a fixed-width leading tile. */
+  leadWidth?: number;
   /** A value ("214", "81.4 kg") or a tally. */
   trailing?: string | { tally: StrokeState[][]; label: string };
   /** Anything else at the end, before the chevron (a ⋯ button). */
@@ -69,9 +71,9 @@ type Props = {
   checked?: boolean;
 };
 
-export function ListRow({ title, subtitle, children, symbol, lead, trailing, right, chevron, onPress, first, testID, accessibilityLabel, checked }: Props) {
+export function ListRow({ title, subtitle, children, symbol, lead, leadWidth, trailing, right, chevron, onPress, first, testID, accessibilityLabel, checked }: Props) {
   const { colors: t } = useTally();
-  const inset = symbol ? SPACE.s5 + 30 + SPACE.s3 : SPACE.s5;
+  const inset = SPACE.s5 + (symbol ? 30 + SPACE.s3 : leadWidth ? leadWidth + SPACE.s3 : 0);
   const body = (pressed: boolean) => (
     <View style={{
       flexDirection: 'row', alignItems: 'center', gap: SPACE.s3, minHeight: CONTROL.rowH,

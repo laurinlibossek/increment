@@ -3,19 +3,20 @@
 //
 //   node tests/browser/run.mjs              every suite (builds the web export first)
 //   node tests/browser/run.mjs app-logging app-tabs   single suites (file names without .mjs)
-//   --no-build    reuse the English-only and German-enabled exports
+//   --no-build    reuse each export (English, German, thumbnail review)
 //   --serve       only build and serve the app and keep it running, e.g. for screenshot
-//                 scripts; Ctrl-C stops it
+//                 scripts; --german or --thumbnails selects a review build; Ctrl-C stops it
 //
 // It checks the shipped English-only build (and the website built from it), then the bilingual suites
-// with the same code switch enabled. German's export stays separate from app/dist.
+// with German enabled. The thumbnail suite also runs in its own enabled export;
+// all ordinary builds keep thumbnails off until #51.
 import { spawn, spawnSync } from 'node:child_process';
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { HERE, ROOT, APP, STRONG } from './env.mjs';
 
-export const APP_SUITES = ['app-english-only', 'app-web-site', 'app-storage', 'app-day-change', 'app-live-records', 'app-set-counts', 'app-superset-remove', 'app-one-rm', 'app-progress-account', 'app-chart-metric', 'app-keypad-drag', 'app-plan-rows', 'app-pinned-note', 'app-rep-ranges', 'app-ready-weight', 'app-set-rows', 'app-paired-sets', 'app-muscle-sets', 'app-measure-csv', 'app-set-rest', 'app-next-exercise', 'app-families', 'app-family-creation', 'app-strong-review', 'app-exercise-catalogue', 'app-first-start', 'app-logging', 'app-set-sides', 'app-editing', 'app-parity', 'app-tabs', 'app-tab-swipe', 'app-design-bugs', 'app-number-format', 'app-workouts-list', 'app-list-style', 'app-main-actions', 'app-progress-noise', 'app-tally-scale'];
+export const APP_SUITES = ['app-english-only', 'app-web-site', 'app-storage', 'app-day-change', 'app-live-records', 'app-set-counts', 'app-superset-remove', 'app-one-rm', 'app-progress-account', 'app-chart-metric', 'app-keypad-drag', 'app-plan-rows', 'app-pinned-note', 'app-rep-ranges', 'app-ready-weight', 'app-set-rows', 'app-paired-sets', 'app-muscle-sets', 'app-measure-csv', 'app-set-rest', 'app-next-exercise', 'app-families', 'app-family-creation', 'app-strong-review', 'app-exercise-catalogue', 'app-exercise-thumbnails', 'app-first-start', 'app-logging', 'app-set-sides', 'app-editing', 'app-parity', 'app-tabs', 'app-tab-swipe', 'app-design-bugs', 'app-number-format', 'app-workouts-list', 'app-list-style', 'app-main-actions', 'app-progress-noise', 'app-tally-scale'];
 // suites for the shipped build (app/dist, English only); the rest run with German switched on.
 // app-web-site builds the published website from app/dist and serves it itself.
 const ENGLISH_ONLY = ['app-english-only', 'app-web-site'];
@@ -98,15 +99,15 @@ function sh(cmd, argv, cwd, env = {}) {
   if (r.status !== 0) throw new Error(`failed: ${cmd} ${argv.join(' ')}`);
 }
 
-async function serveApp(german = false) {
+async function serveApp(german = false, thumbnails = false) {
   const appDir = path.join(ROOT, 'app');
-  const dist = german ? path.join(HERE, '.out/german-app') : path.join(appDir, 'dist');
+  const dist = thumbnails ? path.join(HERE, '.out/thumbnails-app') : german ? path.join(HERE, '.out/german-app') : path.join(appDir, 'dist');
   if (!fs.existsSync(path.join(appDir, 'node_modules'))) sh('npm', ['ci'], appDir);
   // `npm run bundle` writes the iOS/Android export into the same dist/, so build web unless told not to
   if (!noBuild || !isFile(path.join(dist, 'index.html'))) {
     // German is a build setting (app/src/lib/i18n.ts), so no source file is touched. --clear keeps
     // Metro from reusing the other build's transforms, which have the setting inlined.
-    sh('npx', ['expo', 'export', '--platform', 'web', '--output-dir', dist, '--clear'], appDir, { EXPO_PUBLIC_ENABLE_GERMAN: german ? '1' : '0' });
+    sh('npx', ['expo', 'export', '--platform', 'web', '--output-dir', dist, '--clear'], appDir, { EXPO_PUBLIC_ENABLE_GERMAN: german ? '1' : '0', EXPO_PUBLIC_ENABLE_EXERCISE_THUMBNAILS: thumbnails ? '1' : '0' });
   }
   const port = new URL(APP).port || '8790';
   const already = await get(APP);
@@ -127,10 +128,10 @@ async function ensureStrong() {
   fs.writeFileSync(STRONG, await res.text());
 }
 
-function runSuite(name) {
+function runSuite(name, thumbnails = false) {
   return new Promise((resolve) => {
     console.log(`\n=== ${name} ===`);
-    const child = spawn(process.execPath, [path.join(HERE, `${name}.mjs`)], { cwd: ROOT, env: { ...process.env, APP } });
+    const child = spawn(process.execPath, [path.join(HERE, `${name}.mjs`)], { cwd: ROOT, env: { ...process.env, APP, THUMBNAILS_ENABLED: thumbnails ? '1' : '0' } });
     let out = '';
     child.stdout.on('data', (c) => { out += c; process.stdout.write(c); });
     child.stderr.on('data', (c) => { out += c; process.stderr.write(c); });
@@ -142,7 +143,7 @@ function runSuite(name) {
 }
 
 if (serveOnly) {
-  await serveApp();
+  await serveApp(args.includes('--german') || args.includes('--thumbnails'), args.includes('--thumbnails'));
   console.log('Serving until Ctrl-C.');
   await new Promise(() => {});
 }
@@ -154,11 +155,11 @@ try {
   results.push(await runSuite('make-backup'));
   if (!results[0].ok) throw new Error('make-backup failed');
   results.length = 0;
-  for (const german of [false, true]) {
-    const selected = suites.filter((s) => !ENGLISH_ONLY.includes(s) === german);
+  for (const [german, thumbnails] of [[false, false], [true, false], [true, true]]) {
+    const selected = suites.filter((s) => thumbnails ? s === 'app-exercise-thumbnails' : !ENGLISH_ONLY.includes(s) === german);
     if (!selected.length) continue;
-    app = await serveApp(german);
-    for (const s of selected) results.push(await runSuite(s));
+    app = await serveApp(german, thumbnails);
+    for (const s of selected) results.push(await runSuite(s, thumbnails));
     await new Promise((resolve, reject) => app.close((error) => error ? reject(error) : resolve()));
     app = null;
   }
