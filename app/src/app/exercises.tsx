@@ -26,7 +26,7 @@ export default function LiftsScreen() {
     .filter((x) => x.ex && x.n)
     .sort((a, b) => b.last - a.last) as { ex: NonNullable<ReturnType<typeof s.exercises.get>>; n: number; last: number }[], [sessions, s.exercises]);
   const list = useMemo(() => done.filter((x) => matchExercise(x.ex, q)), [done, q]);
-  const partLabel = (id: string) => tr((BODY_PARTS as { id: string; label: string }[]).find((b) => b.id === id)?.label || 'Other');
+  const partLabel = (id: string) => tr(BODY_PARTS.find((b) => b.id === id)?.label || 'Other');
 
   return (
     <FlatList

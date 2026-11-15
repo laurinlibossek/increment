@@ -1,3 +1,4 @@
+// @ts-check
 // Looking things up in the training history: the previous sets of an
 // exercise, and the body weight on a given day.
 
@@ -11,7 +12,7 @@
  */
 export function previousSetsFrom(sessions, { before = Infinity, excludeWorkoutId = null, templateId = null } = {}) {
   if (!sessions) return null;
-  const ok = (s) => s.workoutId !== excludeWorkoutId && s.startedAt < before;
+  const ok = (/** @type {any} */ s) => s.workoutId !== excludeWorkoutId && s.startedAt < before;
   if (templateId) {
     for (const s of sessions) if (ok(s) && s.templateId === templateId) return s.entry.sets;
   }
@@ -19,8 +20,13 @@ export function previousSetsFrom(sessions, { before = Infinity, excludeWorkoutId
   return null;
 }
 
-/** Body weight (kg) on or before `at` from measurements (newest first); the earliest one if `at` is before all of them. */
+/**
+ * Body weight (kg) on or before `at` from measurements (newest first); the earliest one if `at` is before all of them.
+ * @param {{ type: string, at: number, value: number }[]} measurements
+ * @returns {number | null}
+ */
 export function bodyweightFrom(measurements, at = Date.now()) {
+  /** @type {number | null} */
   let earliest = null;
   for (const m of measurements) {
     if (m.type !== 'bodyweight') continue;
