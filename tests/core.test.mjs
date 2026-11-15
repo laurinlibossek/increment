@@ -1093,6 +1093,25 @@ test('daysAgo counts calendar days, also on the day after a clock change (#86)',
   });
 });
 
+test('dayKind: days first, then the year, so on 1 January yesterday is Yesterday (#97)', () => {
+  withTZ('Europe/Berlin', () => {
+    const at = (local) => new Date(local).getTime();
+    const newYear = at('2027-01-01T10:00');
+    const kind = (local, now = newYear) => core.dayKind(at(local), now);
+    assert.equal(kind('2027-01-01T08:00'), 'today');
+    assert.equal(kind('2027-01-01T23:00'), 'today', 'later today: a clock can be ahead');
+    assert.equal(kind('2026-12-31T18:00'), 'yesterday', 'last year, but yesterday');
+    assert.equal(kind('2026-12-28T18:00'), 'week', 'last year, but this week: its weekday');
+    assert.equal(kind('2026-12-25T18:00'), 'older', 'a week ago and last year: with the year');
+    assert.equal(kind('2026-12-25T18:00', at('2026-12-31T10:00')), 'week');
+    assert.equal(kind('2026-03-01T12:00', at('2026-12-31T10:00')), 'year');
+    // the 23-hour Sunday (#86)
+    assert.equal(kind('2026-03-29T12:00', at('2026-03-30T00:30')), 'yesterday');
+    assert.equal(kind('2026-03-24T12:00', at('2026-03-30T12:00')), 'week', 'six days, across the switch');
+    assert.equal(kind('2026-03-23T12:00', at('2026-03-30T12:00')), 'year', 'seven days, across the switch');
+  });
+});
+
 test('CSV export is Strong’s 12-column style, pinned by golden files (kg/km and lb/mi)', () => {
   withTZ('UTC', () => {
     for (const [file, unit, distUnit] of [['strong-export-kg.csv', 'kg', 'km'], ['strong-export-lb.csv', 'lb', 'mi']]) {

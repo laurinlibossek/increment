@@ -112,6 +112,19 @@ export function startOfDay(t) { const d = new Date(t); d.setHours(0, 0, 0, 0); r
  * the day the clocks change has 23 or 25 hours (#86); negative for a later day.
  */
 export function daysAgo(at, now = Date.now()) { return Math.round((startOfDay(now) - startOfDay(at)) / DAY); }
+/**
+ * What a list calls a day (#97): 'today' (also later today: a clock can be
+ * ahead), 'yesterday', 'week' (2 to 6 days ago, by its weekday), 'year' (earlier
+ * this calendar year, by day and month) or 'older' (with the year). Days first,
+ * then the year, so on 1 January yesterday's workout is still yesterday's.
+ */
+export function dayKind(at, now = Date.now()) {
+  const days = daysAgo(at, now);
+  if (days <= 0) return 'today';
+  if (days === 1) return 'yesterday';
+  if (days < 7) return 'week';
+  return new Date(at).getFullYear() === new Date(now).getFullYear() ? 'year' : 'older';
+}
 export function startOfWeek(t, weekStart = 1) {
   const d = new Date(startOfDay(t));
   const diff = (d.getDay() - weekStart + 7) % 7;
