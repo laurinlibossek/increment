@@ -64,6 +64,16 @@ export const MUSCLES = [
   { id: 'cardio', label: 'Cardio', region: 'cardio' },
   { id: 'other', label: 'Other', region: 'other' },
 ];
+/** The order the exercise form and Strong review offer muscles in: the choices
+ * that are their own region (Chest, Core, Full body, Cardio, Other) first and
+ * without a heading, then each other region's muscles under its name, so no
+ * choice reads as part of the group above it.
+ * @type {{ region: import('./types.js').Region | null, muscles: import('./types.js').MuscleDefinition[] }[]} */
+export const MUSCLE_GROUPS = [
+  { region: null, muscles: MUSCLES.filter((m) => m.id === m.region) },
+  ...BODY_PARTS.map((r) => ({ region: r.id, muscles: MUSCLES.filter((m) => m.region === r.id && m.id !== r.id) }))
+    .filter((g) => g.muscles.length),
+];
 /** Labels for current muscles AND legacy regions. @type {Record<string, string>} */
 export const BODY_PART_LABEL = Object.fromEntries([...BODY_PARTS, ...MUSCLES].map((b) => [b.id, b.label]));
 

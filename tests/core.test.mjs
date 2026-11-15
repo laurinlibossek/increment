@@ -2964,6 +2964,15 @@ test('muscle definitions keep region order, old region ids and bilingual labels'
     assert.ok(DE[r.label], r.label);
   }
   for (const unknown of [undefined, null, '', 'unknown', 'constructor']) assert.equal(core.regionOf(unknown), 'other');
+  // The form and Strong review: the choices that are their own region come first, without a
+  // heading, so Core, Full body, Cardio and Other never sit under Legs.
+  assert.deepEqual(core.MUSCLE_GROUPS.map((g) => [g.region, g.muscles.map((m) => m.id)]), [
+    [null, ['chest', 'core', 'full', 'cardio', 'other']],
+    ['back', ['lats', 'upper_back', 'lower_back']],
+    ['shoulders', ['front_delts', 'side_delts', 'rear_delts']],
+    ['arms', ['biceps', 'triceps', 'forearms']],
+    ['legs', ['quads', 'hamstrings', 'glutes', 'adductors', 'calves']],
+  ]);
 });
 
 test('all 306 main muscles are pinned to the approved table, including every non-obvious call', () => {

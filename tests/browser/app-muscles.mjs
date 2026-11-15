@@ -102,6 +102,11 @@ for (const language of ['en', 'de']) for (const theme of ['light', 'dark']) {
   }
   await id(before ? 'part-arms' : 'part-triceps').scrollIntoViewIfNeeded();
   if (!before) await page.getByText(language === 'en' ? 'Choose a muscle' : 'Wähle einen Muskel', { exact: true }).waitFor({ state: 'hidden' });
+  if (!before) {
+    // Chest, Core, Full body, Cardio and Other come first, above every region heading.
+    const y = async (x) => (await id(x).boundingBox()).y;
+    for (const own of ['core', 'full', 'cardio', 'other']) assert.ok(await y(`part-${own}`) < await y('part-lats'), `${own} above Back`);
+  }
   await formPosition(); await shot('form-new');
   await id(before ? 'part-arms' : 'part-triceps').click();
   await id('exercise-save').click(); await id('exercise-equipment').waitFor();
@@ -176,6 +181,9 @@ for (const language of ['en', 'de']) for (const theme of ['light', 'dark']) {
     assert.equal(await page.locator('[data-testid^="strong-option-"]').count(), 19);
     assert.equal(await id('strong-option-arms').count(), 0);
     assert.match(await id('strong-option-hamstrings').innerText(), /Hamstrings|Beinbeuger/);
+    const order = await page.locator('[data-testid^="strong-option-"]').evaluateAll((els) => els.map((el) => el.getAttribute('data-testid').slice(14)));
+    assert.deepEqual(order.slice(0, 6), ['chest', 'core', 'full', 'cardio', 'other', 'lats'], 'own-region choices before Back');
+    assert.equal(order.at(-1), 'calves');
   }
   await shot('strong-choices');
   if (!before) {

@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, Stack } from 'expo-router';
-import { MUSCLES, regionOf, BODY_PART_LABEL, CATEGORIES, CATEGORY_LABEL, canMergeExercises, exerciseFamily, strongExerciseFamily, strongImportProblems } from '@increment/core';
+import { MUSCLE_GROUPS, regionOf, BODY_PART_LABEL, CATEGORIES, CATEGORY_LABEL, canMergeExercises, exerciseFamily, strongExerciseFamily, strongImportProblems } from '@increment/core';
 
 import { saveStrongImport, useAppState, type StrongChoice, type StrongChoices, type StrongReview } from '@/data/store';
 import { SPACE, TYPE } from '@/design/tally';
@@ -37,7 +37,7 @@ function ExerciseReviewRow({ row, index, choice, change, problem }: {
     if (ids?.[0]) change({ kind: 'existing', exerciseId: ids[0] });
   };
   const chooseField = async (field: 'category' | 'bodyPart') => {
-    const options = field === 'category' ? CATEGORIES.filter((c) => row.categories.includes(c.id)) : MUSCLES;
+    const options = field === 'category' ? CATEGORIES.filter((c) => row.categories.includes(c.id)) : MUSCLE_GROUPS.flatMap((g) => g.muscles);
     const value = await actionSheet<string>({
       title: tr(field === 'category' ? 'What you log' : 'Muscle'),
       actions: options.map((o) => {

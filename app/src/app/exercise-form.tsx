@@ -8,7 +8,7 @@ import {
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-  BODY_PARTS, BODY_PART_LABEL, MUSCLES, CATEGORIES, CATEGORY_HELP, exerciseBaseName, exerciseFamily, familyOf, isUnilateral, loggedFields, shippedUnilateral, suggestExerciseFamily,
+  BODY_PART_LABEL, MUSCLES, MUSCLE_GROUPS, CATEGORIES, CATEGORY_HELP, exerciseBaseName, exerciseFamily, familyOf, isUnilateral, loggedFields, shippedUnilateral, suggestExerciseFamily,
   usesDistance,
 } from '@increment/core';
 
@@ -152,12 +152,12 @@ export default function ExerciseForm() {
           {tr('Counted as {region} until you pick a muscle.', { region: tr(BODY_PART_LABEL[ex.bodyPart] || 'Other') })}
         </Text>}
         <View style={{ gap: SPACE.s3 }}>
-          {BODY_PARTS.filter((region) => !['full', 'cardio', 'other'].includes(region.id)).map((region) => {
-            const muscles = MUSCLES.filter((m) => region.id === 'core' ? ['core', 'full', 'cardio', 'other'].includes(m.id) : m.region === region.id);
-            return <View key={region.id} style={{ gap: SPACE.s2 }}>
-              {region.id !== 'core' && muscles.length > 1 && <Text style={[TYPE.footnote, { color: t.ink2 }]}>{tr(region.label)}</Text>}
-              <ChoiceChips wrap options={muscles.map((m) => ({ value: m.id, label: tr(m.label) }))}
-                value={bodyPart} onChange={setBodyPart} label={tr(region.label)} testID="part" />
+          {MUSCLE_GROUPS.map((group) => {
+            const label = tr(group.region ? BODY_PART_LABEL[group.region] : 'Muscle');
+            return <View key={group.region || 'own'} style={{ gap: SPACE.s2 }}>
+              {!!group.region && <Text style={[TYPE.footnote, { color: t.ink2 }]}>{label}</Text>}
+              <ChoiceChips wrap options={group.muscles.map((m) => ({ value: m.id, label: tr(m.label) }))}
+                value={bodyPart} onChange={setBodyPart} label={label} testID="part" />
             </View>;
           })}
         </View>
