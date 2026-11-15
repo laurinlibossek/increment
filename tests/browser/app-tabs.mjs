@@ -46,7 +46,8 @@ async function discard(page) {
   const lib = new Map(data.exercises.map((e) => [e.id, e]));
   const settings = core.withDefaults(data.kv.settings);
   const sug = core.suggestTemplate(data.templates, data.workouts);
-  const size = core.routineSize(sug.template, lib, { defaultRest: settings.defaultRest });
+  // minutes from how long the routine took (#114)
+  const size = core.routineSize(sug.template, lib, { defaultRest: settings.defaultRest, workouts: data.workouts });
   const week = core.weekStrip(data.workouts, { weekStart: settings.weekStart, goal: settings.weeklyGoal });
   const muscles = core.setsPerMuscle(data.workouts, lib);
 
@@ -124,9 +125,10 @@ async function discard(page) {
   // each row previews the routine (#32): its exercises, then muscles · sets · about how long · last done.
   // The routines as stored now: starting Up next above split its one-sided exercises into Left and Right
   // sets (#77), which changes its minutes on days when Up next has one (the backup's copy is the old one).
-  for (const t of (await store(page)).templates) {
+  const stored = await store(page);
+  for (const t of stored.templates) {
     const text = await id(page, `template-${t.id}`).innerText();
-    const sz = core.routineSize(t, lib, { defaultRest: settings.defaultRest });
+    const sz = core.routineSize(t, lib, { defaultRest: settings.defaultRest, workouts: stored.workouts });
     const names = t.exercises.map((e) => lib.get(e.exerciseId)?.name).filter(Boolean);
     assert.ok(text.startsWith(`${t.name}\n${names[0]}`), text);
     if (names.length > 3) assert.ok(text.includes(` & ${names.length - 3} more`), text);

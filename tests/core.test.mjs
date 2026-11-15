@@ -730,7 +730,7 @@ test('Today: working sets per muscle in the last 7 days, and a routine’s size'
     { exerciseId: 'gone', sets: sets(3) },
   ] };
   // bench: 2 × (30 + 60) + 3 × (45 + 120); row: 3 × (45 + 90) minus the last rest
-  assert.deepEqual(core.routineSize(t, lib, { defaultRest: 120 }), { exercises: 2, sets: 6, unpaired: 0, minutes: 15 });
+  assert.deepEqual(core.routineSize(t, lib, { defaultRest: 120 }), { exercises: 2, sets: 6, unpaired: 0, minutes: 15, basis: 'formula' }, 'no history: the formula');
   assert.equal(core.routineSize({ exercises: [] }, lib).minutes, 0);
   assert.equal(core.routineSize({ exercises: [{ exerciseId: 'bench', sets: sets(1) }] }, lib).minutes, 5, 'at least 5 minutes');
 });
@@ -792,6 +792,64 @@ test('Sets per muscle’s breakdown (#89): by exercise, adding up to the number 
   assert.deepEqual(core.muscleSets(ws, lib, 'legs', { now }), { muscle: 'legs', label: 'Legs', sets: 0, unpaired: 0, exercises: [] }, 'warm-ups only');
   assert.deepEqual(core.muscleSets(ws, lib, 'cardio', { now }), { muscle: 'cardio', label: null, sets: 0, unpaired: 0, exercises: [] }, 'not a muscle');
   assert.deepEqual(core.muscleSets([], lib, 'chest', { now }).exercises, []);
+});
+
+test('a routine’s minutes from how long it took (#114): the median per working set, else any workouts, else the formula', () => {
+  const lib = new Map([
+    ['bench', { id: 'bench', bodyPart: 'chest', category: 'barbell' }],
+    ['row', { id: 'row', bodyPart: 'back', category: 'barbell' }],
+    ['curl', { id: 'curl', bodyPart: 'arms', category: 'dumbbell', unilateral: true }],
+  ]);
+  const work = (n) => Array.from({ length: n }, () => ({ type: 'normal', w: 60, r: 8 }));
+  const warm = { type: 'warmup', w: 20, r: 10 };
+  const push = { id: 'push', exercises: [{ exerciseId: 'bench', sets: work(5) }, { exerciseId: 'row', sets: work(5) }] }; // 10 working sets
+  const t0 = Date.UTC(2026, 10, 1, 8), DAY_MS = 86400000;
+  // a finished workout on day d: n working sets (and a warm-up) taking `min` minutes
+  const session = (d, n, min, templateId = 'push') => ({
+    id: `${templateId}-${d}`, templateId, startedAt: t0 + d * DAY_MS, endedAt: t0 + d * DAY_MS + min * 60000,
+    exercises: [{ exerciseId: 'bench', sets: [warm, ...work(n)] }],
+  });
+  const size = (workouts, routine = push, o = {}) => core.routineSize(routine, lib, { workouts, ...o });
+  const formula = (routine = push, o = {}) => core.routineSize(routine, lib, o);
+
+  // five sessions of 10 sets: 5, 6, 5.5, 12 (a long chat) and 2 (cut short) minutes a set → the median, 5.5 × 10 sets = 55
+  const five = [session(1, 10, 50), session(2, 10, 60), session(3, 10, 55), session(4, 10, 120), session(5, 10, 20)];
+  assert.deepEqual(size(five), { exercises: 2, sets: 10, unpaired: 0, minutes: 55, basis: 'routine' });
+  assert.equal(size([...five].reverse()).minutes, 55, 'any order');
+  assert.equal(size([session(0, 10, 300), ...five]).minutes, 55, 'only the last 5 count');
+  assert.equal(size([session(6, 8, 44)]).minutes, 55, 'per set: 8 sets in 44 minutes is 5.5 a set, × the routine’s 10');
+  // the routine grows: 14 sets at 5.5 minutes = 77 → 75
+  const bigger = { ...push, exercises: [push.exercises[0], { exerciseId: 'row', sets: work(9) }] };
+  assert.equal(size(five, bigger).minutes, 75);
+
+  // a routine never done: the last 10 workouts of any kind (five at 3, five at 5 minutes a set; two older at 9 left out)
+  const pull = { id: 'pull', exercises: [{ exerciseId: 'row', sets: work(6) }] };
+  const any = [
+    ...[1, 2, 3, 4, 5].map((d) => session(d, 10, 30, 'legs')), ...[6, 7, 8, 9, 10].map((d) => session(d, 10, 50, 'arms')),
+    session(-2, 10, 90, 'old'), session(-1, 10, 90, 'old'),
+  ];
+  assert.deepEqual([size(any, pull).minutes, size(any, pull).basis], [25, 'all'], 'the median of 10 is 4 a set: 6 × 4 = 24 → 25');
+  assert.equal(size(any, { exercises: pull.exercises }).basis, 'all', 'a routine without an id has no sessions of its own');
+
+  // sessions that don't count: unfinished, an import without a duration (1 minute), Finish forgotten (5 hours), warm-ups only
+  const unfinished = { ...session(7, 10, 50), endedAt: undefined };
+  const skipped = [unfinished, session(8, 10, 1), session(9, 10, 300), { ...session(10, 0, 30), exercises: [{ exerciseId: 'bench', sets: [warm] }] }];
+  assert.deepEqual(size(skipped), { ...formula(), basis: 'formula' }, 'none usable: the formula, as before');
+  assert.deepEqual([size([...skipped, session(3, 10, 70)]).minutes, size([...skipped, session(3, 10, 70)]).basis], [70, 'routine'], 'the one usable session');
+  assert.deepEqual(size([session(1, 10, 50, 'legs'), session(2, 10, 300)]).basis, 'all', 'this routine’s only session is unusable: any kind');
+
+  // left and right are counted alike for the history and the routine (#54)
+  const sides = (n) => Array.from({ length: n }, (_, i) => ({ type: 'normal', w: 12, r: 10, side: i % 2 ? 'right' : 'left' }));
+  const curls = { id: 'curls', exercises: [{ exerciseId: 'curl', sets: sides(6) }] }; // 3 pairs, 6 rows
+  const done = [{ id: 'c1', templateId: 'curls', startedAt: t0, endedAt: t0 + 20 * 60000, exercises: [{ exerciseId: 'curl', sets: sides(8) }] }];
+  assert.equal(size(done, curls).minutes, 15, 'pairs: 20 minutes for 4 pairs, × 3');
+  assert.equal(size(done, curls, { pair: false }).minutes, 15, 'rows: 20 minutes for 8 rows, × 6');
+
+  // at least 5 minutes; nothing given or nothing to do: as before
+  assert.equal(size([session(1, 10, 10)], { id: 'push', exercises: [{ exerciseId: 'bench', sets: work(1) }] }).minutes, 5);
+  assert.deepEqual(size(undefined), formula());
+  assert.deepEqual(size([]), formula());
+  assert.equal(size(five, { id: 'push', exercises: [] }).minutes, 0);
 });
 
 test('merging exercises: same logged fields only; the target keeps its own rest timer and notes', () => {
@@ -2296,7 +2354,7 @@ test('muscle and routine totals (#54): pairs within one exercise and one workout
   const muscles = (ws, o = {}) => core.setsPerMuscle(ws, lib, { now, ...o }).map((m) => [m.muscle, m.sets]);
   // bilateral bench counts its rows, old side tags and all
   assert.deepEqual(muscles([{ startedAt: now, exercises: entries }]), [['chest', 3], ['arms', 3], ['core', 1]]);
-  assert.deepEqual(core.routineSize({ exercises: entries }, lib), { exercises: 3, sets: 7, unpaired: 2, minutes: core.routineSize({ exercises: entries }, lib).minutes });
+  assert.deepEqual(core.routineSize({ exercises: entries }, lib), { exercises: 3, sets: 7, unpaired: 2, minutes: core.routineSize({ exercises: entries }, lib).minutes, basis: 'formula' });
   assert.deepEqual(core.routineSize({ exercises: entries }, lib, { pair: false }).sets, 13, 'separate: every working row');
   assert.equal(core.routineSize({ exercises: entries }, lib, { pair: false }).unpaired, 0);
   const normal = entries.map((e) => ({ ...e, sets: e.sets.map(({ side, ...s }) => s) }));

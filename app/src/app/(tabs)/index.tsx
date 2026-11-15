@@ -64,7 +64,8 @@ export default function TodayTab() {
   } else if (sug) {
     const tpl = sug.template as Template;
     const entries = tpl.exercises.filter((e) => s.exercises.has(e.exerciseId));
-    const size = routineSize(tpl, s.exercises, { defaultRest: s.settings.defaultRest, pair: s.settings.pairSides });
+    // minutes from how long this routine took you, else your pace in general (#114)
+    const size = routineSize(tpl, s.exercises, { defaultRest: s.settings.defaultRest, pair: s.settings.pairSides, workouts: s.workouts });
     const groups: StrokeState[][] = entries.map((e) => e.sets.map((x) => (x.type === 'warmup' ? 'warmupPending' : 'pending')));
     card = (
       <RoutineCard testID="up-next" context={`${tr('Up next')} · ${why(sug.why)}`} name={tpl.name}
