@@ -14,7 +14,7 @@ import { stats, useAppState, type State } from '@/data/store';
 import type { Workout } from '@/data/types';
 import { useFormat, type Format } from '@/lib/format';
 import { useColors, useTally } from '@/lib/theme';
-import { SPACE, TYPE } from '@/design/tally';
+import { CONTROL, SPACE, TYPE } from '@/design/tally';
 import { hm, workoutStrokes, WorkoutTally } from '@/ui/facts';
 import { ListRow } from '@/ui/tally/ListRow';
 import { SectionHeader } from '@/ui/tally/SectionHeader';
@@ -168,7 +168,7 @@ function Calendar({ s, f }: { s: State; f: Format & { tr: (t: string, v?: Record
 function MonthButton({ icon, label, onPress, testID }: { icon: 'chevron' | 'chevronLeft'; label: string; onPress: () => void; testID: string }) {
   const c = useColors();
   return (
-    <Pressable onPress={onPress} hitSlop={8} accessibilityRole="button" accessibilityLabel={label} testID={testID}
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} testID={testID}
       style={({ pressed }) => [st.monthBtn, { backgroundColor: pressed ? c.surface3 : 'transparent' }]}>
       <Icon name={icon} size={17} color={c.accentText} />
     </Pressable>
@@ -221,7 +221,7 @@ function WorkoutRow({ w, s, f, first, day = true }: { w: Workout; s: State; f: F
 const st = StyleSheet.create({
   cal: { borderRadius: 14, padding: 12 },
   calHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
-  monthBtn: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  monthBtn: { width: CONTROL.hitMin, height: CONTROL.hitMin, margin: -(CONTROL.hitMin - 36) / 2, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   week: { flexDirection: 'row' },
   wd: { flex: 1, textAlign: 'center', fontSize: 11, fontWeight: '700', paddingVertical: 4 },
   dayWrap: { flex: 1, padding: 2 },

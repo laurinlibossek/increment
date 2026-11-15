@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import { Platform, View } from 'react-native';
 import { Stack, ThemeProvider } from 'expo-router';
+import { HeaderBackButton } from 'expo-router/react-navigation';
+import { CONTROL } from '@/design/tally';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 
@@ -93,7 +95,19 @@ export default function RootLayout() {
       {error ? <LoadProblem error={error} unreadable={unreadable} /> : (
         <Column background={palette.colors.bg} overlay={<OverlayHost root />}>
           <SaveWarningFrame>
-            <Stack screenOptions={{ headerTintColor: palette.colors.accentText, headerBackButtonDisplayMode: 'minimal', headerShadowVisible: false, headerStyle: { backgroundColor: palette.colors.bg } }}>
+            <Stack screenOptions={({ navigation }) => ({
+              headerTintColor: palette.colors.accentText,
+              headerBackButtonDisplayMode: 'minimal',
+              headerShadowVisible: false,
+              headerStyle: { backgroundColor: palette.colors.bg },
+              // Keep Expo's back icon, link and action; only its web box grows.
+              ...(Platform.OS === 'web' ? {
+                headerLeft: (props) => props.canGoBack ? (
+                  <HeaderBackButton {...props} displayMode="minimal" onPress={navigation.goBack}
+                    style={{ minWidth: CONTROL.hitMin, minHeight: CONTROL.hitMin, marginLeft: 11, marginRight: 11 - (CONTROL.hitMin - 30), marginVertical: 3 - (CONTROL.hitMin - 30) / 2 }} />
+                ) : null,
+              } : {}),
+            })}>
               <Stack.Screen name="(tabs)" options={{ headerShown: false, title: '' }} />
               <Stack.Screen name="search" options={{ title: '' }} />
               {/* Progress → Workouts, Lifts, Records, Body */}

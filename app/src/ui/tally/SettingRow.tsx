@@ -3,9 +3,9 @@
 // regular weight, values in Body, subtitles in Subheadline.
 // Titles wrap freely; values shorten first when a setting needs more room.
 import type { ReactNode } from 'react';
-import { Switch, Text } from 'react-native';
+import { Platform, Pressable, Switch, Text, View } from 'react-native';
 
-import { TYPE } from '@/design/tally';
+import { CONTROL, TYPE } from '@/design/tally';
 import { useTally } from '@/lib/theme';
 import { ListRow, SymbolIcon, type SymbolName } from './ListRow';
 
@@ -50,11 +50,18 @@ export function SwitchSettingRow({ title, sub, value, onChange, first, disabled,
   const { colors: t, scheme } = useTally();
   const onKnob = scheme === 'dark' ? t.controlOn : t.paper;
   const offKnob = scheme === 'dark' ? t.ink2 : t.paper;
+  const control = (
+    <Switch value={value} onValueChange={onChange} disabled={disabled} accessibilityLabel={title} testID={testID}
+      trackColor={{ true: t.ink, false: t.paper3 }} thumbColor={value ? onKnob : offKnob} ios_backgroundColor={t.paper3}
+      {...({ activeThumbColor: onKnob, activeTrackColor: t.ink } as object)} />
+  );
   return (
-    <SettingRow title={title} sub={sub} first={first} right={
-      <Switch value={value} onValueChange={onChange} disabled={disabled} accessibilityLabel={title} testID={testID}
-        trackColor={{ true: t.ink, false: t.paper3 }} thumbColor={value ? onKnob : offKnob} ios_backgroundColor={t.paper3}
-        {...({ activeThumbColor: onKnob, activeTrackColor: t.ink } as object)} />
-    } />
+    <SettingRow title={title} sub={sub} first={first} right={Platform.OS === 'web' ? (
+      <Pressable accessible={false} tabIndex={-1} disabled={disabled} onPress={() => onChange(!value)} testID={testID ? `${testID}-target` : undefined}
+        style={{ width: CONTROL.hitMin, height: CONTROL.hitMin, marginHorizontal: -(CONTROL.hitMin - 40) / 2, marginVertical: -(CONTROL.hitMin - 20) / 2, alignItems: 'center', justifyContent: 'center' }}>
+        {/* Let the native checkbox handle its own click, without toggling twice. */}
+        <View onClick={(event) => event.stopPropagation()}>{control}</View>
+      </Pressable>
+    ) : control} />
   );
 }

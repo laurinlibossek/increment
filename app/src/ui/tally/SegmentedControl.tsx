@@ -6,7 +6,7 @@
 // iPhone, Android and the web.
 import { Pressable, Text, View } from 'react-native';
 
-import { RADIUS } from '@/design/tally';
+import { CONTROL, RADIUS } from '@/design/tally';
 import { useTally } from '@/lib/theme';
 
 export interface SegmentedControlProps<T extends string> {
@@ -23,18 +23,22 @@ export function SegmentedControl<T extends string>({ options, value, onChange, l
   const { colors: t } = useTally();
   return (
     <View accessibilityRole="radiogroup" accessibilityLabel={label} testID={testID}
-      style={{ flexDirection: 'row', padding: 3, borderRadius: RADIUS.capsule, backgroundColor: t.paper3 }}>
+      style={{ flexDirection: 'row', paddingHorizontal: 3, minHeight: CONTROL.hitMin, marginVertical: -(CONTROL.hitMin - 36) / 2 }}>
+      <View pointerEvents="none" testID={testID ? `${testID}-track` : undefined}
+        style={{ position: 'absolute', left: 0, right: 0, top: (CONTROL.hitMin - 36) / 2, bottom: (CONTROL.hitMin - 36) / 2, borderRadius: RADIUS.capsule, backgroundColor: t.paper3 }} />
       {options.map((o) => {
         const on = o.value === value;
         return (
           <Pressable key={o.value} onPress={() => { if (!on) onChange(o.value); }} accessibilityRole="radio" aria-checked={on}
-            testID={testID ? `${testID}-${o.value}` : undefined} hitSlop={{ top: 7, bottom: 7 }}
-            style={{
-              flex: 1, height: 30, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.capsule,
+            testID={testID ? `${testID}-${o.value}` : undefined}
+            style={{ flex: 1, minWidth: CONTROL.hitMin, minHeight: CONTROL.hitMin, justifyContent: 'center' }}>
+            <View style={{
+              height: 30, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.capsule,
               backgroundColor: on ? t.controlOn : 'transparent',
               shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowRadius: 3, shadowOpacity: on ? 0.12 : 0,
             }}>
-            <Text style={{ fontSize: 13, fontWeight: '600', color: on ? t.ink : t.ink2 }} numberOfLines={1}>{o.label}</Text>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: on ? t.ink : t.ink2 }} numberOfLines={1}>{o.label}</Text>
+            </View>
           </Pressable>
         );
       })}

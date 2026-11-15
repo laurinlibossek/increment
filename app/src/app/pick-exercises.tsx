@@ -101,10 +101,10 @@ export default function PickExercises() {
   };
   return <View style={{ flex: 1, backgroundColor: t.paper }}>
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SPACE.s5, paddingTop: (Platform.OS === 'ios' ? 0 : insets.top) + SPACE.s3, paddingBottom: SPACE.s3 }}>
-      <Pressable onPress={() => done(null)} hitSlop={SPACE.s2} accessibilityRole="button" testID="pick-cancel" style={{ minHeight: CONTROL.hitMin, justifyContent: 'center' }}>
+      <Pressable onPress={() => done(null)} accessibilityRole="button" testID="pick-cancel" style={{ minHeight: CONTROL.hitMin, justifyContent: 'center' }}>
         <Text style={[TYPE.body, { color: t.ink }]}>{tr('Cancel')}</Text>
       </Pressable>
-      {multi && <Pressable onPress={() => done(chosen)} disabled={!chosen.length} accessibilityRole="button" hitSlop={SPACE.s2} testID="pick-add" style={{ minHeight: CONTROL.hitMin, justifyContent: 'center' }}>
+      {multi && <Pressable onPress={() => done(chosen)} disabled={!chosen.length} accessibilityRole="button" testID="pick-add" style={{ minWidth: CONTROL.hitMin, alignItems: 'flex-end', minHeight: CONTROL.hitMin, justifyContent: 'center' }}>
         <Text style={[TYPE.headline, { color: chosen.length ? t.ink : t.ink3 }]}>{chosen.length ? tr('Add {n}', { n: chosen.length }) : tr('Add')}</Text>
       </Pressable>}
     </View>

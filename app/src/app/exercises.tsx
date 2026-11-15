@@ -1,19 +1,18 @@
 // Lifts (Progress → Lifts): the exercises you've done, the most recent first,
 // with how often and when. Every exercise in the library is under Search.
 import { useMemo, useState } from 'react';
-import { FlatList, Text, TextInput, View } from 'react-native';
+import { FlatList, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { BODY_PARTS, matchExercise } from '@increment/core';
 
 import { allSessions, useAppState } from '@/data/store';
-import { RADIUS, SPACE, TYPE } from '@/design/tally';
+import { SPACE, TYPE } from '@/design/tally';
 import { useFormat } from '@/lib/format';
-import { useSearchFocus } from '@/ui/useSearchFocus';
 import { useTally } from '@/lib/theme';
 import { ENABLE_EXERCISE_THUMBNAILS } from '@/lib/exerciseThumbnails';
 import { ExerciseThumbnail, EXERCISE_THUMBNAIL_SIZE } from '@/ui/ExerciseThumbnail';
-import { Empty } from '@/ui/kit';
-import { ListRow, SymbolIcon } from '@/ui/tally/ListRow';
+import { Empty, SearchField } from '@/ui/kit';
+import { ListRow } from '@/ui/tally/ListRow';
 
 export default function LiftsScreen() {
   const s = useAppState();
@@ -21,7 +20,6 @@ export default function LiftsScreen() {
   const { tr } = f;
   const { colors: t } = useTally();
   const [q, setQ] = useState('');
-  const focus = useSearchFocus();
   const sessions = allSessions(s);
   const done = useMemo(() => [...sessions.entries()]
     .map(([id, list]) => ({ ex: s.exercises.get(id), n: list.length, last: list[0]?.startedAt || 0 }))
@@ -40,11 +38,8 @@ export default function LiftsScreen() {
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
       ListHeaderComponent={done.length > 8 ? (
-        <View style={{ marginHorizontal: SPACE.s5, marginVertical: SPACE.s3, flexDirection: 'row', alignItems: 'center', gap: SPACE.s2, borderRadius: RADIUS.capsule, paddingHorizontal: 14, backgroundColor: t.paper3, ...focus.containerStyle }}>
-          <SymbolIcon name="magnifyingglass" size={16} color={t.ink2} />
-          <TextInput value={q} onChangeText={setQ} placeholder={tr('Search {n} lifts', { n: done.length })} placeholderTextColor={t.ink3} testID="lifts-search"
-            accessibilityLabel={tr('Search')} onFocus={focus.onFocus} onBlur={focus.onBlur} autoCorrect={false} autoCapitalize="none" clearButtonMode="while-editing"
-            style={[TYPE.body, { flex: 1, minWidth: 0, color: t.ink, paddingVertical: 10 }, focus.inputStyle]} />
+        <View style={{ marginHorizontal: SPACE.s5, marginVertical: SPACE.s3 }}>
+          <SearchField style={{ paddingHorizontal: 14 }} iconTone="ink2" value={q} onChange={setQ} placeholder={tr('Search {n} lifts', { n: done.length })} label={tr('Search')} testID="lifts-search" />
         </View>
       ) : undefined}
       renderItem={({ item, index }) => (

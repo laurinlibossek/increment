@@ -58,7 +58,7 @@ async function dock(page, barID, buttonID) {
   assert.ok(Math.abs(bar.x - (width - column) / 2) <= 1, JSON.stringify(bar));
   assert.ok(Math.abs(bar.width - column) <= 1, JSON.stringify(bar));
   assert.ok(button.y >= height - 132 && button.y + button.height <= height - 12, JSON.stringify(button));
-  assert.ok(button.height >= 44, JSON.stringify(button));
+  assert.ok(button.height >= 43.5 && button.width >= 43.5, JSON.stringify(button));
   assert.ok(Math.abs(button.x - (width - column) / 2 - 20) <= 1, JSON.stringify(button));
   assert.ok(Math.abs(button.width - column + 40) <= 1, JSON.stringify(button));
   return { bar, button };
@@ -105,9 +105,15 @@ try {
     await id('account-done').waitFor();
     await shot('account');
     if (!before) {
+      const done = await id('account-done').boundingBox();
+      assert.ok(done.width >= 43.5 && done.height >= 43.5, JSON.stringify(done));
       assert.equal(await page.getByRole('link', { name: /^(go back|.*, back)$/i }).count(), 0, 'Account has Done as its only close control');
       await id('set-warmup').click();
       await id('wu-bar').waitFor();
+      for (const target of ['wu-cancel', 'wu-save', 'wu-bar']) {
+        const box = await id(target).boundingBox();
+        assert.ok(box.width >= 43.5 && box.height >= 43.5, `${target}: ${JSON.stringify(box)}`);
+      }
       await id('wu-cancel').click();
       await id('account-done').waitFor();
       await id('account-done').click();

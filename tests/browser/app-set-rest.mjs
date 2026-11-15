@@ -50,11 +50,11 @@ async function open(theme, reducedMotion = 'no-preference') {
 for (const theme of ['light', 'dark']) {
   const { ctx, page, errors, id, ids, indicators, left, barLeft, log } = await open(theme);
   // the rest once, in the line under the name; a tap changes it
-  assert.equal((await id(`last-${BENCH}`).innerText()).trim(), 'Barbell · Chest · Rest 1:30');
+  assert.equal((await id(`last-${BENCH}`).innerText()).replace(/\s+/g, ' ').trim(), 'Barbell · Chest · Rest 1:30');
   await id(`rest-tag-${BENCH}`).click();
   await id('rest-120').click();
   await page.waitForTimeout(200);
-  assert.equal((await id(`last-${BENCH}`).innerText()).trim(), 'Barbell · Chest · Rest 2:00');
+  assert.equal((await id(`last-${BENCH}`).innerText()).replace(/\s+/g, ' ').trim(), 'Barbell · Chest · Rest 2:00');
   ok(`${theme}: “Barbell · Chest · Rest 1:30” under the name; tapping it sets 2:00`);
 
   // log set 1: the line under it, in step with the Action bar

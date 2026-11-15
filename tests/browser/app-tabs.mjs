@@ -122,6 +122,8 @@ async function discard(page) {
     await page.locator('[data-testid="mini-bar"]:visible').waitFor();
     assert.equal(await page.locator('[data-testid="mini-bar"]:visible').count(), 1);
     await openSearch(page);
+  const searchBox = await id(page, 'exercise-search').boundingBox();
+  assert.ok(searchBox.width >= 43.5 && searchBox.height >= 43.5, JSON.stringify(searchBox));
     assert.equal(await page.locator('[data-testid="mini-bar"]:visible').count(), 0, 'Search has no duplicated or covering accessory');
     assert.equal(await page.getByRole('tablist').count(), 0, 'Search is pushed above the tab bar');
     await page.getByRole('link', { name: 'Go back', exact: true }).click();
@@ -386,8 +388,8 @@ for (const lang of ['en', 'de']) {
     .reduce((a, x, i) => a + x * [0.2126, 0.7152, 0.0722][i], 0);
   const contrast = (a, b) => { const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05); };
   const bg = (loc) => loc.evaluate((el) => getComputedStyle(el).backgroundColor);
-  const track = rgb(await bg(id(page, 'set-unit')));
-  const chosen = rgb(await bg(id(page, 'set-unit-kg')));
+  const track = rgb(await bg(id(page, 'set-unit-track')));
+  const chosen = rgb(await bg(id(page, 'set-unit-kg').locator(':scope > div')));
   const ratio = contrast(chosen, track);
   assert.ok(ratio >= 3, `the chosen segment against its track: ${ratio.toFixed(2)}:1`);
   const knobs = (t) => id(page, t).locator('div').evaluateAll((els) => els.map((el) => getComputedStyle(el).backgroundColor));

@@ -68,7 +68,7 @@ export default function PlanTab() {
     if (c === 'folder') newFolder(f);
   };
   const plus = (
-    <Pressable onPress={add} accessibilityRole="button" accessibilityLabel={tr('Add')} testID="plan-add" hitSlop={4}
+    <Pressable onPress={add} accessibilityRole="button" accessibilityLabel={tr('Add')} testID="plan-add"
       style={({ pressed }) => ({ width: CONTROL.hitMin, height: CONTROL.hitMin, borderRadius: RADIUS.capsule, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? t.paper2 : t.paper3 })}>
       <SymbolIcon name="plus" size={22} color={t.ink} />
     </Pressable>
@@ -105,9 +105,11 @@ export default function PlanTab() {
       <ListRow key={x.id} first={i === 0} title={title} subtitle={subtitle} chevron={x.example}
         onPress={() => router.push({ pathname: '/template/[id]', params: { id: x.id } })} testID={`template-${x.id}`}
         right={!x.example && (
-          <Pressable onPress={() => templateMenu(x, f)} hitSlop={6} accessibilityRole="button" accessibilityLabel={tr('Options for {name}', { name: x.name })}
-            testID={`template-menu-${x.id}`} style={({ pressed }) => ({ width: 36, height: 36, borderRadius: RADIUS.capsule, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? t.paper3 : 'transparent' })}>
-            <SymbolIcon name="ellipsis" size={18} color={t.ink2} />
+          <Pressable onPress={() => templateMenu(x, f)} accessibilityRole="button" accessibilityLabel={tr('Options for {name}', { name: x.name })}
+            testID={`template-menu-${x.id}`} style={{ width: CONTROL.hitMin, height: CONTROL.hitMin, margin: -(CONTROL.hitMin - 36) / 2, alignItems: 'center', justifyContent: 'center' }}>
+            {({ pressed }) => <View style={{ width: 36, height: 36, borderRadius: RADIUS.capsule, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? t.paper3 : 'transparent' }}>
+                <SymbolIcon name="ellipsis" size={18} color={t.ink2} />
+            </View>}
           </Pressable>
         )} />
     );
@@ -123,10 +125,12 @@ export default function PlanTab() {
         </Text>
       </Pressable>
       {key && key !== '__archived' && (
-        <Pressable onPress={() => folderMenu(key, count + archivedIn(key), f)} hitSlop={6} accessibilityRole="button"
+        <Pressable onPress={() => folderMenu(key, count + archivedIn(key), f)} accessibilityRole="button"
           accessibilityLabel={tr('Options for folder {name}', { name: key })} testID={`folder-menu-${key}`}
-          style={({ pressed }) => ({ width: 36, height: 36, borderRadius: RADIUS.capsule, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? t.paper3 : 'transparent' })}>
-          <SymbolIcon name="ellipsis" size={18} color={t.ink2} />
+          style={{ width: CONTROL.hitMin, height: CONTROL.hitMin, margin: -(CONTROL.hitMin - 36) / 2, alignItems: 'center', justifyContent: 'center' }}>
+            {({ pressed }) => <View style={{ width: 36, height: 36, borderRadius: RADIUS.capsule, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? t.paper3 : 'transparent' }}>
+            <SymbolIcon name="ellipsis" size={18} color={t.ink2} />
+            </View>}
         </Pressable>
       )}
     </View>

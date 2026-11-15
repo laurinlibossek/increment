@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { pad2 } from '@increment/core';
 
-import { SPACE, TYPE } from '@/design/tally';
+import { CONTROL, SPACE, TYPE } from '@/design/tally';
 import type { Workout } from '@/data/types';
 import { useTally } from '@/lib/theme';
 import { Icon } from '@/ui/kit';
@@ -37,7 +37,7 @@ export function SectionHeadLink({ title, count, lines = 1, onPress, accessibilit
   const { colors: t } = useTally();
   return (
     <Pressable onPress={onPress} accessibilityRole="link" accessibilityLabel={accessibilityLabel} testID={testID}
-      style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: MARGIN, marginTop: SPACE.s6, marginBottom: SPACE.s1, opacity: pressed ? 0.6 : 1 })}>
+      style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: MARGIN, minHeight: CONTROL.hitMin, paddingTop: CONTROL.hitMin - TYPE.title3.lineHeight, marginTop: SPACE.s6 - (CONTROL.hitMin - TYPE.title3.lineHeight), marginBottom: SPACE.s1, opacity: pressed ? 0.6 : 1 })}>
       <Text style={{ ...TYPE.title3, color: t.ink, flexShrink: 1 }} numberOfLines={lines}>{title}</Text>
       <Icon name="chevron" size={13} color={t.ink3} />
       {/* in the column of the counts in the rows below, which stand before their chevron */}

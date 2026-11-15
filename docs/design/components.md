@@ -117,6 +117,8 @@ Working sets per muscle over the last 7 days, as tallies.
 - The count on the right in `t-headline`. Above the range, the count turns `ink-2`; it never turns red.
 - Muscles in a fixed order (chest, back, shoulders, arms, legs, then the finer split once the exercise library has it).
 - A row that can be tapped has no chevron, only the pressed state (`paper-2`). It is at least 44 pt tall (Apple's minimum touch target) and runs the full width, and the rows meet, so they sit a little further apart than rows that can't be tapped (Laurin, 14 Nov 2026).
+- Every tappable element’s own layout box is at least 44 × 44 pt (`CONTROL.hitMin` in both directions). `hitSlop` does not count: react-native-web ignores it. Remove it once the box meets the minimum.
+- Keep a small visible shape inside a centred 44 pt Pressable, or use minimum dimensions with padding and matching negative margins to preserve spacing. Adjacent targets may touch but must not overlap. Inputs inside a larger target are focused by that wrapper (as in `SetField`).
 
 ## NowLifting
 

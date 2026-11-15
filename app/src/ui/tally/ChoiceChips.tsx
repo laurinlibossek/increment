@@ -22,11 +22,11 @@ export function ChoiceChips({ options, value, onChange, label, testID }: {
   return <ScrollView ref={scroll} horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" testID={testID}
     onLayout={(e) => { viewport.current = e.nativeEvent.layout.width; reveal(); }}
     onScroll={(e) => { offset.current = e.nativeEvent.contentOffset.x; }} scrollEventThrottle={16}
-    accessibilityLabel={label} contentContainerStyle={{ gap: SPACE.s2 }}>
+    accessibilityLabel={label} style={{ marginHorizontal: -1 }} contentContainerStyle={{ gap: SPACE.s2, paddingHorizontal: 1 }}>
     {options.map((o) => <Pressable key={o.value} onPress={() => onChange(o.value)} accessibilityRole="button" aria-selected={o.value === value}
       accessibilityLabel={o.label} testID={testID ? `${testID}-${o.value}` : undefined}
       onLayout={(e) => { positions.current.set(o.value, e.nativeEvent.layout); if (o.value === value) reveal(); }}
-      style={{ minHeight: CONTROL.hitMin, justifyContent: 'center' }}>
+      style={{ minHeight: CONTROL.hitMin, minWidth: CONTROL.hitMin, paddingHorizontal: 1, marginHorizontal: -1, alignItems: 'center', justifyContent: 'center' }}>
       <View style={{ minHeight: 32, justifyContent: 'center', borderRadius: RADIUS.capsule, paddingHorizontal: SPACE.s3, backgroundColor: o.value === value ? t.ink : t.paper3 }}>
         <Text style={{ fontSize: 14, fontWeight: '600', color: o.value === value ? t.paper : t.ink2 }}>{o.label}</Text>
       </View>

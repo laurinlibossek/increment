@@ -55,7 +55,7 @@ export function NowLifting({ placement, tally, tallyLabel, title, subtitle, shor
         )}
       </Pressable>
       {skip && !inline && (
-        <Pressable onPress={skip.onPress} accessibilityRole="button" accessibilityLabel={skip.label} testID="mini-skip-rest" hitSlop={4}
+        <Pressable onPress={skip.onPress} accessibilityRole="button" accessibilityLabel={skip.label} testID="mini-skip-rest"
           style={({ pressed }) => ({ width: CONTROL.hitMin, height: CONTROL.hitMin, marginRight: 2, borderRadius: RADIUS.capsule, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? t.paper3 : 'transparent' })}>
           <SymbolIcon name="forward.end.fill" size={20} color={t.ink} />
         </Pressable>

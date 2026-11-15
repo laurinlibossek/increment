@@ -9,11 +9,12 @@ import {
 } from '@increment/core';
 
 import { setMeta, stats, useAppState } from '@/data/store';
-import { SPACE, TYPE } from '@/design/tally';
+import { CONTROL, SPACE, TYPE } from '@/design/tally';
 import { backupNow, backupWhy } from '@/lib/backup';
 import { useFormat } from '@/lib/format';
 import { fmtMeasure, measureDef } from '@/lib/measure';
 import { useTally } from '@/lib/theme';
+import { hitTarget } from '@/ui/kit';
 import { BarChart } from '@/ui/Chart';
 import { ListRow } from '@/ui/tally/ListRow';
 import { SectionHeader } from '@/ui/tally/SectionHeader';
@@ -65,8 +66,8 @@ export default function ProgressTab() {
             {` ${backupWhy(tr)}`}
           </Text>
           <View style={{ flexDirection: 'row', gap: SPACE.s5 }}>
-            <Pressable onPress={() => backupNow(tr)} accessibilityRole="button" hitSlop={8}><Text style={[TYPE.headline, { color: t.ink }]}>{tr('Back up now')}</Text></Pressable>
-            <Pressable onPress={() => setMeta({ backupSnoozedAt: Date.now() })} accessibilityRole="button" hitSlop={8}><Text style={[TYPE.body, { color: t.ink2 }]}>{tr('Later')}</Text></Pressable>
+            <Pressable onPress={() => backupNow(tr)} accessibilityRole="button" style={{ ...hitTarget, marginVertical: -(CONTROL.hitMin - TYPE.body.lineHeight) / 2 }}><Text style={[TYPE.headline, { color: t.ink }]}>{tr('Back up now')}</Text></Pressable>
+            <Pressable onPress={() => setMeta({ backupSnoozedAt: Date.now() })} accessibilityRole="button" style={{ ...hitTarget, marginVertical: -(CONTROL.hitMin - TYPE.body.lineHeight) / 2 }}><Text style={[TYPE.body, { color: t.ink2 }]}>{tr('Later')}</Text></Pressable>
           </View>
         </View>
       )}
