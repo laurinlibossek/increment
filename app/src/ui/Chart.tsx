@@ -1,5 +1,7 @@
 // The column chart (weekly workouts on Progress): ink columns with dotted grid
-// lines; touch a bar for its value. The line chart is the Tally one
+// lines; touch a bar for its value. The goal's label sits at the start of its
+// line: the end belongs to this week, whose number is always shown (#122).
+// The line chart is the Tally one
 // (ui/tally/LineChart.tsx). The axis maths is the shared core's (core/chart.js).
 import { useState } from 'react';
 import {
@@ -8,7 +10,7 @@ import {
 import Svg, {
   G, Line, Path, Text as SvgText,
 } from 'react-native-svg';
-import { niceTicks } from '@increment/core';
+import { boxesOverlap, labelBox, niceTicks } from '@increment/core';
 
 import { RADIUS, SPACE, TYPE } from '@/design/tally';
 import { useFormat } from '@/lib/format';
@@ -63,6 +65,14 @@ export function BarChart({
   const every = Math.ceil(bars.length / 6);
   const pick = (px: number) => setSel(Math.max(0, Math.min(lastI, Math.floor((px - padL) / band))));
   const sb = sel !== null ? bars[sel] : null;
+  const fs = TYPE.footnote.fontSize;
+  const valueY = (v: number) => sy(v) - SPACE.s2;
+  // the goal's label, at the start of its line; hidden while a touched week's
+  // number would land on it (the bubble shows that number)
+  const goalText = goal ? tr('Goal {n}', { n: goal }) : '';
+  const goalBox = goal ? labelBox(goalText, padL, valueY(goal), fs) : null;
+  const showGoal = !!goalBox && ![lastI, sel].some((i) => i !== null && bars[i]?.value > 0
+    && boxesOverlap(goalBox, labelBox(fmtVal(bars[i].value), padL + band * i + band / 2, valueY(bars[i].value), fs, 'middle')));
   return (
     <View onLayout={onLayout} style={{ marginTop: SPACE.s3, ...(Platform.OS === 'web' ? { touchAction: 'pan-y' } : {}) }} testID={testID}
       accessible accessibilityRole="image" accessibilityLabel={`${label}: ${bars.length ? fmtVal(bars[lastI].value) : ''}`}
@@ -76,23 +86,25 @@ export function BarChart({
               <SvgText fontFamily={FONT} x={padL - SPACE.s2} y={sy(t) + SPACE.s1} textAnchor="end" fontSize={TYPE.footnote.fontSize} fill={c.ink2}>{String(t)}</SvgText>
             </G>
           ))}
-          {!!goal && (
-            <G>
-              <Line x1={padL} x2={W - padR} y1={sy(goal)} y2={sy(goal)} stroke={c.ink2} strokeWidth={1} strokeDasharray="4 4" />
-              <SvgText fontFamily={FONT} x={W - padR} y={sy(goal) - SPACE.s2} textAnchor="end" fontSize={TYPE.footnote.fontSize} fill={c.ink2}>{tr('Goal {n}', { n: goal })}</SvgText>
-            </G>
-          )}
+          {!!goal && <Line x1={padL} x2={W - padR} y1={sy(goal)} y2={sy(goal)} stroke={c.ink2} strokeWidth={1} strokeDasharray="4 4" />}
           {bars.map((b, i) => {
             const x = padL + band * i + (band - bw) / 2;
             const dim = i !== lastI && sel !== i;
             return (
               <G key={'b' + i}>
                 {b.value > 0 && <Path d={barPath(x, b.value)} fill={c.chart} opacity={dim ? 0.45 : 1} />}
-                {(i === lastI || i === sel) && b.value > 0 && <SvgText fontFamily={FONT} x={x + bw / 2} y={sy(b.value) - SPACE.s2} textAnchor="middle" fontSize={TYPE.footnote.fontSize} fontWeight={TYPE.headline.fontWeight} fill={c.ink}>{fmtVal(b.value)}</SvgText>}
+                {(i === lastI || i === sel) && b.value > 0 && <SvgText fontFamily={FONT} x={x + bw / 2} y={valueY(b.value)} textAnchor="middle" fontSize={fs} fontWeight={TYPE.headline.fontWeight} fill={c.ink}>{fmtVal(b.value)}</SvgText>}
                 {i % every === lastI % every && <SvgText fontFamily={FONT} x={x + bw / 2} y={H - SPACE.s2} textAnchor="middle" fontSize={TYPE.footnote.fontSize} fill={c.ink2}>{b.label}</SvgText>}
               </G>
             );
           })}
+          {showGoal && (
+            // over the bars, with a paper outline so a week above the goal doesn't cut through it
+            <G>
+              <SvgText aria-hidden fontFamily={FONT} x={goalBox!.x0} y={valueY(goal!)} fontSize={fs} fill={c.bg} stroke={c.bg} strokeWidth={4} strokeLinejoin="round">{goalText}</SvgText>
+              <SvgText fontFamily={FONT} x={goalBox!.x0} y={valueY(goal!)} fontSize={fs} fill={c.ink2}>{goalText}</SvgText>
+            </G>
+          )}
         </Svg>
       )}
       {sb && <Tip left={padL + band * (sel ?? 0) + band / 2} width={W} value={fmtVal(sb.value)} sub={sb.title || sb.label} />}

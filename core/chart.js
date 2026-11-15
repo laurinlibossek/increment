@@ -99,6 +99,23 @@ export const EXERCISE_RANGES = [{ value: 90, label: '3M' }, { value: 182, label:
 export const MEASURE_RANGES = [{ value: 30, label: '1M' }, { value: 90, label: '3M' }, { value: 365, label: '1Y' }, { value: 0, label: 'All' }];
 
 /**
+ * The box a one-line chart label takes around its anchor and baseline, so a
+ * chart can keep two labels apart (#122). SVG text can't be measured before it
+ * is drawn, so the width is estimated at 0.6 em a character, wider than most text.
+ * @param {string} text @param {number} x the anchor @param {number} y the baseline @param {number} size the font size
+ * @param {'start' | 'middle' | 'end'} [anchor]
+ * @returns {{ x0: number, x1: number, y0: number, y1: number }}
+ */
+export function labelBox(text, x, y, size, anchor = 'start') {
+  const w = text.length * size * 0.6;
+  const x0 = anchor === 'start' ? x : anchor === 'end' ? x - w : x - w / 2;
+  return { x0, x1: x0 + w, y0: y - size, y1: y + size * 0.3 };
+}
+
+/** Whether two boxes overlap. @param {{ x0: number, x1: number, y0: number, y1: number }} a @param {{ x0: number, x1: number, y0: number, y1: number }} b */
+export const boxesOverlap = (a, b) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+
+/**
  * Workouts per week for the last `weeks` weeks (oldest first).
  * @param {{ startedAt: number }[]} workouts
  * @returns {{ start: number, value: number }[]}
