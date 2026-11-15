@@ -46,7 +46,7 @@ export default function ProgressTab() {
     }
     return {
       workouts, volume, recent,
-      weeks: weeklyCounts(s.workouts, { weeks: 12, weekStart }) as { start: number; value: number }[],
+      weeks: weeklyCounts(s.workouts, { weeks: 12, weekStart }),
       streak: weekStreak(s.workouts, { goal, weekStart }) as number,
     };
   }, [s.workouts, s.exercises, s.settings, goal, today]); // eslint-disable-line react-hooks/exhaustive-deps
