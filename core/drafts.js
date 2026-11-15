@@ -1,3 +1,4 @@
+// @ts-check
 // Drafts are the editable form of workouts/templates: every number is kept as
 // the string the user typed (in display units), so "62," survives while typing.
 // Saved records use canonical numbers: kg, km, seconds.
@@ -8,16 +9,26 @@ import { setIsValid, normRir } from './calc.js';
 import { sideOf } from './set-sides.js';
 import { repRange, withRepRange, parseRepsInput } from './rep-range.js';
 
+/**
+ * @typedef {import('./types.js').UnitSettings} UnitSettings
+ * @typedef {import('./types.js').StoredSet} StoredSet
+ * @typedef {import('./types.js').SetDraftLike} SetDraftLike
+ */
+
+/** A new empty set while editing. @param {string} [type] @param {object} [extra] */
 export function newSetDraft(type = 'normal', extra = {}) {
   return { id: uid(), type, w: '', r: '', d: '', t: '', rpe: '', done: false, ...extra };
 }
 
+/** A stored weight (kg) as the text a field shows. @param {number | null | undefined} kg @param {UnitSettings} st */
 export function weightToInput(kg, st) {
   if (kg === null || kg === undefined) return '';
   return numToInput(roundW(kgTo(kg, st.unit), st.unit));
 }
 
+/** A stored set as it's edited. @param {any} s @param {UnitSettings} st @returns {SetDraftLike} */
 export function setToDraft(s, st, keepId = true) {
+  /** @type {SetDraftLike} */
   const d = {
     id: keepId && s.id ? s.id : uid(),
     type: s.type || 'normal',
@@ -40,6 +51,7 @@ export function setToDraft(s, st, keepId = true) {
   if (range) { d.r = `${range[0]}–${range[1]}`; if (Number.isFinite(s.r)) d.rNow = s.r; }
   // when a performed set was logged (#43): kept by Edit workout and backups, never by routines
   if (Number.isFinite(s.doneAt)) d.doneAt = s.doneAt;
+  /** @type {Record<string, [string, number]>} */
   const orig = {};
   if (d.w !== '') orig.w = [d.w, s.w];
   if (d.d !== '') orig.d = [d.d, s.d];
@@ -48,9 +60,12 @@ export function setToDraft(s, st, keepId = true) {
 }
 
 /** The stored number for a field when its text is still what setToDraft produced. */
+/** @param {any} sd @param {string} k @returns {number | undefined} */
 const kept = (sd, k) => (sd.orig && sd.orig[k] && sd.orig[k][0] === sd[k] ? sd.orig[k][1] : undefined);
 
+/** An edited set as saved. @param {any} sd @param {UnitSettings} st @returns {StoredSet} */
 export function draftToSet(sd, st) {
+  /** @type {StoredSet} */
   const out = { id: sd.id || uid(), type: sd.type || 'normal' };
   // "8–10" in a routine's reps is a range (#44); a broken one ("10–8") leaves no reps here, and the editor refuses it
   const typed = parseRepsInput(sd.r);
@@ -68,6 +83,7 @@ export function draftToSet(sd, st) {
   return out;
 }
 
+/** A stored exercise entry as it's edited. @param {any} e @param {UnitSettings} st */
 export function entryToDraft(e, st, { asTemplateTargets = false } = {}) {
   return {
     id: uid(),
@@ -77,7 +93,7 @@ export function entryToDraft(e, st, { asTemplateTargets = false } = {}) {
     supersetId: e.supersetId || null,
     restSec: e.restSec ?? null,
     focus: e.focus || null,
-    sets: e.sets.map((s) => (asTemplateTargets
+    sets: e.sets.map((/** @type {any} */ s) => (asTemplateTargets
       ? newSetDraft(s.type || 'normal', {
         tpl: { w: s.w ?? null, r: s.r ?? null, d: s.d ?? null, t: s.t ?? null },
         rpe: s.rpe ? numToInput(s.rpe, 1) : '',
@@ -89,6 +105,7 @@ export function entryToDraft(e, st, { asTemplateTargets = false } = {}) {
   };
 }
 
+/** A new exercise entry while editing, with empty sets. @param {string} exerciseId */
 export function newEntryDraft(exerciseId, sets = 1) {
   return {
     id: uid(), exerciseId, notes: '', showNotes: false, supersetId: null, restSec: null,
@@ -101,19 +118,25 @@ export function newEntryDraft(exerciseId, sets = 1) {
  * entries lose the id, deleted from records or set to null in a draft
  * (`asNull`). With `only`, just those superset ids are checked. Returns the ids
  * of the entries that left a superset (removeEntry's Undo puts them back).
+ * @param {{ id?: string, supersetId?: string | null }[]} list
+ * @param {{ only?: (string | null | undefined)[] | null, asNull?: boolean }} [o]
+ * @returns {(string | undefined)[]}
  */
 export function dissolveLoneSupersets(list, { only = null, asNull = false } = {}) {
+  /** @type {Map<string, number>} */
   const counts = new Map();
   for (const e of list) if (e.supersetId) counts.set(e.supersetId, (counts.get(e.supersetId) || 0) + 1);
+  /** @type {(string | undefined)[]} */
   const left = [];
   for (const e of list) {
-    if (!e.supersetId || counts.get(e.supersetId) >= 2 || (only && !only.includes(e.supersetId))) continue;
+    if (!e.supersetId || (counts.get(e.supersetId) || 0) >= 2 || (only && !only.includes(e.supersetId))) continue;
     if (asNull) e.supersetId = null; else delete e.supersetId;
     left.push(e.id);
   }
   return left;
 }
 
+/** @template {{ supersetId?: string | null }} E @param {E[]} entries @returns {E[]} */
 export function remapSupersets(entries) {
   // fresh superset ids so drafts never share ids with stored records
   const map = new Map();
@@ -125,15 +148,22 @@ export function remapSupersets(entries) {
   return entries;
 }
 
-/** Convert a draft into saved exercise entries. */
+/**
+ * Convert a draft into saved exercise entries.
+ * @param {any} draft
+ * @param {UnitSettings} st
+ * @param {Map<string, { category: string }>} exById
+ */
 export function draftEntries(draft, st, exById, { onlyDone = false, keepEmpty = false } = {}) {
+  /** @type {{ id: string, exerciseId: string, sets: StoredSet[], notes?: string, supersetId?: string, restSec?: number, focus?: string }[]} */
   const out = [];
   for (const e of draft.exercises) {
     const ex = exById.get(e.exerciseId);
     if (!ex) continue;
-    let sets = e.sets.filter((s) => !onlyDone || s.done).map((s) => draftToSet(s, st));
-    if (!keepEmpty) sets = sets.filter((s) => setIsValid(s, ex.category));
+    let sets = e.sets.filter((/** @type {any} */ s) => !onlyDone || s.done).map((/** @type {any} */ s) => draftToSet(s, st));
+    if (!keepEmpty) sets = sets.filter((/** @type {StoredSet} */ s) => setIsValid(s, ex.category));
     if (!sets.length && !keepEmpty) continue;
+    /** @type {(typeof out)[number]} */
     const entry = { id: e.id, exerciseId: e.exerciseId, sets };
     if (e.notes && e.notes.trim()) entry.notes = e.notes.trim();
     if (e.supersetId) entry.supersetId = e.supersetId;
@@ -145,9 +175,10 @@ export function draftEntries(draft, st, exById, { onlyDone = false, keepEmpty = 
   return out;
 }
 
-/** Convert the weight strings of a draft when the unit setting changes. */
+/** Convert the weight strings of a draft when the unit setting changes. @param {any} draft @param {UnitSettings} from @param {UnitSettings} to */
 export function convertDraftUnits(draft, from, to) {
   if (!draft) return;
+  /** @param {string} s @param {'w' | 'd'} kind */
   const conv = (s, kind) => {
     const n = parseNum(s);
     if (n === null) return s;

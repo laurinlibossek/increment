@@ -22,7 +22,7 @@ export function useNow(ms: number, on = true) {
  * midnight, never a fixed 24 hours, so days of 23 or 25 hours (DST) work (#36).
  */
 export function useToday(): number {
-  const [day, setDay] = useState(() => startOfDay(Date.now()) as number);
+  const [day, setDay] = useState(() => startOfDay(Date.now()));
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | null = null;
     const schedule = () => {
@@ -33,7 +33,7 @@ export function useToday(): number {
       timer = setTimeout(check, Math.max(1000, next.getTime() - Date.now() + 500));
     };
     const check = () => {
-      const d = startOfDay(Date.now()) as number;
+      const d = startOfDay(Date.now());
       setDay((prev) => (prev === d ? prev : d));
       schedule();
     };
