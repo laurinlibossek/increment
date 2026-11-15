@@ -61,7 +61,23 @@ async function discard(page) {
   assert.match(card, new RegExp(`Up next · [^\\n]+\\n${sug.template.name}`));
   // one-side exercises without sides show as unpaired (#54)
   const setsText = (z) => `${z.sets} sets${z.unpaired ? ` · ${z.unpaired} unpaired` : ''}`;
-  assert.ok(card.includes(`${size.exercises} exercises · ${setsText(size)} · about ${size.minutes} min`), card);
+  assert.equal(await id(page, 'up-next-summary').innerText(), `${setsText(size)} · about ${size.minutes} min`);
+  // a row per exercise (#116), the first six: its name, the range the routine
+  // prescribes (#44), its strokes; one line each; then "& n more"
+  const entries = sug.template.exercises.filter((e) => lib.has(e.exerciseId));
+  const shown = entries.slice(0, 6);
+  assert.equal(await page.locator('[data-testid^="up-next-ex-"]').count(), shown.length);
+  for (const [i, e] of shown.entries()) {
+    const row = id(page, `up-next-ex-${i}`);
+    const r = core.entryRepRange(e);
+    assert.equal((await row.innerText()).replace(/\s+/g, ' ').trim(), `${lib.get(e.exerciseId).name}${r ? ` ${r[0]}–${r[1]}` : ''}`);
+    assert.equal(await row.getByRole('img').getAttribute('aria-label'), setsText(core.entriesSetCount([e], lib, { pair: settings.pairSides })));
+    assert.ok((await row.boundingBox()).height < 36, 'one line');
+  }
+  assert.equal(await id(page, 'up-next-more').count(), entries.length > 6 ? 1 : 0);
+  if (entries.length > 6) assert.equal(await id(page, 'up-next-more').innerText(), `& ${entries.length - 6} more`);
+  const lead = await id(page, 'up-next').evaluate((el) => { const x = [...el.querySelectorAll('*')].find((n) => n.childNodes[0]?.nodeValue === 'Up next'); return getComputedStyle(x).fontWeight; });
+  assert.equal(lead, '600', 'Up next stands out');
   const date = new Intl.DateTimeFormat('en-US', { weekday: 'long', day: 'numeric', month: 'long' }).format(Date.now());
   assert.ok((await text(page)).toLowerCase().includes(date.toLowerCase()), `eyebrow ${date}`);
   assert.match(await id(page, 'week-head').innerText(), new RegExp(`${week.done} of ${settings.weeklyGoal} sessions`));
@@ -122,7 +138,7 @@ async function discard(page) {
   // Plan: the templates as rows, + starts an empty workout
   await selectTab(page, 'plan');
   await wait(page);
-  // each row previews the routine (#32): its exercises, then muscles · sets · about how long · last done.
+  // each row previews the routine (#32, #116): the name and last done, its exercises, then sets · about how long · muscles.
   // The routines as stored now: starting Up next above split its one-sided exercises into Left and Right
   // sets (#77), which changes its minutes on days when Up next has one (the backup's copy is the old one).
   const stored = await store(page);
@@ -130,9 +146,10 @@ async function discard(page) {
     const text = await id(page, `template-${t.id}`).innerText();
     const sz = core.routineSize(t, lib, { defaultRest: settings.defaultRest, workouts: stored.workouts });
     const names = t.exercises.map((e) => lib.get(e.exerciseId)?.name).filter(Boolean);
-    assert.ok(text.startsWith(`${t.name}\n${names[0]}`), text);
+    const lines = text.split('\n');
+    assert.ok(lines[0] === t.name && lines[2].startsWith(names[0]), text);
     if (names.length > 3) assert.ok(text.includes(` & ${names.length - 3} more`), text);
-    assert.ok(text.includes(`${setsText(sz)} · about ${sz.minutes} min · `), text);
+    assert.ok(text.includes(`\n${setsText(sz)} · about ${sz.minutes} min · `), text);
   }
   await id(page, 'plan-add').click();
   await id(page, 'new-template').waitFor();

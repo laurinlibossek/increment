@@ -75,7 +75,8 @@ export default function PlanTab() {
   );
 
   const row = (x: Template, i: number) => {
-    // two grey lines (#32): the exercises, then muscles · sets · about how long · last done
+    // three levels (#116): the name in semibold with when it was last done on its
+    // right; the exercises (#32); then the sets and minutes in ink, the muscles in grey
     const names = x.exercises.map((e) => s.exercises.get(e.exerciseId)).filter((e) => !!e).map((e) => f.exName(e));
     const { shown, more } = namesPreview(names);
     const list = more ? tr('{names} & {n} more', { names: shown.join(', '), n: more }) : shown.join(', ');
@@ -83,16 +84,25 @@ export default function PlanTab() {
     const size = routineSize(x, s.exercises, { defaultRest: s.settings.defaultRest, pair: s.settings.pairSides, workouts: s.workouts });
     const muscles = routineMuscles(x, s.exercises).map((m) => tr(m.label)).join(', ');
     const at = x.example ? 0 : lastUsed(x, s.workouts);
-    const when = x.example ? '' : at ? f.relDayLower(at) : tr('not done yet');
-    const facts = [muscles, f.setsText(size), size.minutes ? tr('about {n} min', { n: size.minutes }) : '', when].filter(Boolean).join(' · ');
+    const when = x.example ? '' : at ? f.relDay(at) : tr('Not done yet');
+    const amount = [f.setsText(size), size.minutes ? tr('about {n} min', { n: size.minutes }) : ''].filter(Boolean).join(' · ');
+    const title = (
+      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: SPACE.s3 }}>
+        <Text style={[TYPE.headline, { color: t.ink, flex: 1 }]} numberOfLines={1} testID={`template-name-${x.id}`}>{x.name}</Text>
+        {!!when && <Text style={[TYPE.footnote, { color: t.ink2, flexShrink: 0 }]} numberOfLines={1} testID={`template-when-${x.id}`}>{when}</Text>}
+      </View>
+    );
     const subtitle = (
-      <View testID={`template-facts-${x.id}`}>
-        {!!list && <Text style={{ ...TYPE.footnote, color: t.ink2 }} numberOfLines={2}>{list}</Text>}
-        <Text style={{ ...TYPE.footnote, color: t.ink2 }}>{facts}</Text>
+      <View testID={`template-facts-${x.id}`} style={{ gap: 2 }}>
+        {!!list && <Text style={{ ...TYPE.subhead, color: t.ink2 }} numberOfLines={2}>{list}</Text>}
+        <Text style={[TYPE.footnote, { color: t.ink2, fontVariant: ['tabular-nums'] }]} numberOfLines={2}>
+          <Text style={{ color: t.ink, fontWeight: '600' }}>{amount}</Text>
+          {muscles ? ` · ${muscles}` : ''}
+        </Text>
       </View>
     );
     return (
-      <ListRow key={x.id} first={i === 0} title={x.name} subtitle={subtitle} chevron={x.example}
+      <ListRow key={x.id} first={i === 0} title={title} subtitle={subtitle} chevron={x.example}
         onPress={() => router.push({ pathname: '/template/[id]', params: { id: x.id } })} testID={`template-${x.id}`}
         right={!x.example && (
           <Pressable onPress={() => templateMenu(x, f)} hitSlop={6} accessibilityRole="button" accessibilityLabel={tr('Options for {name}', { name: x.name })}
