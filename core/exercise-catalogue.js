@@ -1,3 +1,4 @@
+// @ts-check
 // The built-in catalogue. A family is a set of swappable variations, not a
 // shared training history. Main movement first, related movements adjacent;
 // each movement starts with its usual version (Push Up, Lat Pulldown (Cable)),
@@ -9,6 +10,10 @@ import { slug } from './units.js';
 const B = 'barbell', D = 'dumbbell', M = 'machine', WB = 'weighted_bw', AB = 'assisted_bw',
   R = 'reps', C = 'cardio', T = 'duration';
 
+/**
+ * @param {string} name @param {string} nameDe
+ * @param {([string, string, string] | [string, string, string, string])[]} members name, category, body part and an older id it keeps
+ */
 const family = (name, nameDe, members) => ({
   id: 'f-' + slug(name), name, nameDe,
   // a member's id comes from its name, unless it keeps an older one (a renamed built-in keeps its history)

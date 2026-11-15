@@ -1,3 +1,4 @@
+// @ts-check
 // Chart maths shared by the apps' charts: round axis steps and the time
 // ranges the chart screens offer. Drawing is each app's job.
 import {
@@ -6,6 +7,7 @@ import {
 
 const TIME_STEPS = [5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600, 7200];
 
+/** @param {number} range @param {number} count @param {boolean} time */
 function niceStep(range, count, time) {
   const raw = range / count;
   if (time) return TIME_STEPS.find((s) => s >= raw) || Math.ceil(raw / 3600) * 3600;
@@ -14,7 +16,11 @@ function niceStep(range, count, time) {
   return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * mag;
 }
 
-/** Round axis values from min to max, about `count` steps (seconds-friendly steps with `time`). */
+/**
+ * Round axis values from min to max, about `count` steps (seconds-friendly steps with `time`).
+ * @param {number} min @param {number} max
+ * @returns {number[]}
+ */
 export function niceTicks(min, max, count = 4, { zero = false, time = false } = {}) {
   if (zero) min = Math.min(0, min);
   if (min === max) {
@@ -30,7 +36,7 @@ export function niceTicks(min, max, count = 4, { zero = false, time = false } = 
   return out;
 }
 
-/** Decimals for axis labels with these ticks: as many as the step needs (2.5 → 1, 0.25 → 2), at most 2. */
+/** Decimals for axis labels with these ticks: as many as the step needs (2.5 → 1, 0.25 → 2), at most 2. @param {number[]} ticks */
 export const tickDecimals = (ticks) => {
   const step = Math.abs(ticks.length > 1 ? ticks[1] - ticks[0] : 1);
   for (let d = 0; d < 2; d++) if (Math.abs(step * 10 ** d - Math.round(step * 10 ** d)) < 1e-6) return d;
@@ -42,6 +48,8 @@ export const tickDecimals = (ticks) => {
  * Longer ranges use January/July or January boundaries (whole-year multiples
  * for ranges too long to label every year), with month/year labels in the UI.
  * Use local calendar arithmetic so DST and variable month lengths stay correct.
+ * @param {number} from @param {number} to
+ * @returns {number[]}
  */
 export function dateTicks(from, to, max = 4) {
   if (!Number.isFinite(from) || !Number.isFinite(to) || to < from || !Number.isFinite(max) || max < 1) return [];
@@ -69,6 +77,7 @@ export function dateTicks(from, to, max = 4) {
   } else {
     // Align to January and July, even when the data starts mid-year.
     end = new Date(b.getFullYear(), b.getMonth() < 6 ? 0 : 6, 1).getTime();
+    /** @param {number} lastTick @param {number} stride */
     const count = (lastTick, stride) => {
       const d = new Date(lastTick);
       const distance = (d.getFullYear() - a.getFullYear()) * 12 + d.getMonth() - a.getMonth();
@@ -89,7 +98,11 @@ export function dateTicks(from, to, max = 4) {
 export const EXERCISE_RANGES = [{ value: 90, label: '3M' }, { value: 182, label: '6M' }, { value: 365, label: '1Y' }, { value: 0, label: 'All' }];
 export const MEASURE_RANGES = [{ value: 30, label: '1M' }, { value: 90, label: '3M' }, { value: 365, label: '1Y' }, { value: 0, label: 'All' }];
 
-/** Workouts per week for the last `weeks` weeks (oldest first): [{ start, value }]. */
+/**
+ * Workouts per week for the last `weeks` weeks (oldest first).
+ * @param {{ startedAt: number }[]} workouts
+ * @returns {{ start: number, value: number }[]}
+ */
 export function weeklyCounts(workouts, { weeks = 12, weekStart = 1, now = Date.now() } = {}) {
   const thisWeek = startOfWeek(now, weekStart);
   const out = [];
@@ -101,16 +114,17 @@ export function weeklyCounts(workouts, { weeks = 12, weekStart = 1, now = Date.n
   return out;
 }
 
-/** Weeks in a row (up to this one) with at least `goal` workouts; this week counts once it's reached. */
+/** Weeks in a row (up to this one) with at least `goal` workouts; this week counts once it's reached. @param {{ startedAt: number }[]} workouts */
 export function weekStreak(workouts, { goal = 1, weekStart = 1, now = Date.now() } = {}) {
   // One pass over the workouts, then a walk back week by week (filtering every
   // workout for every week took 80 ms on a 5-year log).
+  /** @type {Map<number, number>} */
   const perWeek = new Map();
   for (const w of workouts) {
     const k = startOfWeek(w.startedAt, weekStart);
     perWeek.set(k, (perWeek.get(k) || 0) + 1);
   }
-  const count = (s) => perWeek.get(s) || 0;
+  const count = (/** @type {number} */ s) => perWeek.get(s) || 0;
   let week = startOfWeek(now, weekStart);
   let streak = 0;
   if (count(week) >= goal) streak++;
@@ -124,6 +138,9 @@ export function weekStreak(workouts, { goal = 1, weekStart = 1, now = Date.now()
  * weeks from `weekStart`, including days of the months around it), `byDay`
  * maps a day start to its workouts (newest first, as given), and the totals
  * count the month's workouts, the days trained and the time spent.
+ * @template {{ startedAt: number, endedAt?: number | null }} W
+ * @param {W[]} workouts
+ * @param {number} month a time in the month
  */
 export function calendarMonth(workouts, month, { weekStart = 1 } = {}) {
   const start = startOfMonth(month);
@@ -133,6 +150,7 @@ export function calendarMonth(workouts, month, { weekStart = 1 } = {}) {
   for (let i = 0; i < 42; i++) days.push(addDays(gridStart, i));
   const rows = days[35] >= next ? 5 : 6;
   const gridEnd = addDays(days[rows * 7 - 1], 1);
+  /** @type {Map<number, W[]>} */
   const byDay = new Map();
   let count = 0;
   let time = 0;
@@ -140,8 +158,9 @@ export function calendarMonth(workouts, month, { weekStart = 1 } = {}) {
   for (const w of workouts) {
     if (w.startedAt >= gridStart && w.startedAt < gridEnd) {
       const d = startOfDay(w.startedAt);
-      if (!byDay.has(d)) byDay.set(d, []);
-      byDay.get(d).push(w);
+      let list = byDay.get(d);
+      if (!list) byDay.set(d, list = []);
+      list.push(w);
     }
     if (w.startedAt >= start && w.startedAt < next) {
       count++;

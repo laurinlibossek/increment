@@ -1,3 +1,4 @@
+// @ts-check
 // Editing outside the running workout: the template editor, "Edit workout"
 // for a finished one, copies of templates, template folders and new
 // exercises. Pure functions over plain records; each app saves the results.
@@ -7,6 +8,7 @@ import { entryToDraft, draftEntries, remapSupersets } from './drafts.js';
 import { cleanTemplateExercises, prescriptionKey } from './templates.js';
 import { loggedFields } from './calc.js';
 import { parseRepsInput } from './rep-range.js';
+import { nameKey } from './search.js';
 
 export const EDIT_MESSAGES = {
   templateName: 'Give the template a name',
@@ -19,7 +21,7 @@ export const EDIT_MESSAGES = {
 /**
  * The editable form of a template: an existing one (`template`), a new one
  * from a finished workout (`workout`, its notes are left out) or an empty one.
- * @param {{ template?: any, workout?: any, settings: any, hasExercise?: (id: string) => boolean }} o
+ * @param {{ template?: any, workout?: any, settings?: any, hasExercise?: (id: string) => boolean }} [o]
  */
 export function templateDraft({
   template = null, workout = null, settings, hasExercise = () => true,
@@ -33,8 +35,8 @@ export function templateDraft({
     notes: (template && template.notes) || '',
     // the routine's pinned note for next time (#33), edited here and saved with the routine
     pinnedNote: (template && template.pinnedNote) || '',
-    exercises: src ? remapSupersets(src.exercises.filter((e) => hasExercise(e.exerciseId))
-      .map((e) => entryToDraft({ ...e, notes: template ? e.notes : '' }, settings))) : [],
+    exercises: src ? remapSupersets(src.exercises.filter((/** @type {any} */ e) => hasExercise(e.exerciseId))
+      .map((/** @type {any} */ e) => entryToDraft({ ...e, notes: template ? e.notes : '' }, settings))) : [],
   };
 }
 
@@ -43,6 +45,7 @@ export function templateDraft({
  * stored template being edited (its other fields are kept).
  * @param {any} draft
  * @param {{ settings: any, exercises: Map<string, any>, existing?: any, now?: number }} o
+ * @returns {{ problem: string, template?: undefined } | { template: any, problem?: undefined }}
  */
 export function templateFromDraft(draft, {
   settings, exercises, existing = null, now = Date.now(),
@@ -51,11 +54,11 @@ export function templateFromDraft(draft, {
   if (!name) return { problem: EDIT_MESSAGES.templateName };
   if (!draft.exercises.length) return { problem: EDIT_MESSAGES.templateEmpty };
   // a range that doesn't read ("10–8", "8–") never saves as some other prescription (#44)
-  if (draft.exercises.some((e) => e.sets.some((x) => parseRepsInput(x.r)?.problem))) return { problem: EDIT_MESSAGES.repRange };
-  const entries = draftEntries(draft, settings, exercises, { keepEmpty: true }).map((e) => ({
+  if (draft.exercises.some((/** @type {any} */ e) => e.sets.some((/** @type {any} */ x) => parseRepsInput(x.r)?.problem))) return { problem: EDIT_MESSAGES.repRange };
+  const entries = draftEntries(draft, settings, exercises, { keepEmpty: true }).map((/** @type {any} */ e) => ({
     exerciseId: e.exerciseId, notes: e.notes, supersetId: e.supersetId, restSec: e.restSec, focus: e.focus,
     // a routine's sets are targets: no set ids, no logging times (#43)
-    sets: e.sets.map(({ id: _id, doneAt: _doneAt, ...rest }) => rest),
+    sets: e.sets.map((/** @type {any} */ { id: _id, doneAt: _doneAt, ...rest }) => rest),
   }));
   // a changed prescription (weights, ranges, sets) makes earlier workouts count for nothing in "Weight increase recommended" (#49)
   const prescribed = existing && prescriptionKey(existing.exercises) !== prescriptionKey(entries) ? { prescribedAt: now } : {};
@@ -76,11 +79,15 @@ export function templateFromDraft(draft, {
  * A routine with its pinned note for next time set, or removed when empty
  * (#33): one optional note, apart from the routine's Notes and the sessions'
  * notes, until it is edited or removed. A new one replaces the old.
+ * @template {{ pinnedNote?: string }} T
+ * @param {T} template
+ * @param {unknown} note
+ * @returns {T}
  */
 export function withPinnedNote(template, note) {
   const { pinnedNote: _old, ...rest } = template;
   const text = typeof note === 'string' ? note.trim() : '';
-  return text ? { ...rest, pinnedNote: text } : rest;
+  return /** @type {T} */ (text ? { ...rest, pinnedNote: text } : rest);
 }
 
 /**
@@ -98,7 +105,7 @@ export function workoutEditDraft(w, settings, hasExercise = () => true) {
     startedAt: w.startedAt,
     durationMin: String(Math.max(1, Math.round((w.endedAt - w.startedAt) / 60000))),
     templateId: w.templateId || null,
-    exercises: w.exercises.filter((e) => hasExercise(e.exerciseId)).map((e) => {
+    exercises: w.exercises.filter((/** @type {any} */ e) => hasExercise(e.exerciseId)).map((/** @type {any} */ e) => {
       const d = entryToDraft(e, settings);
       d.id = e.id;
       return d;
@@ -111,6 +118,7 @@ export function workoutEditDraft(w, settings, hasExercise = () => true) {
  * The workout to save from "Edit workout", or { problem }. Sets without reps (or time) are dropped.
  * @param {any} draft
  * @param {{ settings: any, exercises: Map<string, any>, defaultName?: string }} o
+ * @returns {{ problem: string, workout?: undefined } | { workout: any, problem?: undefined }}
  */
 export function workoutFromEditDraft(draft, { settings, exercises, defaultName = 'Workout' }) {
   const entries = draftEntries(draft, settings, exercises, {});
@@ -159,8 +167,6 @@ export function folderNames(templates, extra = []) {
   return [...new Set(names.filter(Boolean))].sort((a, b) => a.localeCompare(b));
 }
 
-const nameKey = (s) => String(s).trim().toLowerCase().replace(/\s+/g, ' ');
-
 /**
  * The exercise with this name (any case and spacing), or null. `exercises` is a Map or a list.
  * @param {Map<string, any> | any[]} exercises
@@ -174,7 +180,7 @@ export function findExerciseByName(exercises, name) {
 
 /**
  * A new custom exercise. Its id comes from the name unless that's taken.
- * @param {{ name: string, category?: string, bodyPart?: string, notes?: string }} o
+ * @param {{ name: string, category?: string, bodyPart?: string, notes?: string, unilateral?: boolean }} o
  * @param {{ hasId?: (id: string) => boolean, now?: number }} [opts]
  */
 export function newExerciseRecord({
@@ -217,18 +223,26 @@ export function patchDraftExercise(draft, id, patch) {
 }
 
 // ---------- merging exercises ----------
-/** One exercise can be merged into another only if both log the same fields (weight and reps, time…). */
+/**
+ * One exercise can be merged into another only if both log the same fields (weight and reps, time…).
+ * @param {{ id: string | null, category?: string } | null | undefined} from
+ * @param {{ id: string | null, category?: string } | null | undefined} into
+ */
 export const canMergeExercises = (from, into) => !!from && !!into && from.id !== into.id
   && loggedFields(from.category).join() === loggedFields(into.category).join();
 
 /**
  * What the target takes over when `from` is merged into it: the rest timer,
  * notes and pinned note it doesn't have itself. Its own stay.
+ * @param {any} from
+ * @param {any} into
+ * @returns {{ restSec?: number, notes?: string, pinnedNote?: string }}
  */
 export function mergeExercisePatch(from, into) {
+  /** @type {{ restSec?: number, notes?: string, pinnedNote?: string }} */
   const patch = {};
   if (!from || !into) return patch;
-  const none = (v) => v === null || v === undefined;
+  const none = (/** @type {unknown} */ v) => v === null || v === undefined;
   if (none(into.restSec) && !none(from.restSec)) patch.restSec = from.restSec;
   if (!into.notes && from.notes) patch.notes = from.notes;
   if (!into.pinnedNote && from.pinnedNote) patch.pinnedNote = from.pinnedNote;
@@ -239,8 +253,14 @@ export function mergeExercisePatch(from, into) {
  * Point every entry of `fromId` at `intoId` in a list of workouts or
  * templates (or one draft). Returns copies of the records that changed, so
  * the caller can save just those; the records passed in stay untouched.
+ * @template {{ exercises: { exerciseId: string }[] }} R
+ * @param {R[]} records
+ * @param {string} fromId
+ * @param {string} intoId
+ * @returns {R[]}
  */
 export function moveExerciseEntries(records, fromId, intoId) {
+  /** @type {R[]} */
   const changed = [];
   for (const r of records) {
     if (!r?.exercises?.some((e) => e.exerciseId === fromId)) continue;

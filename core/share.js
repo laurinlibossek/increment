@@ -1,3 +1,4 @@
+// @ts-check
 // Sharing templates as links: <app url>#template=<base64url JSON>. Built-in
 // exercises go by id, custom ones by name, category and body part, so the
 // receiver gets matching exercises (or new custom ones) without any server.
@@ -6,31 +7,42 @@ import { isUnilateral, sideOf } from './set-sides.js';
 import { repRange, withRepRange } from './rep-range.js';
 import { loggedFields } from './calc.js';
 
+/** @type {Record<string, string>} */
 const TYPE_CODE = { normal: 'n', warmup: 'w', drop: 'd', failure: 'f' };
 const CODE_TYPE = Object.fromEntries(Object.entries(TYPE_CODE).map(([k, v]) => [v, k]));
 
+/** @param {string} str */
 function b64urlEncode(str) {
   const bytes = new TextEncoder().encode(str);
   let bin = '';
   for (const b of bytes) bin += String.fromCharCode(b);
   return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
+/** @param {string} code */
 function b64urlDecode(code) {
   const bin = atob(code.replace(/-/g, '+').replace(/_/g, '/'));
   return new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)));
 }
 
-/** A template as a compact code for a share link. `exercises` maps id -> exercise. */
+/**
+ * A template as a compact code for a share link. `exercises` maps id -> exercise.
+ * @param {{ name: string, notes?: string, pinnedNote?: string, exercises: any[] }} t
+ * @param {Map<string, any>} exercises
+ * @returns {string}
+ */
 export function encodeTemplate(t, exercises) {
+  /** @type {Map<string, number>} */
   const groups = new Map();
   const e = t.exercises.filter((x) => exercises.has(x.exerciseId)).map((x) => {
     const ex = exercises.get(x.exerciseId);
+    /** @type {Record<string, any>} */
     const o = { n: ex.name, c: ex.category, b: ex.bodyPart };
+    const family = familyOf(ex);
     if (ex.builtin) o.i = ex.id;
-    else if (Object.hasOwn(FAMILY_BY_ID, familyOf(ex))) o.f = familyOf(ex);
+    else if (family && Object.hasOwn(FAMILY_BY_ID, family)) o.f = family;
     // a custom unilateral exercise stays so for the receiver (#54); built-ins keep the receiver's choice
     if (!ex.builtin && isUnilateral(ex)) o.u = 1;
-    o.s = x.sets.map((st) => {
+    o.s = x.sets.map((/** @type {any} */ st) => {
       const row = [TYPE_CODE[st.type || 'normal'] || 'n', st.w ?? null, st.r ?? null, st.d ?? null, st.t ?? null];
       row.push(sideOf(st) ? (st.side === 'left' ? 'l' : 'r') : null);
       // a rep range as [low, high] after the side (#44); older apps read the target in r
@@ -47,6 +59,7 @@ export function encodeTemplate(t, exercises) {
     }
     return o;
   });
+  /** @type {Record<string, any>} */
   const data = { v: 1, n: t.name, e };
   if (t.notes) data.f = t.notes;
   // the pinned note for next time travels like Notes (#33); older links have none
@@ -54,7 +67,9 @@ export function encodeTemplate(t, exercises) {
   return b64urlEncode(JSON.stringify(data));
 }
 
+/** @param {unknown} v @param {number} max */
 const str = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
+/** @param {unknown} v @returns {number | null} */
 const num = (v) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 && v < 100000 ? v : null);
 
 /**
@@ -67,17 +82,19 @@ const num = (v) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <
 export function decodeTemplate(text, { categories = [], bodyParts = [] } = {}) {
   const m = String(text || '').match(/template=([A-Za-z0-9_-]{8,})/);
   if (!m) return null;
+  /** @type {any} */
   let d;
   try { d = JSON.parse(b64urlDecode(m[1])); } catch (e) { return null; }
   if (!d || d.v !== 1 || !Array.isArray(d.e)) return null;
   const cats = new Set(categories);
   const parts = new Set(bodyParts);
-  const exercises = d.e.slice(0, 40).map((o) => {
+  const exercises = d.e.slice(0, 40).map((/** @type {any} */ o) => {
     if (!o || typeof o !== 'object') return null;
     const name = str(o.n, 80);
     if (!name) return null;
-    const sets = (Array.isArray(o.s) ? o.s : []).slice(0, 30).map((row) => {
+    const sets = (Array.isArray(o.s) ? o.s : []).slice(0, 30).map((/** @type {any} */ row) => {
       if (!Array.isArray(row)) return null;
+      /** @type {Record<string, any>} */
       const set = { type: CODE_TYPE[row[0]] || 'normal' };
       ['w', 'r', 'd', 't'].forEach((k, i) => { const v = num(row[i + 1]); if (v !== null) set[k] = v; });
       if (row[5] === 'l' || row[5] === 'r') set.side = row[5] === 'l' ? 'left' : 'right';

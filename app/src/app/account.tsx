@@ -7,7 +7,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as WebBrowser from 'expo-web-browser';
 import { File } from 'expo-file-system';
 import {
-  DEFAULT_WARMUP, FORMULAS, REST_CHOICES, WEB_APP_URL, exportCSV, exportMeasurementsCSV, parsePlates, privacyPage, runningWorkoutChoice, startOfDay,
+  FORMULAS, REST_CHOICES, WEB_APP_URL, exportCSV, exportMeasurementsCSV, parsePlates, privacyPage, runningWorkoutChoice, startOfDay,
 } from '@increment/core';
 
 import {
@@ -77,7 +77,7 @@ export default function AccountSheet() {
   };
   const doBackup = () => backupNow(tr);
   const doCSV = async () => {
-    const text = exportCSV({ workouts: s.workouts, exercises: s.exercises, unit: st.unit, distUnit: st.distUnit, unknownName: tr('Unknown exercise'), pairSides: st.pairSides !== false });
+    const text = exportCSV({ workouts: s.workouts, exercises: s.exercises, unit: st.unit, distUnit: st.distUnit, unknownName: tr('Unknown exercise'), pairSides: st.pairSides });
     const r = await saveTextFile(`increment-workouts-${dateStamp()}.csv`, text, 'text/csv', 'public.comma-separated-values-text', tr('Export workouts as CSV'));
     if (r !== 'dismissed') toast(r === 'failed' ? tr('Sharing isn’t available here') : tr('CSV exported'));
   };
@@ -158,7 +158,7 @@ export default function AccountSheet() {
       value: st.plates.map((p) => f.num(p, 2)).join('  '), ok: tr('Save'),
     });
     if (v === null) return;
-    const plates = parsePlates(v) as number[];
+    const plates = parsePlates(v);
     if (!plates.length) { toast(tr('Enter at least one plate')); return; }
     set('plates', plates);
   };
@@ -189,7 +189,7 @@ export default function AccountSheet() {
   const formula = (FORMULAS as { id: string; label: string }[]).find((x) => x.id === st.formula) || FORMULAS[0];
   const weekdays: { value: number; label: string }[] = [{ value: 1, label: tr('Monday') }, { value: 0, label: tr('Sunday') }, { value: 6, label: tr('Saturday') }];
   const barOptions = st.unit === 'lb' ? [45, 35, 33, 25, 15, 0] : [20, 15, 10, 7.5, 0];
-  const wu = (st.warmup || DEFAULT_WARMUP) as { barReps: number; steps: [number, number][] };
+  const wu = st.warmup as { barReps: number; steps: [number, number][] };
   const warmupText = [wu.barReps > 0 ? `${tr('Bar')} × ${wu.barReps}` : null, ...wu.steps.map(([p, r]) => `${f.num(p, 0)}% × ${r}`)]
     .filter(Boolean).join(', ') || tr('None');
 
@@ -226,18 +226,18 @@ export default function AccountSheet() {
       <View>
         <SettingRow first title={tr('Default rest timer')} sub={tr('Per-exercise timers override this')} value={restLabel(st.defaultRest)} testID="set-rest"
           onPress={() => pick(tr('Default rest timer'), (REST_CHOICES as number[]).map((x) => ({ value: x, label: restLabel(x) })), st.defaultRest, (v) => set('defaultRest', v))} />
-        <SwitchSettingRow title={tr('Rest timer alerts')} sub={tr('A notification when rest is over, also with the phone locked')} value={st.restAlert !== false}
+        <SwitchSettingRow title={tr('Rest timer alerts')} sub={tr('A notification when rest is over, also with the phone locked')} value={st.restAlert}
           onChange={(v) => set('restAlert', v)} testID="set-rest-alert" />
-        <SwitchSettingRow title={tr('Keep screen on')} sub={tr('While a workout is running')} value={st.appKeepAwake === true} onChange={(v) => set('appKeepAwake', v)} testID="set-keep-awake" />
+        <SwitchSettingRow title={tr('Keep screen on')} sub={tr('While a workout is running')} value={st.appKeepAwake} onChange={(v) => set('appKeepAwake', v)} testID="set-keep-awake" />
         <SettingRow title={tr('Previous values')} testID="set-previous-values" value={st.prevSource === 'template' ? tr('Same routine') : tr('Any workout')}
           onPress={() => pick(tr('Previous values'), [{ value: 'any', label: tr('Any workout') }, { value: 'template', label: tr('Same routine') }], st.prevSource, (v) => set('prevSource', v as Settings['prevSource']))} />
         <SettingRow title={tr('Warm-up sets')} value={warmupText} onPress={() => router.push('/warmup')} testID="set-warmup" />
         <SwitchSettingRow title={tr('Count left/right sets together')} sub={tr('For unilateral exercises: a left and a right set count as one in routine and workout totals')}
-          value={st.pairSides !== false} onChange={(v) => set('pairSides', v)} testID="set-pair-sides" />
-        <SwitchSettingRow title={tr('Update routines after workouts')} sub={tr('Better numbers go in by themselves; you’re asked when exercises or sets changed')} value={st.askTemplateUpdate !== false}
+          value={st.pairSides} onChange={(v) => set('pairSides', v)} testID="set-pair-sides" />
+        <SwitchSettingRow title={tr('Update routines after workouts')} sub={tr('Better numbers go in by themselves; you’re asked when exercises or sets changed')} value={st.askTemplateUpdate}
           onChange={(v) => set('askTemplateUpdate', v)} testID="set-ask-template" />
-        <SwitchSettingRow title={tr('Example routines')} value={st.showExamples !== false} onChange={(v) => set('showExamples', v)} testID="set-examples" />
-        <SettingRow title={tr('Weekly goal')} value={tr('{n} per week', { n: st.weeklyGoal || 3 })}
+        <SwitchSettingRow title={tr('Example routines')} value={st.showExamples} onChange={(v) => set('showExamples', v)} testID="set-examples" />
+        <SettingRow title={tr('Weekly goal')} value={tr('{n} per week', { n: st.weeklyGoal })}
           onPress={() => pick(tr('Weekly goal'), [1, 2, 3, 4, 5, 6, 7].map((n) => ({ value: n, label: tr('{n} per week', { n }) })), st.weeklyGoal, (v) => set('weeklyGoal', v))} />
         <SettingRow title={tr('Week starts on')} value={weekdays.find((x) => x.value === st.weekStart)?.label || tr('Monday')}
           onPress={() => pick(tr('Week starts on'), weekdays, st.weekStart, (v) => set('weekStart', v))} />
@@ -273,7 +273,7 @@ export default function AccountSheet() {
         <View>
           {langs.map((l, i) => (
             <SettingRow key={l.value} first={i === 0} title={l.label} onPress={() => set('language', l.value)} testID={`language-${l.value}`}
-              checked={(st.language || 'auto') === l.value} />
+              checked={st.language === l.value} />
           ))}
         </View>
       </>}

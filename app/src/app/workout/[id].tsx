@@ -22,8 +22,10 @@ import { openTemplateEditor, shareText } from '@/lib/templates';
 import { beginWorkout } from '@/lib/workout';
 import { useTally } from '@/lib/theme';
 import {
-  hm, Mark, MARGIN, SectionHeadLink, StatStrip, tnum, workoutStrokes, WorkoutTally,
+  hm, MARGIN, SectionHeadLink, tnum, workoutStrokes, WorkoutTally,
 } from '@/ui/facts';
+import { Highlight } from '@/ui/tally/Highlight';
+import { StatStrip } from '@/ui/tally/StatStrip';
 import {
   Button, Empty, IconButton, Page,
 } from '@/ui/kit';
@@ -56,10 +58,10 @@ export default function WorkoutDetail() {
   if (!w) return <Page><Empty title={tr('Workout not found')} text={tr('It may have been deleted.')} /></Page>;
 
   const st = stats(s);
-  const vol = workoutVolume(w, s.exercises) as number;
+  const vol = workoutVolume(w, s.exercises);
   const prs = st.prsByWorkout.get(w.id) || [];
   const recordSets = new Set<string>(prs.map((p: { setId: string }) => p.setId));
-  const sets = entriesSetCount(w.exercises, s.exercises, { pair: s.settings.pairSides !== false }) as { sets: number; unpaired: number };
+  const sets = entriesSetCount(w.exercises, s.exercises, { pair: s.settings.pairSides });
   const shown = kgTo(vol || 0, f.unit);
   const label = (k: string) => tr((PR_LABEL as Record<string, string>)[k] || k);
   const tallyLine = [f.setsText(sets), recordSets.size ? f.plural(recordSets.size, 'record') : ''].filter(Boolean).join(' · ');
@@ -131,7 +133,7 @@ export default function WorkoutDetail() {
                     <Text style={[{ ...TYPE.body, color: x.type === 'warmup' ? t.ink2 : t.ink }, tnum]} numberOfLines={1}>{f.setText(x, ex?.category, vol > 0)}</Text>
                     {!!footnote && <Text style={{ ...TYPE.footnote, color: t.ink2 }} numberOfLines={1}>{footnote}</Text>}
                   </View>
-                  {flags ? <View><Mark style={{ ...TYPE.footnote, fontWeight: '600' }} testID={`record-${x.id}`}>{tr('Record')}</Mark></View>
+                  {flags ? <View><Highlight style={{ ...TYPE.footnote, fontWeight: '600' }} testID={`record-${x.id}`}>{tr('Record')}</Highlight></View>
                     : oneRm ? <Text style={[{ ...TYPE.footnote, color: t.ink2 }, tnum]}>{`1RM ${f.e1rm(oneRm)}`}</Text> : null}
                 </View>
               );

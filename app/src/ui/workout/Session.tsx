@@ -9,7 +9,6 @@ import {
 import {
   Animated, AppState, Keyboard, PanResponder, Platform, Pressable, StyleSheet, Text, View, type TextInputInstance,
 } from 'react-native';
-import * as Haptics from 'expo-haptics';
 import {
   checkOffSet, placeholders, restFor, currentAfterLog, loggedFields, platesFor, parseNum,
   numToInput, digitsToSec, secToDigits, fmtDigits, weightStep, moveUnit, BODY_PART_LABEL, sessionProgress,
@@ -20,6 +19,7 @@ import {
 } from '@/data/store';
 import type { ActiveWorkout, Category, EntryDraft } from '@/data/types';
 import { SPACE, TYPE } from '@/design/tally';
+import { haptic } from '@/lib/haptics';
 import { setLabels, useFormat } from '@/lib/format';
 import { useTally } from '@/lib/theme';
 import { toast } from '@/ui/overlay';
@@ -49,7 +49,7 @@ const SessionContext = createContext<Session | null>(null);
 /** The running workout's logging and keypad; null in the editors. */
 export const useSession = () => useContext(SessionContext);
 
-const fieldsOf = (cat: Category) => loggedFields(cat) as Field[];
+const fieldsOf = (cat: Category) => loggedFields(cat);
 
 export function SessionProvider({ children, onTarget }: { children: ReactNode; onTarget?: (ref: TextInputInstance | null) => void }) {
   const f = useFormat();
@@ -114,21 +114,21 @@ export function SessionProvider({ children, onTarget }: { children: ReactNode; o
     const ex = entry && s.exercises.get(entry.exerciseId);
     if (!a || !entry || i < 0 || !ex) return false;
     const settings = s.settings;
-    const rows = placeholders(entry, previousSets(ex.id, { templateId: a.templateId }), settings) as { ph: Record<string, string> }[];
-    const rest = restFor(entry, ex, settings.defaultRest) as number;
+    const rows = placeholders(entry, previousSets(ex.id, { templateId: a.templateId }), settings);
+    const rest = restFor(entry, ex, settings.defaultRest);
     let r: { problem?: string; rest?: number } = {};
     editActive((d, e) => { r = checkOffSet(d, e, i, { category: ex.category, ph: rows[i].ph, rest, settings }); }, entryId);
     if (r.problem) {
       setShake({ id: setId, n: Date.now() });
       toast(tr(r.problem));
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+      haptic.warn();
       return false;
     }
     const after = getState().active!;
     // the record haptic only when this set now holds a record (an equal set doesn't, #37)
     const record = activeRecords().has(setId);
-    if (record) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-    else Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    if (record) haptic.success();
+    else haptic.tap();
     if (r.rest && r.rest > 0) startRest(r.rest, f.exName(ex), { entryId, setId });
     // the set finished its exercise (a superset: its last round): it stays on screen until the person moves on (#60)
     const stay = currentAfterLog(after, entryId);
@@ -157,7 +157,7 @@ function TargetGuard() {
 
 /** The exercise's real step for the −/+ keys, in the person's unit. */
 function stepFor(field: Field, cat: Category, settings: ReturnType<typeof getState>['settings']) {
-  if (field === 'w') return weightStep(cat, settings) as number;
+  if (field === 'w') return weightStep(cat, settings);
   if (field === 'r') return 1;
   if (field === 'd') return 0.1;
   return 15;
@@ -184,7 +184,7 @@ export function KeypadHost() {
   const set = entry.sets[i];
   const cat = ex.category;
   const field = target.field;
-  const rows = placeholders(entry, prev, settings) as { ph: Record<string, string> }[];
+  const rows = placeholders(entry, prev, settings);
   const ghost = rows[i]?.ph[field] || '';
   const value = set[field];
   const decimal = f.num(1.5).replace(/\d/g, '') || '.';
@@ -215,7 +215,7 @@ export function KeypadHost() {
         write(field === 'r' ? String(Math.round(n)) : numToInput(n, field === 'd' ? 3 : 2));
       }
       fresh.current = false;
-      Haptics.selectionAsync().catch(() => {});
+      haptic.select();
       return;
     }
     const maxLength = field === 'r' ? 3 : field === 't' ? 6 : 7;
@@ -232,7 +232,7 @@ export function KeypadHost() {
     const total = parseNum(value || ghost);
     if (total !== null && total > 0) {
       const bar = Number(settings.bar) || 0;
-      const p = platesFor(total, bar, settings.plates) as { plates: number[]; remainder: number };
+      const p = platesFor(total, bar, settings.plates);
       aside = {
         label: tr('Plates per side'),
         value: total <= bar ? tr('Empty bar') : `${p.remainder > 0 ? '≈ ' : ''}${p.plates.map((x) => f.num(x)).join(' · ')}`,
@@ -298,7 +298,7 @@ export function useSessionStrokes(a: ActiveWorkout, live: string | null) {
         return setStroke(x, live, recs);
       }));
     }
-    const { done, total, percent } = sessionProgress(a.exercises, exercises, { pair: settings.pairSides !== false });
+    const { done, total, percent } = sessionProgress(a.exercises, exercises, { pair: settings.pairSides });
     return { byEntry, done, total, percent, records };
   }, [a.exercises, live, exercises, workouts, settings]); // eslint-disable-line react-hooks/exhaustive-deps
 }
@@ -320,7 +320,7 @@ export function UnitRows({
   const f = useFormat();
   const { tr } = f;
   const exercises = useAppSelector((x) => x.exercises);
-  const pair = useAppSelector((x) => x.settings.pairSides !== false);
+  const pair = useAppSelector((x) => x.settings.pairSides);
   const templateId = useAppSelector((x) => x.active?.templateId ?? null);
   const [drag, setDrag] = useState<{ from: number; over: number } | null>(null);
   const dragRef = useRef(drag);
@@ -339,14 +339,14 @@ export function UnitRows({
       dy.setValue(0);
       set({ from: i, over: i });
       onDragging?.(true);
-      Haptics.selectionAsync().catch(() => {});
+      haptic.select();
     },
     move: (y: number) => {
       const d = dragRef.current;
       if (!d) return;
       dy.setValue(y);
       const over = Math.max(0, Math.min(unitsRef.current.length - 1, Math.round(d.from + y / ROW_H)));
-      if (over !== d.over) { set({ ...d, over }); Haptics.selectionAsync().catch(() => {}); }
+      if (over !== d.over) { set({ ...d, over }); haptic.select(); }
     },
     end: () => {
       const d = dragRef.current;

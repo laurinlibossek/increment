@@ -1,13 +1,21 @@
+// @ts-check
 // Today, the store app's first tab: the week strip, sets per muscle and the
 // size of the routine that is up next. Labels are English translation keys.
 import { startOfDay, startOfWeek, addDays } from './units.js';
 import { BODY_PARTS, BODY_PART_LABEL } from './seed.js';
 import { restFor } from './workout.js';
-import { entriesSetCount, exerciseSetCount, isUnilateral, setsByExercise } from './set-sides.js';
+import {
+  entriesSetCount, exerciseLookup, exerciseSetCount, isUnilateral, setsByExercise,
+} from './set-sides.js';
 
-const lookup = (exercises) => (exercises instanceof Map ? (id) => exercises.get(id) : (id) => exercises?.[id]);
+/**
+ * @typedef {import('./types.js').EntryLike} EntryLike
+ * @typedef {import('./types.js').Exercises} Exercises
+ * @typedef {import('./types.js').WorkoutLike} WorkoutLike
+ * @typedef {import('./types.js').RoutineLike} RoutineLike
+ */
 
-/** Index of the day a time falls on in a list of day starts, or -1. */
+/** Index of the day a time falls on in a list of day starts, or -1. @param {number[]} days @param {number} t */
 function dayIndex(days, t) {
   for (let i = days.length - 1; i >= 0; i--) if (t >= days[i]) return t < addDays(days[i], 1) ? i : -1;
   return -1;
@@ -20,7 +28,9 @@ function dayIndex(days, t) {
  * person usually trains on (a weekday with at least 2 workouts in the 8 weeks
  * before this one, most often first), from today on and without a session yet,
  * until the goal is covered.
- * Returns { days: [{ start, done, planned }], today (index), done, goal }.
+ * `today` is an index into `days`.
+ * @param {{ startedAt: number }[]} workouts
+ * @returns {{ days: { start: number, done: number, planned: boolean }[], today: number, done: number, goal: number }}
  */
 export function weekStrip(workouts, { weekStart = 1, goal = 3, now = Date.now() } = {}) {
   const first = startOfWeek(now, weekStart);
@@ -56,15 +66,20 @@ const MUSCLES = ['chest', 'back', 'shoulders', 'arms', 'legs', 'core', 'full'];
  * left/right sets together" says. Repeated entries of an exercise in one
  * workout count together. One walk for setsPerMuscle and muscleSets, so a
  * breakdown always adds up to the number on Today (#89).
+ * @template {WorkoutLike} W
+ * @param {W[]} workouts
+ * @param {Exercises} exercises
+ * @param {{ days: number, now: number }} range
+ * @param {(x: { workout: W, exerciseId: string, muscle: string, rows: W['exercises'][number]['sets'][number][], sets: number, unpaired: number }) => void} fn
  */
 function eachMuscleExercise(workouts, exercises, { days, now }, fn) {
-  const get = lookup(exercises);
+  const get = exerciseLookup(exercises);
   const since = startOfDay(addDays(now, -(days - 1)));
   for (const w of workouts) {
     if (w.startedAt < since || w.startedAt > now) continue;
     for (const [id, rows] of setsByExercise(w.exercises)) {
       const ex = get(id), muscle = ex?.bodyPart;
-      if (!MUSCLES.includes(muscle)) continue;
+      if (!muscle || !MUSCLES.includes(muscle)) continue;
       fn({ workout: w, exerciseId: id, muscle, rows, ...exerciseSetCount(rows, isUnilateral(ex)) });
     }
   }
@@ -73,14 +88,18 @@ function eachMuscleExercise(workouts, exercises, { days, now }, fn) {
 /**
  * Working sets per muscle (the exercise's body part) over the last `days`
  * days including today, counted as eachMuscleExercise says. Only muscles with
- * sets, in a fixed order: [{ muscle, label, sets }].
+ * sets, in a fixed order.
+ * @param {WorkoutLike[]} workouts
+ * @param {Exercises} exercises
+ * @returns {{ muscle: string, label: string, sets: number }[]}
  */
 export function setsPerMuscle(workouts, exercises, { days = 7, now = Date.now() } = {}) {
+  /** @type {Map<string, number>} */
   const counts = new Map();
   eachMuscleExercise(workouts, exercises, { days, now }, ({ muscle, sets }) => {
     if (sets) counts.set(muscle, (counts.get(muscle) || 0) + sets);
   });
-  return BODY_PARTS.filter((b) => counts.has(b.id)).map((b) => ({ muscle: b.id, label: b.label, sets: counts.get(b.id) }));
+  return BODY_PARTS.filter((b) => counts.has(b.id)).map((b) => ({ muscle: b.id, label: b.label, sets: counts.get(b.id) || 0 }));
 }
 
 /**
@@ -92,23 +111,29 @@ export function setsPerMuscle(workouts, exercises, { days = 7, now = Date.now() 
  * pair is listed with 0 sets, so its unpaired rows show. `sets` is always
  * setsPerMuscle's number for the muscle (0 when it has none); `label` is null
  * for an id that isn't a muscle.
- * Returns { muscle, label, sets, unpaired,
- *   exercises: [{ exerciseId, sets, unpaired, workouts: [{ id, name, startedAt, sets, unpaired, rows }] }] }.
+ * @template {WorkoutLike} W
+ * @param {W[]} workouts
+ * @param {Exercises} exercises
+ * @param {string} muscle
  */
 export function muscleSets(workouts, exercises, muscle, { days = 7, now = Date.now() } = {}) {
+  /** @typedef {W['exercises'][number]['sets'][number]} Row */
+  /** @type {Map<string, { exerciseId: string, sets: number, unpaired: number, workouts: { id: string, name: string | undefined, startedAt: number, sets: number, unpaired: number, rows: Row[] }[] }>} */
   const byExercise = new Map();
   let sets = 0, unpaired = 0;
   const newestFirst = [...workouts].sort((a, b) => b.startedAt - a.startedAt);
   eachMuscleExercise(newestFirst, exercises, { days, now }, ({ workout: w, exerciseId, muscle: m, rows, sets: n, unpaired: u }) => {
     if (m !== muscle || !(n || u)) return;
-    if (!byExercise.has(exerciseId)) byExercise.set(exerciseId, { exerciseId, sets: 0, unpaired: 0, workouts: [] });
-    const e = byExercise.get(exerciseId);
+    let e = byExercise.get(exerciseId);
+    if (!e) byExercise.set(exerciseId, e = { exerciseId, sets: 0, unpaired: 0, workouts: [] });
     e.sets += n; e.unpaired += u; sets += n; unpaired += u;
     e.workouts.push({ id: w.id, name: w.name, startedAt: w.startedAt, sets: n, unpaired: u, rows: rows.filter((r) => r.type !== 'warmup') });
   });
   // a stable sort: ties keep the order met, newest workout first
   const list = [...byExercise.values()].sort((a, b) => b.sets - a.sets);
-  return { muscle, label: MUSCLES.includes(muscle) ? BODY_PART_LABEL[muscle] : null, sets, unpaired, exercises: list };
+  /** @type {string | null} */
+  const label = MUSCLES.includes(muscle) ? BODY_PART_LABEL[muscle] : null;
+  return { muscle, label, sets, unpaired, exercises: list };
 }
 
 // Rough time per set, for the estimate on a routine card.
@@ -121,9 +146,12 @@ const WORK_SEC = 45, WARMUP_SEC = 30, WARMUP_REST_SEC = 60;
  * (#54): `pair` (Account → "Count left/right sets together") counts complete
  * left/right pairs, and `unpaired` the rows left out. Minutes count every row.
  * Exercises missing from the library are left out.
+ * @param {RoutineLike} template
+ * @param {Exercises} exercises
+ * @returns {{ exercises: number, sets: number, unpaired: number, minutes: number }}
  */
 export function routineSize(template, exercises, { defaultRest = 120, pair = true } = {}) {
-  const get = lookup(exercises);
+  const get = exerciseLookup(exercises);
   const entries = template.exercises.filter((e) => get(e.exerciseId));
   const { sets, unpaired } = entriesSetCount(entries, exercises, { pair });
   let sec = 0, all = 0, lastRest = 0;
@@ -145,14 +173,17 @@ export function routineSize(template, exercises, { defaultRest = 120, pair = tru
  * A routine's muscle groups for its row in Plan (#32): the body parts of its
  * exercises that are muscles, each once, in Sets per muscle's order, as
  * [{ muscle, label }]. Exercises missing from the library are left out.
+ * @param {RoutineLike} template
+ * @param {Exercises} exercises
+ * @returns {{ muscle: string, label: string }[]}
  */
 export function routineMuscles(template, exercises) {
-  const get = lookup(exercises);
-  const parts = new Set(template.exercises.map((e) => get(e.exerciseId)?.bodyPart).filter((p) => MUSCLES.includes(p)));
+  const get = exerciseLookup(exercises);
+  const parts = new Set(template.exercises.map((e) => get(e.exerciseId)?.bodyPart).filter((p) => !!p && MUSCLES.includes(p)));
   return BODY_PARTS.filter((b) => parts.has(b.id)).map((b) => ({ muscle: b.id, label: b.label }));
 }
 
-/** The first `max` names and how many more there are, for "Bench Press, Squat & 2 more" (#32). */
+/** The first `max` names and how many more there are, for "Bench Press, Squat & 2 more" (#32). @param {string[]} names */
 export function namesPreview(names, max = 3) {
   return { shown: names.slice(0, max), more: Math.max(0, names.length - max) };
 }

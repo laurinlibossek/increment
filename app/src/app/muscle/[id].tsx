@@ -16,16 +16,9 @@ import { useFormat } from '@/lib/format';
 import { useTally } from '@/lib/theme';
 import { useToday } from '@/lib/useNow';
 import {
-  MARGIN, Row, SectionHeadLink, tnum, WorkoutTally,
+  MARGIN, SectionHeadLink, tnum, WorkoutTally,
 } from '@/ui/facts';
-
-type Breakdown = {
-  muscle: string; label: string | null; sets: number; unpaired: number;
-  exercises: {
-    exerciseId: string; sets: number; unpaired: number;
-    workouts: { id: string; name: string; startedAt: number; sets: number; unpaired: number; rows: WorkSet[] }[];
-  }[];
-};
+import { ListRow } from '@/ui/tally/ListRow';
 
 export default function MuscleSets() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -35,7 +28,7 @@ export default function MuscleSets() {
   const { colors: t } = useTally();
   // the same window as Today's, moving on at midnight (#36)
   const today = useToday();
-  const b = useMemo(() => muscleSets(s.workouts, s.exercises, String(id)) as Breakdown, [s.workouts, s.exercises, id, today]); // eslint-disable-line react-hooks/exhaustive-deps
+  const b = useMemo(() => muscleSets(s.workouts, s.exercises, String(id)), [s.workouts, s.exercises, id, today]); // eslint-disable-line react-hooks/exhaustive-deps
   const name = b.label ? tr(b.label) : '';
   const total = tr('{sets} in the last 7 days', { sets: f.plural(b.sets, 'set') });
   const side = (x: WorkSet) => (x.side === 'left' ? `${tr('Left')} ` : x.side === 'right' ? `${tr('Right')} ` : '');
@@ -73,7 +66,7 @@ export default function MuscleSets() {
               const sets = w.rows.map((x) => `${side(x)}${f.setText(x, ex?.category)}`.replace(/ /g, '\u00A0')).join(' · ');
               const unpaired = w.unpaired ? tr('{n} unpaired', { n: f.num(w.unpaired, 0) }) : '';
               return (
-                <Row key={w.id} first={i === 0} chevron testID={`muscle-workout-${e.exerciseId}-${w.id}`}
+                <ListRow key={w.id} first={i === 0} chevron testID={`muscle-workout-${e.exerciseId}-${w.id}`}
                   onPress={() => router.push({ pathname: '/workout/[id]', params: { id: w.id } })}
                   title={when}
                   subtitle={(
@@ -82,7 +75,7 @@ export default function MuscleSets() {
                       {!!unpaired && <Text style={{ ...TYPE.footnote, color: t.ink2 }}>{unpaired}</Text>}
                     </>
                   )}
-                  trailing={<Text style={[{ ...TYPE.headline, color: t.ink, minWidth: 28, textAlign: 'right' }, tnum]}>{f.num(w.sets, 0)}</Text>} />
+                  right={<Text style={[{ ...TYPE.headline, color: t.ink, minWidth: 28, textAlign: 'right' }, tnum]}>{f.num(w.sets, 0)}</Text>} />
               );
             })}
           </View>

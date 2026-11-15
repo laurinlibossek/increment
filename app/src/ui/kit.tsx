@@ -5,7 +5,6 @@ import {
   ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
   type StyleProp, type TextStyle, type ViewStyle,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 
 import { useSearchFocus } from '@/ui/useSearchFocus';
@@ -76,32 +75,6 @@ export function Txt({ children, style, numberOfLines, tone = 'ink', testID }: Tx
 }
 
 // ---------- screens ----------
-/** A tab's main screen: large title, optional button on the right, scrolling content. */
-export function Screen({ title, right, children, scroll = true }: { title: string; right?: ReactNode; children: ReactNode; scroll?: boolean }) {
-  const c = useColors();
-  const insets = useSafeAreaInsets();
-  const head = <LargeTitle title={title} right={right} />;
-  if (!scroll) {
-    return <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top }}>{head}{children}</View>;
-  }
-  return (
-    <ScrollView style={{ flex: 1, backgroundColor: c.bg }} contentContainerStyle={{ paddingTop: insets.top, paddingBottom: SPACE.s8 }}>
-      {head}
-      <View style={styles.page}>{children}</View>
-    </ScrollView>
-  );
-}
-
-export function LargeTitle({ title, right }: { title: string; right?: ReactNode }) {
-  const c = useColors();
-  return (
-    <View style={styles.titleRow}>
-      <Text style={[styles.largeTitle, { color: c.ink }]} numberOfLines={1} accessibilityRole="header">{title}</Text>
-      {right}
-    </View>
-  );
-}
-
 /** Content of a pushed screen (the navigation bar gives the title). */
 export function Page({ children }: { children: ReactNode }) {
   const c = useColors();
@@ -262,8 +235,6 @@ export function SearchField({ value, onChange, placeholder, testID }: { value: s
 
 export const styles = StyleSheet.create({
   page: { paddingHorizontal: SPACE.s5 },
-  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SPACE.s5, paddingTop: SPACE.s3, paddingBottom: SPACE.s2, gap: SPACE.s2 },
-  largeTitle: { ...TYPE.largeTitle, flexShrink: 1 },
   sectionRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: SPACE.s8, marginBottom: SPACE.s2, paddingHorizontal: SPACE.s1 },
   sectionTitle: TYPE.title2,
   group: { borderRadius: RADIUS.l, overflow: 'hidden' },

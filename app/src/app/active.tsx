@@ -10,7 +10,6 @@ import {
   type ScrollViewInstance, type TextInputInstance, type ViewInstance,
 } from 'react-native';
 import { router } from 'expo-router';
-import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useKeepAwake } from 'expo-keep-awake';
 import {
@@ -20,9 +19,10 @@ import {
 import {
   adjustRest, discardActive, editActive, getState, patchActive, previousSets, setPinnedNote, skipRest, startRest, useAppSelector, useSettings,
 } from '@/data/store';
+import { haptic } from '@/lib/haptics';
 import { attempt } from '@/lib/saving';
 import { PinnedNote } from '@/ui/PinnedNote';
-import type { ActiveWorkout, EntryDraft, SetDraft } from '@/data/types';
+import type { ActiveWorkout } from '@/data/types';
 import { SPACE, TYPE, CONTROL } from '@/design/tally';
 import { useFormat } from '@/lib/format';
 import { pickExercises } from '@/lib/picker';
@@ -45,10 +45,6 @@ import type { Field } from '@/ui/workout/SetRow';
 import { effortText, setValueText } from '@/ui/workout/text';
 
 function KeepAwake() { useKeepAwake('workout'); return null; }
-
-type Unit = { id: string; entries: EntryDraft[] };
-/** core sessionState: the unit on screen and the set to log next */
-type SessionAt = { units: Unit[]; unit: Unit | null; next: { entry: EntryDraft; set: SetDraft; index: number } | null };
 
 export default function ActiveWorkoutScreen() {
   const current = useAppSelector((s) => s.active);
@@ -100,10 +96,10 @@ function Running({ a, reveal }: { a: ActiveWorkout; reveal: { current: (ref: Tex
   const [dragging, setDragging] = useState(false);
 
   // ---------- where the session is ----------
-  const st = useMemo(() => sessionState(a, { current: a.current ?? null, restEntryId: a.rest?.entryId ?? null }) as SessionAt, [a]);
+  const st = useMemo(() => sessionState(a, { current: a.current ?? null, restEntryId: a.rest?.entryId ?? null }), [a]);
   const live = st.next?.set.id ?? null;
   // the exercise on screen is done (#60): it stays until the person moves on with "Next: {exercise}"
-  const ahead = useMemo(() => (st.unit && !st.next ? nextUnit(a, st.unit.id) as { entries: EntryDraft[] } | null : null), [a, st]);
+  const ahead = useMemo(() => (st.unit && !st.next ? nextUnit(a, st.unit.id) : null), [a, st]);
   const strokes = useSessionStrokes(a, live);
   const at = st.unit ? st.units.indexOf(st.unit) : -1;
   const before = at > 0 ? st.units.slice(0, at) : [];
@@ -142,7 +138,7 @@ function Running({ a, reveal }: { a: ActiveWorkout; reveal: { current: (ref: Tex
   const discard = async () => {
     const cur = getState().active;
     if (!cur || !(await confirmDiscard(cur, tr('Discard this workout?'), tr))) return;
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+    haptic.warn();
     session.close();
     discardActive();
     router.back();
@@ -199,7 +195,7 @@ function Running({ a, reveal }: { a: ActiveWorkout; reveal: { current: (ref: Tex
   const next = st.next;
   const nextPh = useMemo(() => {
     if (!next) return null;
-    const rows = placeholders(next.entry, previousSets(next.entry.exerciseId, { templateId: a.templateId }), settings) as { ph: Record<string, string> }[];
+    const rows = placeholders(next.entry, previousSets(next.entry.exerciseId, { templateId: a.templateId }), settings);
     return rows[next.index]?.ph || {};
   }, [next, a.templateId, settings]);
   const exercises = useAppSelector((s) => s.exercises);
@@ -223,14 +219,14 @@ function Running({ a, reveal }: { a: ActiveWorkout; reveal: { current: (ref: Tex
       effort: rated && entry ? (
         <View style={styles.effort}>
           <Text style={{ ...TYPE.subhead, color: t.ink2, flexShrink: 1 }}>{tr('Reps left?')}</Text>
-          <EffortPicker value={setRir(rated) as number | null} label={tr('Reps left?')} optionLabel={(n) => effortText(n, tr)}
+          <EffortPicker value={setRir(rated)} label={tr('Reps left?')} optionLabel={(n) => effortText(n, tr)}
             onChange={(v) => editActive((_d, e) => { const s = e.sets.find((x) => x.id === rated.id); if (s) rateSet(s, v); }, entry.id)} />
         </View>
       ) : undefined,
     };
   } else if (next) {
     const ex = exercises.get(next.entry.exerciseId);
-    const fields = (ex ? loggedFields(ex.category) : []) as Field[];
+    const fields = ex ? loggedFields(ex.category) : [];
     const vals = Object.fromEntries(fields.map((k) => [k, next.set[k] || nextPh?.[k] || ''])) as Record<Field, string>;
     const value = ex ? setValueText(vals, ex.category, f, tr) : '';
     bar = {
@@ -247,7 +243,7 @@ function Running({ a, reveal }: { a: ActiveWorkout; reveal: { current: (ref: Tex
 
   return (
     <View style={{ flex: 1, backgroundColor: t.paper }}>
-      {settings.appKeepAwake === true && <KeepAwake />}
+      {settings.appKeepAwake && <KeepAwake />}
       <View style={[styles.top, { paddingTop: top + SPACE.s1 }]}>
         <Pressable onPress={() => { session.close(); router.back(); }} accessibilityRole="button" accessibilityLabel={tr('Minimize workout')} testID="minimize"
           style={({ pressed }) => [styles.iconBtn, { backgroundColor: pressed ? t.paper3 : 'transparent' }]}>

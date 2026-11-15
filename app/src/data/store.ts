@@ -52,6 +52,28 @@ export interface State {
 /** A record with changes held because another tab changed it: this tab's value and the saved one (null: none, deleted). */
 export interface ConflictItem { key: string; mine: unknown; saved: unknown }
 
+// ---------- stored kv values as state ----------
+type KvState = Pick<State, 'settings' | 'profile' | 'meta' | 'strongAliases' | 'customFamilies' | 'chartMetrics' | 'active'>;
+type Exercises = Exercise[] | Map<string, Exercise>;
+/**
+ * What each stored kv value becomes on screen, in one place (#99): every key on
+ * load and after a restore (fromData), the ones another tab saved (takeIn).
+ */
+const KV_STATE: { [K in keyof KvState]: (kv: Data['kv'], exercises: Exercises) => KvState[K] } = {
+  settings: (kv) => withDefaults(kv.settings) as Settings,
+  profile: (kv) => ({ name: '', ...(kv.profile || {}) }),
+  meta: (kv) => ({ ...(kv.meta || {}) }),
+  strongAliases: (kv) => ({ ...STRONG_EXERCISE_ALIASES, ...(kv.strongAliases || {}) }),
+  customFamilies: (kv, exercises) => cleanCustomFamilies(kv.customFamilies || {}, exercises),
+  chartMetrics: (kv, exercises) => cleanChartMetrics(kv.chartMetrics, exercises),
+  active: (kv) => kv.active || null,
+};
+const KV_KEYS = Object.keys(KV_STATE) as (keyof KvState)[];
+/** Values about exercises: cleaned again when the exercises change, without exercises that are gone. */
+const BY_EXERCISE: (keyof KvState)[] = ['customFamilies', 'chartMetrics'];
+const kvState = (kv: Data['kv'], exercises: Exercises, keys = KV_KEYS) =>
+  Object.fromEntries(keys.map((k) => [k, KV_STATE[k](kv, exercises)])) as Partial<KvState>;
+
 let state: State = {
   ready: false,
   error: null,
@@ -59,13 +81,7 @@ let state: State = {
   workouts: [],
   templates: [],
   measurements: [],
-  settings: withDefaults({}) as Settings,
-  profile: { name: '' },
-  meta: {},
-  strongAliases: { ...STRONG_EXERCISE_ALIASES },
-  chartMetrics: {},
-  customFamilies: {},
-  active: null,
+  ...kvState({}, []) as KvState,
   edit: null,
   saveProblem: null,
   conflicts: [],
@@ -98,13 +114,7 @@ function fromData(data: Data): Partial<State> {
     workouts: [...data.workouts].sort(byNewest),
     templates: data.templates,
     measurements: [...data.measurements].sort(byNewest),
-    settings: withDefaults(data.kv.settings) as Settings,
-    profile: { name: '', ...(data.kv.profile || {}) },
-    meta: { ...(data.kv.meta || {}) },
-    strongAliases: { ...STRONG_EXERCISE_ALIASES, ...(data.kv.strongAliases || {}) },
-    customFamilies: cleanCustomFamilies(data.kv.customFamilies || {}, data.exercises),
-    chartMetrics: cleanChartMetrics(data.kv.chartMetrics, data.exercises),
-    active: data.kv.active || null,
+    ...kvState(data.kv, data.exercises),
   };
 }
 
@@ -193,11 +203,11 @@ async function drain() {
     if (held.length) {
       // a change to a held record waits with it
       const keys = new Set(held.flatMap((b) => b.ops.map(writeKey)));
-      const s = splitBlocked(queue, keys) as { blocked: Batch[]; rest: Batch[] };
+      const s = splitBlocked(queue, keys);
       if (s.blocked.length) { hold(s.blocked); queue = s.rest; continue; }
     }
     const batches = queue.slice();
-    const ops = coalesceWrites(batches) as Op[];
+    const ops = coalesceWrites(batches);
     const expect = new Map(ops.map((op) => { const k = writeKey(op); return [k, staleKeys.has(k) ? -1 : revs.get(k) || 0]; }));
     try {
       const seq = await db.commit(ops, expect);
@@ -211,7 +221,7 @@ async function drain() {
     } catch (e) {
       if (e instanceof Conflict) {
         if (rebase(batches, e.saved)) continue;
-        const s = splitBlocked(batches, [...e.saved.keys()]) as { blocked: Batch[]; rest: Batch[] };
+        const s = splitBlocked(batches, [...e.saved.keys()]);
         for (const [k, v] of e.saved) if (s.blocked.some((b) => b.ops.some((op) => writeKey(op) === k))) conflictSaved.set(k, v);
         queue = [...s.rest, ...queue.filter((b) => !batches.includes(b))];
         hold(s.blocked);
@@ -258,7 +268,7 @@ function hold(batches: Batch[]) {
     b.reject(conflict);
     if (b.mode === 'shown') held.push(b);
   }
-  const mine = new Map((coalesceWrites(held) as Op[]).map((op) => [writeKey(op), op.value]));
+  const mine = new Map(coalesceWrites(held).map((op) => [writeKey(op), op.value]));
   setState({ conflicts: [...conflictSaved].filter(([k]) => mine.has(k)).map(([key, v]) => ({ key, mine: mine.get(key) ?? null, saved: v.value })) });
 }
 
@@ -337,19 +347,10 @@ function takeIn(records: Map<string, Saved>, all = false) {
   if (touched.has('workouts')) patch.workouts = [...lists.workouts.values()].sort(byNewest);
   if (touched.has('templates')) patch.templates = [...lists.templates.values()];
   if (touched.has('measurements')) patch.measurements = [...lists.measurements.values()].sort(byNewest);
-  if (touched.has('settings')) patch.settings = withDefaults(kv.settings) as Settings;
-  if (touched.has('profile')) patch.profile = { name: '', ...(kv.profile || {}) };
-  if (touched.has('meta')) patch.meta = { ...(kv.meta || {}) };
-  if (touched.has('strongAliases')) patch.strongAliases = { ...STRONG_EXERCISE_ALIASES, ...(kv.strongAliases || {}) };
-  if (touched.has('chartMetrics')) patch.chartMetrics = cleanChartMetrics(kv.chartMetrics, patch.exercises || state.exercises);
-  if (touched.has('customFamilies') || touched.has('exercises')) {
-    const families = touched.has('customFamilies') ? kv.customFamilies || {} : state.customFamilies;
-    patch.customFamilies = cleanCustomFamilies(families, [...exercises.values()]);
-  }
-  if (touched.has('active')) {
-    patch.active = kv.active || null;
-    if (!patch.active && state.active) patch.activeGone = state.active.id;
-  }
+  Object.assign(patch, kvState(kv, exercises, KV_KEYS.filter((k) => touched.has(k))));
+  // values about exercises this tab already has, without exercises another tab deleted
+  if (touched.has('exercises')) for (const k of BY_EXERCISE) if (!touched.has(k)) Object.assign(patch, kvState({ [k]: state[k] }, exercises, [k]));
+  if (touched.has('active') && !patch.active && state.active) patch.activeGone = state.active.id;
   setState(patch);
 }
 
@@ -367,8 +368,8 @@ export function catchUp(): Promise<void> {
         if (c.all) {
           // everything, after a restore elsewhere or a long time away: records gone there go here too
           const saved = new Map<string, Saved>();
-          for (const [k, v] of recordsOf(c.all.data) as Map<string, unknown>) saved.set(k, { value: v, rev: c.all.revs.get(k) || 0 });
-          for (const k of recordsOf(currentData()).keys() as Iterable<string>) if (!saved.has(k)) saved.set(k, { value: null, rev: 0 });
+          for (const [k, v] of recordsOf(c.all.data)) saved.set(k, { value: v, rev: c.all.revs.get(k) || 0 });
+          for (const k of recordsOf(currentData()).keys()) if (!saved.has(k)) saved.set(k, { value: null, rev: 0 });
           takeIn(saved);
         } else if (c.changed?.size) takeIn(c.changed);
         lastSeen = c.seq;
@@ -497,7 +498,7 @@ export function activeRecords(s: State = state): Map<string, string[]> {
   const st = stats(s);
   if (!s.active) return new Map();
   if (!recordsFor || recordsFor.active !== s.active || recordsFor.stats !== st || recordsFor.settings !== s.settings) {
-    recordsCache = liveRecordSets(s.active, st.bests, s.exercises, s.settings) as Map<string, string[]>;
+    recordsCache = liveRecordSets(s.active, st.bests, s.exercises, s.settings);
     recordsFor = { active: s.active, stats: st, settings: s.settings };
   }
   return recordsCache;
@@ -587,7 +588,7 @@ function replaceEverything(data: Data, active: ActiveWorkout | null, patch: Part
     held = [];
     conflictSaved.clear();
     staleKeys.clear();
-    revs = new Map([...(recordsOf(all).keys() as Iterable<string>)].map((k) => [k, seq]));
+    revs = new Map([...recordsOf(all).keys()].map((k) => [k, seq]));
     lastSeen = seq;
     for (const b of dropped) b.reject(new Error('Replaced'));
     setState({ ...fromData(all), ...patch, saveProblem: null, conflicts: [] });
@@ -624,7 +625,7 @@ export async function deleteAllData() {
  */
 export function backupText(appVersion: string, active: ActiveWorkout | null = state.active) {
   const { kv: { active: _running, ...kv }, ...lists } = currentData();
-  return makeBackup({ ...lists, kv }, appVersion, new Date(), { active }) as string;
+  return makeBackup({ ...lists, kv }, appVersion, new Date(), { active });
 }
 
 export const markBackedUp = () => setMeta({ lastBackupAt: Date.now() });
@@ -652,7 +653,7 @@ export function strongNothingNew(preview: StrongReview): boolean {
   try {
     const r = resolveStrongImport(preview, {}, {
       exercises: state.exercises, workouts: state.workouts, aliases: state.strongAliases,
-    }) as { stats: { notesAdded: number } };
+    });
     return !r.stats.notesAdded;
   } catch { return false; }
 }
@@ -660,11 +661,10 @@ export function strongNothingNew(preview: StrongReview): boolean {
 export async function saveStrongImport(preview: StrongReview, choices: StrongChoices) {
   const r = resolveStrongImport(preview, choices, {
     exercises: state.exercises, workouts: state.workouts, aliases: state.strongAliases,
-  }) as { exercises: Exercise[]; workouts: Workout[]; aliases: Record<string, string>;
-    noteUpdates: { id: string; notes?: string; entries: [number, string][] }[];
-    stats: { workouts: number; notesAdded: number; duplicates: number; omitted: { sets: number; workouts: number; exercises: string[] } } };
+  });
   const exercises = new Map(state.exercises);
-  for (const e of r.exercises) exercises.set(e.id, e);
+  // core keeps the category the person chose for a new exercise as a string
+  for (const e of r.exercises) exercises.set(e.id, e as Exercise);
   // notes for workouts that are already here (older imports that dropped them)
   const updated = new Map<string, Workout>();
   for (const u of r.noteUpdates) {
@@ -747,6 +747,12 @@ export function exerciseUsage(id: string) {
   };
 }
 
+/** Families and remembered charts once exercise `id` is gone (it isn't in `exercises`), and the chart write if its chart went (#27). */
+function withoutGoneExercise(id: string, exercises: Map<string, Exercise>) {
+  const { customFamilies, chartMetrics } = kvState({ customFamilies: state.customFamilies, chartMetrics: state.chartMetrics }, exercises, BY_EXERCISE) as KvState;
+  return { customFamilies, chartMetrics, chartOps: id in state.chartMetrics ? [kvOp('chartMetrics', chartMetrics)] : [] };
+}
+
 /** Delete an exercise nobody has logged; it leaves the templates too. */
 export async function deleteExercise(id: string) {
   return mutateExercises(async () => {
@@ -760,10 +766,7 @@ export async function deleteExercise(id: string) {
       changed.push(next);
       return next;
     });
-    const customFamilies = cleanCustomFamilies(state.customFamilies, exercises);
-    // its remembered chart goes with it (#27)
-    const chartMetrics = cleanChartMetrics(state.chartMetrics, exercises) as Record<string, string>;
-    const chartOps = id in state.chartMetrics ? [kvOp('chartMetrics', chartMetrics)] : [];
+    const { customFamilies, chartMetrics, chartOps } = withoutGoneExercise(id, exercises);
     await save([...familyOps([], customFamilies, [id], { templates: changed }), ...chartOps], { mode: 'after', publish: () => setState({ exercises, templates, customFamilies, chartMetrics }) });
   });
 }
@@ -783,21 +786,19 @@ export async function mergeExercise(fromId: string, intoId: string) {
     const exercises = new Map(state.exercises);
     exercises.delete(fromId);
     exercises.set(intoId, target);
-    const movedWorkouts = moveExerciseEntries(state.workouts, fromId, intoId) as Workout[];
-    const movedTemplates = moveExerciseEntries(state.templates, fromId, intoId) as Template[];
+    const movedWorkouts = moveExerciseEntries(state.workouts, fromId, intoId);
+    const movedTemplates = moveExerciseEntries(state.templates, fromId, intoId);
     const swap = <T extends { id: string }>(list: T[], changed: T[]) => {
       if (!changed.length) return list;
       const byId = new Map(changed.map((x) => [x.id, x]));
       return list.map((x) => byId.get(x.id) || x);
     };
-    const customFamilies = cleanCustomFamilies(state.customFamilies, exercises);
     // the merged exercise's chart goes; the target keeps its own (#27)
-    const chartMetrics = cleanChartMetrics(state.chartMetrics, exercises) as Record<string, string>;
-    const chartOps = fromId in state.chartMetrics ? [kvOp('chartMetrics', chartMetrics)] : [];
+    const { customFamilies, chartMetrics, chartOps } = withoutGoneExercise(fromId, exercises);
     const patch: Partial<State> = { exercises, customFamilies, chartMetrics, workouts: swap(state.workouts, movedWorkouts), templates: swap(state.templates, movedTemplates) };
-    const [active] = state.active ? moveExerciseEntries([state.active], fromId, intoId) as ActiveWorkout[] : [];
+    const [active] = state.active ? moveExerciseEntries([state.active], fromId, intoId) : [];
     if (active) patch.active = active;
-    const [edit] = state.edit ? moveExerciseEntries([state.edit], fromId, intoId) as EditDraft[] : [];
+    const [edit] = state.edit ? moveExerciseEntries([state.edit], fromId, intoId) : [];
     if (edit) patch.edit = edit;
     if (state.edit?.exPatches?.[fromId]) {
       const d = (patch.edit || state.edit) as EditDraft;
@@ -829,7 +830,7 @@ export async function saveWorkout(w: Workout, routine: Template | null = null) {
 export async function setPinnedNote(templateId: string, note: string) {
   const t = state.templates.find((x) => x.id === templateId);
   if (!t) return;
-  const next = withPinnedNote(t, note) as Template;
+  const next = withPinnedNote(t, note);
   setState({ templates: state.templates.map((x) => (x.id === templateId ? next : x)) });
   await save([docOp('templates', next)]);
 }
@@ -1054,7 +1055,7 @@ export async function saveWorkoutEdit(defaultName: string): Promise<{ problem?: 
   // the routine's pinned note, edited here, is saved with the workout (#33)
   const routine = d.templateId ? state.templates.find((x) => x.id === d.templateId) : null;
   const pinned = routine && d.pinnedNote !== undefined && (d.pinnedNote.trim() || undefined) !== routine.pinnedNote
-    ? withPinnedNote(routine, d.pinnedNote) as Template : null;
+    ? withPinnedNote(routine, d.pinnedNote) : null;
   await saveWorkout(r.workout, pinned);
   await applyExercisePatches(d);
   setState({ edit: { ...d, dirty: false } });
@@ -1065,7 +1066,7 @@ export function startWorkout(from: { template?: Template | null; fromWorkout?: W
   const uni = (id: string) => isUnilateral(state.exercises.get(id));
   // a routine's unilateral sets without a side become left and right ones, in the routine too (#54),
   // so progression, readiness and Update routine compare side with side
-  const split = from.template && !from.template.example ? splitRoutine(from.template, uni) as Template | null : null;
+  const split = from.template && !from.template.example ? splitRoutine(from.template, uni) : null;
   if (split) saveTemplate(split).catch(() => {});
   const active = newActiveWorkout({
     template: split || from.template || null, fromWorkout: from.fromWorkout || null, hasExercise: (id: string) => state.exercises.has(id),
@@ -1104,7 +1105,7 @@ export async function finishActive(mode: 'done' | 'all', defaultName: string): P
   if (!a) return null;
   const now = Date.now();
   const workout = finishWorkout(a, { settings: state.settings, exercises: state.exercises, now, mode, defaultName }) as Workout;
-  const prs = prsForNewWorkout(workout, stats(), state.exercises, state.settings.formula) as Record_[];
+  const prs = prsForNewWorkout(workout, stats(), state.exercises, state.settings.formula);
   const t = workout.templateId ? state.templates.find((x) => x.id === workout.templateId) : null;
   const usedTemplate = t ? { ...t, lastUsedAt: now } : null;
   // one transaction: the workout, its routine's last use and the cleared running workout,
@@ -1130,7 +1131,7 @@ export async function finishActive(mode: 'done' | 'all', defaultName: string): P
   const workouts = state.workouts;
   // its place in the history by start time (the start can have been moved earlier)
   const number = workouts.filter((w) => w.startedAt <= workout.startedAt).length;
-  const result = { workout, prs, volume: workoutVolume(workout, state.exercises) as number, number };
+  const result = { workout, prs, volume: workoutVolume(workout, state.exercises), number };
   finished.set(workout.id, result);
   return result;
 }

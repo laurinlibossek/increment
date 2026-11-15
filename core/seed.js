@@ -1,3 +1,4 @@
+// @ts-check
 // Built-in exercise library and example templates.
 // Names follow the common "Movement (Equipment)" convention so a Strong CSV
 // import lines up with these entries automatically.
@@ -50,6 +51,7 @@ export const SEED_EXERCISES = EXERCISE_CATALOGUE.flatMap((f) =>
 // Example templates. Sets: [type, reps] — weights stay empty so the app shows
 // your own previous numbers once you have them. An exercise done one side at a
 // time gets each set as a left and a right row (#54), so 3 sets are 3 pairs.
+/** @param {string} name @param {number} sets @param {number} reps @param {number} [restSec] */
 const ex = (name, sets, reps, restSec) => {
   const exerciseId = 'x-' + slug(name);
   const sides = UNILATERAL_IDS.has(exerciseId) ? ['left', 'right'] : [null];

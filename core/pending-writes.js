@@ -1,3 +1,4 @@
+// @ts-check
 // Writes the app has made but storage hasn't confirmed yet, and the records
 // that storage holds. The app keeps each change as a batch of writes that are
 // saved together (a finished workout and the cleared running workout, an
@@ -6,13 +7,26 @@
 // a key ('workouts/abc', 'kv/settings') and storage a revision per key, so a
 // tab that saves over a record another tab changed is stopped (#35).
 
-/** The storage key of a write or record: 'workouts/abc', 'kv/settings'. */
+/**
+ * A write: a document of a store, or one of the app's single values (kv).
+ * @typedef {{ store?: string, id?: string, kv?: string, value?: any }} Write
+ * @typedef {{ exercises: any[], workouts: any[], templates: any[], measurements: any[], kv: Record<string, any> }} StoredData
+ */
+const STORES = /** @type {const} */ (['exercises', 'workouts', 'templates', 'measurements']);
+
+/** The storage key of a write or record: 'workouts/abc', 'kv/settings'. @param {Write} op */
 export function writeKey(op) {
   return op.kv ? `kv/${op.kv}` : `${op.store}/${op.id}`;
 }
 
-/** The latest write for each key across batches (oldest batch first): what one transaction saves. */
+/**
+ * The latest write for each key across batches (oldest batch first): what one transaction saves.
+ * @template {Write} W
+ * @param {{ ops: W[] }[]} batches
+ * @returns {W[]}
+ */
 export function coalesceWrites(batches) {
+  /** @type {Map<string, W>} */
   const byKey = new Map();
   for (const b of batches) for (const op of b.ops) byKey.set(writeKey(op), op);
   return [...byKey.values()];
@@ -22,9 +36,14 @@ export function coalesceWrites(batches) {
  * The batches that can't be saved because they write a conflicting key,
  * directly or by being saved together with a batch that does (a batch is all
  * or nothing), and the rest, which can. `keys` comes back with every key held.
+ * @template {{ ops: Write[] }} B
+ * @param {B[]} batches
+ * @param {Iterable<string>} conflictKeys
+ * @returns {{ blocked: B[], rest: B[], keys: Set<string> }}
  */
 export function splitBlocked(batches, conflictKeys) {
   const keys = new Set(conflictKeys);
+  /** @type {Set<B>} */
   const held = new Set();
   let grew = true;
   while (grew) {
@@ -39,28 +58,32 @@ export function splitBlocked(batches, conflictKeys) {
   return { blocked: batches.filter((b) => held.has(b)), rest: batches.filter((b) => !held.has(b)), keys };
 }
 
-/** Every record of stored data by key ({ exercises, workouts, templates, measurements, kv }); empty kv values are absent, as in storage. */
+/**
+ * Every record of stored data by key ({ exercises, workouts, templates, measurements, kv }); empty kv values are absent, as in storage.
+ * @param {Partial<StoredData> | null | undefined} data
+ * @returns {Map<string, any>}
+ */
 export function recordsOf(data) {
   const out = new Map();
-  for (const store of ['exercises', 'workouts', 'templates', 'measurements']) {
+  for (const store of STORES) {
     for (const doc of data?.[store] || []) out.set(`${store}/${doc.id}`, doc);
   }
   for (const [k, v] of Object.entries(data?.kv || {})) if (v !== null && v !== undefined) out.set(`kv/${k}`, v);
   return out;
 }
 
-/** JSON with object keys sorted, so two copies of a record compare equal whatever their key order. */
+/** JSON with object keys sorted, so two copies of a record compare equal whatever their key order. @param {unknown} value @returns {string} */
 export function canonicalJSON(value) {
   return JSON.stringify(value, (_k, v) => (v && typeof v === 'object' && !Array.isArray(v)
     ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, v[k]])) : v));
 }
 
-/** Two records hold the same data (null for a missing one). */
+/** Two records hold the same data (null for a missing one). @param {unknown} a @param {unknown} b */
 export function sameRecord(a, b) {
   return canonicalJSON(a ?? null) === canonicalJSON(b ?? null);
 }
 
-/** Two copies of stored data hold the same records: used to check the move to IndexedDB before the original is removed. */
+/** Two copies of stored data hold the same records: used to check the move to IndexedDB before the original is removed. @param {Partial<StoredData>} a @param {Partial<StoredData>} b */
 export function sameStoredData(a, b) {
   const x = recordsOf(a);
   const y = recordsOf(b);
@@ -75,12 +98,16 @@ export function sameStoredData(a, b) {
  * A document saved twice keeps its later copy, as the old storage did on
  * reading. Throws if it isn't stored data; the error's `part` names the list
  * (or 'kv') at fault. Backups are checked with it too (parseBackup).
+ * @param {any} raw
+ * @returns {StoredData}
  */
 export function storedDataFrom(raw) {
+  /** @param {string} message @param {string} [part] */
   const fail = (message, part) => Object.assign(new Error(message), { part });
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw fail('not stored data');
+  /** @type {StoredData} */
   const out = { exercises: [], workouts: [], templates: [], measurements: [], kv: {} };
-  for (const store of ['exercises', 'workouts', 'templates', 'measurements']) {
+  for (const store of STORES) {
     const list = raw[store] ?? [];
     if (!Array.isArray(list)) throw fail(`${store} is not a list`, store);
     const byId = new Map();

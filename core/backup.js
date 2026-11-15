@@ -1,3 +1,4 @@
+// @ts-check
 // Backup files: everything in the app as one JSON file, and reading it back.
 import { withSeedExercises } from './seed-sync.js';
 import { cleanCustomFamilies } from './exercise-families.js';
@@ -17,15 +18,19 @@ import { sameRecord, storedDataFrom } from './pending-writes.js';
  * @param {{ active?: object | null } | null} [recovery]
  */
 export function makeBackup(data, appVersion, now = new Date(), recovery = null) {
+  /** @type {{ app: string, schema: number, appVersion: string, exportedAt: string, data: object, recovery?: { active: object } }} */
   const file = { app: 'setlog', schema: 1, appVersion, exportedAt: now.toISOString(), data };
   if (recovery?.active) file.recovery = { active: recovery.active };
   return JSON.stringify(file);
 }
 
+/** @param {unknown} v */
 const isObject = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
+/** @param {unknown} v */
 const isText = (v) => typeof v === 'string';
-/** An exercise of a workout or routine: which exercise, and its sets. */
+/** An exercise of a workout or routine: which exercise, and its sets. @param {any} e */
 const isEntry = (e) => isObject(e) && isText(e.exerciseId) && Array.isArray(e.sets) && e.sets.every(isObject);
+/** @param {any} w */
 const isWorkout = (w) => Number.isFinite(w.startedAt) && Array.isArray(w.exercises) && w.exercises.every(isEntry);
 
 /**
@@ -33,6 +38,7 @@ const isWorkout = (w) => Number.isFinite(w.startedAt) && Array.isArray(w.exercis
  * Today, the records or an exercise page throw and the app can't be reached
  * (#83). Anything else in a record is kept as it is, unknown fields included.
  */
+/** @type {Record<'exercises' | 'workouts' | 'templates' | 'measurements', (record: any) => boolean>} */
 const RECORD_CHECKS = {
   exercises: (x) => isText(x.name) && isText(x.category),
   workouts: isWorkout,
@@ -41,13 +47,16 @@ const RECORD_CHECKS = {
   measurements: (m) => isText(m.type) && Number.isFinite(m.at) && Number.isFinite(m.value),
 };
 
-/** A running workout as backups and storage keep it. */
+/** A running workout as backups and storage keep it. @param {any} a */
 const isRunningWorkout = (a) => isObject(a) && isText(a.id) && isWorkout(a);
 
 /**
  * Restoring a backup with a running workout (`recovery.active`): 'restore' it
  * when the app has none, 'keep' the app's when there is nothing new, 'ask'
  * which to keep when they differ.
+ * @param {unknown} current
+ * @param {unknown} fromBackup
+ * @returns {'restore' | 'keep' | 'ask'}
  */
 export function runningWorkoutChoice(current, fromBackup) {
   if (!fromBackup) return 'keep';
@@ -55,8 +64,14 @@ export function runningWorkoutChoice(current, fromBackup) {
   return sameRecord(current, fromBackup) ? 'keep' : 'ask';
 }
 
-/** An error with an English message (a translation key) and its {placeholders}. */
+/**
+ * An error with an English message (a translation key) and its {placeholders}.
+ * @param {string} message
+ * @param {Record<string, string>} [vars]
+ * @returns {Error & { vars?: Record<string, string> }}
+ */
 function fail(message, vars) {
+  /** @type {Error & { vars?: Record<string, string> }} */
   const e = new Error(message);
   if (vars) e.vars = vars;
   return e;
@@ -71,8 +86,11 @@ const DAMAGED = 'The backup is damaged ({part}).';
  * id or without what RECORD_CHECKS asks for (the error names the list). A
  * record saved twice keeps its later copy, so the phone and the web restore the
  * same file the same way.
+ * @param {string} text
+ * @param {any[]} [seedExercises]
  */
 export function parseBackup(text, seedExercises = []) {
+  /** @type {any} */
   let obj;
   try { obj = JSON.parse(text); } catch (e) { throw fail('This file isn’t valid JSON.'); }
   if (!obj || obj.app !== 'setlog' || !obj.data || typeof obj.data !== 'object' || Array.isArray(obj.data)) throw fail('This isn’t a Setlog backup file.');
@@ -81,9 +99,9 @@ export function parseBackup(text, seedExercises = []) {
     if (obj.data[k] !== undefined && !Array.isArray(obj.data[k])) throw fail(DAMAGED, { part: k });
   }
   let d;
-  try { d = storedDataFrom(obj.data); } catch (e) { throw fail(DAMAGED, { part: e.part }); }
-  for (const [k, ok] of Object.entries(RECORD_CHECKS)) {
-    if (!d[k].every(ok)) throw fail(DAMAGED, { part: k });
+  try { d = storedDataFrom(obj.data); } catch (e) { throw fail(DAMAGED, { part: /** @type {{ part: string }} */ (e).part }); }
+  for (const k of /** @type {(keyof typeof RECORD_CHECKS)[]} */ (Object.keys(RECORD_CHECKS))) {
+    if (!d[k].every(RECORD_CHECKS[k])) throw fail(DAMAGED, { part: k });
   }
   // the backup itself counts as a backup: without this the reminder would come
   // back early after a restore (the file holds the time of the backup before it)

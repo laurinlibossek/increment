@@ -1,3 +1,4 @@
+// @ts-check
 // Numbers, units, ids, durations and calendar arithmetic. No DOM, no storage,
 // no locale lookups: the app tells this module its decimal separator once
 // (configureUnits), so the same code runs in the web app and the Expo app.
@@ -5,6 +6,7 @@
 export const unitOpts = {
   decimal: '.', // how numbers are written into input fields ("62,5" in German)
 };
+/** @param {Partial<typeof unitOpts>} o */
 export function configureUnits(o) { Object.assign(unitOpts, o); }
 
 export const uid = () => {
@@ -12,11 +14,11 @@ export const uid = () => {
   return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
 };
 
-export const slug = (s) => String(s).toLowerCase()
+export const slug = (/** @type {unknown} */ s) => String(s).toLowerCase()
   .replace(/[()]/g, ' ').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
 // ---------- numbers ----------
-/** Parse user input like "62,5" / "62.5" / " 60 " -> number, or null if empty/invalid. */
+/** Parse user input like "62,5" / "62.5" / " 60 " -> number, or null if empty/invalid. @param {unknown} v @returns {number | null} */
 export function parseNum(v) {
   if (v === null || v === undefined) return null;
   if (typeof v === 'number') return Number.isFinite(v) ? v : null;
@@ -35,7 +37,7 @@ export function parseNum(v) {
   return Number.isFinite(n) ? n : null;
 }
 
-/** Number -> string for an input field (the app's decimal separator, no grouping). */
+/** Number -> string for an input field (the app's decimal separator, no grouping). @param {number | null | undefined} n */
 export function numToInput(n, maxFrac = 2, decimal = unitOpts.decimal) {
   if (n === null || n === undefined || !Number.isFinite(n)) return '';
   const r = Math.round(n * 10 ** maxFrac) / 10 ** maxFrac;
@@ -47,6 +49,8 @@ export function numToInput(n, maxFrac = 2, decimal = unitOpts.decimal) {
  * "45, 35, 2.5". Spaces and semicolons always separate; without them commas
  * separate too, unless the whole text is one decimal like "2,5" or "1,25".
  * Returns positive numbers, heaviest first, without duplicates.
+ * @param {unknown} text
+ * @returns {number[]}
  */
 export function parsePlates(text) {
   const s = String(text || '').trim().replace(/,\s+/g, ';');
@@ -55,7 +59,7 @@ export function parsePlates(text) {
   if (/[;\s]/.test(s)) parts = s.split(/[;\s]+/);
   else if (/^\d,(5|25|75)$/.test(s)) parts = [s];
   else parts = s.split(',');
-  const nums = parts.map((x) => parseNum(x)).filter((x) => x !== null && x > 0);
+  const nums = /** @type {number[]} */ (parts.map((x) => parseNum(x)).filter((x) => x !== null && x > 0));
   return [...new Set(nums)].sort((a, b) => b - a);
 }
 
@@ -63,27 +67,33 @@ export function parsePlates(text) {
 export const KG_PER_LB = 0.45359237;
 export const KM_PER_MI = 1.609344;
 
+/** @param {number} kg @param {string | null | undefined} unit */
 export const kgTo = (kg, unit) => (unit === 'lb' ? kg / KG_PER_LB : kg);
+/** @param {number} v @param {string | null | undefined} unit */
 export const toKg = (v, unit) => (unit === 'lb' ? v * KG_PER_LB : v);
+/** @param {number} km @param {string | null | undefined} unit */
 export const kmTo = (km, unit) => (unit === 'mi' ? km / KM_PER_MI : km);
+/** @param {number} v @param {string | null | undefined} unit */
 export const toKm = (v, unit) => (unit === 'mi' ? v * KM_PER_MI : v);
 
-/** Round a converted weight for display: kg to 0.01, lb to 0.1 (avoids 44.99). */
+/** Round a converted weight for display: kg to 0.01, lb to 0.1 (avoids 44.99). @param {number} v @param {string | null | undefined} unit */
 export function roundW(v, unit) {
   const f = unit === 'lb' ? 10 : 100;
   return Math.round(v * f) / f;
 }
 
 // ---------- durations ----------
-/** seconds -> "1:05" / "1:02:03" */
+/** Two digits: 7 -> "07" (clock times and dates). */
+export const pad2 = (/** @type {number} */ n) => String(n).padStart(2, '0');
+
+/** seconds -> "1:05" / "1:02:03" @param {number | null | undefined} sec */
 export function fmtClock(sec) {
   sec = Math.max(0, Math.round(sec || 0));
   const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
-  const ss = String(s).padStart(2, '0');
-  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`;
+  return h > 0 ? `${h}:${pad2(m)}:${pad2(s)}` : `${m}:${pad2(s)}`;
 }
 
-/** Digits typed right-to-left into a time field: "130" -> 90s, "13000" -> 1h30m */
+/** Digits typed right-to-left into a time field: "130" -> 90s, "13000" -> 1h30m @param {unknown} d @returns {number | null} */
 export function digitsToSec(d) {
   const s = String(d || '').replace(/\D/g, '').slice(-6);
   if (!s) return null;
@@ -91,13 +101,15 @@ export function digitsToSec(d) {
   const h = +n.slice(0, 2), m = +n.slice(2, 4), sec = +n.slice(4, 6);
   return h * 3600 + m * 60 + sec;
 }
+/** Seconds as the digits a time field holds (90 -> "130"). @param {number | null | undefined} sec */
 export function secToDigits(sec) {
   if (sec === null || sec === undefined || !Number.isFinite(sec) || sec <= 0) return '';
   sec = Math.round(sec);
   const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
-  const str = (h ? String(h) + String(m).padStart(2, '0') : String(m)) + String(s).padStart(2, '0');
+  const str = (h ? String(h) + pad2(m) : String(m)) + pad2(s);
   return str.replace(/^0+(?=\d)/, '');
 }
+/** A time field's digits as a clock ("130" -> "1:30"). @param {unknown} d */
 export function fmtDigits(d) {
   const s = String(d || '').replace(/\D/g, '').replace(/^0+/, '').slice(-6);
   if (!s) return '';
@@ -106,18 +118,39 @@ export function fmtDigits(d) {
 
 // ---------- calendar ----------
 export const DAY = 86400000;
+/** @param {number} t */
 export function startOfDay(t) { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); }
 /**
  * Calendar days from `at` back from `now`: 0 today, 1 yesterday. Rounded, because
  * the day the clocks change has 23 or 25 hours (#86); negative for a later day.
+ * @param {number} at
  */
 export function daysAgo(at, now = Date.now()) { return Math.round((startOfDay(now) - startOfDay(at)) / DAY); }
+/**
+ * What a list calls a day (#97): 'today' (also later today: a clock can be
+ * ahead), 'yesterday', 'week' (2 to 6 days ago, by its weekday), 'year' (earlier
+ * this calendar year, by day and month) or 'older' (with the year). Days first,
+ * then the year, so on 1 January yesterday's workout is still yesterday's.
+ * @param {number} at
+ * @returns {'today' | 'yesterday' | 'week' | 'year' | 'older'}
+ */
+export function dayKind(at, now = Date.now()) {
+  const days = daysAgo(at, now);
+  if (days <= 0) return 'today';
+  if (days === 1) return 'yesterday';
+  if (days < 7) return 'week';
+  return new Date(at).getFullYear() === new Date(now).getFullYear() ? 'year' : 'older';
+}
+/** @param {number} t */
 export function startOfWeek(t, weekStart = 1) {
   const d = new Date(startOfDay(t));
   const diff = (d.getDay() - weekStart + 7) % 7;
   d.setDate(d.getDate() - diff);
   return d.getTime();
 }
+/** @param {number} t @param {number} n */
 export function addDays(t, n) { const d = new Date(t); d.setDate(d.getDate() + n); return d.getTime(); }
+/** @param {number} t */
 export function startOfMonth(t) { const d = new Date(t); return new Date(d.getFullYear(), d.getMonth(), 1).getTime(); }
+/** @param {number} t @param {number} n */
 export function addMonths(t, n) { const d = new Date(t); return new Date(d.getFullYear(), d.getMonth() + n, 1).getTime(); }

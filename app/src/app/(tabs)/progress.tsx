@@ -28,7 +28,7 @@ export default function ProgressTab() {
   const f = useFormat();
   const { tr } = f;
   const { colors: t } = useTally();
-  const goal = s.settings.weeklyGoal || 3;
+  const goal = s.settings.weeklyGoal;
   // the 30 days and the backup reminder move on with the day (#36)
   const today = useToday();
 
@@ -46,7 +46,7 @@ export default function ProgressTab() {
     }
     return {
       workouts, volume, recent,
-      weeks: weeklyCounts(s.workouts, { weeks: 12, weekStart }) as { start: number; value: number }[],
+      weeks: weeklyCounts(s.workouts, { weeks: 12, weekStart }),
       streak: weekStreak(s.workouts, { goal, weekStart }) as number,
     };
   }, [s.workouts, s.exercises, s.settings, goal, today]); // eslint-disable-line react-hooks/exhaustive-deps

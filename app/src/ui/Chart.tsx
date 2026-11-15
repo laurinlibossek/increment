@@ -1,7 +1,6 @@
-// The app's charts: a line over time (the Tally LineChart, ui/tally/LineChart.tsx,
-// with the props Measure was built with) and a column chart in ink with dotted
-// grid lines; touch a bar for its value. The axis maths is the shared core's
-// (core/chart.js).
+// The column chart (weekly workouts on Progress): ink columns with dotted grid
+// lines; touch a bar for its value. The line chart is the Tally one
+// (ui/tally/LineChart.tsx). The axis maths is the shared core's (core/chart.js).
 import { useState } from 'react';
 import {
   Platform, StyleSheet, Text, View, type LayoutChangeEvent,
@@ -14,10 +13,7 @@ import { niceTicks } from '@increment/core';
 import { RADIUS, SPACE, TYPE } from '@/design/tally';
 import { useFormat } from '@/lib/format';
 import { useColors } from '@/lib/theme';
-import { LineChart as TallyLineChart } from '@/ui/tally/LineChart';
-
-// SVG text in a browser falls back to a serif font; use the system one
-const FONT = Platform.OS === 'web' ? 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' : undefined;
+import { SVG_FONT as FONT } from '@/ui/tally/LineChart';
 
 function useWidth(): [number, (e: LayoutChangeEvent) => void] {
   const [w, setW] = useState(0);
@@ -37,26 +33,6 @@ function Tip({ left, width, value, sub }: { left: number; width: number; value: 
   );
 }
 
-type Point = { x: number; y: number };
-
-/**
- * points oldest first, x = ms, y in display units. The Tally line chart
- * (ui/tally/LineChart.tsx) with this file's older props, for Measure.
- */
-export function LineChart({
-  points, height = SPACE.s12 * 4, fmtAxis = (v: number) => String(v), fmtVal = (v: number) => String(v), time = false, emptyText, label, testID,
-}: {
-  points: Point[]; height?: number; fmtAxis?: (v: number, dec: number) => string; fmtVal?: (v: number) => string;
-  time?: boolean; emptyText: string; label: string; testID?: string;
-}) {
-  return (
-    <View style={{ marginTop: SPACE.s4 }}>
-      <TallyLineChart points={points.map((p) => ({ at: p.x, value: p.y }))} height={height} formatAxis={fmtAxis} formatValue={fmtVal}
-        time={time} emptyText={emptyText} label={label} testID={testID} />
-    </View>
-  );
-}
-
 /** bars oldest first; `goal` draws a reference line */
 export function BarChart({
   bars, height = SPACE.s12 * 4, goal = null, fmtVal = (v: number) => String(v), label, testID,
@@ -71,7 +47,7 @@ export function BarChart({
   const W = Math.max(width, SPACE.s5 * 10), H = height;
   const iw = W - padL - padR, ih = H - padT - padB;
   const max = Math.max(1, goal || 0, ...bars.map((b) => b.value));
-  const ticks = niceTicks(0, max, 3, { zero: true }) as number[];
+  const ticks = niceTicks(0, max, 3, { zero: true });
   const top = ticks[ticks.length - 1];
   const sy = (v: number) => padT + ih - (v / top) * ih;
   const band = iw / bars.length;

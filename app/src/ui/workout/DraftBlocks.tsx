@@ -24,8 +24,8 @@ export function useBlockProps(draftKey: DraftKey, draft: AnyDraft) {
   const settings = useSettings();
   // the running workout's records, by the summary's rule (#37)
   const records = draftKey === 'active' ? activeRecords() : null;
-  const letters = supersetLetters(draft.exercises) as Map<string, { index: number; letter: string }>;
-  const templateId = draftTemplateId(draft) as string | null;
+  const letters = supersetLetters(draft.exercises);
+  const templateId = draftTemplateId(draft);
   // editing a finished workout: "previous" is what came before it
   const before = draft.kind === 'edit' ? draft.startedAt : undefined;
   const excludeWorkoutId = draft.kind === 'edit' ? draft.id : null;

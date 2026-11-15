@@ -103,7 +103,7 @@ async function migrate(d: IDBDatabase): Promise<void> {
     try { raw = globalThis.localStorage?.getItem(LEGACY) ?? null; } catch { /* blocked: nothing to move */ }
     if (raw === null) { await setMarker(d, 'none'); return; }
     let source: Data;
-    try { source = storedDataFrom(JSON.parse(raw)) as Data; } catch { throw new Unreadable(raw); }
+    try { source = storedDataFrom(JSON.parse(raw)); } catch { throw new Unreadable(raw); }
     if (!(await copyIn(d, source))) return; // another tab moved it first
     const back = await readAll(d);
     if (!sameStoredData(back.data, source)) throw new Error('Moving your data to the new storage didn’t work. Nothing is lost: reload to try again');

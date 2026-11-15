@@ -721,7 +721,7 @@ test('Today: working sets per muscle in the last 7 days, and a routine’s size'
     { muscle: 'chest', label: 'Chest', sets: 5 },
     { muscle: 'back', label: 'Back', sets: 3 },
   ], 'chest first; warm-ups, cardio and unknown exercises don’t count');
-  assert.deepEqual(core.setsPerMuscle(ws, Object.fromEntries(lib), { now, days: 14 }).map((m) => m.sets), [14, 3]);
+  assert.deepEqual(core.setsPerMuscle(ws, [...lib.values()], { now, days: 14 }).map((m) => m.sets), [14, 3]);
   assert.deepEqual(core.setsPerMuscle([], lib, { now }), []);
 
   const t = { exercises: [
@@ -782,7 +782,7 @@ test('Sets per muscle’s breakdown (#89): by exercise, adding up to the number 
     for (const e of b.exercises) assert.equal(e.workouts.reduce((n, x) => n + x.sets, 0), e.sets, `${e.exerciseId}: the workouts add up`);
   }
   assert.deepEqual(core.muscleSets(ws, lib, 'back', { now }).exercises.map((e) => [e.exerciseId, e.sets]), [['row', 4]]);
-  assert.equal(core.muscleSets(ws, Object.fromEntries(lib), 'chest', { now, days: 14 }).sets, 22, '14 days take in the evening before; later than now stays out');
+  assert.equal(core.muscleSets(ws, [...lib.values()], 'chest', { now, days: 14 }).sets, 22, '14 days take in the evening before; later than now stays out');
 
   // a tie within one workout: in the order done
   const tie = core.muscleSets([w('a', at(13), [['dip', work(2)], ['bench', work(2)]])], lib, 'chest', { now });
@@ -817,6 +817,32 @@ test('merging exercises: same logged fields only; the target keeps its own rest 
   assert.deepEqual(changed[0].exercises.map((e) => e.exerciseId), ['x-bench', 'x-row']);
   assert.equal(changed[0].exercises[1], ws[0].exercises[1], 'untouched entries keep their identity');
   assert.equal(JSON.stringify(ws), before, 'the records passed in stay as they were');
+});
+
+test('settings: a stored value of the wrong type gets the default, so screens need no fallback (#98)', () => {
+  const D = core.DEFAULT_SETTINGS;
+  assert.deepEqual(core.withDefaults(undefined), D);
+  assert.deepEqual(core.withDefaults(null), D);
+  assert.deepEqual(core.withDefaults([1, 2]), D, 'a list is no settings object');
+  // a damaged or hand-edited backup
+  const st = core.withDefaults({
+    pairSides: null, showExamples: 'false', weeklyGoal: '4', defaultRest: null, bar: Number.NaN, unit: 5, theme: 0,
+    plates: { 0: 20 }, warmup: [10], historyStart: '2026-01-01', bodyUnit: 2, sizeUnit: false,
+  });
+  for (const k of ['pairSides', 'showExamples', 'weeklyGoal', 'defaultRest', 'bar', 'unit', 'theme', 'plates', 'warmup', 'historyStart', 'bodyUnit', 'sizeUnit']) {
+    assert.deepEqual(st[k], D[k], `${k} falls back to its default`);
+  }
+  // values of the right type are kept, null too where null means "not set"
+  const kept = { pairSides: false, showExamples: false, weeklyGoal: 5, defaultRest: 90, bar: 15, unit: 'lb', theme: 'dark', templateSort: 'recent',
+    plates: [20, 10], warmup: { barReps: 8, steps: [[50, 5]] }, historyStart: 1700000000000, bodyUnit: 'kg', sizeUnit: 'in' };
+  assert.deepEqual(core.withDefaults(kept), { ...D, ...kept });
+  assert.equal(core.withDefaults({ historyStart: null, bodyUnit: null }).historyStart, null);
+  assert.equal(core.withDefaults({ historyStart: 5, bodyUnit: null }).bodyUnit, null);
+  // a newer version's setting survives; a stored "__proto__" stays a plain key
+  assert.equal(core.withDefaults({ comingSoon: 'x' }).comingSoon, 'x');
+  const odd = core.withDefaults(JSON.parse('{"__proto__": {"unit": "lb"}}'));
+  assert.equal(odd.unit, 'kg');
+  assert.equal(Object.getPrototypeOf(odd), Object.prototype);
 });
 
 test('warm-up scheme from the editor: decimal commas, empty and odd rows dropped, sorted', () => {
@@ -1090,6 +1116,25 @@ test('daysAgo counts calendar days, also on the day after a clock change (#86)',
     assert.equal(core.daysAgo(at('2026-03-23T12:00'), at('2026-03-30T12:00')), 7, 'a week with the 23-hour day');
     assert.equal(core.daysAgo(at('2026-10-19T12:00'), at('2026-10-26T12:00')), 7, 'a week with the 25-hour day');
     assert.equal(core.daysAgo(at('2026-11-15T08:00'), at('2026-11-14T20:00')), -1, 'tomorrow');
+  });
+});
+
+test('dayKind: days first, then the year, so on 1 January yesterday is Yesterday (#97)', () => {
+  withTZ('Europe/Berlin', () => {
+    const at = (local) => new Date(local).getTime();
+    const newYear = at('2027-01-01T10:00');
+    const kind = (local, now = newYear) => core.dayKind(at(local), now);
+    assert.equal(kind('2027-01-01T08:00'), 'today');
+    assert.equal(kind('2027-01-01T23:00'), 'today', 'later today: a clock can be ahead');
+    assert.equal(kind('2026-12-31T18:00'), 'yesterday', 'last year, but yesterday');
+    assert.equal(kind('2026-12-28T18:00'), 'week', 'last year, but this week: its weekday');
+    assert.equal(kind('2026-12-25T18:00'), 'older', 'a week ago and last year: with the year');
+    assert.equal(kind('2026-12-25T18:00', at('2026-12-31T10:00')), 'week');
+    assert.equal(kind('2026-03-01T12:00', at('2026-12-31T10:00')), 'year');
+    // the 23-hour Sunday (#86)
+    assert.equal(kind('2026-03-29T12:00', at('2026-03-30T00:30')), 'yesterday');
+    assert.equal(kind('2026-03-24T12:00', at('2026-03-30T12:00')), 'week', 'six days, across the switch');
+    assert.equal(kind('2026-03-23T12:00', at('2026-03-30T12:00')), 'year', 'seven days, across the switch');
   });
 });
 
@@ -2267,7 +2312,7 @@ test('muscle and routine totals (#54): pairs within one exercise and one workout
   const rights = { startedAt: now - 1000, exercises: [E('curl', [sided('right'), sided('right')])] };
   assert.deepEqual(muscles([lefts, rights]), [], 'left in one workout, right in another: no pair');
   assert.deepEqual(core.entriesSetCount(lefts.exercises, lib), { sets: 0, unpaired: 2 });
-  assert.deepEqual(core.entriesSetCount(lefts.exercises, Object.fromEntries(lib), { pair: false }), { sets: 2, unpaired: 0 });
+  assert.deepEqual(core.entriesSetCount(lefts.exercises, [...lib.values()], { pair: false }), { sets: 2, unpaired: 0 });
   // the preference never changes muscle totals
   assert.deepEqual(muscles([{ startedAt: now, exercises: entries }], { pair: false }), muscles([{ startedAt: now, exercises: entries }]));
   // an exercise missing from the library counts its rows

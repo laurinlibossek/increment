@@ -15,9 +15,9 @@ import {
   Button, Card, Cell, Empty, Group, IconButton, Page, SectionTitle, Txt,
 } from '@/ui/kit';
 import { SegmentedControl } from '@/ui/tally/SegmentedControl';
-import { LineChart } from '@/ui/Chart';
+import { LineChart } from '@/ui/tally/LineChart';
 import { actionSheet, toast } from '@/ui/overlay';
-import { TYPE } from '@/design/tally';
+import { SPACE, TYPE } from '@/design/tally';
 
 export default function MeasureDetail() {
   const { type } = useLocalSearchParams<{ type: string }>();
@@ -31,7 +31,7 @@ export default function MeasureDetail() {
   if (!d) return <Page><Stack.Screen options={{ title: '' }} /><Empty title={tr('Nothing found')} /></Page>;
   const list = s.measurements.filter((m) => m.type === type);
   const from = Number(range) ? Date.now() - Number(range) * DAY : 0;
-  const pts = list.filter((m) => m.at >= from).slice().reverse().map((m) => ({ x: m.at, y: toDisplay(d, m.value, st) }));
+  const pts = list.filter((m) => m.at >= from).slice().reverse().map((m) => ({ at: m.at, value: toDisplay(d, m.value, st) }));
   const fv = (v: number) => `${f.num(v, d.kind === 'kcal' ? 0 : 1)} ${unitOf(d, st)}`;
   const rowMenu = async (m: Measurement) => {
     const c = await actionSheet<string>({
@@ -53,8 +53,10 @@ export default function MeasureDetail() {
         <Txt tone="ink2" style={[TYPE.footnote, { marginTop: 2 }]} testID="measure-latest">
           {list[0] ? `${tr('Latest')} · ${f.date.short(list[0].at)}` : tr('Log your first entry to start the chart')}
         </Txt>
-        <LineChart points={pts} fmtVal={fv} fmtAxis={(v, dec) => f.num(v, dec)} label={tr(d.label)} testID="measure-chart"
-          emptyText={list.length ? tr('No entries in this range') : tr('No entries yet')} />
+        <View style={{ marginTop: SPACE.s4 }}>
+          <LineChart points={pts} formatValue={fv} formatAxis={(v, dec) => f.num(v, dec)} height={SPACE.s12 * 4} label={tr(d.label)} testID="measure-chart"
+            emptyText={list.length ? tr('No entries in this range') : tr('No entries yet')} />
+        </View>
         <View style={{ marginTop: 10 }}>
           <SegmentedControl value={range} onChange={setRange} label={tr('Range')} options={(MEASURE_RANGES as { value: number; label: string }[]).map((r) => ({ value: String(r.value), label: tr(r.label) }))} />
         </View>

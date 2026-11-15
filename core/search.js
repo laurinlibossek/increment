@@ -1,3 +1,4 @@
+// @ts-check
 // Exercise search, the same in every app. Every word of the query must match
 // the English name or, for a built-in exercise, its German name.
 // Shortcuts gym-goers type ("db", "bb", "ohp", "rdl"…) stand for their full
@@ -6,6 +7,9 @@
 // finds "Rückenstrecker" and so does "ruck".
 
 import { EXERCISE_NAMES_DE } from './exercise-names-de.js';
+
+/** A name as a key: trimmed, lower case, single spaces ("Bench  Press " → "bench press"). */
+export const nameKey = (/** @type {unknown} */ name) => String(name).trim().toLowerCase().replace(/\s+/g, ' ');
 
 export const EXERCISE_SEARCH_SHORTCUTS = {
   db: 'dumbbell', bb: 'barbell', ohp: 'overhead press', rdl: 'romanian deadlift', bp: 'bench press',
@@ -18,13 +22,14 @@ export const EXERCISE_SEARCH_SHORTCUTS = {
   ffess: 'front foot elevated split squat', ghr: 'glute ham raise', sz: 'sz stange',
 };
 
-const fold = (s) => String(s).toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
-const norm = (s) => fold(s).replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+const fold = (/** @type {unknown} */ s) => String(s).toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
+const norm = (/** @type {unknown} */ s) => fold(s).replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
 
 /** The name to show: a built-in exercise ({ id, name }) in German gets its German name unless it was renamed; anything else keeps its name. */
+/** @param {{ id?: string, name: string } | null | undefined} ex @param {string} lang @returns {string} */
 export function exerciseDisplayName(ex, lang) {
   if (!ex) return '';
-  if (lang === 'de' && String(ex.id).startsWith('x-')) return EXERCISE_NAMES_DE[ex.name] || ex.name;
+  if (lang === 'de' && String(ex.id).startsWith('x-')) return /** @type {Record<string, string>} */ (EXERCISE_NAMES_DE)[ex.name] || ex.name;
   return ex.name;
 }
 
@@ -32,23 +37,27 @@ export function exerciseDisplayName(ex, lang) {
  * The display name without its bracketed equipment or variant: "Squat (Barbell)" → "Squat",
  * "Kniebeugen (Langhantel)" → "Kniebeugen". For summary lines that list a workout's exercises;
  * a name that is only brackets keeps them.
+ * @param {{ id?: string, name: string } | null | undefined} ex
+ * @param {string} lang
  */
 export function exerciseBaseName(ex, lang) {
   const name = exerciseDisplayName(ex, lang);
   return name.replace(/\s*\([^()]*\)\s*$/, '').trim() || name;
 }
 
+/** @param {string} name @param {string[]} toks */
 function matchName(name, toks) {
   const words = name.split(' ');
   const compact = words.join('');
   return toks.every((tok) => {
-    const alias = EXERCISE_SEARCH_SHORTCUTS[tok];
+    const alias = /** @type {Record<string, string>} */ (EXERCISE_SEARCH_SHORTCUTS)[tok];
     if (alias) return words.includes(tok) || alias.split(' ').every((a) => name.includes(a));
     return name.includes(tok) || compact.includes(tok);
   });
 }
 
 /** Does an exercise ({ id, name }) match what was typed? Built-ins match by their English or their German name. */
+/** @param {{ id?: string, name: string }} ex @param {string} query */
 export function matchExercise(ex, query) {
   const q = norm(query);
   if (!q) return true;

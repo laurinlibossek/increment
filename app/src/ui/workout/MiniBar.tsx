@@ -8,7 +8,7 @@ import { Platform, View } from 'react-native';
 import { isUnilateral, sessionProgress, sessionState, setSlots, sideOf } from '@increment/core';
 
 import { activeRecords, skipRest, useAppSelector, useAppState } from '@/data/store';
-import type { ActiveWorkout, EntryDraft, Exercise, SetDraft } from '@/data/types';
+import type { ActiveWorkout, EntryDraft, Exercise } from '@/data/types';
 import { useFormat } from '@/lib/format';
 import { useNow } from '@/lib/useNow';
 import { openWorkout } from '@/lib/workout';
@@ -29,9 +29,8 @@ export const DOCK_SPACE = CONTROL.accessoryH + SPACE.s4;
  * set counts once both sides are logged (sessionProgress, #72).
  */
 export function sessionView(a: ActiveWorkout, records: Map<string, unknown>, exercises: Map<string, Exercise>, pair: boolean) {
-  type Next = { next: { entry: EntryDraft; set: SetDraft } | null };
   // a finished exercise stays on the workout's screen (#60); Now Lifting already names the set that comes next in order
-  const next = (sessionState(a, { current: a.current ?? null }) as Next).next || (sessionState(a) as Next).next;
+  const next = sessionState(a, { current: a.current ?? null }).next || sessionState(a).next;
   let recordCount = 0;
   const all: StrokeState[][] = a.exercises.map((e) => e.sets.map((s) => {
     if (s.done && records.has(s.id)) recordCount++;
@@ -48,14 +47,14 @@ export function sessionView(a: ActiveWorkout, records: Map<string, unknown>, exe
 
 export function useSessionView() {
   const s = useAppState();
-  return useMemo(() => (s.active ? sessionView(s.active, activeRecords(s), s.exercises, s.settings.pairSides !== false) : null),
+  return useMemo(() => (s.active ? sessionView(s.active, activeRecords(s), s.exercises, s.settings.pairSides) : null),
     [s.active, s.exercises, s.settings, s.workouts]); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
 export function MiniBar({ placement = 'regular', surface = 'raised' }: { placement?: 'regular' | 'inline'; surface?: 'none' | 'raised' }) {
   const a = useAppSelector((s) => s.active);
   const exercises = useAppSelector((s) => s.exercises);
-  const pair = useAppSelector((s) => s.settings.pairSides !== false);
+  const pair = useAppSelector((s) => s.settings.pairSides);
   const view = useSessionView();
   const now = useNow(1000, !!a);
   const f = useFormat();
@@ -71,7 +70,7 @@ export function MiniBar({ placement = 'regular', surface = 'raised' }: { placeme
   function setText(e: EntryDraft, index: number) {
     const set = e.sets[index];
     if (set.type === 'warmup') return tr('warm-up set');
-    const slots = setSlots(e.sets, isUnilateral(exercises.get(e.exerciseId)), { pair }) as SetDraft[][];
+    const slots = setSlots(e.sets, isUnilateral(exercises.get(e.exerciseId)), { pair });
     return tr('set {n} of {total}', { n: slots.findIndex((slot) => slot.includes(set)) + 1, total: slots.length });
   }
   const side = entry && entry.sets[cur!.set].type !== 'warmup' ? sideOf(entry.sets[cur!.set]) : undefined;

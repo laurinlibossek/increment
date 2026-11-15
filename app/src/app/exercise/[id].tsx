@@ -10,7 +10,7 @@ import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { ScrollView, Text, View } from 'react-native';
 import {
   BODY_PARTS, exerciseRecords, exerciseSeries, chartMetricsFor, chartMetricFor, hasLoadRecords, formulaLabel,
-  kgTo, kmTo, roundW, DAY, EXERCISE_RANGES, REST_CHOICES, canMergeExercises, daysAgo,
+  kgTo, kmTo, roundW, DAY, EXERCISE_RANGES, REST_CHOICES, canMergeExercises,
 } from '@increment/core';
 
 import {
@@ -22,11 +22,12 @@ import { editExercise } from '@/lib/exerciseForm';
 import { pickExercises } from '@/lib/picker';
 import { useFormat } from '@/lib/format';
 import { useTally } from '@/lib/theme';
-import {
-  MARGIN, Row, SectionHead, StatStrip, tnum, type Stat,
-} from '@/ui/facts';
+import { MARGIN, tnum } from '@/ui/facts';
 import { Button, Empty, IconButton, Page } from '@/ui/kit';
 import { LineChart, type LineChartPoint } from '@/ui/tally/LineChart';
+import { ListRow } from '@/ui/tally/ListRow';
+import { SectionHeader } from '@/ui/tally/SectionHeader';
+import { StatStrip, type Stat } from '@/ui/tally/StatStrip';
 import { NumberDisplay } from '@/ui/tally/NumberDisplay';
 import { SegmentedControl } from '@/ui/tally/SegmentedControl';
 import { ExerciseFamilyChips } from '@/ui/exerciseFamilyChips';
@@ -35,10 +36,7 @@ import {
 } from '@/ui/overlay';
 import { attempt } from '@/lib/saving';
 
-type Rec = { value: number; at: number; w?: number; r?: number; workoutId?: string } | null;
-type Records = Record<string, Rec> & { repMax: Map<number, { w: number; at: number; workoutId: string }> };
 type Session = { workoutId: string; startedAt: number; name: string; entry: Workout['exercises'][number] };
-type Metric = { id: string; label: string; kind: 'weight' | 'count' | 'distance' | 'time' | 'pace' };
 
 export default function ExerciseDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -56,16 +54,16 @@ function ExercisePage({ id }: { id: string }) {
   const counted = (stats(s).byExercise.get(id) || []) as Session[];
   const category = (ex?.category || 'barbell') as Category;
   const formula = s.settings.formula;
-  const metrics = chartMetricsFor(category) as Metric[];
+  const metrics = chartMetricsFor(category);
   // the chart chosen for this exercise, remembered (and in backups), else its default (#27)
-  const metricId = chartMetricFor(category, s.chartMetrics[id]) as string;
+  const metricId = chartMetricFor(category, s.chartMetrics[id]);
   const [chosenRange, setRange] = useState<string | null>(null);
   const [limit, setLimit] = useState(10);
   const m = metrics.find((x) => x.id === metricId) || metrics[0];
   const lowerBetter = m.kind === 'pace';
   // every session's value, oldest first; a record beats every session before it
   const series = useMemo(() => {
-    const raw = exerciseSeries(counted, category, m.id, formula) as { x: number; y: number }[];
+    const raw = exerciseSeries(counted, category, m.id, formula);
     let best: number | null = null;
     return raw.map((p) => {
       const record = best !== null && (lowerBetter ? p.y < best - 1e-9 : p.y > best + 1e-9);
@@ -73,7 +71,7 @@ function ExercisePage({ id }: { id: string }) {
       return { at: p.x, y: p.y, record };
     });
   }, [counted, category, m.id, formula, lowerBetter]);
-  const rec = useMemo(() => exerciseRecords(counted, category, formula) as unknown as Records, [counted, category, formula]);
+  const rec = useMemo(() => exerciseRecords(counted, category, formula), [counted, category, formula]);
 
   if (!ex) return <Page><Stack.Screen options={{ title: '' }} /><Empty title={tr('Exercise not found')} text={tr('It may have been merged or deleted.')} /></Page>;
 
@@ -99,15 +97,6 @@ function ExercisePage({ id }: { id: string }) {
   const heroLabel = m.id === 'e1rm' ? tr('Estimated 1RM, best of last session') : tr('{metric}, last session', { metric: tr(m.label) });
 
   const label = (list: { id: string; label: string }[], key: string) => tr(list.find((x) => x.id === key)?.label || 'Other');
-  /** today, yesterday, a weekday within the week, then the date */
-  const when = (at: number, compact = false) => {
-    const days = daysAgo(at, now);
-    if (days <= 0) return tr('Today');
-    if (days === 1) return tr('Yesterday');
-    if (days < 7) return f.date.weekdayLong(at);
-    if (new Date(at).getFullYear() === new Date(now).getFullYear()) return f.date.dayMonth(at);
-    return compact ? `${f.date.monthShort(at)} ${new Date(at).getFullYear()}` : f.date.short(at);
-  };
 
   const load = hasLoadRecords(category);
   const best: Stat = load
@@ -118,7 +107,7 @@ function ExercisePage({ id }: { id: string }) {
   const stripStats: Stat[] = [
     { ...best, testID: 'exercise-best' },
     { label: tr('Sessions'), value: f.num(every.length, 0), testID: 'exercise-sessions' },
-    { label: tr('Last'), value: every.length ? when(every[0].startedAt, true) : '—', testID: 'exercise-last' },
+    { label: tr('Last'), value: every.length ? f.date.workoutDay(every[0].startedAt, { compact: true, now }) : '—', testID: 'exercise-last' },
   ];
 
   // a rep max only counts if no heavier weight was lifted for more reps
@@ -170,21 +159,21 @@ function ExercisePage({ id }: { id: string }) {
 
       {repMaxes.length > 0 && (
         <>
-          <SectionHead title={tr('Rep maxes')} />
+          <SectionHeader title={tr('Rep maxes')} />
           {repMaxes.map(([r, v], i) => (
-            <Row key={r} first={i === 0} testID={`repmax-${r}`}
+            <ListRow key={r} first={i === 0} testID={`repmax-${r}`}
               lead={<Text style={[{ ...TYPE.headline, color: t.ink, width: 58 }, tnum]}>{tr('{n} RM', { n: r })}</Text>}
               title={<Text style={[{ ...TYPE.body, color: t.ink }, tnum]}>{f.wu(v.w)}</Text>}
-              trailing={<Text style={{ ...TYPE.subhead, color: t.ink2 }}>{when(v.at)}</Text>} />
+              trailing={f.date.workoutDay(v.at, { now })} />
           ))}
         </>
       )}
 
       {every.length > 0 && (
         <>
-          <SectionHead title={tr('History')} scope={tr('Since {date}', { date: f.date.short(every[every.length - 1].startedAt) })} />
+          <SectionHeader title={tr('History')} scope={tr('Since {date}', { date: f.date.short(every[every.length - 1].startedAt) })} />
           {every.slice(0, limit).map((x, i) => (
-            <Row key={x.workoutId + x.entry.id} first={i === 0} chevron testID={`ex-session-${x.workoutId}`}
+            <ListRow key={x.workoutId + x.entry.id} first={i === 0} chevron testID={`ex-session-${x.workoutId}`}
               onPress={() => router.push({ pathname: '/workout/[id]', params: { id: x.workoutId } })}
               title={x.name}
               subtitle={(
@@ -196,7 +185,7 @@ function ExercisePage({ id }: { id: string }) {
                   ))}
                 </Text>
               )}
-              trailing={<Text style={{ ...TYPE.subhead, color: t.ink2 }}>{when(x.startedAt)}</Text>} />
+              trailing={f.date.workoutDay(x.startedAt, { now })} />
           ))}
           {every.length > limit && (
             <View style={{ paddingHorizontal: MARGIN, marginTop: SPACE.s3 }}>
@@ -208,7 +197,7 @@ function ExercisePage({ id }: { id: string }) {
 
       {(!!ex.notes || !!ex.pinnedNote) && (
         <>
-          <SectionHead title={tr('How to')} action={{ title: tr('Edit'), onPress: () => editExercise({ id: ex.id }), testID: 'howto-edit' }} />
+          <SectionHeader title={tr('How to')} action={{ title: tr('Edit'), onPress: () => editExercise({ id: ex.id }), testID: 'howto-edit' }} />
           <View style={{ paddingHorizontal: MARGIN, gap: SPACE.s3 }}>
             {!!ex.pinnedNote && (
               <View style={{ gap: 2 }}>

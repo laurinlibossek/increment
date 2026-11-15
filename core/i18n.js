@@ -1,20 +1,27 @@
+// @ts-check
 // Translations. The English text is the key; each dictionary maps it to
 // another language. Unknown keys fall back to the English text.
 import DE from './i18n-de.js';
 
 export const DICTIONARIES = { de: DE };
 
-/** A tr(text, vars) function for `lang` that fills {placeholders} from `vars`. */
+/**
+ * A tr(text, vars) function for `lang` that fills {placeholders} from `vars`.
+ * @param {string} lang
+ * @returns {(s: string, vars?: Record<string, string | number>) => string}
+ */
 export function translator(lang) {
-  const dict = DICTIONARIES[lang] || {};
+  /** @type {Record<string, string>} */
+  const dict = /** @type {Record<string, Record<string, string>>} */ (DICTIONARIES)[lang] || {};
   return (s, vars) => {
     let out = dict[s] !== undefined ? dict[s] : s;
-    if (vars) out = out.replace(/\{(\w+)\}/g, (m, k) => (vars[k] !== undefined ? vars[k] : m));
+    if (vars) out = out.replace(/\{(\w+)\}/g, (m, k) => (vars[k] !== undefined ? String(vars[k]) : m));
     return out;
   };
 }
 
 /** 'de' when the first preferred language is German, otherwise 'en'. */
+/** @param {(string | null | undefined)[]} [preferred] */
 export function pickLanguage(preferred = []) {
   const first = preferred.find(Boolean) || 'en';
   return /^de\b/i.test(first) ? 'de' : 'en';
@@ -24,6 +31,7 @@ export function pickLanguage(preferred = []) {
  * The locale for English dates and numbers: English words in the phone's region
  * (Laurin, 6 Nov 2026). "de-DE" → "en-DE" (Friday, 6 November · 19:15 · 1.630,5),
  * "en-GB" → "en-GB", "zh-Hans-CN" → "en-CN"; without a region, "en-US".
+ * @param {string | null | undefined} locale
  */
 export function englishFormatLocale(locale) {
   const all = String(locale || '').split(/[-_]/).slice(1);

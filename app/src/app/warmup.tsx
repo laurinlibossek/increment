@@ -10,7 +10,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DEFAULT_WARMUP, numToInput, warmupFromInput } from '@increment/core';
 
 import { setSetting, useSettings } from '@/data/store';
-import type { Settings } from '@/data/types';
 import { useFormat } from '@/lib/format';
 import { useColors } from '@/lib/theme';
 import {
@@ -29,12 +28,12 @@ export default function WarmupScreen() {
   const { tr } = useFormat();
   const c = useColors();
   const insets = useSafeAreaInsets();
-  const cur = (settings.warmup || DEFAULT_WARMUP) as Scheme;
+  const cur = settings.warmup as Scheme;
   const [bar, setBar] = useState(String(cur.barReps || 0));
   const [steps, setSteps] = useState<Row[]>(() => rowsOf(cur));
   const edit = (i: number, k: 0 | 1, v: string) => setSteps(steps.map((row, j) => (j === i ? (k === 0 ? [v, row[1]] : [row[0], v]) : row)));
   const save = () => {
-    setSetting('warmup', warmupFromInput(bar, steps) as Settings['warmup']);
+    setSetting('warmup', warmupFromInput(bar, steps));
     router.back();
   };
   const reset = () => { setBar(String(DEFAULT_WARMUP.barReps)); setSteps(rowsOf(DEFAULT_WARMUP as Scheme)); };

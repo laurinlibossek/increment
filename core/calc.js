@@ -1,13 +1,43 @@
+// @ts-check
 // Training math and derived statistics (history per exercise, PRs, records).
 // Labels are English; they double as translation keys in the apps.
 import { parseNum } from './units.js';
+import { exerciseLookup } from './set-sides.js';
 
+/**
+ * @typedef {import('./types.js').SetLike} SetLike
+ * @typedef {import('./types.js').EntryLike} EntryLike
+ * @typedef {import('./types.js').LoggedEntry} LoggedEntry
+ * @typedef {import('./types.js').ExerciseLike} ExerciseLike
+ * @typedef {import('./types.js').Exercises} Exercises
+ * @typedef {import('./types.js').WorkoutLike} WorkoutLike
+ * A record a set made: which exercise, metric and set, and the new best.
+ * @typedef {{ exerciseId: string, metric: string, value: number, setId: string }} Pr
+ * A best of exerciseRecords: its value, when and in which workout, and the set's numbers.
+ * @typedef {{ value: number, at: number, workoutId: string, w?: number, r?: number, d?: number, t?: number }} Best
+ */
+/**
+ * An exercise's entry in one finished workout.
+ * @template {WorkoutLike} W
+ * @typedef {{ workoutId: string, startedAt: number, name: W['name'], templateId: string | null, entry: W['exercises'][number] }} Session
+ */
+
+/** @type {Set<string>} */
 export const WEIGHT_CATS = new Set(['barbell', 'dumbbell', 'machine', 'weighted_bw', 'assisted_bw']);
-export const usesWeight = (cat) => WEIGHT_CATS.has(cat);
+/** @param {string | undefined} cat */
+export const usesWeight = (cat) => !!cat && WEIGHT_CATS.has(cat);
+/** @param {string | undefined} cat */
 export const usesDistance = (cat) => cat === 'cardio';
-/** Categories where "heavier is better" records make sense */
+/**
+ * Categories where "heavier is better" records make sense
+ * @param {string | undefined} cat
+ */
 export const hasLoadRecords = (cat) => usesWeight(cat) && cat !== 'assisted_bw';
-/** The fields a set of this category is logged with: w(eight), r(eps), d(istance), t(ime). */
+/**
+ * The fields a set of this category is logged with: w(eight), r(eps), d(istance), t(ime).
+ * @param {string | undefined} cat
+ * @returns {('w' | 'r' | 'd' | 't')[]}
+ */
 export function loggedFields(cat) {
   if (usesWeight(cat)) return ['w', 'r'];
   if (cat === 'reps') return ['r'];
@@ -16,6 +46,7 @@ export function loggedFields(cat) {
 }
 
 // Settings that change the math. The store keeps these in sync (syncCalc in store.js).
+/** @type {{ formula: string, dumbbellTwice: boolean, bwWeighted: boolean, bwAssisted: boolean, bodyweightAt: (at: number) => number | null }} */
 export const calcOpts = {
   formula: 'epley',
   dumbbellTwice: false, // volume counts both dumbbells
@@ -23,6 +54,7 @@ export const calcOpts = {
   bwAssisted: false, // assisted bodyweight volume = reps × (body weight − assistance)
   bodyweightAt: () => null, // (timestamp) -> kg or null
 };
+/** @param {Partial<typeof calcOpts>} o */
 export function configureCalc(o) { Object.assign(calcOpts, o); }
 
 export const FORMULAS = [
@@ -35,7 +67,9 @@ export const FORMULAS = [
   { id: 'lander', label: 'Lander' },
   { id: 'average', label: 'Average of all' },
 ];
+/** @param {string} id */
 export const formulaLabel = (id) => (FORMULAS.find((f) => f.id === id) || FORMULAS[0]).label;
+/** @type {Record<string, (w: number, r: number) => number>} */
 const ONE_RM = {
   epley: (w, r) => w * (1 + r / 30),
   brzycki: (w, r) => (r < 37 ? w * 36 / (37 - r) : 0),
@@ -52,7 +86,13 @@ const ONE_RM = {
  */
 export const EPLEY_ABOVE_REPS = 12;
 
-/** Estimated 1RM by the chosen formula; Epley above EPLEY_ABOVE_REPS reps. Records, charts, the summary and Tools all use it. */
+/**
+ * Estimated 1RM by the chosen formula; Epley above EPLEY_ABOVE_REPS reps. Records, charts, the summary and Tools all use it.
+ * @param {any} w the weight
+ * @param {any} r the reps
+ * @param {string} [formula]
+ * @returns {number}
+ */
 export function est1RM(w, r, formula = calcOpts.formula) {
   if (!(w > 0) || !(r > 0)) return 0;
   if (r === 1) return w;
@@ -64,9 +104,14 @@ export function est1RM(w, r, formula = calcOpts.formula) {
   return (ONE_RM[formula] || ONE_RM.epley)(w, r);
 }
 
+/** @param {SetLike} s */
 export const isWorking = (s) => s.type !== 'warmup';
 
-/** Is a canonical set (numbers) complete enough to be saved? */
+/**
+ * Is a canonical set (numbers) complete enough to be saved?
+ * @param {SetLike} s
+ * @param {string} cat
+ */
 export function setIsValid(s, cat) {
   if (usesWeight(cat)) return s.r > 0 && s.w !== null && s.w !== undefined && s.w >= 0;
   if (cat === 'reps') return s.r > 0;
@@ -84,16 +129,25 @@ export function setIsValid(s, cat) {
 // it stays on the set and reads as reps in reserve: 10 → 0, 9 and 9.5 → 1,
 // 8.5 and below → 2+.
 export const RIR_CHOICES = [0, 1, 2];
+/** @param {unknown} v @returns {number | null} */
 const num = (v) => (typeof v === 'number' ? (Number.isFinite(v) ? v : null) : parseNum(v));
 
-/** Reps in reserve as 0, 1 or 2 (2 or more is "2+"), or null when there is none. */
+/**
+ * Reps in reserve as 0, 1 or 2 (2 or more is "2+"), or null when there is none.
+ * @param {unknown} v
+ * @returns {number | null}
+ */
 export function normRir(v) {
   const n = num(v);
   if (n === null || n < 0) return null;
   return Math.min(2, Math.round(n));
 }
 
-/** RPE (a number or the text a draft keeps) as reps in reserve, or null. */
+/**
+ * RPE (a number or the text a draft keeps) as reps in reserve, or null.
+ * @param {unknown} rpe
+ * @returns {number | null}
+ */
 export function rirFromRpe(rpe) {
   const n = num(rpe);
   if (n === null || n <= 0) return null;
@@ -101,7 +155,11 @@ export function rirFromRpe(rpe) {
   return n >= 9 ? 1 : 2;
 }
 
-/** Reps in reserve as RPE, for places that only know RPE (Strong's CSV): 0 → 10, 1 → 9, 2+ → 8. */
+/**
+ * Reps in reserve as RPE, for places that only know RPE (Strong's CSV): 0 → 10, 1 → 9, 2+ → 8.
+ * @param {unknown} rir
+ * @returns {number | null}
+ */
 export function rpeFromRir(rir) {
   const r = normRir(rir);
   return r === null ? null : 10 - r;
@@ -110,6 +168,8 @@ export function rpeFromRir(rir) {
 /**
  * A set's reps in reserve: 0 for a failure set, else its own rating, else
  * read from its RPE, else null. Stored sets and drafts alike.
+ * @param {SetLike | null | undefined} s
+ * @returns {number | null}
  */
 export function setRir(s) {
   if (!s) return null;
@@ -118,10 +178,19 @@ export function setRir(s) {
   return own !== null ? own : rirFromRpe(s.rpe);
 }
 
-/** Does this category count towards volume (with the current settings)? */
+/**
+ * Does this category count towards volume (with the current settings)?
+ * @param {string | undefined} cat
+ */
 export const countsVolume = (cat) => hasLoadRecords(cat) || (cat === 'assisted_bw' && calcOpts.bwAssisted);
 
-/** The weight one rep of a set moves, for volume. `at` = when it was done (for body weight). */
+/**
+ * The weight one rep of a set moves, for volume. `at` = when it was done (for body weight).
+ * @param {SetLike} s
+ * @param {string} cat
+ * @param {number} at
+ * @returns {number}
+ */
 export function volumeLoad(s, cat, at) {
   const w = s.w || 0;
   if (cat === 'dumbbell') return calcOpts.dumbbellTwice ? w * 2 : w;
@@ -133,11 +202,21 @@ export function volumeLoad(s, cat, at) {
   return hasLoadRecords(cat) ? w : 0;
 }
 
+/**
+ * @param {SetLike} s
+ * @param {string} cat
+ * @param {number} at
+ * @returns {number}
+ */
 export function setVolume(s, cat, at) {
   if (!countsVolume(cat)) return 0;
   return volumeLoad(s, cat, at) * (s.r || 0);
 }
 
+/**
+ * @param {{ startedAt: number, exercises: EntryLike[] }} w
+ * @param {Map<string, ExerciseLike>} exById
+ */
 export function workoutVolume(w, exById) {
   let v = 0;
   for (const e of w.exercises) {
@@ -153,7 +232,15 @@ export const PR_LABEL = {
   e1rm: 'Est. 1RM', weight: 'Weight', volume: 'Set volume', reps: 'Reps', distance: 'Distance', time: 'Time',
 };
 
+/**
+ * @param {SetLike} s
+ * @param {string} cat
+ * @param {string} formula
+ * @param {number} at
+ * @returns {Record<string, number>}
+ */
 function metricsFor(s, cat, formula, at) {
+  /** @type {Record<string, number>} */
   const out = {};
   if (hasLoadRecords(cat)) {
     if (s.w > 0 && s.r > 0) {
@@ -172,7 +259,12 @@ function metricsFor(s, cat, formula, at) {
   return out;
 }
 
-/** exerciseId -> sessions, newest first: { workoutId, startedAt, name, templateId, entry } */
+/**
+ * exerciseId -> sessions, newest first: { workoutId, startedAt, name, templateId, entry }
+ * @template {WorkoutLike} W
+ * @param {W[]} workouts
+ * @returns {Map<string, Session<W>[]>}
+ */
 export function sessionsByExercise(workouts) {
   const out = new Map();
   for (const w of [...workouts].sort((a, b) => b.startedAt - a.startedAt)) {
@@ -190,6 +282,11 @@ export function sessionsByExercise(workouts) {
  * - byExercise: exerciseId -> sessions (newest first): { workoutId, startedAt, name, entry }
  * - prSets: setId -> array of metric keys that were a PR when performed
  * - prsByWorkout: workoutId -> [{ exerciseId, metric, value, setId }]
+ * @template {WorkoutLike} W
+ * @param {W[]} workouts
+ * @param {Map<string, ExerciseLike>} exById
+ * @param {string} [formula]
+ * @returns {{ byExercise: Map<string, Session<W>[]>, prSets: Map<string, string[]>, prsByWorkout: Map<string, Pr[]>, bests: Map<string, Record<string, number>> }}
  */
 export function buildStats(workouts, exById, formula = 'epley') {
   const asc = [...workouts].sort((a, b) => a.startedAt - b.startedAt);
@@ -201,10 +298,12 @@ export function buildStats(workouts, exById, formula = 'epley') {
   for (const w of asc) {
     const wPrs = [];
     // Several entries of the same exercise in one workout are evaluated together
+    /** @type {Map<string, W['exercises'][number][]>} */
     const perEx = new Map();
     w.exercises.forEach((entry) => {
-      if (!perEx.has(entry.exerciseId)) perEx.set(entry.exerciseId, []);
-      perEx.get(entry.exerciseId).push(entry);
+      let same = perEx.get(entry.exerciseId);
+      if (!same) perEx.set(entry.exerciseId, same = []);
+      same.push(entry);
       let arr = byExercise.get(entry.exerciseId);
       if (!arr) { arr = []; byExercise.set(entry.exerciseId, arr); }
       arr.push({ workoutId: w.id, startedAt: w.startedAt, name: w.name, templateId: w.templateId || null, entry });
@@ -213,6 +312,7 @@ export function buildStats(workouts, exById, formula = 'epley') {
       const ex = exById.get(exId);
       if (!ex) continue;
       const prev = bests.get(exId);
+      /** @type {Record<string, { value: number, setId: string }>} */
       const sessionBest = {};
       for (const entry of entries) {
         for (const s of entry.sets) {
@@ -243,7 +343,14 @@ export function buildStats(workouts, exById, formula = 'epley') {
   return { byExercise, prSets, prsByWorkout, bests };
 }
 
-/** PRs a not-yet-saved workout would set, relative to the stored bests. */
+/**
+ * PRs a not-yet-saved workout would set, relative to the stored bests.
+ * @param {{ startedAt: number, exercises: LoggedEntry[] }} workout
+ * @param {{ bests: Map<string, Record<string, number>> }} stats
+ * @param {Map<string, ExerciseLike>} exById
+ * @param {string} formula
+ * @returns {Pr[]}
+ */
 export function prsForNewWorkout(workout, stats, exById, formula) {
   const res = [];
   const seen = new Map();
@@ -266,16 +373,31 @@ export function prsForNewWorkout(workout, stats, exById, formula) {
   return res;
 }
 
-/** Records for one exercise from its sessions (newest first). */
+/**
+ * Records for one exercise from its sessions (newest first).
+ * @param {{ entry: EntryLike, startedAt: number, workoutId: string }[]} sessions
+ * @param {string} cat
+ * @param {string} formula
+ */
 export function exerciseRecords(sessions, cat, formula) {
-  const rec = {
+  /** @type {Record<'e1rm' | 'weight' | 'volume' | 'sessionVolume' | 'reps' | 'distance' | 'time', Best | null>} */
+  const bests = {
     e1rm: null, weight: null, volume: null, sessionVolume: null, reps: null, distance: null, time: null,
+  };
+  const rec = {
+    ...bests,
     totalSets: 0, totalReps: 0, totalVolume: 0, totalDistance: 0, totalTime: 0, sessions: sessions.length,
+    /** @type {Map<number, { w: number, at: number, workoutId: string }>} */
     repMax: new Map(), // reps -> {w, at, workoutId}
   };
+  /**
+   * @param {keyof typeof bests} slot @param {number} value @param {number} at @param {string} workoutId
+   * @param {{ w?: number, r?: number, d?: number, t?: number }} [extra]
+   */
   const better = (slot, value, at, workoutId, extra) => {
     if (!(value > 0)) return;
-    if (!rec[slot] || value > rec[slot].value) rec[slot] = { value, at, workoutId, ...extra };
+    const cur = rec[slot];
+    if (!cur || value > cur.value) rec[slot] = { value, at, workoutId, ...extra };
   };
   for (const { entry, startedAt, workoutId } of sessions) {
     let sv = 0;
@@ -304,7 +426,14 @@ export function exerciseRecords(sessions, cat, formula) {
   return rec;
 }
 
-/** Per-session series for charts, oldest first. */
+/**
+ * Per-session series for charts, oldest first.
+ * @param {{ entry: EntryLike, startedAt: number, workoutId: string }[]} sessions
+ * @param {string} cat
+ * @param {string} metric
+ * @param {string} formula
+ * @returns {{ x: number, y: number, workoutId: string }[]}
+ */
 export function exerciseSeries(sessions, cat, metric, formula) {
   const pts = [];
   for (let i = sessions.length - 1; i >= 0; i--) {
@@ -332,6 +461,10 @@ export function exerciseSeries(sessions, cat, metric, formula) {
   return pts;
 }
 
+/**
+ * @param {string} cat
+ * @returns {{ id: string, label: string, kind: string }[]}
+ */
 export function chartMetricsFor(cat) {
   if (hasLoadRecords(cat)) {
     return [
@@ -363,23 +496,33 @@ export function chartMetricsFor(cat) {
  * The chart an exercise page opens with (#27): Heaviest weight where there is
  * one, Most reps for bodyweight and assisted exercises, Distance for cardio,
  * Time for timed ones.
+ * @param {string} cat
  */
 export function defaultChartMetric(cat) {
   const ids = chartMetricsFor(cat).map((m) => m.id);
   return ['weight', 'reps', 'distance', 'time'].find((id) => ids.includes(id)) || ids[0];
 }
 
-/** The chart chosen for an exercise if it still has that metric, else its default. */
+/**
+ * The chart chosen for an exercise if it still has that metric, else its default.
+ * @param {string} cat
+ * @param {string | null | undefined} chosen
+ * @returns {string}
+ */
 export function chartMetricFor(cat, chosen) {
-  return chartMetricsFor(cat).some((m) => m.id === chosen) ? chosen : defaultChartMetric(cat);
+  const hit = chartMetricsFor(cat).find((m) => m.id === chosen);
+  return hit ? hit.id : defaultChartMetric(cat);
 }
 
 /**
  * The remembered charts (exercise id -> metric id, kept in kv and in backups)
  * without exercises that are gone or metrics they no longer have.
+ * @param {unknown} map
+ * @param {Exercises | undefined} exercises
+ * @returns {Record<string, string>}
  */
 export function cleanChartMetrics(map, exercises) {
-  const get = exercises instanceof Map ? (id) => exercises.get(id) : (id) => (exercises || []).find((e) => e.id === id);
+  const get = exerciseLookup(exercises);
   /** @type {Record<string, string>} */
   const out = {};
   for (const [id, metric] of Object.entries(map && typeof map === 'object' ? map : {})) {
@@ -390,9 +533,16 @@ export function cleanChartMetrics(map, exercises) {
 }
 
 // ---------- plates & warm-ups ----------
-/** Plates per side for a target total. Returns { plates: [..], remainder } */
+/**
+ * Plates per side for a target total. Returns { plates: [..], remainder }
+ * @param {number} total
+ * @param {number} bar
+ * @param {number[]} available
+ * @returns {{ plates: number[], remainder: number }}
+ */
 export function platesFor(total, bar, available) {
   let side = (total - bar) / 2;
+  /** @type {number[]} */
   const plates = [];
   if (side <= 0) return { plates, remainder: 0 };
   const sorted = [...available].filter((p) => p > 0).sort((a, b) => b - a);
@@ -402,19 +552,33 @@ export function platesFor(total, bar, available) {
   return { plates, remainder: Math.round(side * 2 * 1000) / 1000 };
 }
 
-/** Round to the nearest loadable step (2 × smallest plate), never below the bar. */
+/**
+ * Round to the nearest loadable step (2 × smallest plate), never below the bar.
+ * @param {number} w
+ * @param {number} bar
+ * @param {number[]} available
+ */
 export function roundToLoadable(w, bar, available) {
   const smallest = Math.min(...available.filter((p) => p > 0));
   const step = Number.isFinite(smallest) ? smallest * 2 : 2.5;
   return Math.max(bar, Math.round((w - bar) / step) * step + bar);
 }
 
-/** Default warm-up ramp: empty bar × 10, then % of the working weight × reps. */
+/**
+ * Default warm-up ramp: empty bar × 10, then % of the working weight × reps.
+ * @type {{ barReps: number, steps: [number, number][] }}
+ */
 export const DEFAULT_WARMUP = { barReps: 10, steps: [[40, 5], [60, 3], [80, 2]] };
 
 /**
  * Warm-up sets towards a working weight, following a scheme like DEFAULT_WARMUP.
  * All weights are in one unit; `step` rounds non-barbell weights (2 for kg, 5 for lb).
+ * @param {number} working
+ * @param {number} bar
+ * @param {number[]} available
+ * @param {boolean} isBarbell
+ * @param {{ barReps: number, steps?: [number, number][] }} [scheme]
+ * @returns {{ w: number, r: number }[]}
  */
 export function warmupSets(working, bar, available, isBarbell, scheme = DEFAULT_WARMUP, step = 2) {
   const steps = (scheme.steps || []).filter(([pct, r]) => pct > 0 && pct < 100 && r > 0).sort((a, b) => a[0] - b[0]);

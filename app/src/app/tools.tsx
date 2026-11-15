@@ -81,7 +81,7 @@ function Plates({ initial }: { initial?: string }) {
   const [bar, setBar] = useState(st.bar);
   const ghost = u === 'lb' ? 225 : 100;
   const target = parseNum(val.trim() === '' ? String(ghost) : val);
-  const res = target !== null ? platesFor(target, bar, st.plates) as { plates: number[]; remainder: number } : null;
+  const res = target !== null ? platesFor(target, bar, st.plates) : null;
   const loaded = res ? bar + res.plates.reduce((a, p) => a + p * 2, 0) : null;
   const barOptions = u === 'lb' ? [45, 35, 33, 25, 15, 0] : [20, 15, 10, 7.5, 0];
   return (

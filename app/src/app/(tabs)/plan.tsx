@@ -41,7 +41,7 @@ export default function PlanTab() {
 
   const { order, folders, archived } = useMemo(() => {
     const byName = (a: Template, b: Template) => a.name.localeCompare(b.name);
-    const recent = (s.settings.templateSort || 'name') === 'recent';
+    const recent = s.settings.templateSort === 'recent';
     const sort = (list: Template[]) => list.sort(recent ? (a, b) => (lastUsed(b, s.workouts) - lastUsed(a, s.workouts)) || byName(a, b) : byName);
     const map = new Map<string, Template[]>();
     for (const name of templateFolders(s)) map.set(name, []);
@@ -77,10 +77,10 @@ export default function PlanTab() {
   const row = (x: Template, i: number) => {
     // two grey lines (#32): the exercises, then muscles · sets · about how long · last done
     const names = x.exercises.map((e) => s.exercises.get(e.exerciseId)).filter((e) => !!e).map((e) => f.exName(e));
-    const { shown, more } = namesPreview(names) as { shown: string[]; more: number };
+    const { shown, more } = namesPreview(names);
     const list = more ? tr('{names} & {n} more', { names: shown.join(', '), n: more }) : shown.join(', ');
-    const size = routineSize(x, s.exercises, { defaultRest: s.settings.defaultRest, pair: s.settings.pairSides !== false }) as { sets: number; unpaired: number; minutes: number };
-    const muscles = (routineMuscles(x, s.exercises) as { label: string }[]).map((m) => tr(m.label)).join(', ');
+    const size = routineSize(x, s.exercises, { defaultRest: s.settings.defaultRest, pair: s.settings.pairSides });
+    const muscles = routineMuscles(x, s.exercises).map((m) => tr(m.label)).join(', ');
     const at = x.example ? 0 : lastUsed(x, s.workouts);
     const when = x.example ? '' : at ? f.relDayLower(at) : tr('not done yet');
     const facts = [muscles, f.setsText(size), size.minutes ? tr('about {n} min', { n: size.minutes }) : '', when].filter(Boolean).join(' · ');
@@ -123,7 +123,7 @@ export default function PlanTab() {
   const note = (text: string) => <Text style={[TYPE.subhead, { color: t.ink2, paddingHorizontal: SPACE.s5, paddingVertical: SPACE.s2 }]}>{text}</Text>;
 
   const examples = (EXAMPLE_TEMPLATES as Template[]).map((x) => ({ ...x, name: tr(x.name), folder: tr(x.folder || '') }));
-  const showExamples = s.settings.showExamples !== false;
+  const showExamples = s.settings.showExamples;
   const hideExamples = () => {
     setSetting('showExamples', false);
     toast(tr('Examples hidden — turn them back on in Account'), { label: tr('Undo'), fn: () => { setSetting('showExamples', true); } });

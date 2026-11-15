@@ -10,16 +10,15 @@ import {
   Platform, Text, View, type LayoutChangeEvent,
 } from 'react-native';
 import Svg, { Circle, Line, Path, Text as SvgText } from 'react-native-svg';
-import * as Haptics from 'expo-haptics';
-import { dateTicks, niceTicks, tickDecimals } from '@increment/core';
+import { DAY, dateTicks, niceTicks, tickDecimals } from '@increment/core';
 
 import { TYPE } from '@/design/tally';
 import { useFormat } from '@/lib/format';
+import { haptic } from '@/lib/haptics';
 import { useTally } from '@/lib/theme';
 
-// SVG text in a browser falls back to a serif font; use the system one
-const FONT = Platform.OS === 'web' ? 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' : undefined;
-const DAY = 86400000;
+/** SVG text in a browser falls back to a serif font; the charts use the system one. */
+export const SVG_FONT = Platform.OS === 'web' ? 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' : undefined;
 
 export interface LineChartPoint { at: number; value: number; record?: boolean }
 export interface LineChartProps {
@@ -59,7 +58,7 @@ export function LineChart({
   }
 
   const ys = points.map((p) => p.value);
-  const ticks = niceTicks(Math.min(...ys), Math.max(...ys), 4, { time }) as number[];
+  const ticks = niceTicks(Math.min(...ys), Math.max(...ys), 4, { time });
   const dec = tickDecimals(ticks) as number;
   const tickText = ticks.map((v) => formatAxis(v, dec));
   // the values sit on the trailing side; leave room for the longest one
@@ -84,7 +83,7 @@ export function LineChart({
     let best = 0, bd = Infinity;
     points.forEach((p, i) => { const dd = Math.abs(sx(p.at) - px); if (dd < bd) { bd = dd; best = i; } });
     if (hide.current) { clearTimeout(hide.current); hide.current = null; }
-    if (picked.current !== best && Platform.OS !== 'web') Haptics.selectionAsync().catch(() => {});
+    if (picked.current !== best && Platform.OS !== 'web') haptic.select();
     picked.current = best;
     setSel(best);
   };
@@ -106,10 +105,10 @@ export function LineChart({
           ))}
           <Line x1={0} x2={iw} y1={sy(y0)} y2={sy(y0)} stroke={t.line} strokeWidth={1} />
           {ticks.map((v, i) => (
-            <SvgText key={`v${v}`} fontFamily={FONT} x={iw + 6} y={sy(v) + 4} textAnchor="start" fontSize={11} fontWeight="500" fill={t.ink2}>{tickText[i]}</SvgText>
+            <SvgText key={`v${v}`} fontFamily={SVG_FONT} x={iw + 6} y={sy(v) + 4} textAnchor="start" fontSize={11} fontWeight="500" fill={t.ink2}>{tickText[i]}</SvgText>
           ))}
           {dates.map((at) => (
-            <SvgText key={`d${at}`} fontFamily={FONT} x={sx(at)} y={H - 6} textAnchor={anchor(at)} fontSize={11} fontWeight="500" fill={t.ink2}>
+            <SvgText key={`d${at}`} fontFamily={SVG_FONT} x={sx(at)} y={H - 6} textAnchor={anchor(at)} fontSize={11} fontWeight="500" fill={t.ink2}>
               {dateText(at)}
             </SvgText>
           ))}

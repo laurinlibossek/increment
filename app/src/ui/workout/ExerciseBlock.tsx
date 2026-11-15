@@ -9,7 +9,6 @@ import {
   Platform, Pressable, StyleSheet, Text, TextInput, View,
 } from 'react-native';
 import { router } from 'expo-router';
-import * as Haptics from 'expo-haptics';
 import {
   placeholders, restFor, addSet, joinSuperset, leaveSuperset, removeEntry, restoreEntry, replaceExercise, addWarmups, rateSet, setRir, setSetType,
   loggedFields, usesWeight, usesDistance, numToInput, parseNum, focusOptions, focusValues, uncheckSet, parseRepsInput, readinessKind, setChange, draftToSet, isUnilateral,
@@ -23,6 +22,7 @@ import type {
   DraftKey, EntryDraft, Exercise, SetDraft, Settings, SetType, WorkSet,
 } from '@/data/types';
 import { SPACE, TYPE, CONTROL } from '@/design/tally';
+import { haptic } from '@/lib/haptics';
 import { setLabels, useFormat } from '@/lib/format';
 import { pickExercises } from '@/lib/picker';
 import { useTally } from '@/lib/theme';
@@ -65,13 +65,13 @@ export const ExerciseBlock = memo(function ExerciseBlock({
   const { tr } = f;
   const { colors: t } = useTally();
   const session = useSession();
-  const rows = useMemo(() => placeholders(entry, prevSets, settings) as { prev: WorkSet | null; ph: Record<string, string> }[], [entry, prevSets, settings]);
+  const rows = useMemo(() => placeholders(entry, prevSets, settings), [entry, prevSets, settings]);
   // the set the running rest follows (#53): this block re-renders only when that changes, never each second
   const restSetId = useAppSelector((s) => (mode === 'active' && s.active?.rest?.entryId === entry.id ? s.active.rest.setId || null : null));
   if (!ex) return null;
   const cat = ex.category;
-  const fields = loggedFields(cat) as Field[];
-  const rest = restFor(entry, ex, settings.defaultRest) as number;
+  const fields = loggedFields(cat);
+  const rest = restFor(entry, ex, settings.defaultRest);
   const labels = setLabels(entry.sets);
   const active = mode === 'active';
   const edit = (fn: (e: EntryDraft) => void) => editDraft(draftKey, (_a, e) => fn(e), entry.id);
@@ -87,13 +87,13 @@ export const ExerciseBlock = memo(function ExerciseBlock({
   const removeSet = (i: number) => {
     const set = entry.sets[i];
     edit((e) => { e.sets.splice(i, 1); });
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+    haptic.warn();
     toast(tr('Set deleted'), { label: tr('Undo'), fn: () => edit((e) => { e.sets.splice(Math.min(i, e.sets.length), 0, set); }) });
   };
   const setMenu = async (i: number) => {
     const set = entry.sets[i];
     // effort: reps left in reserve on a logged set; a template keeps its RPE target
-    const rir = setRir(set) as number | null;
+    const rir = setRir(set);
     const effort = mode === 'template'
       ? (usesWeight(cat) || cat === 'reps' ? { label: set.rpe ? `RPE (${set.rpe})` : tr('Add RPE'), value: 'rpe', testID: 'set-rpe' } : null)
       : { label: rir === null ? tr('Reps left') : `${tr('Reps left')} · ${effortText(rir, tr)}`, value: 'rir', testID: 'set-rir' };
@@ -206,9 +206,12 @@ export const ExerciseBlock = memo(function ExerciseBlock({
       });
       if (!target) return;
       // only this exercise moves: it joins the other one's group (or they start a new one)
-      editDraft(draftKey, (d) => joinSuperset(d.exercises, d.exercises.find((e) => e.id === entry.id), d.exercises.find((e) => e.id === target)));
+      editDraft(draftKey, (d) => {
+        const it = d.exercises.find((e) => e.id === entry.id), other = d.exercises.find((e) => e.id === target);
+        if (it && other) joinSuperset(d.exercises, it, other);
+      });
     }
-    if (choice === 'unsuperset') editDraft(draftKey, (d) => leaveSuperset(d.exercises, d.exercises.find((e) => e.id === entry.id)));
+    if (choice === 'unsuperset') editDraft(draftKey, (d) => { const it = d.exercises.find((e) => e.id === entry.id); if (it) leaveSuperset(d.exercises, it); });
     if (choice === 'rest') await pickRest();
     if (choice === 'warmup') {
       let r: { added?: number; problem?: string } = {};
@@ -232,9 +235,9 @@ export const ExerciseBlock = memo(function ExerciseBlock({
     }
     if (choice === 'remove') {
       // a superset left with one exercise dissolves; Undo puts both back (#39)
-      let removed: unknown = null;
+      let removed: ReturnType<typeof removeEntry> = null;
       editDraft(draftKey, (d) => { removed = removeEntry(d.exercises, entry.id); });
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+      haptic.warn();
       toast(tr('{name} removed', { name }), { label: tr('Undo'), fn: () => editDraft(draftKey, (d) => { restoreEntry(d.exercises, removed); }) });
     }
   };
@@ -242,9 +245,9 @@ export const ExerciseBlock = memo(function ExerciseBlock({
   // ---------- focus metric ----------
   // The number to push for this exercise (its "focus metric"), from the
   // sets as they stand (typed, else the ghost values), against last time.
-  const focusOpts = focusOptions(cat) as FocusKey[];
-  const focus = focusOpts.includes(entry.focus as FocusKey) ? (entry.focus as FocusKey) : null;
-  const focusVals = focusOpts.length ? focusValues(entry, rows, cat, prevSets, settings) as Record<FocusKey, number | null> : null;
+  const focusOpts = focusOptions(cat);
+  const focus = focusOpts.find((k) => k === entry.focus) ?? null;
+  const focusVals = focusOpts.length ? focusValues(entry, rows, cat, prevSets, settings) : null;
   const fmtFocus = (k: FocusKey) => {
     const x = focusVals?.[k];
     if (x === null || x === undefined) return '—';
@@ -272,7 +275,7 @@ export const ExerciseBlock = memo(function ExerciseBlock({
   const restText = active && rest > 0 ? tr('Rest {time}', { time: f.clock(rest) }) : '';
   const target = session?.target;
   // the routine editor: "Weight increase recommended" needs a range on every working set (#49)
-  const kind = mode === 'template' ? readinessKind(cat) as Readiness : null;
+  const kind = mode === 'template' ? readinessKind(cat) : null;
   const working = kind ? entry.sets.filter((x) => x.type === 'normal' || x.type === 'failure') : [];
   const ranged = working.filter((x) => parseRepsInput(x.r)?.range).length;
   const rangeHint = ranged > 0 && ranged < working.length
@@ -309,10 +312,10 @@ export const ExerciseBlock = memo(function ExerciseBlock({
     const tick: TickState = set.done ? (record ? 'record' : 'done') : isLive ? 'live' : 'pending';
     const notes: SetNote[] = [];
     // logged: the change since last time's paired set, or Record (no comparison for warm-ups or a first time)
-    const change = active && set.done && !warm && !record ? setChange(rows[i]?.prev, draftToSet(set, settings), cat) as { dir: number; key: string; diff: number } | null : null;
+    const change = active && set.done && !warm && !record ? setChange(rows[i]?.prev, draftToSet(set, settings), cat) : null;
     if (record) notes.push({ text: tr('Record'), tone: 'up' });
     else if (change) notes.push({ text: changeText(change), tone: change.dir > 0 ? 'up' : 'down' });
-    const rir = setRir(set) as number | null;
+    const rir = setRir(set);
     // a failure set's F already says 0 in reserve
     if (mode === 'template') { if (set.rpe) notes.push({ text: `RPE ${set.rpe}` }); } else if (rir !== null && set.type !== 'failure' && (set.done || !active)) notes.push({ text: rirText(rir, tr) });
     const side = set.side ? set.side === 'left' ? tr('Left') : tr('Right') : '';

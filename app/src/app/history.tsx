@@ -100,9 +100,7 @@ function Calendar({ s, f }: { s: State; f: Format & { tr: (t: string, v?: Record
   const { tr } = f;
   const [month, setMonth] = useState(() => startOfMonth(Date.now()));
   const [sel, setSel] = useState<number | null>(null);
-  const cal = useMemo(() => calendarMonth(s.workouts, month, { weekStart: s.settings.weekStart }) as {
-    start: number; next: number; days: number[]; byDay: Map<number, Workout[]>; workouts: number; daysTrained: number; time: number;
-  }, [s.workouts, month, s.settings.weekStart]);
+  const cal = useMemo(() => calendarMonth(s.workouts, month, { weekStart: s.settings.weekStart }), [s.workouts, month, s.settings.weekStart]);
   const today = startOfDay(Date.now());
   const go = (n: number) => { setMonth(addMonths(month, n)); setSel(null); };
   const selected = sel !== null ? cal.byDay.get(sel) || [] : [];
@@ -195,7 +193,7 @@ function WorkoutRow({ w, s, f, first, day = true }: { w: Workout; s: State; f: F
   const { tr } = f;
   const prs = stats(s).prsByWorkout.get(w.id) || [];
   const recordSets = new Set<string>(prs.map((p: { setId: string }) => p.setId));
-  const sets = entriesSetCount(w.exercises, s.exercises, { pair: s.settings.pairSides !== false }) as { sets: number; unpaired: number };
+  const sets = entriesSetCount(w.exercises, s.exercises, { pair: s.settings.pairSides });
   const tallyLine = [f.setsText(sets), recordSets.size ? f.plural(recordSets.size, 'record') : ''].filter(Boolean).join(' · ');
   const vol = workoutVolume(w, s.exercises);
   const meta = [day ? f.date.workoutDay(w.startedAt) : '', hm((w.endedAt || w.startedAt) - w.startedAt), vol > 0 ? f.volume(vol) : ''].filter(Boolean).join(' · ');
