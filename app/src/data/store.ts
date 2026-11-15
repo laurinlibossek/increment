@@ -52,6 +52,28 @@ export interface State {
 /** A record with changes held because another tab changed it: this tab's value and the saved one (null: none, deleted). */
 export interface ConflictItem { key: string; mine: unknown; saved: unknown }
 
+// ---------- stored kv values as state ----------
+type KvState = Pick<State, 'settings' | 'profile' | 'meta' | 'strongAliases' | 'customFamilies' | 'chartMetrics' | 'active'>;
+type Exercises = Exercise[] | Map<string, Exercise>;
+/**
+ * What each stored kv value becomes on screen, in one place (#99): every key on
+ * load and after a restore (fromData), the ones another tab saved (takeIn).
+ */
+const KV_STATE: { [K in keyof KvState]: (kv: Data['kv'], exercises: Exercises) => KvState[K] } = {
+  settings: (kv) => withDefaults(kv.settings) as Settings,
+  profile: (kv) => ({ name: '', ...(kv.profile || {}) }),
+  meta: (kv) => ({ ...(kv.meta || {}) }),
+  strongAliases: (kv) => ({ ...STRONG_EXERCISE_ALIASES, ...(kv.strongAliases || {}) }),
+  customFamilies: (kv, exercises) => cleanCustomFamilies(kv.customFamilies || {}, exercises),
+  chartMetrics: (kv, exercises) => cleanChartMetrics(kv.chartMetrics, exercises),
+  active: (kv) => kv.active || null,
+};
+const KV_KEYS = Object.keys(KV_STATE) as (keyof KvState)[];
+/** Values about exercises: cleaned again when the exercises change, without exercises that are gone. */
+const BY_EXERCISE: (keyof KvState)[] = ['customFamilies', 'chartMetrics'];
+const kvState = (kv: Data['kv'], exercises: Exercises, keys = KV_KEYS) =>
+  Object.fromEntries(keys.map((k) => [k, KV_STATE[k](kv, exercises)])) as Partial<KvState>;
+
 let state: State = {
   ready: false,
   error: null,
@@ -59,13 +81,7 @@ let state: State = {
   workouts: [],
   templates: [],
   measurements: [],
-  settings: withDefaults({}) as Settings,
-  profile: { name: '' },
-  meta: {},
-  strongAliases: { ...STRONG_EXERCISE_ALIASES },
-  chartMetrics: {},
-  customFamilies: {},
-  active: null,
+  ...kvState({}, []) as KvState,
   edit: null,
   saveProblem: null,
   conflicts: [],
@@ -98,13 +114,7 @@ function fromData(data: Data): Partial<State> {
     workouts: [...data.workouts].sort(byNewest),
     templates: data.templates,
     measurements: [...data.measurements].sort(byNewest),
-    settings: withDefaults(data.kv.settings) as Settings,
-    profile: { name: '', ...(data.kv.profile || {}) },
-    meta: { ...(data.kv.meta || {}) },
-    strongAliases: { ...STRONG_EXERCISE_ALIASES, ...(data.kv.strongAliases || {}) },
-    customFamilies: cleanCustomFamilies(data.kv.customFamilies || {}, data.exercises),
-    chartMetrics: cleanChartMetrics(data.kv.chartMetrics, data.exercises),
-    active: data.kv.active || null,
+    ...kvState(data.kv, data.exercises),
   };
 }
 
@@ -337,19 +347,10 @@ function takeIn(records: Map<string, Saved>, all = false) {
   if (touched.has('workouts')) patch.workouts = [...lists.workouts.values()].sort(byNewest);
   if (touched.has('templates')) patch.templates = [...lists.templates.values()];
   if (touched.has('measurements')) patch.measurements = [...lists.measurements.values()].sort(byNewest);
-  if (touched.has('settings')) patch.settings = withDefaults(kv.settings) as Settings;
-  if (touched.has('profile')) patch.profile = { name: '', ...(kv.profile || {}) };
-  if (touched.has('meta')) patch.meta = { ...(kv.meta || {}) };
-  if (touched.has('strongAliases')) patch.strongAliases = { ...STRONG_EXERCISE_ALIASES, ...(kv.strongAliases || {}) };
-  if (touched.has('chartMetrics')) patch.chartMetrics = cleanChartMetrics(kv.chartMetrics, patch.exercises || state.exercises);
-  if (touched.has('customFamilies') || touched.has('exercises')) {
-    const families = touched.has('customFamilies') ? kv.customFamilies || {} : state.customFamilies;
-    patch.customFamilies = cleanCustomFamilies(families, [...exercises.values()]);
-  }
-  if (touched.has('active')) {
-    patch.active = kv.active || null;
-    if (!patch.active && state.active) patch.activeGone = state.active.id;
-  }
+  Object.assign(patch, kvState(kv, exercises, KV_KEYS.filter((k) => touched.has(k))));
+  // values about exercises this tab already has, without exercises another tab deleted
+  if (touched.has('exercises')) for (const k of BY_EXERCISE) if (!touched.has(k)) Object.assign(patch, kvState({ [k]: state[k] }, exercises, [k]));
+  if (touched.has('active') && !patch.active && state.active) patch.activeGone = state.active.id;
   setState(patch);
 }
 
@@ -747,6 +748,12 @@ export function exerciseUsage(id: string) {
   };
 }
 
+/** Families and remembered charts once exercise `id` is gone (it isn't in `exercises`), and the chart write if its chart went (#27). */
+function withoutGoneExercise(id: string, exercises: Map<string, Exercise>) {
+  const { customFamilies, chartMetrics } = kvState({ customFamilies: state.customFamilies, chartMetrics: state.chartMetrics }, exercises, BY_EXERCISE) as KvState;
+  return { customFamilies, chartMetrics, chartOps: id in state.chartMetrics ? [kvOp('chartMetrics', chartMetrics)] : [] };
+}
+
 /** Delete an exercise nobody has logged; it leaves the templates too. */
 export async function deleteExercise(id: string) {
   return mutateExercises(async () => {
@@ -760,10 +767,7 @@ export async function deleteExercise(id: string) {
       changed.push(next);
       return next;
     });
-    const customFamilies = cleanCustomFamilies(state.customFamilies, exercises);
-    // its remembered chart goes with it (#27)
-    const chartMetrics = cleanChartMetrics(state.chartMetrics, exercises) as Record<string, string>;
-    const chartOps = id in state.chartMetrics ? [kvOp('chartMetrics', chartMetrics)] : [];
+    const { customFamilies, chartMetrics, chartOps } = withoutGoneExercise(id, exercises);
     await save([...familyOps([], customFamilies, [id], { templates: changed }), ...chartOps], { mode: 'after', publish: () => setState({ exercises, templates, customFamilies, chartMetrics }) });
   });
 }
@@ -790,10 +794,8 @@ export async function mergeExercise(fromId: string, intoId: string) {
       const byId = new Map(changed.map((x) => [x.id, x]));
       return list.map((x) => byId.get(x.id) || x);
     };
-    const customFamilies = cleanCustomFamilies(state.customFamilies, exercises);
     // the merged exercise's chart goes; the target keeps its own (#27)
-    const chartMetrics = cleanChartMetrics(state.chartMetrics, exercises) as Record<string, string>;
-    const chartOps = fromId in state.chartMetrics ? [kvOp('chartMetrics', chartMetrics)] : [];
+    const { customFamilies, chartMetrics, chartOps } = withoutGoneExercise(fromId, exercises);
     const patch: Partial<State> = { exercises, customFamilies, chartMetrics, workouts: swap(state.workouts, movedWorkouts), templates: swap(state.templates, movedTemplates) };
     const [active] = state.active ? moveExerciseEntries([state.active], fromId, intoId) as ActiveWorkout[] : [];
     if (active) patch.active = active;
