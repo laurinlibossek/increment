@@ -11,6 +11,7 @@ const mode = before ? 'before' : enabled ? 'on' : 'off';
 const OUT = shots(`app-exercise-thumbnails-${mode}`);
 const tokens = JSON.parse(fs.readFileSync(new URL('../../docs/design/tokens.json', import.meta.url)));
 const color = (token, theme) => tokens.color.tokens.find(t => t.name === token).value[theme];
+const radius = token => tokens.radius.tokens.find(t => t.name === token).value;
 const browser = await launch();
 let passed = 0;
 const contact = [];
@@ -33,6 +34,7 @@ async function checkTile(row, id, name, theme, drawing = true) {
   await tile.waitFor();
   const box = await tile.boundingBox();
   assert.equal(box.width, 56); assert.equal(box.height, 56);
+  assert.deepEqual(await tile.evaluate(e => [getComputedStyle(e).borderRadius, getComputedStyle(e).overflow]), [radius('radius-m'), 'hidden'], 'rounded tile clips its drawing');
   assert.equal(await tile.getAttribute('aria-hidden'), 'true');
   assert.equal(await tile.locator('button, [role="button"], [tabindex="0"]').count(), 0);
   assert.equal(await tile.evaluate(e => getComputedStyle(e).pointerEvents), 'none');
