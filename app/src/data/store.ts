@@ -730,7 +730,7 @@ export async function updateExercise(id: string, patch: Partial<Exercise>, famil
 export const findExercise = (name: string): Exercise | null => findExerciseByName(state.exercises, name) as Exercise | null;
 
 /** Create a custom exercise. Family choices stay in the form until this save. */
-export async function addExercise(o: { name: string; category: Exercise['category']; bodyPart: string; notes?: string; family?: string | null; unilateral?: boolean }, familySelection?: string | null): Promise<Exercise> {
+export async function addExercise(o: { name: string; category: Exercise['category']; bodyPart: string; notes?: string; family?: string | null; unilateral?: boolean; helpers?: Exercise['helpers'] }, familySelection?: string | null): Promise<Exercise> {
   return mutateExercises(async () => {
     const ex = newExerciseRecord(o, { hasId: (id: string) => state.exercises.has(id) }) as Exercise;
     if (o.family !== undefined) ex.family = o.family;

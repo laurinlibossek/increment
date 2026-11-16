@@ -189,7 +189,13 @@ try {
       await id('search-parts-all').click({ position: { x: 0.25, y: hitMin / 2 } });
       assert.equal(await id('search-parts-all').getAttribute('aria-selected'), 'true', 'the first chip target is not clipped by its scroll view');
     }
-    await id('new-exercise').click(); await id('exercise-name').waitFor(); await screen('new-exercise'); await id('exercise-cancel').click();
+    await id('new-exercise').click(); await id('exercise-name').waitFor(); await screen('new-exercise');
+    if (!before) {
+      await id('part-quads').click();
+      await id('exercise-helpers').scrollIntoViewIfNeeded();
+      await screen('helper-chips');
+    }
+    await id('exercise-cancel').click();
     await go('/', 'open-account'); await id('open-account').click(); await id('account-done').waitFor(); await screen('account');
     await id('set-pair-sides').scrollIntoViewIfNeeded(); await screen('account-switches');
     if (!before) {

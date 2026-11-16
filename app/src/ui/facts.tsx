@@ -40,8 +40,8 @@ export function SectionHeadLink({ title, count, lines = 1, onPress, accessibilit
       style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: MARGIN, minHeight: CONTROL.hitMin, paddingTop: CONTROL.hitMin - TYPE.title3.lineHeight, marginTop: SPACE.s6 - (CONTROL.hitMin - TYPE.title3.lineHeight), marginBottom: SPACE.s1, opacity: pressed ? 0.6 : 1 })}>
       <Text style={{ ...TYPE.title3, color: t.ink, flexShrink: 1 }} numberOfLines={lines}>{title}</Text>
       <Icon name="chevron" size={13} color={t.ink3} />
-      {/* in the column of the counts in the rows below, which stand before their chevron */}
-      {count !== undefined && <Text style={[{ ...TYPE.headline, color: t.ink, marginLeft: 'auto', paddingLeft: SPACE.s3, minWidth: 28, textAlign: 'right', marginRight: 13 + SPACE.s3 }, tnum]}>{count}</Text>}
+      {/* in the column of the counts in the rows below, which stand before their chevron; halves never wrap */}
+      {count !== undefined && <Text numberOfLines={1} style={[{ ...TYPE.headline, color: t.ink, flexShrink: 0, marginLeft: 'auto', paddingLeft: SPACE.s3, minWidth: 28, textAlign: 'right', marginRight: 13 + SPACE.s3 }, tnum]}>{count}</Text>}
     </Pressable>
   );
 }

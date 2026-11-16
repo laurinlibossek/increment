@@ -4,6 +4,7 @@
 // opens what makes up its number (#89): no chevron, a pressed state, and each
 // row at least 44 pt tall across the full width (Apple's minimum touch target;
 // Laurin, 14 Nov 2026). docs/design/components.md
+import { halfText } from '@increment/core';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
@@ -11,7 +12,7 @@ import { CONTROL, SPACE, STROKE, TYPE } from '@/design/tally';
 import { useTally } from '@/lib/theme';
 import { fives, Tally } from './Tally';
 
-export type MuscleRow = { muscle: string; label: string; sets: number; floor?: number; ceiling?: number };
+export type MuscleRow = { muscle: string; label: string; sets: number; direct: number; helper: number; floor?: number; ceiling?: number };
 
 const FIVE = 5 * STROKE.slot + 4 * STROKE.gap; // one full group of strokes
 
@@ -22,23 +23,24 @@ export function MuscleVolume({ rows, accessibilityLabel, onPress, testID }: {
   rows: MuscleRow[]; accessibilityLabel: (r: MuscleRow) => string; onPress?: (r: MuscleRow) => void; testID?: string;
 }) {
   const { colors: t } = useTally();
-  // as many strokes as fit; the count on the right is always the whole number
+  // as many strokes as fit; the count on the right includes a final half
   const [width, setWidth] = useState(0);
   const room = width ? Math.max(1, Math.floor((width + STROKE.group) / (FIVE + STROKE.group))) * 5 : 0;
   return (
     <View style={{ paddingHorizontal: SPACE.s5, gap: onPress ? 0 : SPACE.s3 }} testID={testID}>
       {rows.map((r, i) => {
-        const missing = r.floor ? Math.max(0, r.floor - r.sets) : 0;
-        const done = Math.min(r.sets, room);
+        const missing = r.floor ? Math.max(0, Math.ceil(r.floor - r.sets)) : 0;
+        const done = Math.min(r.direct, room);
+        const helper = Math.min(Math.floor(r.helper), room - done);
         const over = r.ceiling !== undefined && r.sets > r.ceiling;
         const row = { flexDirection: 'row', alignItems: 'center', gap: SPACE.s3 } as const;
         const content = (
           <>
             <Text style={[TYPE.subhead, { color: t.ink, width: 84 }]}>{r.label}</Text>
             <View style={{ flex: 1, overflow: 'hidden' }} onLayout={i === 0 ? (e) => setWidth(e.nativeEvent.layout.width) : undefined}>
-              {room > 0 && <Tally groups={fives(done, Math.min(missing, room - done))} label="" />}
+              {room > 0 && <Tally groups={fives(done, Math.min(missing, room - done - helper), helper)} label="" />}
             </View>
-            <Text style={[TYPE.headline, { color: over ? t.ink2 : t.ink, minWidth: 28, textAlign: 'right', fontVariant: ['tabular-nums'] }]}>{r.sets}</Text>
+            <Text style={[TYPE.headline, { color: over ? t.ink2 : t.ink, minWidth: 28, textAlign: 'right', fontVariant: ['tabular-nums'] }]}>{halfText(r.sets)}</Text>
           </>
         );
         if (!onPress) {

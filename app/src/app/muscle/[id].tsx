@@ -7,7 +7,7 @@
 import { useMemo } from 'react';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { ScrollView, Text, View } from 'react-native';
-import { muscleSets } from '@increment/core';
+import { halfText, muscleSets } from '@increment/core';
 
 import { useAppState } from '@/data/store';
 import type { WorkSet } from '@/data/types';
@@ -30,7 +30,7 @@ export default function MuscleSets() {
   const today = useToday();
   const b = useMemo(() => muscleSets(s.workouts, s.exercises, String(id)), [s.workouts, s.exercises, id, today]); // eslint-disable-line react-hooks/exhaustive-deps
   const name = b.label ? tr(b.label) : '';
-  const total = tr('{sets} in the last 7 days', { sets: f.plural(b.sets, 'set') });
+  const total = tr('{sets} in the last 7 days', { sets: f.setsCount(b.sets) });
   const side = (x: WorkSet) => (x.side === 'left' ? `${tr('Left')} ` : x.side === 'right' ? `${tr('Right')} ` : '');
 
   return (
@@ -42,7 +42,7 @@ export default function MuscleSets() {
           <>
             <Text style={{ ...TYPE.footnote, color: t.ink2 }} testID="muscle-total">{total}</Text>
             <View style={{ marginTop: SPACE.s5 }}>
-              <WorkoutTally groups={b.exercises.filter((e) => e.sets).map((e) => Array(e.sets).fill('done'))} size="regular" label={total} testID="muscle-tally" />
+              <WorkoutTally groups={[...b.exercises.filter((e) => !e.helper && e.sets).map((e) => Array(e.sets).fill('done')), ...(Math.floor(b.helper) ? [Array(Math.floor(b.helper)).fill('helper')] : [])]} size="regular" label={total} testID="muscle-tally" />
             </View>
           </>
         )}
@@ -57,9 +57,10 @@ export default function MuscleSets() {
         const exName = f.exName(ex) || tr('Unknown exercise');
         return (
           <View key={e.exerciseId} testID={`muscle-ex-${e.exerciseId}`}>
-            <SectionHeadLink title={exName} count={f.num(e.sets, 0)} lines={2} testID={`muscle-ex-link-${e.exerciseId}`}
+            <SectionHeadLink title={exName} count={halfText(e.sets)} lines={2} testID={`muscle-ex-link-${e.exerciseId}`}
               accessibilityLabel={`${exName}, ${f.setsText(e)}`}
               onPress={() => router.push({ pathname: '/exercise/[id]', params: { id: e.exerciseId } })} />
+            {e.helper && <Text testID={`muscle-helper-${e.exerciseId}`} style={{ ...TYPE.footnote, color: t.ink2, paddingHorizontal: MARGIN, marginBottom: SPACE.s2 }}>{tr('Counts half')}</Text>}
             {e.workouts.map((w, i) => {
               const when = `${f.date.workoutDay(w.startedAt)} · ${w.name}`;
               // a set never breaks across lines ("28 kg × 8"); the list wraps between sets
@@ -75,12 +76,13 @@ export default function MuscleSets() {
                       {!!unpaired && <Text style={{ ...TYPE.footnote, color: t.ink2 }}>{unpaired}</Text>}
                     </>
                   )}
-                  right={<Text style={[{ ...TYPE.headline, color: t.ink, minWidth: 28, textAlign: 'right' }, tnum]}>{f.num(w.sets, 0)}</Text>} />
+                  right={<Text style={[{ ...TYPE.headline, color: t.ink, minWidth: 28, textAlign: 'right' }, tnum]}>{halfText(w.sets)}</Text>} />
               );
             })}
           </View>
         );
       })}
+      {b.exercises.some((e) => e.helper) && <Text testID="muscle-helper-note" style={{ ...TYPE.footnote, color: t.ink2, paddingHorizontal: MARGIN, marginTop: SPACE.s5 }}>{tr('Exercises where this muscle helps count half a set.')}</Text>}
     </ScrollView>
   );
 }

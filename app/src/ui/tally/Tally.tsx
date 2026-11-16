@@ -6,7 +6,7 @@ import { View } from 'react-native';
 import { SPACE, STROKE } from '@/design/tally';
 import { useTally } from '@/lib/theme';
 
-export type StrokeState = 'pending' | 'done' | 'warmup' | 'warmupPending' | 'warmupLive' | 'live' | 'record' | 'skipped';
+export type StrokeState = 'pending' | 'done' | 'helper' | 'warmup' | 'warmupPending' | 'warmupLive' | 'live' | 'record' | 'skipped';
 const WARM: StrokeState[] = ['warmup', 'warmupPending', 'warmupLive'];
 export type TallySize = 'small' | 'regular' | 'hero';
 const HEIGHT: Record<TallySize, number> = { small: 14, regular: STROKE.h, hero: STROKE.hHero };
@@ -33,6 +33,7 @@ export function Stroke({ state, size = 'regular' }: { state: StrokeState; size?:
   const h = HEIGHT[size] * (WARM.includes(state) ? 0.55 : 1);
   let mark;
   if (state === 'done' || state === 'warmup') mark = <View style={{ width: slot, height: h, backgroundColor: t.strokeDone }} />;
+  else if (state === 'helper') mark = <View testID="stroke-helper" style={{ width: slot, height: h, backgroundColor: t.ink3 }} />;
   else if (state === 'record') {
     mark = <View style={{ width: slot, height: h, backgroundColor: t.signal, borderWidth: t.signalEdge === t.signal ? 0 : 1, borderColor: t.signalEdge }} />;
   } else if (state === 'live' || state === 'warmupLive') mark = <View style={{ width: slot, height: h, borderWidth: Math.max(1.5, hair), borderColor: t.ink }} />;
@@ -60,9 +61,9 @@ export function Tally({ groups, size = 'regular', label, wrap }: { groups: Strok
   );
 }
 
-/** Groups of five for counting `done` logged and `pending` still to go. */
-export function fives(done: number, pending = 0): StrokeState[][] {
-  const all: StrokeState[] = [...Array(done).fill('done'), ...Array(pending).fill('pending')];
+/** Groups of five: direct sets, whole helper contributions, then pending sets. */
+export function fives(done: number, pending = 0, helper = 0): StrokeState[][] {
+  const all: StrokeState[] = [...Array(done).fill('done'), ...Array(Math.floor(helper)).fill('helper'), ...Array(pending).fill('pending')];
   const out: StrokeState[][] = [];
   for (let i = 0; i < all.length; i += 5) out.push(all.slice(i, i + 5));
   return out;

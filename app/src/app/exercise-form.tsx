@@ -9,7 +9,7 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   BODY_PART_LABEL, MUSCLES, MUSCLE_GROUPS, CATEGORIES, CATEGORY_HELP, exerciseBaseName, exerciseFamily, familyOf, isUnilateral, loggedFields, shippedUnilateral, suggestExerciseFamily,
-  usesDistance,
+  helpersOf, usesDistance,
 } from '@increment/core';
 
 import {
@@ -41,6 +41,16 @@ export default function ExerciseForm() {
   const [name, setName] = useState(ex?.name || form?.name || '');
   const [category, setCategory] = useState<Category>(ex?.category || 'machine');
   const [bodyPart, setBodyPart] = useState(ex?.bodyPart || '');
+  const [helpers, setHelpers] = useState(() => helpersOf(ex));
+  const showHelpers = MUSCLES.some((m) => m.id === bodyPart) && !['cardio', 'other'].includes(bodyPart);
+  const chooseMuscle = (part: string) => { setBodyPart(part); setHelpers((current) => current.filter((m) => m !== part)); };
+  const toggleHelper = (part: string) => {
+    const muscle = MUSCLES.find((m) => m.id === part);
+    if (!muscle) return;
+    if (helpers.includes(muscle.id)) setHelpers(helpers.filter((m) => m !== muscle.id));
+    else if (helpers.length === 3) toast(tr('Up to 3 muscles'));
+    else setHelpers([...helpers, muscle.id]);
+  };
   const [notes, setNotes] = useState(ex?.notes || '');
   // unilateral (#54): the ones we ship stay so; any other exercise is bilateral until turned on
   const locked = shippedUnilateral(ex);
@@ -108,11 +118,15 @@ export default function ExerciseForm() {
       if (currentForm() !== form) return;
       // only `unilateral: true` is stored (bilateral is the default); cardio has no sides, so its choice stays; old side tags stay
       const sides = usesDistance(category) ? isUnilateral(ex) : unilateral;
+      const chosenHelpers = helpersOf({ id: ex?.id || '', bodyPart, helpers });
+      const defaults = helpersOf({ id: ex?.id || '', bodyPart });
+      const ownHelpers = ex?.builtin && chosenHelpers.length === defaults.length && defaults.every((m) => chosenHelpers.includes(m))
+        ? undefined : chosenHelpers;
       if (ex) {
-        await updateExercise(ex.id, { name: n, category, bodyPart, notes, ...(locked ? {} : { unilateral: sides || undefined }) }, selection);
+        await updateExercise(ex.id, { name: n, category, bodyPart, helpers: ownHelpers, notes, ...(locked ? {} : { unilateral: sides || undefined }) }, selection);
         close(getState().exercises.get(ex.id) || null);
       } else {
-        close(await addExercise({ name: n, category, bodyPart, notes, unilateral: sides }, selection));
+        close(await addExercise({ name: n, category, bodyPart, helpers: ownHelpers, notes, unilateral: sides }, selection));
       }
     } catch (e) {
       couldntSave(tr, e);
@@ -157,10 +171,26 @@ export default function ExerciseForm() {
             return <View key={group.region || 'own'} style={{ gap: SPACE.s2 }}>
               {!!group.region && <Text style={[TYPE.footnote, { color: t.ink2 }]}>{label}</Text>}
               <ChoiceChips wrap options={group.muscles.map((m) => ({ value: m.id, label: tr(m.label) }))}
-                value={bodyPart} onChange={setBodyPart} label={label} testID="part" />
+                value={bodyPart} onChange={chooseMuscle} label={label} testID="part" />
             </View>;
           })}
         </View>
+        {showHelpers && <View testID="exercise-helpers">
+          <SectionTitle>{tr('Also works')}</SectionTitle>
+          <View style={{ gap: SPACE.s3 }}>
+            {MUSCLE_GROUPS.map((group) => {
+              const muscles = group.muscles.filter((m) => m.id !== bodyPart && !['full', 'cardio', 'other'].includes(m.id));
+              if (!muscles.length) return null;
+              const label = tr(group.region ? BODY_PART_LABEL[group.region] : 'Also works');
+              return <View key={group.region || 'own'} style={{ gap: SPACE.s2 }}>
+                {!!group.region && <Text style={[TYPE.footnote, { color: t.ink2 }]}>{label}</Text>}
+                <ChoiceChips wrap options={muscles.map((m) => ({ value: m.id, label: tr(m.label) }))}
+                  value={helpers} onChange={toggleHelper} label={label} testID="helper" />
+              </View>;
+            })}
+          </View>
+          <Text style={[TYPE.footnote, { color: t.ink2, marginTop: SPACE.s2 }]}>{tr('Each counts as half a set.')}</Text>
+        </View>}
         {!usesDistance(category) && <View style={{ marginTop: SPACE.s6, marginHorizontal: -SPACE.s5 }}>
           <SwitchSettingRow first title={tr('Unilateral')}
             sub={locked ? tr('Always on for this exercise') : tr('Sets can say left or right; a left and a right set count as one set')}

@@ -110,7 +110,7 @@ export default function TodayTab() {
       <SectionHeader title={tr('Sets per muscle')} scope={tr('Last 7 days')} />
       {muscles.length ? (
         <MuscleVolume rows={muscles.map((m) => ({ ...m, label: tr(m.label) }))}
-          accessibilityLabel={(r) => `${r.label}, ${f.plural(r.sets, 'set')}`}
+          accessibilityLabel={(r) => `${r.label}, ${f.setsCount(r.sets)}`}
           // the sets behind each number (#89)
           onPress={(r) => router.push({ pathname: '/muscle/[id]', params: { id: r.muscle } })} />
       ) : (

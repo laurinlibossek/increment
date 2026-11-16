@@ -83,7 +83,7 @@ The picker expands a family inline to its ordered, visible versions, marked with
 
 ## How a built-in gets its muscle
 
-One main muscle per exercise: the prime mover. A helper muscle is not counted. Laurin fixed the current 306 choices on 15 Nov 2026; `tests/fixtures/muscles-v4.json` pins that table.
+One main muscle per exercise: the prime mover. Helpers count separately at half a set (see below). Laurin fixed the current 306 choices on 15 Nov 2026; `tests/fixtures/muscles-v4.json` pins that table.
 
 Choose in this order:
 
@@ -116,6 +116,41 @@ An exercise whose main muscle is not one of the 16 gets Other. This covers neck 
 | Cut built-ins (#45), the less obvious ones | Quads, Glutes, Quads | Lateral Lunge (Dumbbell): like the other lunges. Seated Good Morning (Barbell): the bent knees take the hamstrings out of it, so the hip extension is the glutes'. Box Jump: the knee extension of a jump. Low confidence for all three. |
 | Hip abduction | Glutes | Gluteus medius and minimus count as glutes. |
 | Copenhagen plank | Adductors | |
+
+## How a built-in gets its helpers
+
+A helper also moves a joint through its range under load. A muscle that only holds still, braces or grips is not a helper: the lower back in squats, the forearms in rows, or the glutes in a sliding leg curl. Use the same evidence order as for the main muscle: hypertrophy studies with MRI or ultrasound first, then the joint action, with EMG only as a tiebreaker. At most three helpers; most isolation exercises have none.
+
+Why half: Pelland et al. (dose–response meta-regressions, 67 studies) compared ways of counting sets. Counting indirect sets as 0.5 predicted growth best. Isolation work counts more for its own muscle: with volume matched, curls grew the elbow flexors 11.1% and rows 5.2% (Mannarino et al. 2021).
+
+Laurin fixed the helpers on 15 Nov 2026 (#127), for 160 current built-ins and 42 cut in #45. `core/exercise-helpers.js` holds the ids and ordered helper lists; `tests/fixtures/helpers-v1.json` pins the whole record. The retired ids come from the catalogue before #45 (`0cf2f6b^`), pinned as `exercises-cut-v3.json`; their main muscles come from seed 5. Every unlisted built-in has no helpers, including core, calves, Full body, Cardio and Other.
+
+| Exercises | Helpers | Reason |
+|---|---|---|
+| Bench press, chest press, push-ups, chest dips | Triceps, Front delts | 10 weeks of bench press grew the pecs, the front delts and the triceps (MRI, Current Issues in Sport Science 2024). The triceps grew less than the pecs, as the ½ assumes. |
+| Pulldowns, pull-ups, chin-ups, High Row (Machine) | Biceps, Upper back | In beginners, pulldowns grew the elbow flexors about as much as curls (Gentil et al. 2015). The upper back moves the shoulder blades down. |
+| Rows | Lats, Rear delts, Biceps | Rows grew the elbow flexors about half as much as curls (Mannarino et al. 2021). The lats and rear delts move the shoulder back. This is the only group with three helpers. |
+| Squats, leg press, split squats, lunges, step-ups | Glutes, Adductors | Squats grew the glutes about as much as hip thrusts and the adductors more, but hardly the hamstrings (Plotkin et al. 2023; Kubo et al. 2019, MRI). Leg press grew the glutes and the adductor magnus (MRI, 2026). |
+| Deadlifts (conventional, trap bar, sumo, deficit, paused) | Quads, Adductors | Low confidence: no deadlift study measured growth. The hamstrings are not counted, for the same reason as in squats: hip and knee straighten together, so they barely change length. The quads straighten the knee off the floor, and the adductor magnus extends the hip. |
+| Rack Pull, Block Pull | Hamstrings | They start above the knee, so the knees stay nearly straight while the hips extend. |
+| Romanian deadlift, stiff-leg deadlift, good morning, Back Extension (45°, 90°), Glute Ham Raise | Glutes | Hip extension. |
+| Hip thrusts and glute bridges | none | Hip thrusts grew hardly any hamstrings, and less quads and adductors than squats (Plotkin et al. 2023). |
+| Reverse hyperextension, glute kickbacks, cable pull-through, kettlebell swing | Hamstrings | Hip extension with the knee fairly straight. |
+| Overhead presses, Handstand Push Up | Triceps, Side delts | The triceps straighten the elbow. Low confidence for the side delts: pressing is weaker for them than lateral raises, but they help lift the arm. |
+| Landmine Press | Chest, Triceps | It presses at an incline-press angle. |
+| Chest flys and crossovers | Front delts | They move the arm across the body. |
+| Upright rows, Y-raises, Lu raises | Upper back | The trapezius moves the shoulder blade as the arm rises. |
+| Face pulls, reverse flys | Upper back | They pull the shoulder blades together. |
+| Hammer and Zottman curls | Forearms | The neutral or turned-over grip loads the brachioradialis. |
+| Reverse curls (main muscle Forearms) | Biceps | |
+| Pullover (Dumbbell) (main muscle Chest) | Lats | It moves the arm down from overhead. |
+| Triceps dips | Chest, Front delts | |
+
+A working set counts 1 for its main muscle and ½ for each helper (`HELPER_SET_WEIGHT`). Count first: warm-ups out, complete left/right pairs together; then halve. Only the 16 muscles can be helpers, never the main muscle, Full body, Cardio or Other. A main muscle of Cardio, Other or a legacy region gets no helpers. A legacy region still has its own direct row. Plan, routine sizes, records, Lifts and main-muscle filters keep their existing counts and meaning.
+
+Today shows direct strokes first and whole helper contributions as full-height stems in `ink-3`; a remaining half appears only in the number (`7½`). Half-height strokes are reserved for warm-ups. A breakdown lists direct exercises first, then helpers with their weighted numbers and “Counts half”, followed by “Exercises where this muscle helps count half a set.” The same workout walk produces both totals.
+
+The form's optional “Also works” chips offer up to three of the 16 muscles, excluding the current main muscle, with “Each counts as half a set.” Choosing a fourth says “Up to 3 muscles” and keeps the choices. Changing the main muscle removes it from the helpers. The section hides until a counted main muscle is chosen, including while editing a legacy region. New customs start empty; built-ins start from `helpersOf`. An own `helpers` array wins, including `[]` for none. Saving the table's choices on a built-in removes its override, so future table changes reach it. Helpers need no seed upgrade. Backups retain and clean own choices; custom routine links carry them as `h`. Strong review creates no helpers; the form can add them later.
 
 ## Muscles and older exercises
 
