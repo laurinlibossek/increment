@@ -2,7 +2,7 @@
 // web app's format.js and util.js, built on the shared unit helpers.
 import { useMemo } from 'react';
 import {
-  kgTo, kmTo, roundW, fmtClock, usesWeight, daysAgo, dayKind, exerciseDisplayName, exerciseBaseName, exerciseEquipment, repsText, repRange,
+  kgTo, kmTo, roundW, fmtClock, usesWeight, daysAgo, dayKind, exerciseDisplayName, exerciseBaseName, exerciseEquipment, repsText, repRange, halfText,
 } from '@increment/core';
 
 import { useSettings } from '@/data/store';
@@ -62,9 +62,12 @@ export function makeFormat(settings: Settings, locale: string, lang: 'en' | 'de'
   /** "3 sets" / "3 Sätze" */
   const plural = (n: number, one: string, many?: string) => `${num(n, 0)} ${n === 1 ? tr(one) : tr(many || one + 's')}`;
 
+  /** Sets may include halves from helper muscles (#127). */
+  const setsCount = (n: number) => `${Number.isInteger(n) ? num(n, 0) : halfText(n)} ${tr(n > 0 && n <= 1 ? 'set' : 'sets')}`;
+
   /** A set total (#54): "6 sets", with the rows a left/right pairing left out, "2 sets · 1 unpaired". */
   const setsText = (c: { sets: number; unpaired?: number }) => (c.unpaired
-    ? `${plural(c.sets, 'set')} · ${tr('{n} unpaired', { n: num(c.unpaired, 0) })}` : plural(c.sets, 'set'));
+    ? `${setsCount(c.sets)} · ${tr('{n} unpaired', { n: num(c.unpaired, 0) })}` : setsCount(c.sets));
   /**
    * A running workout's progress (#72), sessionProgress: "3 of 12 working sets · 25%", then "· 1 record".
    * `label` is the tally's screen-reader text: "3 of 12 working sets logged, 25%, 1 record".
@@ -155,7 +158,7 @@ export function makeFormat(settings: Settings, locale: string, lang: 'en' | 'de'
   /** Split header/chip name; all standalone exercise lines use exName. */
   const exBase = (ex: { id: string; name: string } | null | undefined) => exerciseBaseName(ex, lang);
   const exEquipment = (ex: { id: string; name: string } | null | undefined) => exerciseEquipment({ name: exName(ex) });
-  return { unit, dUnit, num, w, wu, e1rm, volume, totalVolume, dist, pace, setText, setsText, progressText, plural, reps, dur, date, relDay, relDayLower, clock: fmtClock, exName, exBase, exEquipment };
+  return { unit, dUnit, num, w, wu, e1rm, volume, totalVolume, dist, pace, setText, setsText, setsCount, progressText, plural, reps, dur, date, relDay, relDayLower, clock: fmtClock, exName, exBase, exEquipment };
 }
 
 export type Format = ReturnType<typeof makeFormat>;

@@ -727,8 +727,8 @@ test('Today: working sets per muscle in the last 7 days, and a routine’s size'
     w(-4, [{ exerciseId: 'bench', sets: sets(9) }]), // 27 October: outside the 7 days
   ];
   assert.deepEqual(core.setsPerMuscle(ws, lib, { now }), [
-    { muscle: 'chest', label: 'Chest', sets: 5 },
-    { muscle: 'back', label: 'Back', sets: 3 },
+    { muscle: 'chest', label: 'Chest', sets: 5, direct: 5, helper: 0 },
+    { muscle: 'back', label: 'Back', sets: 3, direct: 3, helper: 0 },
   ], 'chest first; warm-ups, cardio and unknown exercises don’t count');
   assert.deepEqual(core.setsPerMuscle(ws, [...lib.values()], { now, days: 14 }).map((m) => m.sets), [14, 3]);
   assert.deepEqual(core.setsPerMuscle([], lib, { now }), []);
@@ -798,8 +798,8 @@ test('Sets per muscle’s breakdown (#89): by exercise, adding up to the number 
   assert.deepEqual(tie.exercises.map((e) => e.exerciseId), ['dip', 'bench']);
 
   // nothing to show
-  assert.deepEqual(core.muscleSets(ws, lib, 'legs', { now }), { muscle: 'legs', label: 'Legs', sets: 0, unpaired: 0, exercises: [] }, 'warm-ups only');
-  assert.deepEqual(core.muscleSets(ws, lib, 'cardio', { now }), { muscle: 'cardio', label: null, sets: 0, unpaired: 0, exercises: [] }, 'not a muscle');
+  assert.deepEqual(core.muscleSets(ws, lib, 'legs', { now }), { muscle: 'legs', label: 'Legs', sets: 0, direct: 0, helper: 0, unpaired: 0, exercises: [] }, 'warm-ups only');
+  assert.deepEqual(core.muscleSets(ws, lib, 'cardio', { now }), { muscle: 'cardio', label: null, sets: 0, direct: 0, helper: 0, unpaired: 0, exercises: [] }, 'not a muscle');
   assert.deepEqual(core.muscleSets([], lib, 'chest', { now }).exercises, []);
 });
 
@@ -3130,4 +3130,138 @@ test('region and muscle browsing filters actual family members, including mixed-
   const triceps = rows({ region: 'arms', muscle: 'triceps' }).find((r) => r.id === 'f-dip');
   assert.equal(triceps.bodyPart, 'triceps');
   assert.ok(triceps.members.every((e) => e.name.startsWith('Triceps')));
+});
+
+// ---------- helper muscles (#127) ----------
+const helperFixture = JSON.parse(read(path.join(ROOT, 'tests/fixtures/helpers-v1.json')));
+// Names and ids from 0cf2f6b^:core/exercise-catalogue.js, before the #45 cuts.
+const retiredHelperMuscles = JSON.parse(read(path.join(ROOT, 'tests/fixtures/retired-muscles-v5.json')));
+const cutExercises = JSON.parse(read(path.join(ROOT, 'tests/fixtures/exercises-cut-v3.json')));
+
+test('the approved helper table pins 160 current and 42 retired built-ins', () => {
+  assert.equal(core.SEED_VERSION, 5, 'helpers are read live, without a seed upgrade');
+  assert.deepEqual(core.BUILTIN_HELPERS, helperFixture);
+  const kept = new Map(core.SEED_EXERCISES.map((e) => [e.id, e]));
+  assert.equal(cutExercises.length, 96);
+  const cut = new Map(cutExercises.map((e) => [e.id, e]));
+  assert.equal(Object.keys(helperFixture).filter((id) => kept.has(id)).length, 160);
+  assert.equal(Object.keys(helperFixture).filter((id) => cut.has(id)).length, 42);
+  const realMuscles = new Set(core.MUSCLES.slice(0, 16).map((m) => m.id));
+  for (const [id, helpers] of Object.entries(helperFixture)) {
+    const ex = kept.get(id) || cut.get(id);
+    assert.ok(ex, `${id}: current or cut in #45`);
+    const main = kept.get(id)?.bodyPart || retiredHelperMuscles[id]?.[2] || ex.bodyPart;
+    assert.ok(helpers.length > 0 && helpers.length <= 3, ex.name);
+    assert.equal(new Set(helpers).size, helpers.length, ex.name);
+    for (const helper of helpers) {
+      assert.ok(realMuscles.has(helper), `${ex.name}: ${helper}`);
+      assert.notEqual(helper, main, ex.name);
+    }
+  }
+  const byName = new Map([...cutExercises, ...core.SEED_EXERCISES].map((e) => [e.name, e]));
+  for (const [name, helpers] of [
+    ['Squat (Barbell)', ['glutes', 'adductors']], ['Deadlift (Barbell)', ['quads', 'adductors']],
+    ['Bent Over Row (Barbell)', ['lats', 'rear_delts', 'biceps']], ['Hip Thrust (Barbell)', []],
+    ['Leg Extension (Machine)', []], ['Inverted Row', ['lats', 'rear_delts', 'biceps']],
+    ['Single Arm Lat Pulldown (Cable)', ['biceps', 'upper_back']],
+  ]) assert.deepEqual(core.BUILTIN_HELPERS[byName.get(name).id] || [], helpers, name);
+});
+
+test('helpersOf respects explicit choices and filters against the current main muscle', () => {
+  const squat = core.SEED_EXERCISES.find((e) => e.name === 'Squat (Barbell)');
+  assert.deepEqual(core.helpersOf(squat), ['glutes', 'adductors']);
+  assert.deepEqual(core.helpersOf({ ...squat, helpers: [] }), [], 'explicit none');
+  assert.deepEqual(core.helpersOf({ ...squat, helpers: ['hamstrings'] }), ['hamstrings'], 'own choices win');
+  assert.deepEqual(core.helpersOf({ ...squat, bodyPart: 'glutes' }), ['adductors'], 'a changed main is not counted twice');
+  const dirty = ['chest', 'unknown', 'full', 'cardio', 'other', 'arms', 'biceps', 'biceps', 'triceps', 'rear_delts', 'glutes'];
+  const ex = { id: 'c-test', category: 'machine', bodyPart: 'chest', helpers: dirty };
+  assert.deepEqual(core.helpersOf(ex), ['biceps', 'triceps', 'rear_delts']);
+  for (const bodyPart of ['cardio', 'other', 'back', 'shoulders', 'arms', 'legs', 'unknown']) {
+    assert.deepEqual(core.helpersOf({ ...ex, bodyPart }), [], bodyPart);
+  }
+  assert.deepEqual(core.helpersOf({ ...ex, bodyPart: 'full', helpers: ['quads'] }), ['quads'], 'Full body counts on Today, but cannot itself be a helper');
+  assert.deepEqual(core.helpersOf({ ...ex, id: 'toString', helpers: undefined }), [], 'unknown ids do not read inherited properties');
+  assert.deepEqual(core.helpersOf(null), []);
+  assert.deepEqual(dirty, ex.helpers, 'filtering never mutates the record');
+});
+
+test('helper sets are weighted after warm-ups and left/right pairs are counted', () => {
+  assert.equal(core.HELPER_SET_WEIGHT, 0.5);
+  const now = Date.now();
+  const library = [...core.SEED_EXERCISES, { id: 'c-arms', name: 'Old arms', category: 'machine', bodyPart: 'arms', helpers: ['glutes'] }];
+  const byName = (name) => library.find((e) => e.name === name).id;
+  const rows = (n) => Array.from({ length: n }, (_, i) => ({ id: `s${i}`, type: 'normal', w: 60, r: 8 }));
+  const workout = { id: 'w', startedAt: now - 1000, exercises: [
+    { exerciseId: byName('Squat (Barbell)'), sets: [{ id: 'warm', type: 'warmup' }, ...rows(4)] },
+  ] };
+  const count = () => core.setsPerMuscle([workout], library, { now });
+  assert.deepEqual(count().map(({ muscle, sets, direct, helper }) => [muscle, sets, direct, helper]), [
+    ['quads', 4, 4, 0], ['glutes', 2, 0, 2], ['adductors', 2, 0, 2],
+  ]);
+  workout.exercises.push({ exerciseId: byName('Romanian Deadlift (Barbell)'), sets: rows(3) });
+  assert.equal(count().find((r) => r.muscle === 'glutes').sets, 3.5);
+  workout.exercises.push({ exerciseId: byName('Single Leg Romanian Deadlift (Dumbbell)'), sets: [
+    ...rows(3).map((s) => ({ ...s, side: 'left' })), ...rows(2).map((s) => ({ ...s, side: 'right' })),
+  ] }, { exerciseId: 'c-arms', sets: rows(1) });
+  assert.deepEqual(count().map((r) => r.muscle), ['arms', 'quads', 'hamstrings', 'glutes', 'adductors']);
+  assert.equal(count().find((r) => r.muscle === 'glutes').sets, 4.5, 'two complete pairs add one helper set');
+  assert.equal(count().find((r) => r.muscle === 'arms').sets, 1, 'legacy regions add no helpers');
+  const main = { exerciseId: byName('Hip Thrust (Barbell)'), sets: rows(1) };
+  workout.exercises.push(main);
+  const breakdown = core.muscleSets([workout], library, 'glutes', { now });
+  assert.deepEqual([breakdown.sets, breakdown.direct, breakdown.helper, breakdown.unpaired], [5.5, 1, 4.5, 1]);
+  assert.deepEqual(breakdown.exercises.map((e) => [e.exerciseId, e.helper, e.sets]), [
+    [main.exerciseId, false, 1], [byName('Squat (Barbell)'), true, 2],
+    [byName('Romanian Deadlift (Barbell)'), true, 1.5], [byName('Single Leg Romanian Deadlift (Dumbbell)'), true, 1],
+  ], 'direct comes first even with fewer sets, then weighted helpers');
+  for (const row of count()) {
+    const b = core.muscleSets([workout], library, row.muscle, { now });
+    assert.equal(b.sets, row.sets);
+    assert.equal(b.direct, row.direct); assert.equal(b.helper, row.helper);
+    assert.equal(b.exercises.reduce((n, e) => n + e.sets, 0), b.sets);
+    for (const e of b.exercises) assert.equal(e.workouts.reduce((n, w) => n + w.sets, 0), e.sets);
+  }
+  const unilateral = breakdown.exercises.at(-1).workouts[0];
+  assert.equal(unilateral.rows.length, 5); assert.equal(unilateral.unpaired, 1);
+  assert.deepEqual(core.routineMuscles(workout, library).map((r) => r.muscle), ['arms', 'legs']);
+  const ownNone = library.map((e) => e.id === byName('Squat (Barbell)') ? { ...e, helpers: [] } : e);
+  assert.equal(core.setsPerMuscle([workout], ownNone, { now }).find((r) => r.muscle === 'glutes').helper, 2.5, 'explicit none overrides the live table in the count');
+  const press = { ...workout, exercises: [{ exerciseId: byName('Bench Press (Barbell)'), sets: rows(3) }] };
+  assert.deepEqual(core.setsPerMuscle([press], library, { now }).map((r) => [r.muscle, r.direct, r.helper]), [
+    ['chest', 3, 0], ['front_delts', 0, 1.5], ['triceps', 0, 1.5],
+  ]);
+});
+
+test('halfText uses a half sign without decimals', () => {
+  assert.deepEqual([7, 7.5, 0.5, 0, 1, 1.5].map(core.halfText), ['7', '7½', '½', '0', '1', '1½']);
+});
+
+test('helper choices survive backups and custom routine links; invalid helpers are cleaned', () => {
+  const ex = { id: 'c-helper', name: 'My press', category: 'machine', bodyPart: 'chest', helpers: ['triceps', 'front_delts'] };
+  const backup = core.makeBackup({ exercises: [ex, { ...ex, id: 'c-none', helpers: [] }] }, 'helpers');
+  assert.deepEqual(core.parseBackup(backup).data.exercises, [ex, { ...ex, id: 'c-none', helpers: [] }]);
+  const bad = { ...ex, helpers: ['chest', 'biceps', 'biceps', 'full', 'cardio', 'other', 'arms', 'unknown', 'triceps', 'glutes', 'quads'] };
+  const cleaned = core.parseBackup(core.makeBackup({ exercises: [bad, { ...ex, id: 'bad', helpers: 'biceps' }] }, 'test')).data.exercises;
+  assert.deepEqual(cleaned[0].helpers, ['biceps', 'triceps', 'glutes']);
+  assert.ok(!Object.hasOwn(cleaned[1], 'helpers'), 'malformed field is omitted');
+  const retired = { id: 'x-inverted-row', name: 'Inverted Row', category: 'reps', builtin: true, bodyPart: 'back', helpers: ['lats', 'upper_back', 'rear_delts', 'biceps'] };
+  const restored = core.parseBackup(core.makeBackup({ exercises: [retired] }, 'v4')).data.exercises[0];
+  assert.equal(restored.bodyPart, 'upper_back');
+  assert.deepEqual(restored.helpers, ['lats', 'rear_delts', 'biceps'], 'main-muscle upgrades happen before helper cleaning');
+  const t = { name: 'Helpers', exercises: [{ exerciseId: ex.id, sets: [{ type: 'normal', w: 20, r: 10 }] }] };
+  const opts = { categories: ['machine'], bodyParts: Object.keys(core.BODY_PART_LABEL) };
+  const encode = (exercise) => core.encodeTemplate(t, new Map([[ex.id, exercise]]));
+  const decode = (code) => core.decodeTemplate(`#template=${code}`, opts).exercises[0];
+  assert.deepEqual(decode(encode(ex)).helpers, ex.helpers);
+  assert.deepEqual(decode(encode({ ...ex, helpers: [] })).helpers, []);
+  assert.ok(!Object.hasOwn(decode(encode({ ...ex, helpers: undefined })), 'helpers'), 'old link without h');
+  assert.ok(!Object.hasOwn(decode(encode({ ...ex, builtin: true })), 'helpers'), 'built-ins travel by id');
+  const raw = JSON.parse(Buffer.from(encode(ex), 'base64url').toString());
+  for (const h of ['triceps', null, ['unknown'], ['triceps', 'arms'], ['full'], [1]]) {
+    raw.e[0].h = h;
+    assert.ok(!Object.hasOwn(decode(Buffer.from(JSON.stringify(raw)).toString('base64url')), 'helpers'), JSON.stringify(h));
+  }
+  raw.e[0].h = ['triceps', 'triceps', 'chest', 'front_delts'];
+  assert.deepEqual(decode(Buffer.from(JSON.stringify(raw)).toString('base64url')).helpers, ['triceps', 'front_delts']);
+  assert.deepEqual(core.newExerciseRecord(ex).helpers, ex.helpers, 'new customs retain helpers');
 });

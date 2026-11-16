@@ -110,11 +110,11 @@ Custom exercises always use a letter tile; an undrawn built-in uses the same fal
 
 Working sets per muscle over the last 7 days, as tallies.
 
-**You provide** sets per muscle (counted from the log: each exercise counts toward its main muscle only; an old region value counts under that region). The store version may pass a target range per muscle; the open app passes none. Optionally what a row does when tapped: on Today it opens the sets behind its number (#89).
+**You provide** sets per muscle (counted from the log: each exercise gives its main muscle 1 and each helper ½ after pairing; an old region value counts directly under that region, with no helpers). The store version may pass a target range per muscle; the open app passes none. Optionally what a row does when tapped: on Today it opens the sets behind its number (#89).
 
 **Rules**
-- Stems are sets done; with a target range, hairlines show the sets still missing to its lower end.
-- The count on the right in `t-headline`. Above the range, the count turns `ink-2`; it never turns red.
+- `direct` sets are done stems, followed by `Math.floor(helper)` full-height stems in `ink-3`. A remaining half is shown only in the number. With a target range, pending hairlines count the missing whole sets: `Math.max(0, Math.ceil(floor - sets))`.
+- The count on the right is `halfText(sets)` in `t-headline` (`7½`, never a decimal). Keep a count on one line beside a long exercise title too. Above the range, the count turns `ink-2`; it never turns red.
 - Muscles in `MUSCLES` order, with any legacy region row after its muscles. Full body counts; Cardio and Other do not.
 - Long muscle labels wrap, so the full name stays visible in German too.
 - A row that can be tapped has no chevron, only the pressed state (`paper-2`). It is at least 44 pt tall (Apple's minimum touch target) and runs the full width, and the rows meet, so they sit a little further apart than rows that can't be tapped (Laurin, 14 Nov 2026).
@@ -235,13 +235,14 @@ A row of strokes, one per set: hairline while pending, a solid stem once logged.
 
 **Use it** wherever sets are counted: the session header, exercise rows in Up next, routine cards, the summary, the week strip (one stroke per session) and Sets per muscle.
 
-**You provide** the list of sets, each with a state (`pending`, `done`, `warmup`, `warmupPending`, `warmupLive`, `live`, `record`, `skipped`), how to group them (by exercise, or in fives) and a size (`small` 14, `regular` `stroke-h`, `hero` `stroke-h-hero`, 40, with the wider `stroke-*-hero` slot, hairline and gaps).
+**You provide** the list of sets, each with a state (`pending`, `done`, `helper`, `warmup`, `warmupPending`, `warmupLive`, `live`, `record`, `skipped`), how to group them (by exercise, or in fives) and a size (`small` 14, `regular` `stroke-h`, `hero` `stroke-h-hero`, 40, with the wider `stroke-*-hero` slot, hairline and gaps).
 
 **Rules**
 - Strokes keep their slot (`stroke-slot`) whatever their state, so nothing shifts when a set is logged.
 - Groups are separated by `stroke-group`: per exercise in a session, per five when counting.
 - A whole workout's tally (session header, summary, History) wraps onto new lines, inside a long exercise too, so it never runs off the screen. It grows a line per screen width of strokes: about 29 hero strokes per line on an iPhone; 1000 sets make a block about 1900 pt tall, two and a half screens.
 - `record` is the only coloured state. `live` marks the one set being logged; there is never more than one.
+- A `helper` is a full-height stem at the usual slot width in `ink-3`, used for whole helper contributions in Sets per muscle. `fives(done, pending, helper)` orders done, helper, then pending. A remaining half has no stroke. Never draw helpers at half height: that already means a warm-up (#72).
 - Warm-ups are half height (0.55) in every state: pending (`warmupPending`), being logged (`warmupLive`, the `live` outline at warm-up height) and logged (`warmup`). So nothing changes height when a warm-up is logged; only the outline turns into a solid stem.
 - Strokes are one per row, so a unilateral exercise's Left and Right are two strokes. The count beside them counts sets the way the totals do: a Left and a Right make one set, logged once both are (#72).
 - Never use strokes for weight, time or other continuous numbers.
@@ -264,7 +265,7 @@ The days of the current week with one stroke per session: a stem for a session d
 // Increment (Tally) components — props as documentation for the React Native and web implementations.
 // Values are stored units (kg, km, seconds); format for display with the person's units and language.
 
-export type StrokeState = 'pending' | 'done' | 'warmup' | 'warmupPending' | 'live' | 'record' | 'skipped';
+export type StrokeState = 'pending' | 'done' | 'helper' | 'warmup' | 'warmupPending' | 'live' | 'record' | 'skipped';
 
 /** A row of strokes, one per set. */
 export interface TallyProps {
@@ -371,7 +372,7 @@ export interface RoutineCardProps {
 
 export interface WeekStripProps { weekStart: 0 | 1; days: { done: number; planned: boolean }[]; today: number; goal: number }
 
-export interface MuscleVolumeProps { rows: { muscle: string; sets: number; floor?: number; ceiling?: number }[]; scope: string }
+export interface MuscleVolumeProps { rows: { muscle: string; sets: number; direct: number; helper: number; floor?: number; ceiling?: number }[]; scope: string }
 
 export interface LineChartProps {
   points: { at: number; value: number; record?: boolean }[];

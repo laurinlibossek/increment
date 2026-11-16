@@ -5,13 +5,15 @@ import { CONTROL, RADIUS, SPACE } from '@/design/tally';
 import { useTally } from '@/lib/theme';
 
 export function ChoiceChips({ options, value, onChange, label, testID, wrap = false }: {
-  options: { value: string; label: string }[]; value: string; onChange: (value: string) => void; label: string; testID?: string; wrap?: boolean;
+  options: { value: string; label: string }[]; value: string | string[]; onChange: (value: string) => void; label: string; testID?: string; wrap?: boolean;
 }) {
   const { colors: t } = useTally();
   const scroll = useRef<ScrollViewInstance>(null);
   const positions = useRef(new Map<string, { x: number; width: number }>());
   const viewport = useRef(0), offset = useRef(0);
+  const selected = (choice: string) => Array.isArray(value) ? value.includes(choice) : choice === value;
   const reveal = () => {
+    if (Array.isArray(value)) return;
     const pos = positions.current.get(value);
     if (!pos || !viewport.current) return;
     const next = pos.x < offset.current || pos.width > viewport.current ? pos.x
@@ -20,12 +22,12 @@ export function ChoiceChips({ options, value, onChange, label, testID, wrap = fa
   };
   useEffect(reveal, [value]);
   const chips = <>
-    {options.map((o) => <Pressable key={o.value} onPress={() => onChange(o.value)} accessibilityRole="button" aria-selected={o.value === value}
+    {options.map((o) => <Pressable key={o.value} onPress={() => onChange(o.value)} accessibilityRole="button" aria-selected={selected(o.value)}
       accessibilityLabel={o.label} testID={testID ? `${testID}-${o.value}` : undefined}
-      onLayout={(e) => { positions.current.set(o.value, e.nativeEvent.layout); if (o.value === value) reveal(); }}
+      onLayout={(e) => { positions.current.set(o.value, e.nativeEvent.layout); if (selected(o.value)) reveal(); }}
       style={{ minHeight: CONTROL.hitMin, minWidth: CONTROL.hitMin, paddingHorizontal: 1, marginHorizontal: -1, alignItems: 'center', justifyContent: 'center' }}>
-      <View style={{ minHeight: 32, justifyContent: 'center', borderRadius: RADIUS.capsule, paddingHorizontal: SPACE.s3, backgroundColor: o.value === value ? t.ink : t.paper3 }}>
-        <Text style={{ fontSize: 14, fontWeight: '600', color: o.value === value ? t.paper : t.ink2 }}>{o.label}</Text>
+      <View style={{ minHeight: 32, justifyContent: 'center', borderRadius: RADIUS.capsule, paddingHorizontal: SPACE.s3, backgroundColor: selected(o.value) ? t.ink : t.paper3 }}>
+        <Text style={{ fontSize: 14, fontWeight: '600', color: selected(o.value) ? t.paper : t.ink2 }}>{o.label}</Text>
       </View>
     </Pressable>)}
   </>;

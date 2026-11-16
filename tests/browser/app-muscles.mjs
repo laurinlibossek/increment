@@ -2,7 +2,7 @@
 // REVIEW_BEFORE=1 on main captures the same fixture/screens without new assertions.
 import assert from 'node:assert/strict';
 import { launch, devices, grantWakeLock, APP, shots, openSearch, storedData, selectTab } from './env.mjs';
-import { SEED_EXERCISES, regionOf, DAY } from '../../core/index.js';
+import { SEED_EXERCISES, SEED_VERSION, regionOf, DAY } from '../../core/index.js';
 
 const before = process.env.REVIEW_BEFORE === '1';
 const OUT = shots(`muscles/${before ? 'before' : 'after'}`);
@@ -55,7 +55,7 @@ for (const language of ['en', 'de']) for (const theme of ['light', 'dark']) {
     }
     assert.match(await id('muscle-triceps').innerText(), /Triceps|Trizeps/);
     assert.match(await id('muscle-arms').innerText(), /Arms|Arme/);
-    assert.equal((await storedData(page)).kv.meta.seedVersion, 5);
+    assert.equal((await storedData(page)).kv.meta.seedVersion, SEED_VERSION);
     assert.equal((await storedData(page)).exercises.find((e) => e.id === 'x-glute-bridge').bodyPart, 'glutes', 'a built-in cut in #45 gets its muscle');
     assert.equal((await storedData(page)).exercises.find((e) => e.id === 'c-old-arms').bodyPart, 'arms');
     ok(`${language}/${theme}: a v3 store upgrades built-ins and keeps custom Arms`);
@@ -78,7 +78,21 @@ for (const language of ['en', 'de']) for (const theme of ['light', 'dark']) {
   await id('exercise-options').click(); await id('ex-edit').click();
   await id(before ? 'part-legs' : 'part-quads').scrollIntoViewIfNeeded();
   if (!before) assert.equal(await id('part-quads').getAttribute('aria-selected'), 'true');
-  await id('exercise-cancel').click();
+  if (!before) {
+    await id('exercise-helpers').scrollIntoViewIfNeeded();
+    assert.equal(await id('helper-quads').count(), 0, 'the main muscle is not offered');
+    for (const helper of ['glutes', 'adductors']) assert.equal(await id(`helper-${helper}`).getAttribute('aria-selected'), 'true');
+    await id('exercise-save').click(); await id('exercise-title').waitFor();
+    assert.ok(!Object.hasOwn((await storedData(page)).exercises.find((e) => e.id === SQ), 'helpers'), 'unchanged built-in follows the table');
+    await id('exercise-options').click(); await id('ex-edit').click();
+    await id('helper-glutes').click();
+    await id('exercise-save').click(); await id('exercise-title').waitFor();
+    assert.deepEqual((await storedData(page)).exercises.find((e) => e.id === SQ).helpers, ['adductors']);
+    await id('exercise-options').click(); await id('ex-edit').click();
+    await id('helper-glutes').click();
+    await id('exercise-save').click(); await id('exercise-title').waitFor();
+    assert.ok(!Object.hasOwn((await storedData(page)).exercises.find((e) => e.id === SQ), 'helpers'), 'returning to table removes override regardless of tap order');
+  } else await id('exercise-cancel').click();
 
   // Legacy edit has no muscle selected; Save keeps the old region.
   await page.goto(`${APP}/exercise/c-old-arms`);
@@ -88,6 +102,7 @@ for (const language of ['en', 'de']) for (const theme of ['light', 'dark']) {
     assert.equal(await page.locator('[data-testid^="part-"][aria-selected="true"]').count(), 0);
     assert.equal(await id('exercise-legacy-muscle').innerText(), language === 'en' ? 'Counted as Arms until you pick a muscle.' : 'Zählt als Arme, bis du einen Muskel wählst.');
   }
+  if (!before) assert.equal(await id('exercise-helpers').count(), 0, 'legacy region hides helpers');
   await formPosition(); await shot('form-old-arms');
   await id('exercise-save').click(); await id('exercise-title').waitFor();
   assert.equal((await storedData(page)).exercises.find((e) => e.id === 'c-old-arms').bodyPart, 'arms');
@@ -98,6 +113,7 @@ for (const language of ['en', 'de']) for (const theme of ['light', 'dark']) {
   await id('exercise-name').blur();
   if (!before) {
     assert.equal(await page.locator('[data-testid^="part-"][aria-selected="true"]').count(), 0);
+    assert.equal(await id('exercise-helpers').count(), 0, 'no main muscle hides helpers');
     await id('exercise-save').click();
     await page.getByText(language === 'en' ? 'Choose a muscle' : 'Wähle einen Muskel', { exact: true }).waitFor();
     assert.ok(!(await storedData(page)).exercises.some((e) => e.name === 'My Pushdown (Cable)'));
@@ -111,11 +127,31 @@ for (const language of ['en', 'de']) for (const theme of ['light', 'dark']) {
   }
   await formPosition(); await shot('form-new');
   await id(before ? 'part-arms' : 'part-triceps').click();
+  if (!before) {
+    for (const part of ['cardio', 'other']) {
+      await id(`part-${part}`).click();
+      assert.equal(await id('exercise-helpers').count(), 0, `${part} hides helpers`);
+    }
+    await id('part-triceps').click();
+    await id('exercise-helpers').scrollIntoViewIfNeeded();
+    assert.equal(await id('helper-triceps').count(), 0);
+    for (const part of ['full', 'cardio', 'other']) assert.equal(await id(`helper-${part}`).count(), 0);
+    for (const part of ['chest', 'front_delts', 'side_delts']) await id(`helper-${part}`).click();
+    await id('helper-biceps').click();
+    await page.getByText(language === 'en' ? 'Up to 3 muscles' : 'Höchstens 3 Muskeln', { exact: true }).waitFor();
+    assert.equal(await page.locator('[data-testid^="helper-"][aria-selected="true"]').count(), 3);
+    assert.equal(await id('helper-biceps').getAttribute('aria-selected'), 'false');
+    await id('part-front_delts').click();
+    assert.equal(await id('helper-front_delts').count(), 0, 'a new main muscle is removed from helpers');
+    await id('part-triceps').click();
+    assert.equal(await id('helper-front_delts').getAttribute('aria-selected'), 'false');
+  }
   await id('exercise-save').click(); await id('exercise-equipment').waitFor();
   if (!before) {
     assert.match(await id('exercise-equipment').innerText(), /· (Triceps|Trizeps)/);
     assert.equal((await storedData(page)).exercises.find((e) => e.name === 'My Pushdown (Cable)').bodyPart, 'triceps');
-    ok(`${language}/${theme}: a new exercise requires a muscle; Triceps saves; a legacy region survives editing`);
+    assert.deepEqual((await storedData(page)).exercises.find((e) => e.name === 'My Pushdown (Cable)').helpers, ['chest', 'side_delts']);
+    ok(`${language}/${theme}: muscle required; helper chips cap at three, exclude the main muscle and save; built-in defaults stay live; legacy edits survive`);
   }
 
   await page.goto(APP); await openSearch(page);

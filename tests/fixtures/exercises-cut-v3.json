@@ -1,0 +1,482 @@
+[
+  {
+    "id": "x-neutral-grip-bench-press-dumbbell",
+    "name": "Neutral Grip Bench Press (Dumbbell)",
+    "bodyPart": "chest"
+  },
+  {
+    "id": "x-push-up-band",
+    "name": "Push Up (Band)",
+    "bodyPart": "chest"
+  },
+  {
+    "id": "x-incline-push-up",
+    "name": "Incline Push Up",
+    "bodyPart": "chest"
+  },
+  {
+    "id": "x-decline-push-up",
+    "name": "Decline Push Up",
+    "bodyPart": "chest"
+  },
+  {
+    "id": "x-deficit-push-up",
+    "name": "Deficit Push Up",
+    "bodyPart": "chest"
+  },
+  {
+    "id": "x-close-grip-push-up",
+    "name": "Close Grip Push Up",
+    "bodyPart": "chest"
+  },
+  {
+    "id": "x-wide-grip-push-up",
+    "name": "Wide Grip Push Up",
+    "bodyPart": "chest"
+  },
+  {
+    "id": "x-ring-push-up",
+    "name": "Ring Push Up",
+    "bodyPart": "chest"
+  },
+  {
+    "id": "x-bench-dip",
+    "name": "Bench Dip",
+    "bodyPart": "arms"
+  },
+  {
+    "id": "x-deadlift-dumbbell",
+    "name": "Deadlift (Dumbbell)",
+    "bodyPart": "back"
+  },
+  {
+    "id": "x-block-pull-barbell",
+    "name": "Block Pull (Barbell)",
+    "bodyPart": "back"
+  },
+  {
+    "id": "x-romanian-deadlift-trap-bar",
+    "name": "Romanian Deadlift (Trap Bar)",
+    "bodyPart": "legs"
+  },
+  {
+    "id": "x-single-leg-romanian-deadlift-kettlebell",
+    "name": "Single Leg Romanian Deadlift (Kettlebell)",
+    "bodyPart": "legs"
+  },
+  {
+    "id": "x-b-stance-romanian-deadlift-dumbbell",
+    "name": "B Stance Romanian Deadlift (Dumbbell)",
+    "bodyPart": "legs"
+  },
+  {
+    "id": "x-chest-supported-row-cable",
+    "name": "Chest Supported Row (Cable)",
+    "bodyPart": "back"
+  },
+  {
+    "id": "x-seal-row-dumbbell",
+    "name": "Seal Row (Dumbbell)",
+    "bodyPart": "back"
+  },
+  {
+    "id": "x-inverted-row",
+    "name": "Inverted Row",
+    "bodyPart": "back"
+  },
+  {
+    "id": "x-row-band",
+    "name": "Row (Band)",
+    "bodyPart": "back"
+  },
+  {
+    "id": "x-pull-up-band",
+    "name": "Pull Up (Band)",
+    "bodyPart": "back"
+  },
+  {
+    "id": "x-neutral-grip-pull-up-weighted",
+    "name": "Neutral Grip Pull Up (Weighted)",
+    "bodyPart": "back"
+  },
+  {
+    "id": "x-shrug-trap-bar",
+    "name": "Shrug (Trap Bar)",
+    "bodyPart": "back"
+  },
+  {
+    "id": "x-shrug-cable",
+    "name": "Shrug (Cable)",
+    "bodyPart": "back"
+  },
+  {
+    "id": "x-overhead-press-kettlebell",
+    "name": "Overhead Press (Kettlebell)",
+    "bodyPart": "shoulders"
+  },
+  {
+    "id": "x-overhead-press-cable",
+    "name": "Overhead Press (Cable)",
+    "bodyPart": "shoulders"
+  },
+  {
+    "id": "x-single-arm-overhead-press-dumbbell",
+    "name": "Single Arm Overhead Press (Dumbbell)",
+    "bodyPart": "shoulders"
+  },
+  {
+    "id": "x-z-press-dumbbell",
+    "name": "Z Press (Dumbbell)",
+    "bodyPart": "shoulders"
+  },
+  {
+    "id": "x-push-press-dumbbell",
+    "name": "Push Press (Dumbbell)",
+    "bodyPart": "shoulders"
+  },
+  {
+    "id": "x-lateral-raise-band",
+    "name": "Lateral Raise (Band)",
+    "bodyPart": "shoulders"
+  },
+  {
+    "id": "x-front-raise-barbell",
+    "name": "Front Raise (Barbell)",
+    "bodyPart": "shoulders"
+  },
+  {
+    "id": "x-front-raise-plate",
+    "name": "Front Raise (Plate)",
+    "bodyPart": "shoulders"
+  },
+  {
+    "id": "x-upright-row-barbell",
+    "name": "Upright Row (Barbell)",
+    "bodyPart": "shoulders"
+  },
+  {
+    "id": "x-upright-row-smith-machine",
+    "name": "Upright Row (Smith Machine)",
+    "bodyPart": "shoulders"
+  },
+  {
+    "id": "x-face-pull-band",
+    "name": "Face Pull (Band)",
+    "bodyPart": "shoulders"
+  },
+  {
+    "id": "x-reverse-fly-dumbbell",
+    "name": "Reverse Fly (Dumbbell)",
+    "bodyPart": "shoulders"
+  },
+  {
+    "id": "x-reverse-fly-band",
+    "name": "Reverse Fly (Band)",
+    "bodyPart": "shoulders"
+  },
+  {
+    "id": "x-external-rotation-band",
+    "name": "External Rotation (Band)",
+    "bodyPart": "shoulders"
+  },
+  {
+    "id": "x-bicep-curl-band",
+    "name": "Bicep Curl (Band)",
+    "bodyPart": "arms"
+  },
+  {
+    "id": "x-hammer-curl-band",
+    "name": "Hammer Curl (Band)",
+    "bodyPart": "arms"
+  },
+  {
+    "id": "x-cross-body-hammer-curl-dumbbell",
+    "name": "Cross Body Hammer Curl (Dumbbell)",
+    "bodyPart": "arms"
+  },
+  {
+    "id": "x-triceps-pushdown-band",
+    "name": "Triceps Pushdown (Band)",
+    "bodyPart": "arms"
+  },
+  {
+    "id": "x-squat-dumbbell",
+    "name": "Squat (Dumbbell)",
+    "bodyPart": "legs"
+  },
+  {
+    "id": "x-squat-bodyweight",
+    "name": "Squat (Bodyweight)",
+    "bodyPart": "legs"
+  },
+  {
+    "id": "x-hack-squat-barbell",
+    "name": "Hack Squat (Barbell)",
+    "bodyPart": "legs"
+  },
+  {
+    "id": "x-goblet-squat-kettlebell",
+    "name": "Goblet Squat (Kettlebell)",
+    "bodyPart": "legs"
+  },
+  {
+    "id": "x-bulgarian-split-squat",
+    "name": "Bulgarian Split Squat",
+    "bodyPart": "legs"
+  },
+  {
+    "id": "x-lunge",
+    "name": "Lunge",
+    "bodyPart": "legs"
+  },
+  {
+    "id": "x-lateral-lunge-dumbbell",
+    "name": "Lateral Lunge (Dumbbell)",
+    "bodyPart": "legs"
+  },
+  {
+    "id": "x-step-up-barbell",
+    "name": "Step Up (Barbell)",
+    "bodyPart": "legs"
+  },
+  {
+    "id": "x-step-up-bodyweight",
+    "name": "Step Up (Bodyweight)",
+    "bodyPart": "legs"
+  },
+  {
+    "id": "x-seated-good-morning-barbell",
+    "name": "Seated Good Morning (Barbell)",
+    "bodyPart": "legs"
+  },
+  {
+    "id": "x-sliding-leg-curl",
+    "name": "Sliding Leg Curl",
+    "bodyPart": "legs"
+  },
+  {
+    "id": "x-nordic-hamstring-curl-band",
+    "name": "Nordic Hamstring Curl (Band)",
+    "bodyPart": "legs"
+  },
+  {
+    "id": "x-hip-thrust-bodyweight",
+    "name": "Hip Thrust (Bodyweight)",
+    "bodyPart": "legs"
+  },
+  {
+    "id": "x-glute-bridge",
+    "name": "Glute Bridge",
+    "bodyPart": "legs"
+  },
+  {
+    "id": "x-single-leg-hip-thrust",
+    "name": "Single Leg Hip Thrust",
+    "bodyPart": "legs"
+  },
+  {
+    "id": "x-single-leg-glute-bridge",
+    "name": "Single Leg Glute Bridge",
+    "bodyPart": "legs"
+  },
+  {
+    "id": "x-glute-kickback-band",
+    "name": "Glute Kickback (Band)",
+    "bodyPart": "legs"
+  },
+  {
+    "id": "x-hip-abduction-band",
+    "name": "Hip Abduction (Band)",
+    "bodyPart": "legs"
+  },
+  {
+    "id": "x-standing-calf-raise-bodyweight",
+    "name": "Standing Calf Raise (Bodyweight)",
+    "bodyPart": "legs"
+  },
+  {
+    "id": "x-seated-calf-raise-dumbbell",
+    "name": "Seated Calf Raise (Dumbbell)",
+    "bodyPart": "legs"
+  },
+  {
+    "id": "x-box-jump",
+    "name": "Box Jump",
+    "bodyPart": "legs"
+  },
+  {
+    "id": "x-bicycle-crunch",
+    "name": "Bicycle Crunch",
+    "bodyPart": "core"
+  },
+  {
+    "id": "x-sit-up",
+    "name": "Sit Up",
+    "bodyPart": "core"
+  },
+  {
+    "id": "x-sit-up-weighted",
+    "name": "Sit Up (Weighted)",
+    "bodyPart": "core"
+  },
+  {
+    "id": "x-decline-sit-up",
+    "name": "Decline Sit Up",
+    "bodyPart": "core"
+  },
+  {
+    "id": "x-hanging-knee-raise-weighted",
+    "name": "Hanging Knee Raise (Weighted)",
+    "bodyPart": "core"
+  },
+  {
+    "id": "x-toes-to-bar",
+    "name": "Toes to Bar",
+    "bodyPart": "core"
+  },
+  {
+    "id": "x-lying-leg-raise",
+    "name": "Lying Leg Raise",
+    "bodyPart": "core"
+  },
+  {
+    "id": "x-russian-twist",
+    "name": "Russian Twist",
+    "bodyPart": "core"
+  },
+  {
+    "id": "x-russian-twist-weighted",
+    "name": "Russian Twist (Weighted)",
+    "bodyPart": "core"
+  },
+  {
+    "id": "x-mountain-climber",
+    "name": "Mountain Climber",
+    "bodyPart": "core"
+  },
+  {
+    "id": "x-dead-bug",
+    "name": "Dead Bug",
+    "bodyPart": "core"
+  },
+  {
+    "id": "x-pallof-press-band",
+    "name": "Pallof Press (Band)",
+    "bodyPart": "core"
+  },
+  {
+    "id": "x-wood-chop-cable",
+    "name": "Wood Chop (Cable)",
+    "bodyPart": "core"
+  },
+  {
+    "id": "x-wood-chop-dumbbell",
+    "name": "Wood Chop (Dumbbell)",
+    "bodyPart": "core"
+  },
+  {
+    "id": "x-rkc-plank",
+    "name": "RKC Plank",
+    "bodyPart": "core"
+  },
+  {
+    "id": "x-bird-dog",
+    "name": "Bird Dog",
+    "bodyPart": "core"
+  },
+  {
+    "id": "x-dragon-flag",
+    "name": "Dragon Flag",
+    "bodyPart": "core"
+  },
+  {
+    "id": "x-hollow-hold",
+    "name": "Hollow Hold",
+    "bodyPart": "core"
+  },
+  {
+    "id": "x-l-sit",
+    "name": "L-Sit",
+    "bodyPart": "core"
+  },
+  {
+    "id": "x-clean-dumbbell",
+    "name": "Clean (Dumbbell)",
+    "bodyPart": "full"
+  },
+  {
+    "id": "x-clean-kettlebell",
+    "name": "Clean (Kettlebell)",
+    "bodyPart": "full"
+  },
+  {
+    "id": "x-snatch-dumbbell",
+    "name": "Snatch (Dumbbell)",
+    "bodyPart": "full"
+  },
+  {
+    "id": "x-snatch-kettlebell",
+    "name": "Snatch (Kettlebell)",
+    "bodyPart": "full"
+  },
+  {
+    "id": "x-thruster-barbell",
+    "name": "Thruster (Barbell)",
+    "bodyPart": "full"
+  },
+  {
+    "id": "x-thruster-dumbbell",
+    "name": "Thruster (Dumbbell)",
+    "bodyPart": "full"
+  },
+  {
+    "id": "x-turkish-get-up-kettlebell",
+    "name": "Turkish Get Up (Kettlebell)",
+    "bodyPart": "full"
+  },
+  {
+    "id": "x-turkish-get-up-dumbbell",
+    "name": "Turkish Get Up (Dumbbell)",
+    "bodyPart": "full"
+  },
+  {
+    "id": "x-burpee",
+    "name": "Burpee",
+    "bodyPart": "full"
+  },
+  {
+    "id": "x-battle-ropes",
+    "name": "Battle Ropes",
+    "bodyPart": "full"
+  },
+  {
+    "id": "x-swimming",
+    "name": "Swimming",
+    "bodyPart": "cardio"
+  },
+  {
+    "id": "x-hiking",
+    "name": "Hiking",
+    "bodyPart": "cardio"
+  },
+  {
+    "id": "x-jump-rope",
+    "name": "Jump Rope",
+    "bodyPart": "cardio"
+  },
+  {
+    "id": "x-stretching",
+    "name": "Stretching",
+    "bodyPart": "other"
+  },
+  {
+    "id": "x-yoga",
+    "name": "Yoga",
+    "bodyPart": "other"
+  },
+  {
+    "id": "x-warm-up",
+    "name": "Warm Up",
+    "bodyPart": "other"
+  }
+]

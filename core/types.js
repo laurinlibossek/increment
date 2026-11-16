@@ -32,7 +32,7 @@
  * @typedef {{ id?: string, exerciseId: string, sets: LoggedSet[] }} LoggedEntry
  *
  * An exercise of the library.
- * @typedef {{ id: string, name?: string, category: string, bodyPart?: string,
+ * @typedef {{ id: string, name?: string, category: string, bodyPart?: string, helpers?: Muscle[],
  *   unilateral?: boolean, restSec?: number | null }} ExerciseLike
  *
  * The library: the Map by id the apps keep, or a list (a backup's).

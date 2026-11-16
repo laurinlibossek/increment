@@ -83,7 +83,7 @@ async function discard(page) {
   assert.match(await id(page, 'week-head').innerText(), new RegExp(`${week.done} of ${settings.weeklyGoal} sessions`));
   assert.equal(await id(page, 'week-strip').getAttribute('aria-label'), `This week: ${week.done} of ${settings.weeklyGoal} sessions`);
   assert.ok(muscles.length >= 3, 'the demo trained several muscles this week');
-  for (const m of muscles) assert.match(await id(page, `muscle-${m.muscle}`).innerText(), new RegExp(`^${m.label}\\s+${m.sets}$`));
+  for (const m of muscles) assert.match(await id(page, `muscle-${m.muscle}`).innerText(), new RegExp(`^${m.label}\\s+${core.halfText(m.sets)}$`));
   assert.equal(await page.locator('[data-testid^="muscle-"]').count(), muscles.length);
   await page.screenshot({ path: `${OUT}/01-today.png` });
   ok(`Today: the date, Up next (${sug.template.name}, about ${size.minutes} min), ${week.done} of ${settings.weeklyGoal} sessions, sets per muscle as the core counts them`);

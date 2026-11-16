@@ -3,6 +3,7 @@
 // size of the routine that is up next. Labels are English translation keys.
 import { startOfDay, startOfWeek, addDays } from './units.js';
 import { BODY_PARTS, BODY_PART_LABEL, MUSCLES, regionOf } from './seed.js';
+import { helpersOf, HELPER_SET_WEIGHT } from './exercise-helpers.js';
 import { restFor } from './workout.js';
 import {
   entriesSetCount, exerciseLookup, exerciseSetCount, isUnilateral, setsByExercise,
@@ -65,8 +66,8 @@ const countedParts = new Set(MUSCLE_ROWS.map((m) => m.id));
 /**
  * Each exercise of a muscle (its body part) in each workout of the last `days`
  * days including today, with its working rows and their count:
- * fn({ workout, exerciseId, muscle, rows, sets, unpaired }). Warm-ups and cardio
- * don't count. An exercise done one side at a time counts its complete
+ * The main muscle has weight 1, each helper HELPER_SET_WEIGHT; sets and
+ * unpaired stay unweighted here. Warm-ups and cardio do not count. An exercise done one side at a time counts its complete
  * left/right pairs within each workout (#54), whatever Account's "Count
  * left/right sets together" says. Repeated entries of an exercise in one
  * workout count together. One walk for setsPerMuscle and muscleSets, so a
@@ -75,7 +76,7 @@ const countedParts = new Set(MUSCLE_ROWS.map((m) => m.id));
  * @param {W[]} workouts
  * @param {Exercises} exercises
  * @param {{ days: number, now: number }} range
- * @param {(x: { workout: W, exerciseId: string, muscle: string, rows: W['exercises'][number]['sets'][number][], sets: number, unpaired: number }) => void} fn
+ * @param {(x: { workout: W, exerciseId: string, muscle: string, weight: number, rows: W['exercises'][number]['sets'][number][], sets: number, unpaired: number }) => void} fn
  */
 function eachMuscleExercise(workouts, exercises, { days, now }, fn) {
   const get = exerciseLookup(exercises);
@@ -85,7 +86,9 @@ function eachMuscleExercise(workouts, exercises, { days, now }, fn) {
     for (const [id, rows] of setsByExercise(w.exercises)) {
       const ex = get(id), muscle = ex?.bodyPart;
       if (!muscle || !countedParts.has(muscle)) continue;
-      fn({ workout: w, exerciseId: id, muscle, rows, ...exerciseSetCount(rows, isUnilateral(ex)) });
+      const counted = { workout: w, exerciseId: id, rows, ...exerciseSetCount(rows, isUnilateral(ex)) };
+      fn({ ...counted, muscle, weight: 1 });
+      for (const helper of helpersOf(ex)) fn({ ...counted, muscle: helper, weight: HELPER_SET_WEIGHT });
     }
   }
 }
@@ -96,21 +99,27 @@ function eachMuscleExercise(workouts, exercises, { days, now }, fn) {
  * sets, in a fixed order.
  * @param {WorkoutLike[]} workouts
  * @param {Exercises} exercises
- * @returns {{ muscle: string, label: string, sets: number }[]}
+ * @returns {{ muscle: string, label: string, sets: number, direct: number, helper: number }[]}
  */
 export function setsPerMuscle(workouts, exercises, { days = 7, now = Date.now() } = {}) {
-  /** @type {Map<string, number>} */
+  /** @type {Map<string, { direct: number, helper: number }>} */
   const counts = new Map();
-  eachMuscleExercise(workouts, exercises, { days, now }, ({ muscle, sets }) => {
-    if (sets) counts.set(muscle, (counts.get(muscle) || 0) + sets);
+  eachMuscleExercise(workouts, exercises, { days, now }, ({ muscle, sets, weight }) => {
+    if (!sets) return;
+    const count = counts.get(muscle) || { direct: 0, helper: 0 };
+    count[weight === 1 ? 'direct' : 'helper'] += sets * weight;
+    counts.set(muscle, count);
   });
-  return MUSCLE_ROWS.filter((b) => counts.has(b.id)).map((b) => ({ muscle: b.id, label: b.label, sets: counts.get(b.id) || 0 }));
+  return MUSCLE_ROWS.filter((b) => counts.has(b.id)).map((b) => {
+    const { direct, helper } = counts.get(b.id) || { direct: 0, helper: 0 };
+    return { muscle: b.id, label: b.label, sets: direct + helper, direct, helper };
+  });
 }
 
 /**
  * The sets behind one muscle's number in Sets per muscle (#89), grouped by
- * exercise: most sets first, on a tie the one done most recently (then in the
- * order done). Each exercise lists its workouts newest first, with that
+ * exercise: direct exercises first, then helpers; most sets first in each
+ * group, on a tie the one done most recently (then in the order done). Each exercise lists its workouts newest first, with that
  * workout's working rows in logged order (warm-ups out), its count and the
  * rows a left/right pairing leaves out. An exercise with rows but no complete
  * pair is listed with 0 sets, so its unpaired rows show. `sets` is always
@@ -123,21 +132,23 @@ export function setsPerMuscle(workouts, exercises, { days = 7, now = Date.now() 
  */
 export function muscleSets(workouts, exercises, muscle, { days = 7, now = Date.now() } = {}) {
   /** @typedef {W['exercises'][number]['sets'][number]} Row */
-  /** @type {Map<string, { exerciseId: string, sets: number, unpaired: number, workouts: { id: string, name: string | undefined, startedAt: number, sets: number, unpaired: number, rows: Row[] }[] }>} */
+  /** @type {Map<string, { exerciseId: string, helper: boolean, sets: number, unpaired: number, workouts: { id: string, name: string | undefined, startedAt: number, sets: number, unpaired: number, rows: Row[] }[] }>} */
   const byExercise = new Map();
-  let sets = 0, unpaired = 0;
-  eachMuscleExercise(newestFirst(workouts), exercises, { days, now }, ({ workout: w, exerciseId, muscle: m, rows, sets: n, unpaired: u }) => {
+  let sets = 0, direct = 0, helper = 0, unpaired = 0;
+  eachMuscleExercise(newestFirst(workouts), exercises, { days, now }, ({ workout: w, exerciseId, muscle: m, weight, rows, sets: n, unpaired: u }) => {
     if (m !== muscle || !(n || u)) return;
     let e = byExercise.get(exerciseId);
-    if (!e) byExercise.set(exerciseId, e = { exerciseId, sets: 0, unpaired: 0, workouts: [] });
-    e.sets += n; e.unpaired += u; sets += n; unpaired += u;
-    e.workouts.push({ id: w.id, name: w.name, startedAt: w.startedAt, sets: n, unpaired: u, rows: rows.filter((r) => r.type !== 'warmup') });
+    if (!e) byExercise.set(exerciseId, e = { exerciseId, helper: weight !== 1, sets: 0, unpaired: 0, workouts: [] });
+    const weighted = n * weight;
+    e.sets += weighted; e.unpaired += u; sets += weighted; unpaired += u;
+    if (e.helper) helper += weighted; else direct += weighted;
+    e.workouts.push({ id: w.id, name: w.name, startedAt: w.startedAt, sets: weighted, unpaired: u, rows: rows.filter((r) => r.type !== 'warmup') });
   });
   // a stable sort: ties keep the order met, newest workout first
-  const list = [...byExercise.values()].sort((a, b) => b.sets - a.sets);
+  const list = [...byExercise.values()].sort((a, b) => Number(a.helper) - Number(b.helper) || b.sets - a.sets);
   /** @type {string | null} */
   const label = countedParts.has(muscle) ? BODY_PART_LABEL[muscle] : null;
-  return { muscle, label, sets, unpaired, exercises: list };
+  return { muscle, label, sets, direct, helper, unpaired, exercises: list };
 }
 
 // Rough time per set, for the estimate on a routine card before there's history.
