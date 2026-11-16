@@ -164,7 +164,7 @@ for (const theme of ['light', 'dark']) {
   await id('exercise-unilateral').scrollIntoViewIfNeeded();
   await shot('form-locked');
   await id('exercise-save').click();
-  await page.waitForTimeout(300);
+  await page.waitForURL((u) => u.pathname === `/exercise/${PLANK}`);
   assert.equal(Object.hasOwn((await storedData(page)).exercises.find((e) => e.id === PLANK), 'unilateral'), false, 'nothing stored for it');
   toggle = await editExercise(page, EXT);
   assert.equal(await toggle.isChecked(), false, 'Leg Extension (Machine) is bilateral');
@@ -174,12 +174,14 @@ for (const theme of ['light', 'dark']) {
   await shot('form');
   await id('exercise-save').click();
   await waitStored(page, (d) => d.exercises.find((e) => e.id === EXT)?.unilateral === true);
+  await page.waitForURL((u) => u.pathname === `/exercise/${EXT}`);
   await page.reload();
   toggle = await editExercise(page, EXT);
   assert.equal(await toggle.isChecked(), true, 'Unilateral survives a reload');
   await id('exercise-unilateral').click();
   await id('exercise-save').click();
   await waitStored(page, (d) => !Object.hasOwn(d.exercises.find((e) => e.id === EXT), 'unilateral'));
+  await page.waitForURL((u) => u.pathname === `/exercise/${EXT}`);
   ok('the form: Side Plank’s Unilateral is on and locked; Leg Extension turns unilateral (survives a reload) and back to bilateral (nothing stored)');
 
   await page.goto(APP);
