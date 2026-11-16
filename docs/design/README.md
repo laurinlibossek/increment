@@ -84,7 +84,7 @@ Voice: plain, short, numbers first. The person is mid-set with sweaty hands; eve
 ## Don't
 
 - No spreadsheet set table with SET · PREVIOUS · KG · REPS · ✓ columns, no green completed rows, no checkmark column. Last time's numbers are ghost values in the fields and one line under the exercise name.
-- No blue links. Tappable text is `ink` with weight, or carries a chevron.
+- No blue links and no chevrons. Tappable text is `ink` with weight; a tappable row shows its pressed state (Laurin, 16 Nov 2026).
 - No Workout tab in the middle and no Profile tab. The account is the avatar on Today.
 - No muscle heat maps, radar charts, streak flames, confetti or badges.
 - No gradients, glows, glass on content, card shadows, cards in cards, emoji, or sparkles to mark coaching.

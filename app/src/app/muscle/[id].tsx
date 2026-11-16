@@ -67,7 +67,7 @@ export default function MuscleSets() {
               const sets = w.rows.map((x) => `${side(x)}${f.setText(x, ex?.category)}`.replace(/ /g, '\u00A0')).join(' · ');
               const unpaired = w.unpaired ? tr('{n} unpaired', { n: f.num(w.unpaired, 0) }) : '';
               return (
-                <ListRow key={w.id} first={i === 0} chevron testID={`muscle-workout-${e.exerciseId}-${w.id}`}
+                <ListRow key={w.id} first={i === 0} testID={`muscle-workout-${e.exerciseId}-${w.id}`}
                   onPress={() => router.push({ pathname: '/workout/[id]', params: { id: w.id } })}
                   title={when}
                   subtitle={(

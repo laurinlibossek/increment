@@ -82,10 +82,10 @@ export default function ProgressTab() {
       </View>
 
       <View style={{ marginTop: SPACE.s6 }}>
-        <ListRow first symbol="calendar" title={tr('Workouts')} chevron onPress={() => router.push('/history')} testID="progress-workouts" />
-        <ListRow symbol="dumbbell" title={tr('Lifts')} chevron onPress={() => router.push('/exercises')} testID="progress-lifts" />
-        <ListRow symbol="rosette" title={tr('Records')} chevron onPress={() => router.push('/records')} testID="progress-records" />
-        <ListRow symbol="figure.stand" title={tr('Body')} trailing={bw ? fmtMeasure(measureDef('bodyweight'), bw.value, s.settings, f) : undefined} chevron
+        <ListRow first symbol="calendar" title={tr('Workouts')} onPress={() => router.push('/history')} testID="progress-workouts" />
+        <ListRow symbol="dumbbell" title={tr('Lifts')} onPress={() => router.push('/exercises')} testID="progress-lifts" />
+        <ListRow symbol="rosette" title={tr('Records')} onPress={() => router.push('/records')} testID="progress-records" />
+        <ListRow symbol="figure.stand" title={tr('Body')} trailing={bw ? fmtMeasure(measureDef('bodyweight'), bw.value, s.settings, f) : undefined}
           onPress={() => router.push('/measure')} testID="progress-body" />
       </View>
 
@@ -99,8 +99,8 @@ export default function ProgressTab() {
       </View>
 
       <SectionHeader title={tr('Tools')} />
-      <ListRow first symbol="circle.circle" title={tr('Plate calculator')} chevron onPress={() => router.push({ pathname: '/tools', params: { tab: 'plates' } })} testID="open-plates" />
-      <ListRow symbol="function" title={tr('1RM calculator')} chevron onPress={() => router.push({ pathname: '/tools', params: { tab: 'rm' } })} testID="open-rm" />
+      <ListRow first symbol="circle.circle" title={tr('Plate calculator')} onPress={() => router.push({ pathname: '/tools', params: { tab: 'plates' } })} testID="open-plates" />
+      <ListRow symbol="function" title={tr('1RM calculator')} onPress={() => router.push({ pathname: '/tools', params: { tab: 'rm' } })} testID="open-rm" />
     </TabRoot>
   );
 }

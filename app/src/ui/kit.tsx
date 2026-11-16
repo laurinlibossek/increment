@@ -118,13 +118,11 @@ type CellProps = {
   first?: boolean;
   danger?: boolean;
   right?: ReactNode;
-  /** a ">" on rows that open another screen; off for choices */
-  chevron?: boolean;
   /** a checkmark for the chosen option in a list of choices */
   checked?: boolean;
   testID?: string;
 };
-export function Cell({ title, sub, value, icon, onPress, first, danger, right, chevron = true, checked, testID }: CellProps) {
+export function Cell({ title, sub, value, icon, onPress, first, danger, right, checked, testID }: CellProps) {
   const c = useColors();
   const body = (pressed: boolean) => (
     <View style={[styles.cell, { backgroundColor: pressed ? c.surface2 : 'transparent' }]}>
@@ -137,7 +135,6 @@ export function Cell({ title, sub, value, icon, onPress, first, danger, right, c
       {!!value && <Text style={[TYPE.subhead, { color: c.ink2, marginLeft: SPACE.s2, flexShrink: 1, maxWidth: '45%' }]} numberOfLines={1}>{value}</Text>}
       {right}
       {checked && <Icon name="check" size={17} color={c.accentText} />}
-      {onPress && chevron && checked === undefined && <View style={{ marginLeft: SPACE.s1 }}><Icon name="chevron" size={13} color={c.ink2} /></View>}
     </View>
   );
   if (!onPress) return body(false);

@@ -92,19 +92,19 @@ One series over time, drawn in `ink`, with each new record marked by a `signal` 
 
 ## ListRow
 
-A full-width row: optional leading symbol, a title with an optional second line, and a trailing value, tally, sparkline or chevron.
+A full-width row: optional leading symbol, a title with an optional second line, and a trailing value, tally or sparkline.
 
 **You provide** title, optional subtitle, optional leading SF Symbol / Material Symbol name, trailing content, and the action.
 
 **Rules**
 - `row-h` minimum, text on the `space-5` margin (or after the leading symbol), hairline separators inset to the text.
 - Subtitles in `t-footnote` `ink-2`: facts separated by " · ".
-- A chevron only when the row opens a page. Exceptions: Plan’s routine rows and Search/Lifts exercise rows open from the whole row without a chevron (Laurin, 15 Nov 2026). The picker keeps its open/closed family indicator: it shows expansion, not a link.
+- No chevrons. A row that can be tapped shows only its pressed state (`paper-2`); what opens a page should be clear without one (Laurin, 16 Nov 2026, after Plan's routine rows and Search/Lifts rows on 15 Nov). Indicators that show a state stay: the open/closed arrow on Plan's folders and the picker's families, History's month arrows and the running workout's Minimize.
 - No cards around lists.
 
 **Exercise thumbnails** (#50, behind `EXPO_PUBLIC_ENABLE_EXERCISE_THUMBNAILS=1` until #51): Search, the exercise picker and Lifts have a 56 × 56 pt `paper-3` tile with `radius-m` corners (like the keypad keys, clipping the drawing) before the title, with `space-3` to the text and the hairline inset to that text. One medium-build figure, body in `ink`, equipment in `ink-2`, and a `paper-3` halo behind each body part to separate overlapping limbs. Names wrap beside the tile, including at 320 pt; no alphabet scroller. A family row shows the exercise it represents (the last logged visible member, or the usual member), while an expanded or searched row shows its own ID. Never substitute a sibling’s drawing.
 
-Custom exercises always use a letter tile; an undrawn built-in uses the same fallback: the first letter of `f.exName(ex)`, uppercased, centred, `t-large-title` in `ink` on the same 56 pt `paper-3` tile. The letter keeps its size when the phone's text is larger, because the tile doesn't grow. Both letters and drawings are decorative, hidden from screen readers and never separate tap targets. With the switch off there is no tile or reserved space. The chevron exception above is live independently of the switch.
+Custom exercises always use a letter tile; an undrawn built-in uses the same fallback: the first letter of `f.exName(ex)`, uppercased, centred, `t-large-title` in `ink` on the same 56 pt `paper-3` tile. The letter keeps its size when the phone's text is larger, because the tile doesn't grow. Both letters and drawings are decorative, hidden from screen readers and never separate tap targets. With the switch off there is no tile or reserved space.
 
 ## MuscleVolume
 
@@ -118,6 +118,7 @@ Working sets per muscle over the last 7 days, as tallies.
 - Muscles in `MUSCLES` order, with any legacy region row after its muscles. Full body counts; Cardio and Other do not.
 - Long muscle labels wrap, so the full name stays visible in German too.
 - A row that can be tapped has no chevron, only the pressed state (`paper-2`). It is at least 44 pt tall (Apple's minimum touch target) and runs the full width, and the rows meet, so they sit a little further apart than rows that can't be tapped (Laurin, 14 Nov 2026).
+- A `line` hairline separates the rows, from the text's margin to the screen's edge like a ListRow's (Laurin, 16 Nov 2026).
 - Every tappable element’s own layout box is at least 44 × 44 pt (`CONTROL.hitMin` in both directions). `hitSlop` does not count: react-native-web ignores it. Remove it once the box meets the minimum.
 - Keep a small visible shape inside a centred 44 pt Pressable, or use minimum dimensions with padding and matching negative margins to preserve spacing. Adjacent targets may touch but must not overlap. Inputs inside a larger target are focused by that wrapper (as in `SetField`).
 
@@ -355,7 +356,6 @@ export interface ListRowProps {
   /** SF Symbol name on iOS; the Material Symbol is mapped from it. */
   symbol?: string;
   trailing?: string | { tally: StrokeState[][] } | { spark: number[]; change?: string };
-  chevron?: boolean;
   onPress?: () => void;
 }
 

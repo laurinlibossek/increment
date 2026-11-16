@@ -172,7 +172,7 @@ function ExercisePage({ id }: { id: string }) {
         <>
           <SectionHeader title={tr('History')} scope={tr('Since {date}', { date: f.date.short(every[every.length - 1].startedAt) })} />
           {every.slice(0, limit).map((x, i) => (
-            <ListRow key={x.workoutId + x.entry.id} first={i === 0} chevron testID={`ex-session-${x.workoutId}`}
+            <ListRow key={x.workoutId + x.entry.id} first={i === 0} testID={`ex-session-${x.workoutId}`}
               onPress={() => router.push({ pathname: '/workout/[id]', params: { id: x.workoutId } })}
               title={x.name}
               subtitle={(
