@@ -23,7 +23,8 @@ function data(language, theme) {
   const at = Date.now() - DAY;
   return {
     exercises: [...SEED_EXERCISES.map((e) => ({ ...e, bodyPart: oldRegions[e.id] || regionOf(e.bodyPart) })),
-      { id: 'c-old-arms', name: 'My arm exercise (Cable)', category: 'machine', bodyPart: 'arms' }],
+      { id: 'c-old-arms', name: 'My arm exercise (Cable)', category: 'machine', bodyPart: 'arms' },
+      { id: 'x-glute-bridge', name: 'Glute Bridge', category: 'reps', bodyPart: 'legs', builtin: true }],
     workouts: [{ id: 'push', name: 'Push', startedAt: at, endedAt: at + 3600000,
       exercises: ['x-bench-press-barbell', 'x-overhead-press-barbell', TRI, 'c-old-arms'].map((exerciseId, i) => ({ id: `e${i}`, exerciseId, sets: sets(i === 3 ? 2 : 3) })) }],
     templates: [], measurements: [],
@@ -54,7 +55,8 @@ for (const language of ['en', 'de']) for (const theme of ['light', 'dark']) {
     }
     assert.match(await id('muscle-triceps').innerText(), /Triceps|Trizeps/);
     assert.match(await id('muscle-arms').innerText(), /Arms|Arme/);
-    assert.equal((await storedData(page)).kv.meta.seedVersion, 4);
+    assert.equal((await storedData(page)).kv.meta.seedVersion, 5);
+    assert.equal((await storedData(page)).exercises.find((e) => e.id === 'x-glute-bridge').bodyPart, 'glutes', 'a built-in cut in #45 gets its muscle');
     assert.equal((await storedData(page)).exercises.find((e) => e.id === 'c-old-arms').bodyPart, 'arms');
     ok(`${language}/${theme}: a v3 store upgrades built-ins and keeps custom Arms`);
   }

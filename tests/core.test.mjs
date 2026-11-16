@@ -1709,7 +1709,7 @@ test('catalogue keeps v1’s ids, names, categories and example routines; seed 4
     const want = core.isUnilateral({ id: e.exerciseId }) ? e.sets.map((_, i) => (i % 2 ? 'right' : 'left')) : e.sets.map(() => undefined);
     assert.deepEqual(e.sets.map((x) => x.side), want, e.exerciseId);
   }
-  assert.equal(core.SEED_VERSION, 4);
+  assert.equal(core.SEED_VERSION, 5);
   assert.equal(core.SEED_EXERCISES.length, 306, '400 − 96 + 2 (#45)');
   assert.equal(core.EXERCISE_CATALOGUE.length, 74);
   for (const name of ['Squat Press (Machine)', 'Step Up (Cable)']) assert.ok(byName(name), name);
@@ -2180,7 +2180,7 @@ test('family metadata never combines records, last-time sets or routine progress
 });
 
 test('new search shortcuts find actual named movements and equipment', () => {
-  for (const [query, name] of [['ssb', 'Safety Bar Squat (Barbell)'], ['bss', 'Bulgarian Split Squat (Dumbbell)'], ['jm', 'JM Press (Barbell)'], ['yraise', 'Y-Raise (Cable)'], ['cuff', 'Cuffed Lateral Raise (Cable)'], ['sz', 'Preacher Curl (EZ Bar)'], ['ffess', 'Front Foot Elevated Split Squat (Dumbbell)'], ['ghr', 'Glute Ham Raise']]) {
+  for (const [query, name] of [['ssb', 'Safety Bar Squat (Barbell)'], ['bss', 'Bulgarian Split Squat (Dumbbell)'], ['jm', 'JM Press (Barbell)'], ['yraise', 'Y-Raise (Cable)'], ['cuff', 'Cuffed Lateral Raise (Cable)'], ['sz', 'Preacher Curl (EZ Bar)'], ['ffess', 'Front Foot Elevated Split Squat (Dumbbell)'], ['ghr', 'Glute Ham Raise'], ['hyperextension', 'Back Extension'], ['hyperextension', 'Back Extension (Machine)'], ['hyperextension', 'Reverse Hyperextension (Machine)']]) {
     assert.ok(core.matchExercise(byName(name), query), query);
   }
 });
@@ -3021,6 +3021,46 @@ test('seed 4 upgrades v3 muscles on first start, store upgrade and backup restor
   assert.deepEqual(core.seedExerciseChanges(upgraded), []);
   assert.deepEqual(core.withSeedExercises(upgraded), upgraded);
   assert.deepEqual(v3, snapshot, 'never mutates the input');
+});
+
+// Built-ins cut in #45 that older libraries still hold, with their old region and main muscle (seed 5).
+const retiredMuscles = JSON.parse(read(path.join(ROOT, 'tests/fixtures/retired-muscles-v5.json')));
+
+test('seed 5 gives the built-ins cut in #45 their main muscle; changed values, customs and repeats stay', () => {
+  const retired = Object.entries(retiredMuscles);
+  assert.equal(retired.length, 53);
+  const ids = new Set(core.SEED_EXERCISES.map((e) => e.id));
+  const muscles = new Set(core.MUSCLES.map((m) => m.id));
+  for (const [id, [name, old, muscle]] of retired) {
+    assert.ok(!ids.has(id), `${name} is not a kept built-in`);
+    assert.ok(['back', 'shoulders', 'arms', 'legs'].includes(old), name);
+    assert.ok(muscles.has(muscle), name);
+  }
+  // like seed 4's moves: the region changes only for these three
+  assert.deepEqual(retired.filter(([, [, old, muscle]]) => core.regionOf(muscle) !== old).map(([, [name]]) => name),
+    ['Deadlift (Dumbbell)', 'Block Pull (Barbell)', 'External Rotation (Band)']);
+  const lib = [...core.SEED_EXERCISES, ...retired.map(([id, [name, old]]) => ({ id, name, category: 'reps', bodyPart: old, builtin: true }))];
+  const kept = lib.find((e) => e.id === 'x-lunge'); kept.bodyPart = 'back'; // the person changed it
+  const hidden = lib.find((e) => e.id === 'x-glute-bridge'); hidden.hidden = true; hidden.name = 'My bridge';
+  lib.push({ id: 'c-legs', name: 'Glute Bridge', category: 'reps', bodyPart: 'legs' });
+  const snapshot = structuredClone(lib);
+  const upgraded = core.withSeedExercises(lib), get = (id) => upgraded.find((e) => e.id === id);
+  for (const [id, [name, , muscle]] of retired) if (id !== 'x-lunge') assert.equal(get(id).bodyPart, muscle, name);
+  assert.equal(get('x-lunge').bodyPart, 'back', 'a changed value stays');
+  assert.deepEqual(get('x-glute-bridge'), { ...hidden, bodyPart: 'glutes' }, 'hidden and renamed upgrade too');
+  assert.equal(get('c-legs').bodyPart, 'legs', 'a custom exercise keeps its region');
+  assert.equal(get('x-box-jump').bodyPart, 'quads');
+  assert.deepEqual(core.seedExerciseChanges(upgraded), [], 'a second run changes nothing');
+  assert.deepEqual(lib, snapshot, 'never mutates the input');
+  const backup = core.makeBackup({ exercises: lib, workouts: [], templates: [], measurements: [], kv: { meta: { seedVersion: 4 } } }, 'v4');
+  assert.deepEqual(core.parseBackup(backup, core.SEED_EXERCISES).data.exercises, upgraded, 'restore applies the same patch');
+  // A whole v1 library ends with a muscle on every built-in: no region left over
+  const v1 = core.withSeedExercises(seedV1.exercises);
+  assert.deepEqual(v1.filter((e) => e.builtin && !muscles.has(e.bodyPart)).map((e) => e.name), []);
+  // Today counts them by muscle, not as Legs
+  const now = Date.now();
+  const w = { id: 'w', startedAt: now - 1000, exercises: [{ exerciseId: 'x-glute-bridge', sets: [{ type: 'normal', r: 12 }, { type: 'normal', r: 12 }] }] };
+  assert.deepEqual(core.setsPerMuscle([w], upgraded, { now }).map((r) => [r.muscle, r.sets]), [['glutes', 2]]);
 });
 
 test('muscle counts and breakdowns retain legacy region rows after that region’s muscles; routines keep regions', () => {
