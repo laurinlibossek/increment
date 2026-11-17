@@ -226,6 +226,8 @@ for (const language of ['en', 'de']) for (const theme of ['light', 'dark']) {
   if (!helperBefore) {
     const row = id('muscle-glutes');
     assert.equal(await row.getAttribute('aria-label'), language === 'en' ? 'Glutes, 2 sets' : 'Gesäß, 2 Sätze');
+    // the strokes come after the row's first layout (they fill its width): wait for them, then count
+    await row.getByTestId('stroke-helper').nth(1).waitFor();
     assert.equal(await row.getByTestId('stroke-helper').count(), 2);
     const rect = await row.getByTestId('stroke-helper').first().boundingBox();
     assert.equal(rect.height, 20, 'a helper is full height, never a warm-up stroke');
@@ -246,6 +248,7 @@ for (const language of ['en', 'de']) for (const theme of ['light', 'dark']) {
   if (!helperBefore) {
     assert.equal(await id('muscle-glutes').getAttribute('aria-label'), language === 'en' ? 'Glutes, 7½ sets' : 'Gesäß, 7½ Sätze');
     assert.match(await id('muscle-glutes').innerText(), /7½$/);
+    await id('muscle-glutes').getByTestId('stroke-helper').nth(2).waitFor();
     assert.equal(await id('muscle-glutes').getByTestId('stroke-helper').count(), 3, 'remaining half appears only in the number');
   }
   await id('muscle-quads').scrollIntoViewIfNeeded(); await shot('today');
@@ -259,6 +262,7 @@ for (const language of ['en', 'de']) for (const theme of ['light', 'dark']) {
       el.getBoundingClientRect().height <= parseFloat(getComputedStyle(el).lineHeight) && el.scrollWidth <= el.clientWidth), 'the half count stays on one line beside a long German name');
     assert.equal(await id(`muscle-helper-${SQ}`).innerText(), language === 'en' ? 'Counts half' : 'Zählt halb');
     await id(`muscle-workout-${RDL}-lower`).getByText('1½', { exact: true }).waitFor();
+    await id('muscle-tally').getByTestId('stroke-helper').nth(2).waitFor();
     assert.equal(await id('muscle-tally').getByTestId('stroke-helper').count(), 3);
     await id('muscle-helper-note').waitFor();
   }
