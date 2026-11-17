@@ -5,14 +5,14 @@
 import { Share } from 'react-native';
 import { router } from 'expo-router';
 import {
-  encodeTemplate, decodeTemplate, exerciseSetCount, isUnilateral, sideOf, usesWeight, CATEGORIES, BODY_PARTS, WEB_APP_URL,
+  encodeTemplate, decodeTemplate, exerciseSetCount, isUnilateral, sideOf, usesWeight, CATEGORIES, BODY_PART_LABEL, WEB_APP_URL,
 } from '@increment/core';
 
 import {
   addExercise, addFolder, copyTemplate, deleteTemplate, findExercise, getState, patchTemplate, removeFolder, renameFolder,
   saveTemplate, setPinnedNote, setSetting, templateFolders,
 } from '@/data/store';
-import type { Category, Template, TemplateEntry } from '@/data/types';
+import type { Exercise, Category, Template, TemplateEntry } from '@/data/types';
 import {
   actionSheet, ask, prompt, toast,
 } from '@/ui/overlay';
@@ -191,14 +191,14 @@ export async function templatesMenu(f: F) {
 
 type Shared = {
   name: string; notes: string; pinnedNote?: string;
-  exercises: { id: string | null; name: string; family?: string; unilateral?: boolean; category: Category; bodyPart: string; sets: TemplateEntry['sets']; restSec: number | null; notes: string; group: number | null; focus: string | null }[];
+  exercises: { id: string | null; name: string; family?: string; unilateral?: boolean; helpers?: Exercise['helpers']; category: Category; bodyPart: string; sets: TemplateEntry['sets']; restSec: number | null; notes: string; group: number | null; focus: string | null }[];
 };
 
 /** Ask to add the template in a shared link. Returns false if the text holds none. */
 export async function offerSharedTemplate(text: string, f: F): Promise<boolean> {
   const { tr } = f;
   const p = decodeTemplate(text, {
-    categories: CATEGORIES.map((x) => x.id), bodyParts: BODY_PARTS.map((x) => x.id),
+    categories: CATEGORIES.map((x) => x.id), bodyParts: Object.keys(BODY_PART_LABEL),
   }) as Shared | null;
   if (!p) return false;
   const s = getState();
@@ -214,7 +214,7 @@ export async function offerSharedTemplate(text: string, f: F): Promise<boolean> 
   const exercises: TemplateEntry[] = [];
   for (const x of p.exercises) {
     let id = x.id && getState().exercises.has(x.id) ? x.id : findExercise(x.name)?.id;
-    if (!id) id = (await addExercise({ name: x.name, category: x.category, bodyPart: x.bodyPart, family: x.family, unilateral: x.unilateral })).id;
+    if (!id) id = (await addExercise({ name: x.name, category: x.category, bodyPart: x.bodyPart, family: x.family, unilateral: x.unilateral, helpers: x.helpers })).id;
     const e: TemplateEntry = { exerciseId: id, sets: x.sets };
     if (x.restSec !== null) e.restSec = x.restSec;
     if (x.notes) e.notes = x.notes;

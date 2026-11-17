@@ -1,0 +1,777 @@
+{
+  "x-bench-press-barbell": [
+    "triceps",
+    "front_delts"
+  ],
+  "x-bench-press-dumbbell": [
+    "triceps",
+    "front_delts"
+  ],
+  "x-bench-press-smith-machine": [
+    "triceps",
+    "front_delts"
+  ],
+  "x-incline-bench-press-barbell": [
+    "triceps",
+    "front_delts"
+  ],
+  "x-incline-bench-press-dumbbell": [
+    "triceps",
+    "front_delts"
+  ],
+  "x-incline-bench-press-smith-machine": [
+    "triceps",
+    "front_delts"
+  ],
+  "x-decline-bench-press-barbell": [
+    "triceps",
+    "front_delts"
+  ],
+  "x-decline-bench-press-dumbbell": [
+    "triceps",
+    "front_delts"
+  ],
+  "x-decline-bench-press-smith-machine": [
+    "triceps",
+    "front_delts"
+  ],
+  "x-close-grip-bench-press-barbell": [
+    "triceps",
+    "front_delts"
+  ],
+  "x-close-grip-bench-press-smith-machine": [
+    "triceps",
+    "front_delts"
+  ],
+  "x-bench-press-wide-grip-barbell": [
+    "triceps",
+    "front_delts"
+  ],
+  "x-floor-press-barbell": [
+    "triceps",
+    "front_delts"
+  ],
+  "x-floor-press-dumbbell": [
+    "triceps",
+    "front_delts"
+  ],
+  "x-paused-bench-press-barbell": [
+    "triceps",
+    "front_delts"
+  ],
+  "x-spoto-press-barbell": [
+    "triceps",
+    "front_delts"
+  ],
+  "x-pin-bench-press-barbell": [
+    "triceps",
+    "front_delts"
+  ],
+  "x-larsen-press-barbell": [
+    "triceps",
+    "front_delts"
+  ],
+  "x-chest-press-machine": [
+    "triceps",
+    "front_delts"
+  ],
+  "x-chest-press-cable": [
+    "triceps",
+    "front_delts"
+  ],
+  "x-incline-chest-press-machine": [
+    "triceps",
+    "front_delts"
+  ],
+  "x-decline-chest-press-machine": [
+    "triceps",
+    "front_delts"
+  ],
+  "x-iso-lateral-chest-press-machine": [
+    "triceps",
+    "front_delts"
+  ],
+  "x-push-up": [
+    "triceps",
+    "front_delts"
+  ],
+  "x-push-up-weighted": [
+    "triceps",
+    "front_delts"
+  ],
+  "x-chest-dip": [
+    "triceps",
+    "front_delts"
+  ],
+  "x-chest-dip-weighted": [
+    "triceps",
+    "front_delts"
+  ],
+  "x-chest-dip-assisted": [
+    "triceps",
+    "front_delts"
+  ],
+  "x-chest-fly-dumbbell": [
+    "front_delts"
+  ],
+  "x-chest-fly-machine": [
+    "front_delts"
+  ],
+  "x-chest-fly-cable": [
+    "front_delts"
+  ],
+  "x-incline-chest-fly-dumbbell": [
+    "front_delts"
+  ],
+  "x-incline-chest-fly-cable": [
+    "front_delts"
+  ],
+  "x-decline-chest-fly-dumbbell": [
+    "front_delts"
+  ],
+  "x-cable-crossover-cable": [
+    "front_delts"
+  ],
+  "x-low-cable-fly-cable": [
+    "front_delts"
+  ],
+  "x-single-arm-chest-fly-cable": [
+    "front_delts"
+  ],
+  "x-triceps-dip": [
+    "chest",
+    "front_delts"
+  ],
+  "x-triceps-dip-weighted": [
+    "chest",
+    "front_delts"
+  ],
+  "x-triceps-dip-assisted": [
+    "chest",
+    "front_delts"
+  ],
+  "x-pullover-dumbbell": [
+    "lats"
+  ],
+  "x-deadlift-barbell": [
+    "quads",
+    "adductors"
+  ],
+  "x-deadlift-trap-bar": [
+    "quads",
+    "adductors"
+  ],
+  "x-sumo-deadlift-barbell": [
+    "quads",
+    "adductors"
+  ],
+  "x-deficit-deadlift-barbell": [
+    "quads",
+    "adductors"
+  ],
+  "x-paused-deadlift-barbell": [
+    "quads",
+    "adductors"
+  ],
+  "x-rack-pull-barbell": [
+    "hamstrings"
+  ],
+  "x-reverse-hyperextension-machine": [
+    "hamstrings"
+  ],
+  "x-glute-kickback-cable": [
+    "hamstrings"
+  ],
+  "x-glute-kickback-machine": [
+    "hamstrings"
+  ],
+  "x-cable-pull-through": [
+    "hamstrings"
+  ],
+  "x-kettlebell-swing": [
+    "hamstrings"
+  ],
+  "x-romanian-deadlift-barbell": [
+    "glutes"
+  ],
+  "x-romanian-deadlift-dumbbell": [
+    "glutes"
+  ],
+  "x-romanian-deadlift-smith-machine": [
+    "glutes"
+  ],
+  "x-stiff-leg-deadlift-barbell": [
+    "glutes"
+  ],
+  "x-stiff-leg-deadlift-dumbbell": [
+    "glutes"
+  ],
+  "x-single-leg-romanian-deadlift-dumbbell": [
+    "glutes"
+  ],
+  "x-back-extension": [
+    "glutes"
+  ],
+  "x-back-extension-barbell": [
+    "glutes"
+  ],
+  "x-back-extension-weighted": [
+    "glutes"
+  ],
+  "x-good-morning-barbell": [
+    "glutes"
+  ],
+  "x-good-morning-smith-machine": [
+    "glutes"
+  ],
+  "x-glute-ham-raise": [
+    "glutes"
+  ],
+  "x-bent-over-row-barbell": [
+    "lats",
+    "rear_delts",
+    "biceps"
+  ],
+  "x-bent-over-row-dumbbell": [
+    "lats",
+    "rear_delts",
+    "biceps"
+  ],
+  "x-bent-over-row-underhand-barbell": [
+    "lats",
+    "rear_delts",
+    "biceps"
+  ],
+  "x-pendlay-row-barbell": [
+    "lats",
+    "rear_delts",
+    "biceps"
+  ],
+  "x-bent-over-one-arm-row-dumbbell": [
+    "lats",
+    "rear_delts",
+    "biceps"
+  ],
+  "x-kroc-row-dumbbell": [
+    "lats",
+    "rear_delts",
+    "biceps"
+  ],
+  "x-meadows-row-barbell": [
+    "lats",
+    "rear_delts",
+    "biceps"
+  ],
+  "x-t-bar-row": [
+    "lats",
+    "rear_delts",
+    "biceps"
+  ],
+  "x-chest-supported-t-bar-row-machine": [
+    "lats",
+    "rear_delts",
+    "biceps"
+  ],
+  "x-chest-supported-row-dumbbell": [
+    "lats",
+    "rear_delts",
+    "biceps"
+  ],
+  "x-chest-supported-row-machine": [
+    "lats",
+    "rear_delts",
+    "biceps"
+  ],
+  "x-helms-row-dumbbell": [
+    "lats",
+    "rear_delts",
+    "biceps"
+  ],
+  "x-seal-row-barbell": [
+    "lats",
+    "rear_delts",
+    "biceps"
+  ],
+  "x-seated-row-cable": [
+    "lats",
+    "rear_delts",
+    "biceps"
+  ],
+  "x-seated-row-machine": [
+    "lats",
+    "rear_delts",
+    "biceps"
+  ],
+  "x-seated-wide-grip-row-cable": [
+    "lats",
+    "rear_delts",
+    "biceps"
+  ],
+  "x-single-arm-row-cable": [
+    "lats",
+    "rear_delts",
+    "biceps"
+  ],
+  "x-iso-lateral-row-machine": [
+    "lats",
+    "rear_delts",
+    "biceps"
+  ],
+  "x-high-row-machine": [
+    "biceps",
+    "upper_back"
+  ],
+  "x-lat-pulldown-cable": [
+    "biceps",
+    "upper_back"
+  ],
+  "x-lat-pulldown-machine": [
+    "biceps",
+    "upper_back"
+  ],
+  "x-lat-pulldown-close-grip-cable": [
+    "biceps",
+    "upper_back"
+  ],
+  "x-lat-pulldown-wide-grip-cable": [
+    "biceps",
+    "upper_back"
+  ],
+  "x-lat-pulldown-underhand-cable": [
+    "biceps",
+    "upper_back"
+  ],
+  "x-lat-pulldown-single-arm": [
+    "biceps",
+    "upper_back"
+  ],
+  "x-single-arm-lat-pulldown-machine": [
+    "biceps",
+    "upper_back"
+  ],
+  "x-pull-up": [
+    "biceps",
+    "upper_back"
+  ],
+  "x-pull-up-weighted": [
+    "biceps",
+    "upper_back"
+  ],
+  "x-pull-up-assisted": [
+    "biceps",
+    "upper_back"
+  ],
+  "x-wide-grip-pull-up": [
+    "biceps",
+    "upper_back"
+  ],
+  "x-neutral-grip-pull-up": [
+    "biceps",
+    "upper_back"
+  ],
+  "x-chin-up": [
+    "biceps",
+    "upper_back"
+  ],
+  "x-chin-up-weighted": [
+    "biceps",
+    "upper_back"
+  ],
+  "x-chin-up-assisted": [
+    "biceps",
+    "upper_back"
+  ],
+  "x-overhead-press-barbell": [
+    "triceps",
+    "side_delts"
+  ],
+  "x-overhead-press-dumbbell": [
+    "triceps",
+    "side_delts"
+  ],
+  "x-seated-overhead-press-dumbbell": [
+    "triceps",
+    "side_delts"
+  ],
+  "x-seated-overhead-press-barbell": [
+    "triceps",
+    "side_delts"
+  ],
+  "x-seated-overhead-press-smith-machine": [
+    "triceps",
+    "side_delts"
+  ],
+  "x-shoulder-press-machine": [
+    "triceps",
+    "side_delts"
+  ],
+  "x-shoulder-press-smith-machine": [
+    "triceps",
+    "side_delts"
+  ],
+  "x-arnold-press-dumbbell": [
+    "triceps",
+    "side_delts"
+  ],
+  "x-z-press-barbell": [
+    "triceps",
+    "side_delts"
+  ],
+  "x-push-press-barbell": [
+    "triceps",
+    "side_delts"
+  ],
+  "x-handstand-push-up": [
+    "triceps",
+    "side_delts"
+  ],
+  "x-landmine-press-barbell": [
+    "chest",
+    "triceps"
+  ],
+  "x-upright-row-dumbbell": [
+    "upper_back"
+  ],
+  "x-upright-row-cable": [
+    "upper_back"
+  ],
+  "x-y-raise-dumbbell": [
+    "upper_back"
+  ],
+  "x-y-raise-cable": [
+    "upper_back"
+  ],
+  "x-lu-raise-dumbbell": [
+    "upper_back"
+  ],
+  "x-face-pull-cable": [
+    "upper_back"
+  ],
+  "x-reverse-fly-machine": [
+    "upper_back"
+  ],
+  "x-reverse-fly-cable": [
+    "upper_back"
+  ],
+  "x-chest-supported-reverse-fly-dumbbell": [
+    "upper_back"
+  ],
+  "x-hammer-curl-dumbbell": [
+    "forearms"
+  ],
+  "x-hammer-curl-cable": [
+    "forearms"
+  ],
+  "x-zottman-curl-dumbbell": [
+    "forearms"
+  ],
+  "x-reverse-curl-barbell": [
+    "biceps"
+  ],
+  "x-reverse-curl-dumbbell": [
+    "biceps"
+  ],
+  "x-reverse-grip-bicep-curl-cable": [
+    "biceps"
+  ],
+  "x-squat-barbell": [
+    "glutes",
+    "adductors"
+  ],
+  "x-squat-smith-machine": [
+    "glutes",
+    "adductors"
+  ],
+  "x-front-squat-barbell": [
+    "glutes",
+    "adductors"
+  ],
+  "x-front-squat-smith-machine": [
+    "glutes",
+    "adductors"
+  ],
+  "x-safety-bar-squat-barbell": [
+    "glutes",
+    "adductors"
+  ],
+  "x-zercher-squat-barbell": [
+    "glutes",
+    "adductors"
+  ],
+  "x-box-squat-barbell": [
+    "glutes",
+    "adductors"
+  ],
+  "x-paused-squat-barbell": [
+    "glutes",
+    "adductors"
+  ],
+  "x-pin-squat-barbell": [
+    "glutes",
+    "adductors"
+  ],
+  "x-hack-squat-machine": [
+    "glutes",
+    "adductors"
+  ],
+  "x-squat-press-machine": [
+    "glutes",
+    "adductors"
+  ],
+  "x-pendulum-squat-machine": [
+    "glutes",
+    "adductors"
+  ],
+  "x-belt-squat-machine": [
+    "glutes",
+    "adductors"
+  ],
+  "x-goblet-squat-dumbbell": [
+    "glutes",
+    "adductors"
+  ],
+  "x-pistol-squat": [
+    "glutes",
+    "adductors"
+  ],
+  "x-leg-press-machine": [
+    "glutes",
+    "adductors"
+  ],
+  "x-seated-leg-press-machine": [
+    "glutes",
+    "adductors"
+  ],
+  "x-single-leg-press-machine": [
+    "glutes",
+    "adductors"
+  ],
+  "x-split-squat-barbell": [
+    "glutes",
+    "adductors"
+  ],
+  "x-split-squat-dumbbell": [
+    "glutes",
+    "adductors"
+  ],
+  "x-split-squat-smith-machine": [
+    "glutes",
+    "adductors"
+  ],
+  "x-bulgarian-split-squat-dumbbell": [
+    "glutes",
+    "adductors"
+  ],
+  "x-bulgarian-split-squat-barbell": [
+    "glutes",
+    "adductors"
+  ],
+  "x-bulgarian-split-squat-smith-machine": [
+    "glutes",
+    "adductors"
+  ],
+  "x-front-foot-elevated-split-squat-dumbbell": [
+    "glutes",
+    "adductors"
+  ],
+  "x-lunge-dumbbell": [
+    "glutes",
+    "adductors"
+  ],
+  "x-lunge-barbell": [
+    "glutes",
+    "adductors"
+  ],
+  "x-walking-lunge-dumbbell": [
+    "glutes",
+    "adductors"
+  ],
+  "x-walking-lunge-barbell": [
+    "glutes",
+    "adductors"
+  ],
+  "x-reverse-lunge-barbell": [
+    "glutes",
+    "adductors"
+  ],
+  "x-reverse-lunge-dumbbell": [
+    "glutes",
+    "adductors"
+  ],
+  "x-reverse-lunge-smith-machine": [
+    "glutes",
+    "adductors"
+  ],
+  "x-deficit-reverse-lunge-dumbbell": [
+    "glutes",
+    "adductors"
+  ],
+  "x-step-up-dumbbell": [
+    "glutes",
+    "adductors"
+  ],
+  "x-step-up-cable": [
+    "glutes",
+    "adductors"
+  ],
+  "x-neutral-grip-bench-press-dumbbell": [
+    "triceps",
+    "front_delts"
+  ],
+  "x-push-up-band": [
+    "triceps",
+    "front_delts"
+  ],
+  "x-incline-push-up": [
+    "triceps",
+    "front_delts"
+  ],
+  "x-decline-push-up": [
+    "triceps",
+    "front_delts"
+  ],
+  "x-deficit-push-up": [
+    "triceps",
+    "front_delts"
+  ],
+  "x-close-grip-push-up": [
+    "triceps",
+    "front_delts"
+  ],
+  "x-wide-grip-push-up": [
+    "triceps",
+    "front_delts"
+  ],
+  "x-ring-push-up": [
+    "triceps",
+    "front_delts"
+  ],
+  "x-bench-dip": [
+    "chest",
+    "front_delts"
+  ],
+  "x-deadlift-dumbbell": [
+    "quads",
+    "adductors"
+  ],
+  "x-block-pull-barbell": [
+    "hamstrings"
+  ],
+  "x-glute-kickback-band": [
+    "hamstrings"
+  ],
+  "x-romanian-deadlift-trap-bar": [
+    "glutes"
+  ],
+  "x-single-leg-romanian-deadlift-kettlebell": [
+    "glutes"
+  ],
+  "x-b-stance-romanian-deadlift-dumbbell": [
+    "glutes"
+  ],
+  "x-chest-supported-row-cable": [
+    "lats",
+    "rear_delts",
+    "biceps"
+  ],
+  "x-seal-row-dumbbell": [
+    "lats",
+    "rear_delts",
+    "biceps"
+  ],
+  "x-inverted-row": [
+    "lats",
+    "rear_delts",
+    "biceps"
+  ],
+  "x-row-band": [
+    "lats",
+    "rear_delts",
+    "biceps"
+  ],
+  "x-pull-up-band": [
+    "biceps",
+    "upper_back"
+  ],
+  "x-neutral-grip-pull-up-weighted": [
+    "biceps",
+    "upper_back"
+  ],
+  "x-overhead-press-kettlebell": [
+    "triceps",
+    "side_delts"
+  ],
+  "x-overhead-press-cable": [
+    "triceps",
+    "side_delts"
+  ],
+  "x-single-arm-overhead-press-dumbbell": [
+    "triceps",
+    "side_delts"
+  ],
+  "x-z-press-dumbbell": [
+    "triceps",
+    "side_delts"
+  ],
+  "x-push-press-dumbbell": [
+    "triceps",
+    "side_delts"
+  ],
+  "x-upright-row-barbell": [
+    "upper_back"
+  ],
+  "x-upright-row-smith-machine": [
+    "upper_back"
+  ],
+  "x-face-pull-band": [
+    "upper_back"
+  ],
+  "x-reverse-fly-dumbbell": [
+    "upper_back"
+  ],
+  "x-reverse-fly-band": [
+    "upper_back"
+  ],
+  "x-hammer-curl-band": [
+    "forearms"
+  ],
+  "x-cross-body-hammer-curl-dumbbell": [
+    "forearms"
+  ],
+  "x-squat-dumbbell": [
+    "glutes",
+    "adductors"
+  ],
+  "x-squat-bodyweight": [
+    "glutes",
+    "adductors"
+  ],
+  "x-hack-squat-barbell": [
+    "glutes",
+    "adductors"
+  ],
+  "x-goblet-squat-kettlebell": [
+    "glutes",
+    "adductors"
+  ],
+  "x-bulgarian-split-squat": [
+    "glutes",
+    "adductors"
+  ],
+  "x-lunge": [
+    "glutes",
+    "adductors"
+  ],
+  "x-lateral-lunge-dumbbell": [
+    "glutes",
+    "adductors"
+  ],
+  "x-step-up-barbell": [
+    "glutes",
+    "adductors"
+  ],
+  "x-step-up-bodyweight": [
+    "glutes",
+    "adductors"
+  ]
+}

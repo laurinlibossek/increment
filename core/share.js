@@ -5,6 +5,8 @@
 import { FAMILY_BY_ID, familyOf } from './exercise-families.js';
 import { isUnilateral, sideOf } from './set-sides.js';
 import { repRange, withRepRange } from './rep-range.js';
+import { helpersOf } from './exercise-helpers.js';
+import { MUSCLES } from './seed.js';
 import { loggedFields } from './calc.js';
 
 /** @type {Record<string, string>} */
@@ -42,6 +44,7 @@ export function encodeTemplate(t, exercises) {
     else if (family && Object.hasOwn(FAMILY_BY_ID, family)) o.f = family;
     // a custom unilateral exercise stays so for the receiver (#54); built-ins keep the receiver's choice
     if (!ex.builtin && isUnilateral(ex)) o.u = 1;
+    if (!ex.builtin && Array.isArray(ex.helpers)) o.h = helpersOf(ex);
     o.s = x.sets.map((/** @type {any} */ st) => {
       const row = [TYPE_CODE[st.type || 'normal'] || 'n', st.w ?? null, st.r ?? null, st.d ?? null, st.t ?? null];
       row.push(sideOf(st) ? (st.side === 'left' ? 'l' : 'r') : null);
@@ -88,6 +91,7 @@ export function decodeTemplate(text, { categories = [], bodyParts = [] } = {}) {
   if (!d || d.v !== 1 || !Array.isArray(d.e)) return null;
   const cats = new Set(categories);
   const parts = new Set(bodyParts);
+  const helperIds = new Set(MUSCLES.filter((m) => !['full', 'cardio', 'other'].includes(m.id)).map((m) => m.id));
   const exercises = d.e.slice(0, 40).map((/** @type {any} */ o) => {
     if (!o || typeof o !== 'object') return null;
     const name = str(o.n, 80);
@@ -106,6 +110,7 @@ export function decodeTemplate(text, { categories = [], bodyParts = [] } = {}) {
       name,
       ...(typeof o.f === 'string' && Object.hasOwn(FAMILY_BY_ID, o.f) ? { family: o.f } : {}),
       ...(o.u === 1 ? { unilateral: true } : {}),
+      ...(Array.isArray(o.h) && o.h.every((/** @type {any} */ id) => helperIds.has(id)) ? { helpers: helpersOf({ id: '', bodyPart: parts.has(o.b) ? o.b : 'other', helpers: o.h }) } : {}),
       category: cats.has(o.c) ? o.c : 'barbell',
       bodyPart: parts.has(o.b) ? o.b : 'other',
       sets: sets.length ? sets : [{ type: 'normal' }],

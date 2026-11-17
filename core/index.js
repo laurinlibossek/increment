@@ -30,3 +30,4 @@ export * from './exercise-drawings.js';
 export * from './seed-sync.js';
 export * from './i18n.js';
 export * from './settings.js';
+export * from './exercise-helpers.js';

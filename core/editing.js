@@ -180,11 +180,11 @@ export function findExerciseByName(exercises, name) {
 
 /**
  * A new custom exercise. Its id comes from the name unless that's taken.
- * @param {{ name: string, category?: string, bodyPart?: string, notes?: string, unilateral?: boolean }} o
+ * @param {{ name: string, category?: string, bodyPart?: string, notes?: string, unilateral?: boolean, helpers?: import('./types.js').Muscle[] }} o
  * @param {{ hasId?: (id: string) => boolean, now?: number }} [opts]
  */
 export function newExerciseRecord({
-  name, category, bodyPart, notes = '', unilateral,
+  name, category, bodyPart, notes = '', unilateral, helpers,
 }, { hasId = () => false, now = Date.now() } = {}) {
   let id = 'c-' + slug(name);
   if (!id || id === 'c-' || hasId(id)) id = 'c-' + uid();
@@ -192,6 +192,7 @@ export function newExerciseRecord({
     id, name: String(name).trim(), category, bodyPart, notes, createdAt: now,
     // unilateral (#54); left out, an exercise is bilateral
     ...(unilateral ? { unilateral: true } : {}),
+    ...(Array.isArray(helpers) ? { helpers } : {}),
   };
 }
 

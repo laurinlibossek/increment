@@ -21,6 +21,7 @@ The tally is the one shape only Increment has. It replaces the checkmark column 
 - One stroke per set. A pending set is a hairline (`stroke-hair` wide, `ink-3`). A logged set is a stem (`stroke-slot` wide, `stroke-done`). Every stroke sits in a slot of `stroke-slot` with `stroke-gap` between slots, so logging a set never moves anything.
 - Logging a set means tapping its stroke, or the primary button that logs the current set. There is no separate checkmark.
 - Warm-up sets are short strokes (55 % of the height). The set being logged is an outlined stem. A skipped set is dashed. A set that set a record is a `signal` stem outlined with `signal-edge`.
+- In Sets per muscle, whole helper contributions are full-height stems in `ink-3`; a remaining half appears only in the number. Half height stays reserved for warm-ups.
 - Group strokes in fives with `stroke-group` between groups, and put `stroke-group` between exercises. Read a tally like a tally sheet: count the fives.
 - Heights: `stroke-h` in rows, cards and lists; `stroke-h-hero` in the session header, the summary and the Live Activity.
 - A tally only ever counts sets (or sessions, on the week strip). Weight, time and other continuous values are numbers or a line chart, never strokes.
@@ -34,13 +35,13 @@ Voice: plain, short, numbers first. The person is mid-set with sweaty hands; eve
 - Second person. German uses "du", like the rest of the app. Every visible string goes through `tr()` with a German translation.
 - Weight × reps with a real multiplication sign and the unit once: "82.5 kg × 8", in rows just "82.5 × 8" under a unit the screen already states. Decimal comma in German: "82,5".
 - Rests and timers as m:ss ("1:42"). Workout length as h:mm ("1:04") with the label "Time".
-- A standalone exercise name always includes its exact variation ("Squat (Smith Machine)"); only the exercise-page and current-session headers split the last bracket onto the equipment · body-part line below.
+- A standalone exercise name always includes its exact variation ("Squat (Smith Machine)"); only the exercise-page and current-session headers split the last bracket onto the equipment · muscle line below.
 - Dates: "Tuesday, 3 November" on Today; within a week say "today", "yesterday", "Saturday".
 
 ## Colour
 
 - `paper` is the screen. `paper-2` raises a card, a sheet or the keypad. `paper-3` fills anything you type into or press (fields, secondary buttons, chips, keys).
-- `ink` for text, icons, logged strokes and the primary button (with `paper` as its label). `ink-2` for everything secondary. `ink-3` only for pending strokes, ghost values and disabled text, never for text someone has to read.
+- `ink` for text, icons, logged strokes and the primary button (with `paper` as its label). `ink-2` for everything secondary. `ink-3` only for pending and helper strokes, ghost values and disabled text, never for text someone has to read.
 - `signal` is never a button, link, tab, icon or chrome colour. In light themes use it as a fill behind `on-signal` text (the `ic-hl` highlight, the Record chip) or as a mark outlined in `signal-edge`. In dark themes it may also colour text and strokes directly ("+6%").
 - `danger` only for destructive actions, as text ("Discard workout", "Delete").
 - `diff-added` and `diff-removed` (green and red markers, like the record highlight) only in the routine popup after a workout, behind its diff lines: "+ Squat (Barbell) × 2" for what the routine would gain, "− Pull Up × 3" for what it would lose, × counting straight sets; warm-ups, drop sets and other changes are plain lines without a marker (Laurin, 5 Nov 2026). The + and − carry the meaning without the colour. Nowhere else.

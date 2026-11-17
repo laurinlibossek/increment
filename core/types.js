@@ -1,9 +1,18 @@
+// @ts-check
 // The shapes core's functions read and return, as JSDoc types (#102), so the
 // apps' TypeScript checks their calls and needs no casts. Core stays plain
 // JavaScript; a file that starts with `// @ts-check` is checked against these
 // by the app's type check (`cd app && npx tsc --noEmit`). A shape names only
 // what core reads, so a stored record, a draft (typed text) and a test's
 // object all fit.
+
+/**
+ * Browsing regions retain Strong/Setlog's nine ids. bodyPart may still hold a
+ * region from older data; new exercises choose a muscle (or full/cardio/other).
+ * @typedef {'chest' | 'back' | 'shoulders' | 'arms' | 'legs' | 'core' | 'full' | 'cardio' | 'other'} Region
+ * @typedef {'chest' | 'lats' | 'upper_back' | 'lower_back' | 'front_delts' | 'side_delts' | 'rear_delts' | 'biceps' | 'triceps' | 'forearms' | 'quads' | 'hamstrings' | 'glutes' | 'adductors' | 'calves' | 'core' | 'full' | 'cardio' | 'other'} Muscle
+ * @typedef {{ id: Muscle, label: string, region: Region }} MuscleDefinition
+ */
 
 /**
  * @typedef {'left' | 'right'} Side
@@ -23,7 +32,7 @@
  * @typedef {{ id?: string, exerciseId: string, sets: LoggedSet[] }} LoggedEntry
  *
  * An exercise of the library.
- * @typedef {{ id: string, name?: string, category: string, bodyPart?: string,
+ * @typedef {{ id: string, name?: string, category: string, bodyPart?: string, helpers?: Muscle[],
  *   unilateral?: boolean, restSec?: number | null }} ExerciseLike
  *
  * The library: the Map by id the apps keep, or a list (a backup's).

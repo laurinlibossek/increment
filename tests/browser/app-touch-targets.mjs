@@ -149,7 +149,7 @@ try {
     const sheet = async (trigger, name) => { await id(trigger).click(); await id('sheet-cancel').waitFor(); await screen(name); await id('sheet-cancel').click(); };
 
     await go('/', 'open-account'); await screen('today');
-    await go('/muscle/legs', 'muscle-title'); await screen('muscle');
+    await go(before ? '/muscle/legs' : '/muscle/quads', 'muscle-title'); await screen('muscle');
     if (!before) {
       const link = page.locator('[data-testid^="muscle-ex-link-"]').first();
       const row = page.locator('[data-testid^="muscle-workout-"]').first();
@@ -182,11 +182,20 @@ try {
     if (!before) {
       await id('exercise-search').blur(); await id('exercise-search-target').click({ position: { x: 3, y: hitMin / 2 } });
       await page.waitForFunction(() => document.activeElement?.getAttribute('data-testid') === 'exercise-search');
+      await id('search-parts-legs').click();
+      await id('search-muscles-hamstrings').click();
+      await screen('search-muscles');
       await id('search-parts-chest').click();
       await id('search-parts-all').click({ position: { x: 0.25, y: hitMin / 2 } });
       assert.equal(await id('search-parts-all').getAttribute('aria-selected'), 'true', 'the first chip target is not clipped by its scroll view');
     }
-    await id('new-exercise').click(); await id('exercise-name').waitFor(); await screen('new-exercise'); await id('exercise-cancel').click();
+    await id('new-exercise').click(); await id('exercise-name').waitFor(); await screen('new-exercise');
+    if (!before) {
+      await id('part-quads').click();
+      await id('exercise-helpers').scrollIntoViewIfNeeded();
+      await screen('helper-chips');
+    }
+    await id('exercise-cancel').click();
     await go('/', 'open-account'); await id('open-account').click(); await id('account-done').waitFor(); await screen('account');
     await id('set-pair-sides').scrollIntoViewIfNeeded(); await screen('account-switches');
     if (!before) {
@@ -221,7 +230,9 @@ try {
     for (const check of await id(`block-${exercise}`).locator('[data-testid^="check-"]').all()) if ((await check.getAttribute('aria-checked')) !== 'true') await check.click();
     await id('rest-next').waitFor(); await screen('rest-next'); await id('rest-skip').click();
     await id(`ex-menu-${exercise}`).click(); await id('menu-reorder').click(); await id('reorder-done').waitFor(); await screen('reorder'); await id('reorder-done').click();
-    await id('add-exercises').click(); await id('pick-search').waitFor(); await screen('exercise-picker'); await id('pick-cancel').click();
+    await id('add-exercises').click(); await id('pick-search').waitFor(); await screen('exercise-picker');
+    if (!before) { await id('pick-parts-legs').click(); await id('pick-muscles-hamstrings').click(); await screen('picker-muscles'); }
+    await id('pick-cancel').click();
     await id('minimize').click(); await id('start-template').waitFor(); await page.waitForTimeout(200); await go('/', 'open-account'); await screen('today-running');
 
     // Long exercise and facts at 320 px: targets stay separate; text stays on screen.

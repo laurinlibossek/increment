@@ -89,13 +89,13 @@ for (const theme of ['light', 'dark']) {
   const { ctx, page, errors, id, text, shot } = await open('en', theme);
   await page.goto(APP);
   // Sets per muscle: pairs within the workout, warm-ups out
-  for (const [m, n] of [['chest', 3], ['arms', 2], ['legs', 3]]) assert.match(await text(`muscle-${m}`), new RegExp(` ${n}$`), m);
+  for (const [m, n] of [['chest', 3], ['biceps', 2], ['quads', 1], ['hamstrings', 2]]) assert.match(await text(`muscle-${m}`), new RegExp(` ${n}$`), m);
   // Plan: the routine's prescribed rows, paired; the rest unpaired
   await selectTab(page, 'plan');
   await id('template-pairs').waitFor();
   assert.match(await text('template-facts-pairs'), / 5 sets · 3 unpaired · about /);
   await shot('plan');
-  ok(`${theme}: Sets per muscle counts pairs (arms 2, legs 3 with the Strong workout, chest 3); Plan says “5 sets · 3 unpaired”`);
+  ok(`${theme}: Sets per muscle counts pairs (biceps 2, quads 1, hamstrings 2 with the Strong workout, chest 3); Plan says “5 sets · 3 unpaired”`);
 
   await page.goto(`${APP}/template/pairs`);
   assert.match(await text('template-exercise-0'), /2 sets/);
@@ -137,7 +137,7 @@ for (const theme of ['light', 'dark']) {
   await setPairing(page, false);
   await shot('account');
   await page.goto(APP);
-  for (const [m, n] of [['chest', 3], ['arms', 2], ['legs', 3]]) assert.match(await text(`muscle-${m}`), new RegExp(` ${n}$`), m);
+  for (const [m, n] of [['chest', 3], ['biceps', 2], ['quads', 1], ['hamstrings', 2]]) assert.match(await text(`muscle-${m}`), new RegExp(` ${n}$`), m);
   await selectTab(page, 'plan');
   assert.match(await text('template-facts-pairs'), / 10 sets · about /);
   assert.doesNotMatch(await text('template-facts-pairs'), /unpaired/);
@@ -148,7 +148,7 @@ for (const theme of ['light', 'dark']) {
   const stored = await storedData(page);
   assert.equal(stored.workouts[0].exercises[1].sets.length, 4, 'the stored rows stay');
   await setPairing(page, true);
-  ok(`${theme}: “Count left/right sets together” off counts rows (Plan 10, workout 11, extension 3); Sets per muscle stays 3 / 2 / 3`);
+  ok(`${theme}: “Count left/right sets together” off counts rows (Plan 10, workout 11, extension 3); Sets per muscle stays chest 3 / biceps 2 / quads 1 / hamstrings 2`);
   assert.deepEqual(errors, []);
   await ctx.close();
 }
@@ -164,7 +164,7 @@ for (const theme of ['light', 'dark']) {
   await id('exercise-unilateral').scrollIntoViewIfNeeded();
   await shot('form-locked');
   await id('exercise-save').click();
-  await page.waitForTimeout(300);
+  await page.waitForURL((u) => u.pathname === `/exercise/${PLANK}`);
   assert.equal(Object.hasOwn((await storedData(page)).exercises.find((e) => e.id === PLANK), 'unilateral'), false, 'nothing stored for it');
   toggle = await editExercise(page, EXT);
   assert.equal(await toggle.isChecked(), false, 'Leg Extension (Machine) is bilateral');
@@ -174,12 +174,14 @@ for (const theme of ['light', 'dark']) {
   await shot('form');
   await id('exercise-save').click();
   await waitStored(page, (d) => d.exercises.find((e) => e.id === EXT)?.unilateral === true);
+  await page.waitForURL((u) => u.pathname === `/exercise/${EXT}`);
   await page.reload();
   toggle = await editExercise(page, EXT);
   assert.equal(await toggle.isChecked(), true, 'Unilateral survives a reload');
   await id('exercise-unilateral').click();
   await id('exercise-save').click();
   await waitStored(page, (d) => !Object.hasOwn(d.exercises.find((e) => e.id === EXT), 'unilateral'));
+  await page.waitForURL((u) => u.pathname === `/exercise/${EXT}`);
   ok('the form: Side Plank’s Unilateral is on and locked; Leg Extension turns unilateral (survives a reload) and back to bilateral (nothing stored)');
 
   await page.goto(APP);
@@ -187,6 +189,7 @@ for (const theme of ['light', 'dark']) {
   await id('exercise-search').fill('Zebra Reach');
   await id('new-exercise').click();
   await id('exercise-name').waitFor();
+  await id('part-side_delts').click();
   await id('exercise-unilateral').click();
   await id('exercise-save').click();
   const d = await waitStored(page, (x) => x.exercises.some((e) => e.name === 'Zebra Reach'));

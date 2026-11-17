@@ -63,13 +63,17 @@ for (const language of ['en', 'de']) for (const theme of ['light', 'dark']) {
 
   await page.getByTestId('strong-new-1').click();
   await page.getByTestId('strong-name-1').fill('Orbit Machine');
-  assert.match(await page.getByTestId('strong-problem-1').innerText(), language === 'en' ? /Choose a body part/ : /Körperbereich/);
+  assert.match(await page.getByTestId('strong-problem-1').innerText(), language === 'en' ? /Choose a muscle/ : /Wähle einen Muskel/);
   await page.getByTestId('strong-category-1').click();
   assert.equal(await page.locator('[data-testid^="strong-option-"]').count(), 5);
   await page.getByTestId('strong-option-dumbbell').click();
   await page.getByTestId('strong-body-1').scrollIntoViewIfNeeded();
   await page.screenshot({ path: `${OUT}/${language}-${theme}-new.png` });
-  await option(page, 'strong-body-1', 'shoulders');
+  await page.getByTestId('strong-body-1').click();
+  assert.equal(await page.locator('[data-testid^="strong-option-"]').count(), 19);
+  assert.equal(await page.getByTestId('strong-option-arms').count(), 0);
+  await page.screenshot({ path: `${OUT}/${language}-${theme}-muscles.png` });
+  await page.getByTestId('strong-option-front_delts').click();
   await page.getByTestId('strong-new-2').click();
   await page.getByTestId('strong-name-2').fill('Flap Hold');
   await page.getByTestId('strong-category-2').click();
@@ -77,11 +81,12 @@ for (const language of ['en', 'de']) for (const theme of ['light', 'dark']) {
   await page.getByTestId('strong-option-duration').click();
   await option(page, 'strong-body-2', 'chest');
   await page.getByTestId('strong-new-3').click();
+  assert.match(await page.getByTestId('strong-body-3').innerText(), /Quads|Quadrizeps/);
   assert.match(await page.getByTestId('strong-family-3').innerText(), language === 'en' ? /Joins Squat/ : /Gehört zu Kniebeuge/);
   await page.getByTestId('strong-family-3').scrollIntoViewIfNeeded();
   assert.equal(await page.getByTestId('strong-confirm').isEnabled(), true);
   await page.screenshot({ path: `${OUT}/${language}-${theme}-family.png` });
-  ok(`${language}/${theme}: editable names, required body part, category limits and exact family grouping`);
+  ok(`${language}/${theme}: editable names, required muscle, category limits and exact family grouping`);
   assert.deepEqual(await data(page), before, 'review has written nothing');
   // Choices were made, so leaving asks first.
   await page.getByTestId('strong-cancel').click();
@@ -106,11 +111,12 @@ for (const language of ['en', 'de']) for (const theme of ['light', 'dark']) {
   await pickFile(page);
   await page.getByTestId('strong-new-1').click();
   await page.getByTestId('strong-name-1').fill('Orbit Machine');
-  await option(page, 'strong-body-1', 'shoulders');
+  await option(page, 'strong-body-1', 'front_delts');
   await page.getByTestId('strong-new-2').click();
   await page.getByTestId('strong-name-2').fill('Flap Hold');
   await option(page, 'strong-body-2', 'chest');
   await page.getByTestId('strong-new-3').click();
+  assert.match(await page.getByTestId('strong-body-3').innerText(), /Quads|Quadrizeps/);
   await page.getByTestId('strong-confirm').click();
   await page.getByTestId('strong-import').waitFor();
   const first = await data(page);

@@ -1,6 +1,8 @@
 // The app's data, in the same shape the Setlog web app stores and backs up:
 // weights in kg, distances in km, times in seconds, timestamps in ms.
 
+import type { Muscle } from '../../../core/types';
+
 export type SetType = 'normal' | 'warmup' | 'drop' | 'failure';
 export type SetSide = 'left' | 'right';
 export type Category =
@@ -74,6 +76,7 @@ export interface Exercise {
   family?: string | null;
   category: Category;
   bodyPart: string;
+  helpers?: Muscle[];
   builtin?: boolean;
   hidden?: boolean;
   notes?: string;
