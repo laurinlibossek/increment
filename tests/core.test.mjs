@@ -670,6 +670,18 @@ test('chart ticks, weekly counts and the streak', () => {
   assert.equal(core.weekStreak(ws, { goal: 3, weekStart: 1, now }), 1, 'this week doesn’t count until it reaches the goal');
 });
 
+test('chart label step: the smallest spacing that fits, anchored at the last label', () => {
+  assert.equal(core.labelStep([], 10, 10, 2), 1);
+  assert.equal(core.labelStep(['14. Sept.'], 10, 13, 8), 1, 'a single label always stays');
+  assert.equal(core.labelStep(['abc', 'abc', 'abc', 'abc'], 20, 10, 2), 1, 'exactly the requested gap fits');
+  assert.equal(core.labelStep(['abc', 'abc', 'abc', 'abc'], 10, 10, 2), 2);
+  assert.equal(core.labelStep(['abc', 'abc', 'abc', 'abc'], 10, 10, 3), 3, 'a gap changes the step');
+  assert.equal(core.labelStep(['very long label', 'x', 'abc', 'x'], 10, 10, 2), 2, 'count back from the right; skipped labels do not take space');
+  const dates = ['31. Aug.', '7. Sept.', '14. Sept.', '21. Sept.', '28. Sept.', '5. Okt.'];
+  assert.equal(core.labelStep(dates, 24, 13, 8), 3, 'German dates need more than two weeks');
+  assert.equal(core.labelStep(dates, 1, 13, 8), dates.length, 'only the rightmost label fits');
+});
+
 test('History calendar: the grid from the week start, workouts per day, the month’s totals', () => {
   const at = (m, d, h = 18, min = 0) => new Date(2026, m, d, h, min).getTime();
   const w = (start, minutes) => ({ id: String(start), startedAt: start, endedAt: start + minutes * 60000 });
