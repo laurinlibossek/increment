@@ -107,16 +107,18 @@ for (const theme of ['light', 'dark']) {
   assert.equal(await text(`muscle-ex-link-${INCLINE}`), 'Incline Bench Press (Dumbbell) 6');
   assert.equal(await text(`muscle-ex-link-${BENCH}`), 'Bench Press (Barbell) 5');
   assert.deepEqual(await order(page, `muscle-workout-${INCLINE}-`), ['push2', 'push1'], 'newest first');
-  assert.equal(await text(`muscle-workout-${INCLINE}-push2`), 'Yesterday · Push 30 kg × 10 · 30 kg × 9 2');
-  assert.equal(await text(`muscle-workout-${BENCH}-push2`), 'Yesterday · Push 80 kg × 8 · 80 kg × 7 · 70 kg × 10 3', 'no warm-up; the repeated entry in the same row');
+  assert.equal(await text(`muscle-workout-${INCLINE}-push2`), 'Yesterday · Push 30 kg × 10 · 30 kg × 9', 'one number per exercise: no count on the workout row');
+  assert.equal(await id(`muscle-workout-${INCLINE}-push2`).getAttribute('aria-label'), 'Yesterday · Push, 30 kg × 10 · 30 kg × 9, 2 sets', 'the row still reads out its count');
+  assert.equal(await text(`muscle-workout-${BENCH}-push2`), 'Yesterday · Push 80 kg × 8 · 80 kg × 7 · 70 kg × 10', 'no warm-up; the repeated entry in the same row');
   const weekday = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(now - 3 * DAY);
-  assert.equal(await text(`muscle-workout-${BENCH}-push1`), `${weekday} · Push 77.5 kg × 8 · 77.5 kg × 8 2`);
+  assert.equal(await text(`muscle-workout-${BENCH}-push1`), `${weekday} · Push 77.5 kg × 8 · 77.5 kg × 8`);
+  assert.equal(await page.locator('[data-testid^="muscle-group-"]').count(), chest.exercises.some((e) => e.helper) ? 2 : 0, 'group labels only with indirect sets');
   assert.equal(await page.locator('[data-testid="muscle-workout-x-bench-press-barbell-old"]').count(), 0, '10 days ago is out');
   assert.equal(await id('muscle-tally').getAttribute('aria-label'), '11 sets in the last 7 days');
   // the screen adds up to the core's numbers
   for (const e of chest.exercises) {
     assert.equal(await text(`muscle-ex-link-${e.exerciseId}`), `${lib.get(e.exerciseId).name} ${e.sets}`);
-    for (const w of e.workouts) assert.match(await text(`muscle-workout-${e.exerciseId}-${w.id}`), new RegExp(` ${w.sets}$`));
+    for (const w of e.workouts) assert.match(await id(`muscle-workout-${e.exerciseId}-${w.id}`).getAttribute('aria-label'), new RegExp(`, ${w.sets} sets?( · \\d+ unpaired)?$`));
   }
   assert.ok(!(await page.locator('body').innerText()).includes('\uE5CC'), 'no chevrons on the breakdown (U+E5CC on the web)');
   await a.shot('chest');
@@ -145,7 +147,7 @@ for (const theme of ['light', 'dark']) {
   assert.equal(await text('muscle-total'), '4 sets in the last 7 days');
   assert.deepEqual(await order(page, 'muscle-ex-link-'), [CURL, CONC]);
   const twoDays = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(now - 2 * DAY);
-  assert.equal(await text(`muscle-workout-${CONC}-arms`), `${twoDays} · Arms Left 12 kg × 10 · Right 12 kg × 10 · Left 12 kg × 8 1 unpaired 1`);
+  assert.equal(await text(`muscle-workout-${CONC}-arms`), `${twoDays} · Arms Left 12 kg × 10 · Right 12 kg × 10 · Left 12 kg × 8 1 unpaired`);
   assert.equal(await text(`muscle-ex-link-${CONC}`), 'Concentration Curl (Dumbbell) 1');
   await a.shot('arms');
   ok(`${theme}: Biceps: Bicep Curl 3, Concentration Curl 1 with Left/Right on its rows and “1 unpaired”`);
@@ -191,11 +193,11 @@ for (const theme of ['light', 'dark']) {
   await openMuscle(a, 'chest');
   assert.equal(await text('muscle-title'), 'Brust');
   assert.equal(await text('muscle-total'), '11 Sätze in den letzten 7 Tagen');
-  assert.match(await text(`muscle-workout-${BENCH}-push2`), /^Gestern · Push 80 kg × 8 · 80 kg × 7 · 70 kg × 10 3$/);
+  assert.match(await text(`muscle-workout-${BENCH}-push2`), /^Gestern · Push 80 kg × 8 · 80 kg × 7 · 70 kg × 10$/);
   await a.shot('chest');
   await page.goBack();
   await openMuscle(a, 'biceps');
-  assert.match(await text(`muscle-workout-${CONC}-arms`), / · Arms Links 12 kg × 10 · Rechts 12 kg × 10 · Links 12 kg × 8 1 ohne Paar 1$/);
+  assert.match(await text(`muscle-workout-${CONC}-arms`), / · Arms Links 12 kg × 10 · Rechts 12 kg × 10 · Links 12 kg × 8 1 ohne Paar$/);
   await a.shot('arms');
   ok('German: Brust, “11 Sätze in den letzten 7 Tagen”, Gestern · Push, Links/Rechts and “1 ohne Paar”');
   assert.deepEqual(a.errors, []);
@@ -207,7 +209,9 @@ for (const theme of ['light', 'dark']) {
 // Real-size review captures also exercise half totals in both languages/themes.
 const helperShots = shots(`helper-muscles/${helperBefore ? 'before' : 'after'}`);
 const SQ = 'x-squat-barbell', RDL = 'x-romanian-deadlift-barbell', HIP = 'x-hip-thrust-barbell';
-for (const language of ['en', 'de']) for (const theme of ['light', 'dark']) {
+// helper strokes: ink-3, except Strawberry Matcha's pale matcha, which its green strokes don't swallow (Laurin, 17 Nov 2026)
+const HELPER_INK = { light: 'rgb(138, 138, 132)', dark: 'rgb(114, 114, 108)', 'strawberry-matcha': 'rgb(152, 174, 132)' };
+for (const [language, theme] of [['en', 'light'], ['en', 'dark'], ['de', 'light'], ['de', 'dark'], ['en', 'strawberry-matcha']]) {
   const at = Date.now() - DAY;
   const makeEntry = (exerciseId, n) => ({ exerciseId, sets: Array.from({ length: n }, (_, i) => ({ id: `${exerciseId}-${i}`, type: 'normal', w: 60, r: 8 })) });
   const fixture = {
@@ -215,7 +219,7 @@ for (const language of ['en', 'de']) for (const theme of ['light', 'dark']) {
     workouts: [{ id: 'lower', name: 'Lower', startedAt: at, endedAt: at + 3600000, exercises: [makeEntry(SQ, 4)] }],
     kv: { settings: { language, theme, showExamples: false, appKeepAwake: false }, meta: { seedVersion: SEED_VERSION, lastBackupAt: Date.now() } },
   };
-  const ctx = await browser.newContext({ ...devices['iPhone 13'], deviceScaleFactor: 1, viewport: { width: 390, height: 844 }, locale: language === 'de' ? 'de-DE' : 'en-US', colorScheme: theme });
+  const ctx = await browser.newContext({ ...devices['iPhone 13'], deviceScaleFactor: 1, viewport: { width: 390, height: 844 }, locale: language === 'de' ? 'de-DE' : 'en-US', colorScheme: theme === 'dark' ? 'dark' : 'light' });
   await ctx.addInitScript(grantWakeLock);
   await ctx.addInitScript((data) => { if (!localStorage.getItem('increment.data')) localStorage.setItem('increment.data', JSON.stringify(data)); }, fixture);
   const page = await ctx.newPage(), errors = [];
@@ -230,6 +234,10 @@ for (const language of ['en', 'de']) for (const theme of ['light', 'dark']) {
     const rect = await row.getByTestId('stroke-helper').first().boundingBox();
     assert.equal(rect.height, 20, 'a helper is full height, never a warm-up stroke');
     assert.equal(rect.width, 5, 'a helper is a stem, not a pending hairline');
+    if (!(helperBefore && theme === 'strawberry-matcha')) {
+      const ink = await row.getByTestId('stroke-helper').first().evaluate((el) => getComputedStyle(el).backgroundColor);
+      assert.equal(ink, HELPER_INK[theme], `${theme}: helper strokes in stroke-helper`);
+    }
   }
   const final = await storedData(page);
   if (!helperBefore) {
@@ -257,8 +265,12 @@ for (const language of ['en', 'de']) for (const theme of ['light', 'dark']) {
     assert.match(await id(`muscle-ex-link-${RDL}`).innerText(), /1½$/);
     assert.ok(await id(`muscle-ex-link-${RDL}`).getByText('1½', { exact: true }).evaluate((el) =>
       el.getBoundingClientRect().height <= parseFloat(getComputedStyle(el).lineHeight) && el.scrollWidth <= el.clientWidth), 'the half count stays on one line beside a long German name');
-    assert.equal(await id(`muscle-helper-${SQ}`).innerText(), language === 'en' ? 'Counts half' : 'Zählt halb');
-    await id(`muscle-workout-${RDL}-lower`).getByText('1½', { exact: true }).waitFor();
+    // Direct sets, then Indirect sets with how they count, instead of a label on each helper
+    assert.equal(await id('muscle-group-direct').innerText(), language === 'en' ? 'Direct sets' : 'Direkte Sätze');
+    assert.match(await id('muscle-group-indirect').innerText(), language === 'en' ? /^Indirect sets\nExercises where this muscle helps count half a set\.$/ : /^Indirekte Sätze\nÜbungen, bei denen dieser Muskel mithilft, zählen als halber Satz\.$/);
+    const [direct, hip, indirect, sq] = await Promise.all(['muscle-group-direct', `muscle-ex-link-${HIP}`, 'muscle-group-indirect', `muscle-ex-link-${SQ}`].map(async (t) => (await id(t).boundingBox()).y));
+    assert.ok(direct < hip && hip < indirect && indirect < sq, 'Direct sets heads the hip thrust; Indirect sets heads the squat');
+    assert.match(await id(`muscle-workout-${RDL}-lower`).getAttribute('aria-label'), language === 'en' ? /, 1½ sets$/ : /, 1½ Sätze$/, 'the weighted count is read out on the row');
     assert.equal(await id('muscle-tally').getByTestId('stroke-helper').count(), 3);
     await id('muscle-helper-note').waitFor();
   }
@@ -275,7 +287,7 @@ for (const language of ['en', 'de']) for (const theme of ['light', 'dark']) {
     assert.equal(await id('helper-adductors').getAttribute('aria-selected'), 'true');
   } else await id('part-quads').scrollIntoViewIfNeeded();
   await shot('form');
-  if (!helperBefore) ok(`${language}/${theme}: helper-only Glutes, full-height stems, 7½ total, weighted breakdown and helper form`);
+  if (!helperBefore) ok(`${language}/${theme}: helper-only Glutes, full-height stems in stroke-helper, 7½ total, Direct then Indirect sets, helper form`);
   assert.deepEqual(errors, []); await ctx.close();
 }
 

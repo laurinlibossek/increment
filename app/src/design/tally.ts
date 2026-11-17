@@ -9,7 +9,7 @@ export const TALLY_THEME_IDS = [
   'intense-red'
 ] as const;
 export type TallyThemeId = (typeof TALLY_THEME_IDS)[number];
-export type TallyColors = { paper: string; paper2: string; paper3: string; controlOn: string; diffAdded: string; diffRemoved: string; pinnedNote: string; line: string; ink: string; ink2: string; ink3: string; strokeDone: string; primary: string; onPrimary: string; accent: string; chart: string; signal: string; onSignal: string; signalEdge: string; danger: string; glass: string; focus: string };
+export type TallyColors = { paper: string; paper2: string; paper3: string; controlOn: string; diffAdded: string; diffRemoved: string; pinnedNote: string; line: string; ink: string; ink2: string; ink3: string; strokeDone: string; strokeHelper: string; primary: string; onPrimary: string; accent: string; chart: string; signal: string; onSignal: string; signalEdge: string; danger: string; glass: string; focus: string };
 export type TallyTheme = { scheme: 'light' | 'dark'; colors: TallyColors };
 
 export const TALLY_THEMES: Record<TallyThemeId, TallyTheme> = {
@@ -28,6 +28,7 @@ export const TALLY_THEMES: Record<TallyThemeId, TallyTheme> = {
       ink2: '#5d5d58',
       ink3: '#8a8a84',
       strokeDone: '#0d0d0c',
+      strokeHelper: '#8a8a84',
       primary: '#0d0d0c',
       onPrimary: '#ffffff',
       accent: '#0d0d0c',
@@ -55,6 +56,7 @@ export const TALLY_THEMES: Record<TallyThemeId, TallyTheme> = {
       ink2: '#a6a6a0',
       ink3: '#72726c',
       strokeDone: '#f4f4f0',
+      strokeHelper: '#72726c',
       primary: '#f4f4f0',
       onPrimary: '#000000',
       accent: '#f4f4f0',
@@ -82,6 +84,7 @@ export const TALLY_THEMES: Record<TallyThemeId, TallyTheme> = {
       ink2: '#5a5f4b',
       ink3: '#7b8068',
       strokeDone: '#55803a',
+      strokeHelper: '#98ae84',
       primary: '#bf3f55',
       onPrimary: '#fbf8f2',
       accent: '#476e2b',
@@ -109,6 +112,7 @@ export const TALLY_THEMES: Record<TallyThemeId, TallyTheme> = {
       ink2: '#bdbdbd',
       ink3: '#8c8c8c',
       strokeDone: '#e5202e',
+      strokeHelper: '#8c8c8c',
       primary: '#d91f2c',
       onPrimary: '#ffffff',
       accent: '#ff4f5a',
