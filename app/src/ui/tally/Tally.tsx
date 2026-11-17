@@ -33,7 +33,7 @@ export function Stroke({ state, size = 'regular' }: { state: StrokeState; size?:
   const h = HEIGHT[size] * (WARM.includes(state) ? 0.55 : 1);
   let mark;
   if (state === 'done' || state === 'warmup') mark = <View style={{ width: slot, height: h, backgroundColor: t.strokeDone }} />;
-  else if (state === 'helper') mark = <View testID="stroke-helper" style={{ width: slot, height: h, backgroundColor: t.ink3 }} />;
+  else if (state === 'helper') mark = <View testID="stroke-helper" style={{ width: slot, height: h, backgroundColor: t.strokeHelper }} />;
   else if (state === 'record') {
     mark = <View style={{ width: slot, height: h, backgroundColor: t.signal, borderWidth: t.signalEdge === t.signal ? 0 : 1, borderColor: t.signalEdge }} />;
   } else if (state === 'live' || state === 'warmupLive') mark = <View style={{ width: slot, height: h, borderWidth: Math.max(1.5, hair), borderColor: t.ink }} />;

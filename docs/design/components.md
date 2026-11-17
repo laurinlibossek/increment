@@ -113,7 +113,7 @@ Working sets per muscle over the last 7 days, as tallies.
 **You provide** sets per muscle (counted from the log: each exercise gives its main muscle 1 and each helper ½ after pairing; an old region value counts directly under that region, with no helpers). The store version may pass a target range per muscle; the open app passes none. Optionally what a row does when tapped: on Today it opens the sets behind its number (#89).
 
 **Rules**
-- `direct` sets are done stems, followed by `Math.floor(helper)` full-height stems in `ink-3`. A remaining half is shown only in the number. With a target range, pending hairlines count the missing whole sets: `Math.max(0, Math.ceil(floor - sets))`.
+- `direct` sets are done stems, followed by `Math.floor(helper)` full-height stems in `stroke-helper`. A remaining half is shown only in the number. With a target range, pending hairlines count the missing whole sets: `Math.max(0, Math.ceil(floor - sets))`.
 - The count on the right is `halfText(sets)` in `t-headline` (`7½`, never a decimal). Keep a count on one line beside a long exercise title too. Above the range, the count turns `ink-2`; it never turns red.
 - Muscles in `MUSCLES` order, with any legacy region row after its muscles. Full body counts; Cardio and Other do not.
 - Long muscle labels wrap, so the full name stays visible in German too.
@@ -243,7 +243,7 @@ A row of strokes, one per set: hairline while pending, a solid stem once logged.
 - Groups are separated by `stroke-group`: per exercise in a session, per five when counting.
 - A whole workout's tally (session header, summary, History) wraps onto new lines, inside a long exercise too, so it never runs off the screen. It grows a line per screen width of strokes: about 29 hero strokes per line on an iPhone; 1000 sets make a block about 1900 pt tall, two and a half screens.
 - `record` is the only coloured state. `live` marks the one set being logged; there is never more than one.
-- A `helper` is a full-height stem at the usual slot width in `ink-3`, used for whole helper contributions in Sets per muscle. `fives(done, pending, helper)` orders done, helper, then pending. A remaining half has no stroke. Never draw helpers at half height: that already means a warm-up (#72).
+- A `helper` is a full-height stem at the usual slot width in `stroke-helper` (`ink-3`, except Strawberry Matcha's pale matcha), used for whole helper contributions in Sets per muscle. `fives(done, pending, helper)` orders done, helper, then pending. A remaining half has no stroke. Never draw helpers at half height: that already means a warm-up (#72).
 - Warm-ups are half height (0.55) in every state: pending (`warmupPending`), being logged (`warmupLive`, the `live` outline at warm-up height) and logged (`warmup`). So nothing changes height when a warm-up is logged; only the outline turns into a solid stem.
 - Strokes are one per row, so a unilateral exercise's Left and Right are two strokes. The count beside them counts sets the way the totals do: a Left and a Right make one set, logged once both are (#72).
 - Never use strokes for weight, time or other continuous numbers.
