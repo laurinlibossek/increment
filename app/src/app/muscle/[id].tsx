@@ -1,12 +1,13 @@
 // The sets behind one muscle's number in Today's Sets per muscle (#89): the
 // muscle with its total for the last 7 days and those sets as a tally, then
 // one block per exercise (most sets first; its name opens the exercise) with
-// its count, and under it each workout (newest first; it opens the workout):
-// the day and routine, then the sets counted and the rows a left/right
-// pairing leaves out. Exercises where the muscle only helps follow under
+// its count, and under it one line per workout (newest first; it opens the
+// workout): the day, the routine and how many sets counted, with any rows a
+// left/right pairing leaves out. Not the weights: the workout has those
+// (Laurin, 17 Nov 2026). Exercises where the muscle only helps follow under
 // "Indirect sets" (#127). Always adds up to the number on Today (muscleSets in
-// core/today.js). One number per exercise, sets as the content and a hairline
-// between exercises, so the screen reads at a glance (Laurin, 17 Nov 2026).
+// core/today.js). One bold number per exercise and a hairline between
+// exercises, so the screen reads at a glance.
 // docs/design/navigation.md
 import { useMemo } from 'react';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
@@ -14,7 +15,6 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { halfText, muscleSets } from '@increment/core';
 
 import { useAppState } from '@/data/store';
-import type { WorkSet } from '@/data/types';
 import { CONTROL, SPACE, TYPE } from '@/design/tally';
 import { useFormat } from '@/lib/format';
 import { useTally } from '@/lib/theme';
@@ -36,7 +36,6 @@ export default function MuscleSets() {
   const name = b.label ? tr(b.label) : '';
   const total = tr('{sets} in the last 7 days', { sets: f.setsCount(b.sets) });
   const hasHelpers = b.exercises.some((e) => e.helper);
-  const side = (x: WorkSet) => (x.side === 'left' ? `${tr('Left')} ` : x.side === 'right' ? `${tr('Right')} ` : '');
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: t.paper }} contentContainerStyle={{ paddingTop: SPACE.s1, paddingBottom: SPACE.s12 }} contentInsetAdjustmentBehavior="automatic">
@@ -82,17 +81,16 @@ export default function MuscleSets() {
               onPress={() => router.push({ pathname: '/exercise/[id]', params: { id: e.exerciseId } })} />
             {e.workouts.map((w) => {
               const when = `${f.date.workoutDay(w.startedAt)} · ${w.name}`;
-              // a set never breaks across lines ("28 kg × 8"); the list wraps between sets
-              const sets = w.rows.map((x) => `${side(x)}${f.setText(x, ex?.category)}`.replace(/ /g, '\u00A0')).join(' · ');
-              const unpaired = w.unpaired ? tr('{n} unpaired', { n: f.num(w.unpaired, 0) }) : '';
+              // "3 sets", "1½ sets", "1 set · 1 unpaired": the count is grey, so the bold totals stay alone on the right
+              const count = f.setsText(w);
               return (
                 <Pressable key={w.id} testID={`muscle-workout-${e.exerciseId}-${w.id}`} accessibilityRole="button"
-                  accessibilityLabel={`${when}, ${sets.replace(/\u00A0/g, ' ')}, ${f.setsText(w)}`}
+                  accessibilityLabel={`${when}, ${count}`}
                   onPress={() => router.push({ pathname: '/workout/[id]', params: { id: w.id } })}
                   style={({ pressed }) => ({ minHeight: CONTROL.hitMin, justifyContent: 'center', paddingHorizontal: MARGIN, paddingVertical: SPACE.s1, backgroundColor: pressed ? t.paper2 : 'transparent' })}>
-                  <Text style={{ ...TYPE.footnote, color: t.ink2 }} numberOfLines={1}>{when}</Text>
-                  <Text style={[{ ...TYPE.subhead, color: t.ink }, tnum]}>{sets}</Text>
-                  {!!unpaired && <Text style={{ ...TYPE.footnote, color: t.ink2 }}>{unpaired}</Text>}
+                  <Text style={{ ...TYPE.subhead, color: t.ink }} numberOfLines={2}>
+                    {when}<Text style={[{ color: t.ink2 }, tnum]}>{` · ${count}`}</Text>
+                  </Text>
                 </Pressable>
               );
             })}

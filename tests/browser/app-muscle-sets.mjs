@@ -107,11 +107,12 @@ for (const theme of ['light', 'dark']) {
   assert.equal(await text(`muscle-ex-link-${INCLINE}`), 'Incline Bench Press (Dumbbell) 6');
   assert.equal(await text(`muscle-ex-link-${BENCH}`), 'Bench Press (Barbell) 5');
   assert.deepEqual(await order(page, `muscle-workout-${INCLINE}-`), ['push2', 'push1'], 'newest first');
-  assert.equal(await text(`muscle-workout-${INCLINE}-push2`), 'Yesterday · Push 30 kg × 10 · 30 kg × 9', 'one number per exercise: no count on the workout row');
-  assert.equal(await id(`muscle-workout-${INCLINE}-push2`).getAttribute('aria-label'), 'Yesterday · Push, 30 kg × 10 · 30 kg × 9, 2 sets', 'the row still reads out its count');
-  assert.equal(await text(`muscle-workout-${BENCH}-push2`), 'Yesterday · Push 80 kg × 8 · 80 kg × 7 · 70 kg × 10', 'no warm-up; the repeated entry in the same row');
+  // one line per workout: the day, the routine and how many sets; not the weights (Laurin, 17 Nov 2026)
+  assert.equal(await text(`muscle-workout-${INCLINE}-push2`), 'Yesterday · Push · 2 sets');
+  assert.equal(await id(`muscle-workout-${INCLINE}-push2`).getAttribute('aria-label'), 'Yesterday · Push, 2 sets');
+  assert.equal(await text(`muscle-workout-${BENCH}-push2`), 'Yesterday · Push · 3 sets', 'no warm-up; the repeated entry in the same row');
   const weekday = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(now - 3 * DAY);
-  assert.equal(await text(`muscle-workout-${BENCH}-push1`), `${weekday} · Push 77.5 kg × 8 · 77.5 kg × 8`);
+  assert.equal(await text(`muscle-workout-${BENCH}-push1`), `${weekday} · Push · 2 sets`);
   assert.equal(await page.locator('[data-testid^="muscle-group-"]').count(), chest.exercises.some((e) => e.helper) ? 2 : 0, 'group labels only with indirect sets');
   assert.equal(await page.locator('[data-testid="muscle-workout-x-bench-press-barbell-old"]').count(), 0, '10 days ago is out');
   assert.equal(await id('muscle-tally').getAttribute('aria-label'), '11 sets in the last 7 days');
@@ -147,10 +148,10 @@ for (const theme of ['light', 'dark']) {
   assert.equal(await text('muscle-total'), '4 sets in the last 7 days');
   assert.deepEqual(await order(page, 'muscle-ex-link-'), [CURL, CONC]);
   const twoDays = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(now - 2 * DAY);
-  assert.equal(await text(`muscle-workout-${CONC}-arms`), `${twoDays} · Arms Left 12 kg × 10 · Right 12 kg × 10 · Left 12 kg × 8 1 unpaired`);
+  assert.equal(await text(`muscle-workout-${CONC}-arms`), `${twoDays} · Arms · 1 set · 1 unpaired`);
   assert.equal(await text(`muscle-ex-link-${CONC}`), 'Concentration Curl (Dumbbell) 1');
   await a.shot('arms');
-  ok(`${theme}: Biceps: Bicep Curl 3, Concentration Curl 1 with Left/Right on its rows and “1 unpaired”`);
+  ok(`${theme}: Biceps: Bicep Curl 3, Concentration Curl 1 with “1 set · 1 unpaired” on its row`);
 
   if (theme === 'light') {
     // deleting a workout: the breakdown and Today follow
@@ -193,13 +194,13 @@ for (const theme of ['light', 'dark']) {
   await openMuscle(a, 'chest');
   assert.equal(await text('muscle-title'), 'Brust');
   assert.equal(await text('muscle-total'), '11 Sätze in den letzten 7 Tagen');
-  assert.match(await text(`muscle-workout-${BENCH}-push2`), /^Gestern · Push 80 kg × 8 · 80 kg × 7 · 70 kg × 10$/);
+  assert.match(await text(`muscle-workout-${BENCH}-push2`), /^Gestern · Push · 3 Sätze$/);
   await a.shot('chest');
   await page.goBack();
   await openMuscle(a, 'biceps');
-  assert.match(await text(`muscle-workout-${CONC}-arms`), / · Arms Links 12 kg × 10 · Rechts 12 kg × 10 · Links 12 kg × 8 1 ohne Paar$/);
+  assert.match(await text(`muscle-workout-${CONC}-arms`), / · Arms · 1 Satz · 1 ohne Paar$/);
   await a.shot('arms');
-  ok('German: Brust, “11 Sätze in den letzten 7 Tagen”, Gestern · Push, Links/Rechts and “1 ohne Paar”');
+  ok('German: Brust, “11 Sätze in den letzten 7 Tagen”, “Gestern · Push · 3 Sätze” and “1 Satz · 1 ohne Paar”');
   assert.deepEqual(a.errors, []);
   await a.ctx.close();
 }
