@@ -553,6 +553,14 @@ export function platesFor(total, bar, available) {
 }
 
 /**
+ * The heaviest total the plates are worked out for (#130): 1000 kg or 2200 lb,
+ * about twice the heaviest lifts ever loaded on a bar. Above it is a typo, and
+ * its plates would run into the thousands. Logged weights have no limit.
+ * @param {string} unit 'kg' or 'lb'
+ */
+export const plateMax = (unit) => (unit === 'lb' ? 2200 : 1000);
+
+/**
  * Round to the nearest loadable step (2 × smallest plate), never below the bar.
  * @param {number} w
  * @param {number} bar

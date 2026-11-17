@@ -241,6 +241,13 @@ test('session: units keep supersets together, rounds alternate, the next set fol
   assert.deepEqual(list.map((e) => e.id), ['b', 'c', 'a', 'd']);
   assert.equal(core.moveUnit(list, 'b', 'b'), false);
   assert.equal(core.moveUnit(list, 'zz', 'b'), false);
+  // plates per side, and the heaviest total they're worked out for (#130)
+  assert.deepEqual(core.platesFor(100, 20, core.KG_PLATES), { plates: [25, 15], remainder: 0 });
+  assert.deepEqual(core.platesFor(101, 20, [25, 20, 10, 5, 2.5, 1.25]), { plates: [25, 10, 5], remainder: 1 });
+  assert.deepEqual(core.platesFor(15, 20, core.KG_PLATES), { plates: [], remainder: 0 });
+  assert.equal(core.plateMax('kg'), 1000);
+  assert.equal(core.plateMax('lb'), 2200);
+  assert.deepEqual(core.platesFor(core.plateMax('kg'), 20, core.KG_PLATES).plates, [...Array(19).fill(25), 15], '19 × 25 and a 15 a side: the most the calculator draws with standard plates');
   // the keypad's −/+ step: a pair of the smallest plates, the dumbbell rack's step
   assert.equal(core.weightStep('barbell', { unit: 'kg', plates: core.KG_PLATES }), 2.5);
   assert.equal(core.weightStep('barbell', { unit: 'kg', plates: [20, 10, 0.5] }), 1);

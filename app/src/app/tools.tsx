@@ -7,7 +7,7 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-  platesFor, est1RM, EPLEY_ABOVE_REPS, formulaLabel, parseNum, toKg,
+  platesFor, plateMax, est1RM, EPLEY_ABOVE_REPS, formulaLabel, parseNum, toKg,
 } from '@increment/core';
 
 import { useSettings } from '@/data/store';
@@ -25,6 +25,9 @@ const PLATE_STYLE: Record<number, [string, number]> = {
   5: ['#e9edf2', 0.6], 2.5: ['#1d2229', 0.5], 1.25: ['#a7afba', 0.42], 0.5: ['#a7afba', 0.36],
   45: ['#2a6fd6', 1], 35: ['#e0b100', 0.9], 2: ['#1d2229', 0.48], 1: ['#a7afba', 0.4],
 };
+// the bar's drawing: the shaft, the collar and the sleeve (with its gap) around the plates
+const BAR_ENDS = 40 + 8 + 30 + 2;
+const PLATE_GAP = 2;
 const plateLook = (p: number) => {
   const [color, scale] = PLATE_STYLE[p] || ['#8b95a3', 0.5];
   return { color, h: Math.round(104 * scale), w: p >= 10 ? 15 : p >= 2.5 ? 11 : 8 };
@@ -81,8 +84,15 @@ function Plates({ initial }: { initial?: string }) {
   const [bar, setBar] = useState(st.bar);
   const ghost = u === 'lb' ? 225 : 100;
   const target = parseNum(val.trim() === '' ? String(ghost) : val);
-  const res = target !== null ? platesFor(target, bar, st.plates) : null;
+  // up to 1000 kg (2200 lb); above is a typo, with thousands of plates to draw (#130)
+  const max = plateMax(u);
+  const tooHeavy = target !== null && target > max;
+  const res = target !== null && !tooHeavy ? platesFor(target, bar, st.plates) : null;
   const loaded = res ? bar + res.plates.reduce((a, p) => a + p * 2, 0) : null;
+  // the plates get narrower when they don't fit across the card at full width (#130)
+  const [rowW, setRowW] = useState(0);
+  const full = res ? res.plates.reduce((a, p) => a + plateLook(p).w + PLATE_GAP, 0) : 0;
+  const fit = rowW && full > rowW - BAR_ENDS ? (rowW - BAR_ENDS) / full : 1;
   const barOptions = u === 'lb' ? [45, 35, 33, 25, 15, 0] : [20, 15, 10, 7.5, 0];
   return (
     <View style={{ gap: SPACE.s4 }}>
@@ -93,17 +103,22 @@ function Plates({ initial }: { initial?: string }) {
         <SegmentedControl value={String(bar)} onChange={(v) => setBar(Number(v))} label={tr('Bar')} testID="plate-bar"
           options={barOptions.map((b) => ({ value: String(b), label: b ? f.num(b, 1) : tr('None') }))} />
       </View>
+      {tooHeavy && (
+        <Card testID="plate-result">
+          <Txt tone="ink2" style={[TYPE.subhead, { textAlign: 'center', marginVertical: SPACE.s2 }]} testID="plate-too-heavy">{tr('The calculator goes up to {w}.', { w: `${f.num(max, 0)}\u00a0${u}` })}</Txt>
+        </Card>
+      )}
       {res && target !== null && (
         <Card testID="plate-result">
           {target < bar ? <Txt tone="ink2" style={[TYPE.subhead, { textAlign: 'center', marginVertical: SPACE.s2 }]}>{tr('That’s lighter than the bar.')}</Txt> : (
             <View style={{ gap: SPACE.s3 }}>
               <Txt style={[TYPE.headline, { textAlign: 'center' }]}>{tr('Each side')}</Txt>
-              <View style={styles.barRow} accessible={false}>
+              <View style={styles.barRow} accessible={false} onLayout={(e) => setRowW(e.nativeEvent.layout.width)} testID="plate-bar-row">
                 <View style={[styles.shaft, { backgroundColor: c.ink3 }]} />
                 <View style={[styles.collar, { backgroundColor: c.ink2 }]} />
                 {res.plates.map((p, i) => {
                   const v = plateLook(p);
-                  return <View key={i} style={{ height: v.h, width: v.w, backgroundColor: v.color, borderRadius: 3, marginLeft: 2, borderWidth: p === 5 ? StyleSheet.hairlineWidth : 0, borderColor: '#999' }} />;
+                  return <View key={i} style={{ height: v.h, width: Math.max(1, v.w * fit), backgroundColor: v.color, borderRadius: Math.min(3, (v.w * fit) / 2), marginLeft: PLATE_GAP * fit, borderWidth: p === 5 ? StyleSheet.hairlineWidth : 0, borderColor: '#999' }} />;
                 })}
                 <View style={[styles.sleeve, { backgroundColor: c.ink3 }]} />
               </View>
