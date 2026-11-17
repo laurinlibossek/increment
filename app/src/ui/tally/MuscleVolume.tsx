@@ -3,9 +3,10 @@
 // missing to its lower end; the open app passes none. With `onPress` each row
 // opens what makes up its number (#89): no chevron, a pressed state, and each
 // row at least 44 pt tall across the full width (Apple's minimum touch target;
-// Laurin, 14 Nov 2026). docs/design/components.md
+// Laurin, 14 Nov 2026). Hairlines separate the rows, inset like a list's
+// (Laurin, 16 Nov 2026). docs/design/components.md
 import { halfText } from '@increment/core';
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { CONTROL, SPACE, STROKE, TYPE } from '@/design/tally';
@@ -43,14 +44,19 @@ export function MuscleVolume({ rows, accessibilityLabel, onPress, testID }: {
             <Text style={[TYPE.headline, { color: over ? t.ink2 : t.ink, minWidth: 28, textAlign: 'right', fontVariant: ['tabular-nums'] }]}>{halfText(r.sets)}</Text>
           </>
         );
+        // from the text's margin to the screen's edge, like ListRow's
+        const line = i > 0 && <View testID={`volume-line-${r.muscle}`} style={{ height: 0.5, marginRight: -SPACE.s5, backgroundColor: t.line }} />;
         if (!onPress) {
-          return <View key={r.muscle} accessible accessibilityLabel={accessibilityLabel(r)} testID={`muscle-${r.muscle}`} style={row}>{content}</View>;
+          return <Fragment key={r.muscle}>{line}<View accessible accessibilityLabel={accessibilityLabel(r)} testID={`muscle-${r.muscle}`} style={row}>{content}</View></Fragment>;
         }
         return (
-          <Pressable key={r.muscle} onPress={() => onPress(r)} accessibilityRole="button" accessibilityLabel={accessibilityLabel(r)} testID={`muscle-${r.muscle}`}
-            style={({ pressed }) => [row, PRESS_AREA, { backgroundColor: pressed ? t.paper2 : 'transparent' }]}>
-            {content}
-          </Pressable>
+          <Fragment key={r.muscle}>
+            {line}
+            <Pressable onPress={() => onPress(r)} accessibilityRole="button" accessibilityLabel={accessibilityLabel(r)} testID={`muscle-${r.muscle}`}
+              style={({ pressed }) => [row, PRESS_AREA, { backgroundColor: pressed ? t.paper2 : 'transparent' }]}>
+              {content}
+            </Pressable>
+          </Fragment>
         );
       })}
     </View>

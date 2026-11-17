@@ -33,6 +33,9 @@ const id = (page, t) => page.getByTestId(t);
 const wait = (page, ms = 300) => page.waitForTimeout(ms);
 const store = (page) => storedData(page);
 const text = (page) => page.locator('body').innerText();
+/** No row says ">" (Laurin, 16 Nov 2026). On the web a chevron is the private-use glyph U+E5CC;
+ * History's month arrows and the picker's closed families still use it, so check elsewhere. */
+async function noChevron(page, where) { assert.ok(!(await text(page)).includes('\uE5CC'), `${where}: no chevron`); }
 async function discard(page) {
   await id(page, 'discard-workout').click();
   await wait(page, 400);
@@ -85,8 +88,10 @@ async function discard(page) {
   assert.ok(muscles.length >= 3, 'the demo trained several muscles this week');
   for (const m of muscles) assert.match(await id(page, `muscle-${m.muscle}`).innerText(), new RegExp(`^${m.label}\\s+${core.halfText(m.sets)}$`));
   assert.equal(await page.locator('[data-testid^="muscle-"]').count(), muscles.length);
+  assert.equal(await page.locator('[data-testid^="volume-line-"]').count(), muscles.length - 1, 'a hairline between each two muscle rows');
+  await noChevron(page, 'Today, Plan and Progress');
   await page.screenshot({ path: `${OUT}/01-today.png` });
-  ok(`Today: the date, Up next (${sug.template.name}, about ${size.minutes} min), ${week.done} of ${settings.weeklyGoal} sessions, sets per muscle as the core counts them`);
+  ok(`Today: the date, Up next (${sug.template.name}, about ${size.minutes} min), ${week.done} of ${settings.weeklyGoal} sessions, sets per muscle as the core counts them, with hairlines between the rows; no chevrons`);
 
   // start it, log the warm-up and the first set, minimize: the accessory
   await id(page, 'start-suggested').click();
@@ -175,7 +180,7 @@ async function discard(page) {
     const labels = await row.locator('[dir="auto"]:not([aria-hidden="true"])').allTextContents();
     assert.deepEqual(labels, [title], `${title}: navigation label without an all-time count`);
     assert.equal(await row.getAttribute('role'), 'button', `${title}: navigation remains tappable`);
-    assert.equal(await row.locator('[aria-hidden="true"]').count(), 2, `${title}: leading symbol and chevron`);
+    assert.equal(await row.locator('[aria-hidden="true"]').count(), 1, `${title}: leading symbol, no chevron`);
   }
   const lifts = new Set(data.workouts.flatMap((w) => w.exercises.map((e) => e.exerciseId))).size;
   const bw = [...data.measurements].sort((a, b) => b.at - a.at)[0];
@@ -195,11 +200,16 @@ async function discard(page) {
   assert.equal(await id(page, 'lift-x-squat-barbell').locator('[aria-hidden="true"]').count(), 0, 'Lifts rows have no chevron');
   await id(page, 'lift-x-squat-barbell').click();
   await id(page, 'exercise-options').waitFor();
+  await noChevron(page, 'an exercise page');
   await page.goBack(); await page.goBack();
+  await id(page, 'progress-body').click();
+  await id(page, 'measure-bodyweight').waitFor();
+  await noChevron(page, 'Body');
+  await page.goBack();
   await id(page, 'progress-workouts').click();
   await page.locator('[data-testid^="workout-"]').first().waitFor();
   await page.goBack();
-  ok(`Progress: ${recent} workouts in 30 days; Workouts, Lifts and Records navigate without counts; ${lifts} searchable lifts and Body (${bw.value} kg)`);
+  ok(`Progress: ${recent} workouts in 30 days; Workouts, Lifts and Records navigate without counts or chevrons; ${lifts} searchable lifts and Body (${bw.value} kg)`);
 
   // Every root has a plain Search control with a full hit area. Back preserves the origin.
   for (const tab of ['index', 'plan', 'progress']) {
@@ -257,6 +267,7 @@ async function discard(page) {
   await id(page, 'open-account').click();
   await id(page, 'account-done').waitFor();
   assert.match(await id(page, 'set-name').innerText(), /Not set/);
+  await noChevron(page, 'Account');
   await wait(page, 300);
   await page.screenshot({ path: `${OUT}/05-account.png` });
   await id(page, 'account-done').click();

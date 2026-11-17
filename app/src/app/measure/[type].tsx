@@ -70,7 +70,7 @@ export default function MeasureDetail() {
           <Group>
             {list.slice(0, limit).map((m, i) => (
               <Cell key={m.id} first={i === 0} title={fmtMeasure(d, m.value, st, f)} value={`${when(m.at)} · ${f.date.time(m.at)}`}
-                onPress={() => rowMenu(m)} chevron={false} testID={`entry-${i}`} />
+                onPress={() => rowMenu(m)} testID={`entry-${i}`} />
             ))}
           </Group>
           {list.length > limit && <View style={{ marginTop: 10 }}><Button kind="tinted" title={tr('Show more')} onPress={() => setLimit(limit + 60)} /></View>}

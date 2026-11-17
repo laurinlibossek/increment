@@ -102,7 +102,7 @@ export default function PlanTab() {
       </View>
     );
     return (
-      <ListRow key={x.id} first={i === 0} title={title} subtitle={subtitle} chevron={x.example}
+      <ListRow key={x.id} first={i === 0} title={title} subtitle={subtitle}
         onPress={() => router.push({ pathname: '/template/[id]', params: { id: x.id } })} testID={`template-${x.id}`}
         right={!x.example && (
           <Pressable onPress={() => templateMenu(x, f)} accessibilityRole="button" accessibilityLabel={tr('Options for {name}', { name: x.name })}
