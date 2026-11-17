@@ -3,45 +3,11 @@
 // replaced when the timer changes and cancelled when it's skipped. While the
 // app is open the timer buzzes instead, so the notification stays hidden.
 // Local notifications work in Expo Go; there's nothing to do on the web.
-import { AppState, Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import { allowed, setup, setUp, supported } from './notify';
 
 const ID = 'rest-timer';
 const CHANNEL = 'rest';
-const supported = Platform.OS === 'ios' || Platform.OS === 'android';
-let setUp = false;
-let asked = false;
-
-function setup() {
-  if (setUp || !supported) return;
-  setUp = true;
-  Notifications.setNotificationHandler({
-    // shown only when the app isn't in front (the open app buzzes by itself)
-    handleNotification: async () => {
-      const away = AppState.currentState !== 'active';
-      return { shouldShowBanner: away, shouldShowList: away, shouldPlaySound: away, shouldSetBadge: false };
-    },
-  });
-  if (Platform.OS === 'android') {
-    Notifications.setNotificationChannelAsync(CHANNEL, {
-      name: 'Rest timer', importance: Notifications.AndroidImportance.HIGH, vibrationPattern: [0, 250, 150, 250], sound: 'default',
-    }).catch(() => {});
-  }
-}
-
-/** May we notify? Asks once (the first time a rest timer starts). */
-async function allowed(): Promise<boolean> {
-  try {
-    const p = await Notifications.getPermissionsAsync();
-    if (p.granted || p.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL) return true;
-    if (asked || !p.canAskAgain) return false;
-    asked = true;
-    const r = await Notifications.requestPermissionsAsync({ ios: { allowAlert: true, allowSound: true, allowBadge: false } });
-    return r.granted;
-  } catch {
-    return false;
-  }
-}
 
 let seq = 0;
 

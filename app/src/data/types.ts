@@ -120,6 +120,7 @@ export interface Settings {
   askTemplateUpdate: boolean;
   /** iPhone/Android app: a notification when rest is over. */
   restAlert: boolean;
+  logReminder: boolean;
   sound: boolean;
   /** Web app: the screen stays on during a workout. */
   keepAwake: boolean;
@@ -192,6 +193,7 @@ export interface ActiveWorkout {
   templateNotes: string;
   exercises: EntryDraft[];
   rest: Rest | null;
+  restEndedAt?: number;
   /** the exercise switched to ("Up next"), or none: the session's order */
   current?: string | null;
   updatedAt: number;

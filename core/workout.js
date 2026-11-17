@@ -247,6 +247,27 @@ export function uncheckSet(set) {
   delete set.doneAt;
 }
 
+export const LOG_REMINDER_DELAY = 15 * 60000;
+
+/**
+ * When the "log your set" reminder is due (ms), or null with no workout running.
+ * Warm-ups count as logging too. No clock here: a past due time stays past.
+ * @param {{ startedAt: number, exercises: { sets: { done?: boolean, doneAt?: number }[] }[], rest?: { end: number } | null, restEndedAt?: number } | null | undefined} active
+ * @param {{ restEnd?: number | null, delay?: number }} [options]
+ * @returns {number | null}
+ */
+export function logReminderAt(active, { restEnd = active?.rest?.end ?? active?.restEndedAt, delay = LOG_REMINDER_DELAY } = {}) {
+  if (!active) return null;
+  let latest = active.startedAt;
+  for (const entry of active.exercises) {
+    for (const set of entry.sets) {
+      if (set.done && set.doneAt) latest = Math.max(latest, set.doneAt);
+    }
+  }
+  if (restEnd != null) latest = Math.max(latest, restEnd);
+  return latest + delay;
+}
+
 /**
  * "Save them as done" at Finish: the pending sets (from pendingSets) are filled
  * and logged now; a set keeps a logging time it already has (#43).

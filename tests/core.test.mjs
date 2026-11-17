@@ -1120,6 +1120,46 @@ test('Strong import (#40): exact names pass the field check, negative weights an
   assert.deepEqual([again.review.length, again.matches['Pull Up']], [0, 'x-pull-up-weighted']);
 });
 
+test('logReminderAt: one reminder after the latest logging or rest, including warm-ups (#117)', () => {
+  const minute = 60000, delay = 15 * minute;
+  assert.equal(core.LOG_REMINDER_DELAY, delay);
+  assert.equal(core.logReminderAt(null), null);
+  assert.equal(core.logReminderAt(undefined), null);
+  const a = { id: 'active', startedAt: minute, exercises: [], rest: null };
+  assert.equal(core.logReminderAt(a), minute + delay, 'no sets yet');
+  a.exercises = [
+    { id: 'e1', exerciseId: 'bench', sets: [{ done: true, doneAt: 2 * minute }] },
+    { id: 'e2', exerciseId: 'row', supersetId: 'g', sets: [{ done: true, doneAt: 4 * minute }] },
+    { id: 'e3', exerciseId: 'curl', supersetId: 'g', sets: [{ done: true, doneAt: 3 * minute }, { done: false, doneAt: 9 * minute }, { done: true }] },
+  ];
+  assert.equal(core.logReminderAt(a), 4 * minute + delay, 'latest across entries and supersets; unticked and legacy rows ignored');
+  core.uncheckSet(a.exercises[1].sets[0]);
+  assert.equal(core.logReminderAt(a), 3 * minute + delay, 'unticking the latest falls back');
+  a.exercises[0].sets.push({ type: 'warmup', done: true, doneAt: 5 * minute });
+  assert.equal(core.logReminderAt(a), 5 * minute + delay, 'a warm-up is logging');
+  a.rest = { end: 8 * minute };
+  assert.equal(core.logReminderAt(a), 8 * minute + delay, 'running rest');
+  a.restEndedAt = a.rest.end;
+  a.rest = null;
+  assert.equal(core.logReminderAt(a), 8 * minute + delay, 'finished rest keeps its end');
+  a.exercises[0].sets.push({ done: true, doneAt: 10 * minute });
+  assert.equal(core.logReminderAt(a), 10 * minute + delay, 'logging after rest wins');
+  assert.equal(core.logReminderAt(a, { restEnd: 12 * minute, delay: 123 }), 12 * minute + 123);
+  assert.equal(core.logReminderAt(a, { restEnd: 2 * minute, delay: 0 }), 10 * minute, 'explicit restEnd still competes with sets');
+  assert.equal(core.logReminderAt({ ...a, exercises: [] }, { restEnd: 0 }), minute + delay, 'explicit restEnd overrides stored rest end; start still wins');
+  const finished = core.finishWorkout(a, { settings: core.withDefaults(), exercises: new Map(), now: 20 * minute });
+  assert.equal('restEndedAt' in finished, false, 'rest metadata stays out of saved workouts');
+  assert.equal(core.logReminderAt(null), null, 'finishing or discarding clears active');
+});
+
+test('an older backup without logReminder restores with reminders on (#117)', () => {
+  const data = { exercises: [], workouts: [], templates: [], measurements: [], kv: { settings: { restAlert: false } } };
+  const restored = core.parseBackup(core.makeBackup(data, 'old'), []).data;
+  // The store applies withDefaults when restoring kv settings.
+  assert.equal(core.withDefaults(restored.kv.settings).logReminder, true);
+  assert.equal(restored.kv.settings.restAlert, false);
+});
+
 test('logging times (#43): set by logging, gone on uncheck, kept by edits and backups, never copied into routines or new sessions', () => {
   const st = core.withDefaults({ unit: 'kg', distUnit: 'km' });
   const bench = core.SEED_EXERCISES.find((e) => e.id === 'x-bench-press-barbell');

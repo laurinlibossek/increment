@@ -526,6 +526,16 @@ for (const scheme of ['light', 'dark']) {
     await wait(page, 200);
     assert.equal((await store(page)).kv.settings.restAlert, false);
     await id(page, 'set-rest-alert').click();
+    const reminder = id(page, 'set-log-reminder');
+    assert.equal(await page.getByText('Reminder to log sets', { exact: true }).count(), 1);
+    assert.equal(await reminder.locator('input').isChecked(), true);
+    await reminder.click();
+    await wait(page, 200);
+    assert.equal((await store(page)).kv.settings.logReminder, false);
+    await reminder.click();
+    await wait(page, 200);
+    assert.equal((await store(page)).kv.settings.logReminder, true);
+    ok('Reminder to log sets is on by default and both switch changes are saved');
     await page.screenshot({ path: `${OUT}/12-settings.png`, fullPage: true });
     await page.goBack();
     await selectTab(page, 'index');

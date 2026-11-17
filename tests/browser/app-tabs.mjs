@@ -340,6 +340,10 @@ for (const lang of ['en', 'de']) {
   await selectTab(page, 'index');
   await id(page, 'open-account').click();
   await id(page, 'set-ask-template').waitFor();
+  if (de) {
+    assert.equal(await page.getByText('Erinnerung ans Eintragen', { exact: true }).count(), 1);
+    assert.equal(await page.getByText('Eine Mitteilung, wenn 15 Minuten lang kein Satz eingetragen wurde', { exact: true }).count(), 1);
+  }
   await says('Account', de ? 'Routinen nach dem Training aktualisieren' : 'Update routines after workouts', de ? 'Beispielroutinen' : 'Example routines');
   await page.goBack();
   await wait(page, 400);
