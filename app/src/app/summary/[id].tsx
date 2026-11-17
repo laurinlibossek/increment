@@ -162,7 +162,7 @@ export default function Summary() {
         )}
 
         <View style={{ marginTop: SPACE.s6 }}>
-          <ListRow first title={tr('View in history')} chevron onPress={viewInHistory} testID="view-in-history" />
+          <ListRow first title={tr('View in history')} onPress={viewInHistory} testID="view-in-history" />
         </View>
       </ScrollView>
       <OverlayHost />

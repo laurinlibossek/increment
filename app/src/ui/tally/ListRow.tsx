@@ -1,5 +1,6 @@
 // A full-width row: optional leading symbol, a title with an optional second
-// line, and a trailing value, tally or chevron. Hairlines between rows are
+// line, and a trailing value or tally. No chevrons: a row that can be tapped
+// shows its pressed state (Laurin, 16 Nov 2026). Hairlines between rows are
 // inset to the text; no cards around lists. docs/design/components.md
 import type { ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
@@ -58,10 +59,8 @@ type Props = {
   leadWidth?: number;
   /** A value ("214", "81.4 kg") or a tally. */
   trailing?: string | { tally: StrokeState[][]; label: string };
-  /** Anything else at the end, before the chevron (a ⋯ button). */
+  /** Anything else at the end (a ⋯ button). */
   right?: ReactNode;
-  /** Only when the row opens a page. */
-  chevron?: boolean;
   onPress?: () => void;
   /** The first row of a list has no hairline above it. */
   first?: boolean;
@@ -71,7 +70,7 @@ type Props = {
   checked?: boolean;
 };
 
-export function ListRow({ title, subtitle, children, symbol, lead, leadWidth, trailing, right, chevron, onPress, first, testID, accessibilityLabel, checked }: Props) {
+export function ListRow({ title, subtitle, children, symbol, lead, leadWidth, trailing, right, onPress, first, testID, accessibilityLabel, checked }: Props) {
   const { colors: t } = useTally();
   const inset = SPACE.s5 + (symbol ? 30 + SPACE.s3 : leadWidth ? leadWidth + SPACE.s3 : 0);
   const body = (pressed: boolean) => (
@@ -92,7 +91,6 @@ export function ListRow({ title, subtitle, children, symbol, lead, leadWidth, tr
       )}
       {trailing && typeof trailing === 'object' && <Tally groups={trailing.tally} size="small" label={trailing.label} />}
       {right}
-      {chevron && <SymbolIcon name="chevron.right" size={13} color={t.ink3} />}
     </View>
   );
   if (!onPress) return <View testID={testID}>{body(false)}</View>;

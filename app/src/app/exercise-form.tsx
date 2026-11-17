@@ -152,7 +152,7 @@ export default function ExerciseForm() {
       <ScrollView contentContainerStyle={{ paddingHorizontal: SPACE.s5, paddingBottom: insets.bottom + SPACE.s8 }} keyboardShouldPersistTaps="handled">
         <Field label={tr('Name')} value={name} onChange={setName} placeholder={tr('e.g. Incline Row (Dumbbell)')} testID="exercise-name" />
         {!ex?.builtin && <View style={{ marginTop: SPACE.s4, marginHorizontal: -SPACE.s5 }}>
-          <ListRow title={tr('Variation of')} trailing={familyName} chevron first onPress={selectFamily} testID="exercise-family" />
+          <ListRow title={tr('Variation of')} trailing={familyName} first onPress={selectFamily} testID="exercise-family" />
         </View>}
         <SectionTitle>{tr('What you log')}</SectionTitle>
         <Group>

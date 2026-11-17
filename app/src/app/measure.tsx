@@ -42,7 +42,7 @@ export default function MeasureTab() {
       <ListRow key={d.id} first={i === 0}
         title={<Text style={[TYPE.body, { color: t.ink }]}>{tr(d.label)}</Text>}
         subtitle={sub ? <Text style={[TYPE.footnote, { color: t.ink2 }]}>{sub}</Text> : undefined}
-        trailing={last ? fmtMeasure(d, last.value, st, f) : undefined} chevron
+        trailing={last ? fmtMeasure(d, last.value, st, f) : undefined}
         onPress={() => router.push({ pathname: '/measure/[type]', params: { type: d.id } })} testID={`measure-${d.id}`} />
     );
   };

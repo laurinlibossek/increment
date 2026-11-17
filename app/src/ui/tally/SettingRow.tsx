@@ -18,19 +18,17 @@ type Props = {
   first?: boolean;
   danger?: boolean;
   right?: ReactNode;
-  chevron?: boolean;
   checked?: boolean;
   testID?: string;
 };
 
-export function SettingRow({ title, sub, value, symbol, onPress, first, danger, right, chevron = true, checked, testID }: Props) {
+export function SettingRow({ title, sub, value, symbol, onPress, first, danger, right, checked, testID }: Props) {
   const { colors: t } = useTally();
   return (
     <ListRow
       title={<Text style={[TYPE.title3, { fontWeight: '400', color: danger ? t.danger : t.ink }]}>{title}</Text>}
       subtitle={sub ? <Text style={[TYPE.subhead, { color: t.ink2 }]} numberOfLines={3}>{sub}</Text> : undefined}
       symbol={symbol} onPress={onPress} first={first} checked={checked} testID={testID}
-      chevron={!!onPress && chevron && checked === undefined}
       right={<>
         {!!value && <Text style={[TYPE.body, { color: t.ink2, fontVariant: ['tabular-nums'], flexShrink: 1, maxWidth: '55%' }]} numberOfLines={1}>{value}</Text>}
         {right}

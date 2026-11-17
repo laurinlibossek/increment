@@ -207,7 +207,6 @@ export default function AccountSheet() {
           <Text style={[TYPE.title2, { color: s.profile.name.trim() ? t.ink : t.ink2 }]} numberOfLines={1}>{s.profile.name.trim() || tr('Not set')}</Text>
           <Text style={[TYPE.subhead, { color: t.ink2 }]}>{tr('Your name')}</Text>
         </View>
-        <SymbolIcon name="chevron.right" size={13} color={t.ink3} />
       </Pressable>
 
       <SectionHeader title={tr('Units')} />
@@ -297,7 +296,7 @@ export default function AccountSheet() {
       </Txt>
 
       <View style={{ marginTop: SPACE.s6 }}>
-        <SettingRow first title={tr('Delete all data')} danger chevron={false} onPress={busy ? undefined : doDeleteAll} testID="delete-all" />
+        <SettingRow first title={tr('Delete all data')} danger onPress={busy ? undefined : doDeleteAll} testID="delete-all" />
       </View>
 
       <View style={{ marginTop: SPACE.s6 }}>

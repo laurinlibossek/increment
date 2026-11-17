@@ -378,7 +378,7 @@ function startOfDayOf(t) { const d = new Date(t); d.setHours(0, 0, 0, 0); return
   assert.equal(await opened(), `${core.WEB_APP_URL}privacy.html`);
   await id(page, 'language-de').click();
   await wait(page, 300);
-  // the row's text ends with the chevron icon's glyph, so compare the first line
+  // the first line is the row's title
   assert.equal((await id(page, 'privacy').innerText()).split('\n')[0], 'Datenschutzerklärung');
   assert.equal(await opened(), `${core.WEB_APP_URL}datenschutz.html`);
   ok('Settings → Privacy policy opens the page in the app’s language');

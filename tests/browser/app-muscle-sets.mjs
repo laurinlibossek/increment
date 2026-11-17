@@ -92,7 +92,13 @@ for (const theme of ['light', 'dark']) {
   const vw = page.viewportSize().width;
   for (const b of [before, armsRow]) assert.ok(b.height >= 44 && b.x === 0 && b.width === vw, `a 44 pt row across the full width: ${JSON.stringify(b)}`);
   const front = await id('muscle-front_delts').boundingBox();
-  assert.equal(front.y, before.y + before.height, 'neighbouring rows meet, including helper-only muscles');
+  // only a hairline between neighbouring rows, from the text's margin to the screen's edge (Laurin, 16 Nov 2026)
+  const line = await id('volume-line-front_delts').boundingBox();
+  const labelX = (await id('muscle-chest').getByText('Chest', { exact: true }).boundingBox()).x;
+  assert.ok(line.height > 0 && line.height <= 1 && Math.abs(line.y - (before.y + before.height)) < 0.01 && Math.abs(front.y - (line.y + line.height)) < 0.01,
+    `a hairline between Chest and the helper-only Front delts, and nothing else: ${JSON.stringify({ before, line, front })}`);
+  assert.ok(Math.abs(line.x - labelX) < 0.5 && Math.abs(line.x + line.width - vw) < 0.5, `inset to the labels, to the edge: ${JSON.stringify(line)}`);
+  assert.equal(await page.locator('[data-testid="volume-line-chest"]').count(), 0, 'no line above the first row');
   if (theme === 'light') await a.shot('today');
   await openMuscle(a, 'chest');
   assert.equal(await text('muscle-title'), 'Chest');
@@ -112,13 +118,15 @@ for (const theme of ['light', 'dark']) {
     assert.equal(await text(`muscle-ex-link-${e.exerciseId}`), `${lib.get(e.exerciseId).name} ${e.sets}`);
     for (const w of e.workouts) assert.match(await text(`muscle-workout-${e.exerciseId}-${w.id}`), new RegExp(` ${w.sets}$`));
   }
+  assert.ok(!(await page.locator('body').innerText()).includes('\uE5CC'), 'no chevrons on the breakdown (U+E5CC on the web)');
   await a.shot('chest');
-  ok(`${theme}: Today’s Chest row (a button, 44 pt tall across the full width) opens Chest: 11 sets in the last 7 days, Incline Bench Press 6 then Bench Press 5, each workout newest first with its sets (no warm-up, the repeated entry in one row), adding up to the core’s numbers`);
+  ok(`${theme}: Today’s Chest row (a button, 44 pt tall across the full width, hairlines between rows) opens Chest, without chevrons: 11 sets in the last 7 days, Incline Bench Press 6 then Bench Press 5, each workout newest first with its sets (no warm-up, the repeated entry in one row), adding up to the core’s numbers`);
 
   // a workout row opens the workout, the exercise's name the exercise; Back returns each time
   await id(`muscle-workout-${BENCH}-push1`).click();
   await page.waitForURL((u) => u.pathname === '/workout/push1');
   assert.equal(await text('workout-title'), 'Push');
+  assert.ok(!(await page.locator('body').innerText()).includes('\uE5CC'), 'no chevrons on the workout page');
   await page.goBack();
   await id(`muscle-ex-link-${INCLINE}`).click();
   await page.waitForURL((u) => u.pathname === `/exercise/${INCLINE}`);

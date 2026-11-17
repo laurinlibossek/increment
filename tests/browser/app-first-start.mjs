@@ -85,7 +85,7 @@ const has = async (page, re) => (typeof re === 'string' ? new RegExp(re.replace(
     const labels = await row.locator('[dir="auto"]:not([aria-hidden="true"])').allTextContents();
     assert.deepEqual(labels, [title], `${title}: German navigation label without an all-time count`);
     assert.equal(await row.getAttribute('role'), 'button', `${title}: navigation remains tappable`);
-    assert.equal(await row.locator('[aria-hidden="true"]').count(), 2, `${title}: leading symbol and chevron`);
+    assert.equal(await row.locator('[aria-hidden="true"]').count(), 1, `${title}: leading symbol, no chevron`);
   }
   assert.equal((await storedData(page)).workouts.length, 86, 'all 86 workouts were restored');
   await page.screenshot({ path: `${OUT}/03-progress.png` });
