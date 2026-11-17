@@ -270,6 +270,13 @@ for (const [language, theme] of [['en', 'light'], ['en', 'dark'], ['de', 'light'
     assert.match(await id('muscle-group-indirect').innerText(), language === 'en' ? /^Indirect sets\nExercises where this muscle helps count half a set\.$/ : /^Indirekte Sätze\nÜbungen, bei denen dieser Muskel mithilft, zählen als halber Satz\.$/);
     const [direct, hip, indirect, sq] = await Promise.all(['muscle-group-direct', `muscle-ex-link-${HIP}`, 'muscle-group-indirect', `muscle-ex-link-${SQ}`].map(async (t) => (await id(t).boundingBox()).y));
     assert.ok(direct < hip && hip < indirect && indirect < sq, 'Direct sets heads the hip thrust; Indirect sets heads the squat');
+    // big headers led by the tally's stroke for each kind; Direct sets in the logged-set colour
+    assert.equal(await id('muscle-group-direct').getByText(language === 'en' ? 'Direct sets' : 'Direkte Sätze').evaluate((el) => getComputedStyle(el).fontSize), '22px', 'Title 2');
+    assert.equal(await id('muscle-group-indirect').getByTestId('stroke-helper').count(), 1, 'Indirect sets is led by a helper stroke');
+    if (theme === 'strawberry-matcha') {
+      assert.equal(await id('muscle-group-direct').getByText('Direct sets').evaluate((el) => getComputedStyle(el).color), 'rgb(85, 128, 58)', 'Direct sets in matcha green');
+      assert.equal(await id('muscle-group-indirect').getByTestId('stroke-helper').evaluate((el) => getComputedStyle(el).backgroundColor), HELPER_INK[theme]);
+    }
     assert.match(await id(`muscle-workout-${RDL}-lower`).getAttribute('aria-label'), language === 'en' ? /, 1½ sets$/ : /, 1½ Sätze$/, 'the weighted count is read out on the row');
     assert.equal(await id('muscle-tally').getByTestId('stroke-helper').count(), 3);
     await id('muscle-helper-note').waitFor();

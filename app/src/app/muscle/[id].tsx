@@ -22,6 +22,7 @@ import { useToday } from '@/lib/useNow';
 import {
   MARGIN, SectionHeadLink, tnum, WorkoutTally,
 } from '@/ui/facts';
+import { Stroke } from '@/ui/tally/Tally';
 
 export default function MuscleSets() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -66,7 +67,12 @@ export default function MuscleSets() {
           <View key={e.exerciseId} testID={`muscle-ex-${e.exerciseId}`}>
             {group && (
               <View style={{ paddingHorizontal: MARGIN, marginTop: i ? SPACE.s8 : SPACE.s6, gap: SPACE.s1 }} testID={`muscle-group-${e.helper ? 'indirect' : 'direct'}`}>
-                <Text style={{ ...TYPE.subhead, fontWeight: '600', color: t.ink2 }} accessibilityRole="header">{tr(e.helper ? 'Indirect sets' : 'Direct sets')}</Text>
+                {/* big, led by a stroke in the tally's colour for that kind (Laurin, 17 Nov 2026); the text stays readable:
+                    stroke-done for direct, ink-2 for indirect, since a pale stroke-helper would be too faint as text */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACE.s3 }}>
+                  <Stroke state={e.helper ? 'helper' : 'done'} />
+                  <Text style={{ ...TYPE.title2, color: e.helper ? t.ink2 : t.strokeDone, flexShrink: 1 }} accessibilityRole="header">{tr(e.helper ? 'Indirect sets' : 'Direct sets')}</Text>
+                </View>
                 {e.helper && <Text style={{ ...TYPE.footnote, color: t.ink2 }} testID="muscle-helper-note">{tr('Exercises where this muscle helps count half a set.')}</Text>}
               </View>
             )}
