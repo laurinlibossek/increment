@@ -619,6 +619,7 @@ export default {
   'Estimate your one-rep max from a set.': 'Schätze dein Maximalgewicht für eine Wiederholung aus einem Satz.',
   'Target weight ({unit})': 'Zielgewicht ({unit})',
   'That’s lighter than the bar.': 'Das ist leichter als die Stange.',
+  'The calculator goes up to {w}.': 'Der Rechner geht bis {w}.',
   'Each side': 'Pro Seite',
   'Just the bar': 'Nur die Stange',
   'Loaded:': 'Beladen:',

@@ -231,6 +231,8 @@ for (const [language, theme] of [['en', 'light'], ['en', 'dark'], ['de', 'light'
   if (!helperBefore) {
     const row = id('muscle-glutes');
     assert.equal(await row.getAttribute('aria-label'), language === 'en' ? 'Glutes, 2 sets' : 'Gesäß, 2 Sätze');
+    // the strokes come after the row's first layout (they fill its width): wait for them, then count
+    await row.getByTestId('stroke-helper').nth(1).waitFor();
     assert.equal(await row.getByTestId('stroke-helper').count(), 2);
     const rect = await row.getByTestId('stroke-helper').first().boundingBox();
     assert.equal(rect.height, 20, 'a helper is full height, never a warm-up stroke');
@@ -255,6 +257,7 @@ for (const [language, theme] of [['en', 'light'], ['en', 'dark'], ['de', 'light'
   if (!helperBefore) {
     assert.equal(await id('muscle-glutes').getAttribute('aria-label'), language === 'en' ? 'Glutes, 7½ sets' : 'Gesäß, 7½ Sätze');
     assert.match(await id('muscle-glutes').innerText(), /7½$/);
+    await id('muscle-glutes').getByTestId('stroke-helper').nth(2).waitFor();
     assert.equal(await id('muscle-glutes').getByTestId('stroke-helper').count(), 3, 'remaining half appears only in the number');
   }
   await id('muscle-quads').scrollIntoViewIfNeeded(); await shot('today');
@@ -279,6 +282,7 @@ for (const [language, theme] of [['en', 'light'], ['en', 'dark'], ['de', 'light'
       assert.equal(await id('muscle-group-indirect').getByTestId('stroke-helper').evaluate((el) => getComputedStyle(el).backgroundColor), HELPER_INK[theme]);
     }
     assert.match(await id(`muscle-workout-${RDL}-lower`).getAttribute('aria-label'), language === 'en' ? /, 1½ sets$/ : /, 1½ Sätze$/, 'the weighted count is read out on the row');
+    await id('muscle-tally').getByTestId('stroke-helper').nth(2).waitFor();
     assert.equal(await id('muscle-tally').getByTestId('stroke-helper').count(), 3);
     await id('muscle-helper-note').waitFor();
   }

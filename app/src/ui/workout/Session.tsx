@@ -10,7 +10,7 @@ import {
   Animated, AppState, Keyboard, PanResponder, Platform, Pressable, StyleSheet, Text, View, type TextInputInstance,
 } from 'react-native';
 import {
-  checkOffSet, placeholders, restFor, currentAfterLog, loggedFields, platesFor, parseNum,
+  checkOffSet, placeholders, restFor, currentAfterLog, loggedFields, platesFor, plateMax, parseNum,
   numToInput, digitsToSec, secToDigits, fmtDigits, weightStep, moveUnit, BODY_PART_LABEL, sessionProgress,
 } from '@increment/core';
 
@@ -230,7 +230,8 @@ export function KeypadHost() {
   let aside: { label: string; value: string } | null = null;
   if (field === 'w' && cat === 'barbell') {
     const total = parseNum(value || ghost);
-    if (total !== null && total > 0) {
+    // none above 1000 kg (2200 lb): any weight can be logged, but its plates would run into the thousands (#130)
+    if (total !== null && total > 0 && total <= plateMax(settings.unit)) {
       const bar = Number(settings.bar) || 0;
       const p = platesFor(total, bar, settings.plates);
       aside = {

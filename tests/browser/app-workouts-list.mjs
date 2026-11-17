@@ -198,8 +198,9 @@ try {
     // the button goes once the list re-renders; count() alone doesn't wait for that
     await older.waitFor({ state: 'detached' });
     // the list renders its rows in batches as it scrolls (FlatList): scroll on until the last one is there
+    // in one step in the page: a row found first and scrolled to after can be gone by then, as the list re-renders
     for (let i = 0; i < 30 && !(await id('workout-page-44').count()); i++) {
-      await page.locator('[data-testid^="workout-page-"]').last().scrollIntoViewIfNeeded();
+      await page.evaluate(() => [...document.querySelectorAll('[data-testid^="workout-page-"]')].pop()?.scrollIntoView({ block: 'end' }));
       await page.waitForTimeout(150);
     }
     await id('workout-page-44').waitFor();
