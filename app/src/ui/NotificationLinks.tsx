@@ -10,7 +10,9 @@ export function NotificationLinks() {
       const request = response.notification.request;
       if (request.identifier !== 'log-reminder' || request.content.data?.url !== '/active') return;
       Notifications.clearLastNotificationResponse();
-      if (getState().active) router.push('/active');
+      // One running-workout screen: the reminder usually comes while it's open,
+      // under the lock screen, so move to it instead of stacking a second one.
+      if (getState().active) router.push('/active', { dangerouslySingular: true });
     }
     const response = Notifications.getLastNotificationResponse();
     if (response) redirect(response);

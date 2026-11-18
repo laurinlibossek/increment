@@ -120,6 +120,7 @@ export interface Settings {
   askTemplateUpdate: boolean;
   /** iPhone/Android app: a notification when rest is over. */
   restAlert: boolean;
+  /** iPhone/Android app: a notification after 15 minutes without a logged set (#117). */
   logReminder: boolean;
   sound: boolean;
   /** Web app: the screen stays on during a workout. */
