@@ -783,9 +783,7 @@ test('Sets per muscle’s breakdown (#89): by exercise, adding up to the number 
     ['fly', 1, 5, ['w1:1/1', 'w2:0/2', 'w6:0/2']],
   ], 'most sets first, bench before dip (done more recently); workouts newest first; left and right never pair across workouts');
   const bench = chest.exercises[0].workouts[0];
-  assert.deepEqual([bench.name, bench.startedAt], ['Workout w1', at(14)]);
-  assert.deepEqual(bench.rows.map((r) => r.w), [60, 60, 80], 'warm-ups out; the repeated entry joins the same row, in logged order');
-  assert.deepEqual(chest.exercises[2].workouts[0].rows.map((r) => r.side), ['left', 'right', 'left'], 'the unpaired row is listed too');
+  assert.deepEqual(bench, { id: 'w1', name: 'Workout w1', startedAt: at(14), sets: 3, unpaired: 0 }, 'warm-ups out, the repeated entry joins the same count; no rows or weights (Laurin, 17 Nov 2026)');
   assert.equal(ws[0].id, 'w3', 'the workouts aren’t reordered in place');
 
   // adds up to Today's number, for every muscle
@@ -3124,7 +3122,7 @@ test('muscle counts and breakdowns retain legacy region rows after that region�
     const breakdown = core.muscleSets([workout], lib, row.muscle, { now });
     assert.equal(breakdown.sets, row.sets); assert.equal(breakdown.label, row.label);
     assert.equal(breakdown.exercises.length, 1);
-    assert.equal(breakdown.exercises[0].workouts[0].rows.length, 1);
+    assert.equal(breakdown.exercises[0].workouts[0].sets, 1);
   }
   for (const id of ['cardio', 'other', 'unknown']) assert.equal(core.muscleSets([workout], lib, id, { now }).label, null);
   assert.deepEqual(core.routineMuscles(workout, lib).map((r) => r.muscle), ['arms', 'legs', 'full']);
@@ -3269,7 +3267,7 @@ test('helper sets are weighted after warm-ups and left/right pairs are counted',
     for (const e of b.exercises) assert.equal(e.workouts.reduce((n, w) => n + w.sets, 0), e.sets);
   }
   const unilateral = breakdown.exercises.at(-1).workouts[0];
-  assert.equal(unilateral.rows.length, 5); assert.equal(unilateral.unpaired, 1);
+  assert.deepEqual([unilateral.sets, unilateral.unpaired], [1, 1], 'two complete pairs make one helper set; the third left is unpaired');
   assert.deepEqual(core.routineMuscles(workout, library).map((r) => r.muscle), ['arms', 'legs']);
   const ownNone = library.map((e) => e.id === byName('Squat (Barbell)') ? { ...e, helpers: [] } : e);
   assert.equal(core.setsPerMuscle([workout], ownNone, { now }).find((r) => r.muscle === 'glutes').helper, 2.5, 'explicit none overrides the live table in the count');
