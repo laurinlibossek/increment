@@ -227,6 +227,8 @@ export default function AccountSheet() {
           onPress={() => pick(tr('Default rest timer'), (REST_CHOICES as number[]).map((x) => ({ value: x, label: restLabel(x) })), st.defaultRest, (v) => set('defaultRest', v))} />
         <SwitchSettingRow title={tr('Rest timer alerts')} sub={tr('A notification when rest is over, also with the phone locked')} value={st.restAlert}
           onChange={(v) => set('restAlert', v)} testID="set-rest-alert" />
+        <SwitchSettingRow title={tr('Reminder to log sets')} sub={tr('A notification when no set was logged for 15 minutes')} value={st.logReminder}
+          onChange={(v) => set('logReminder', v)} testID="set-log-reminder" />
         <SwitchSettingRow title={tr('Keep screen on')} sub={tr('While a workout is running')} value={st.appKeepAwake} onChange={(v) => set('appKeepAwake', v)} testID="set-keep-awake" />
         <SettingRow title={tr('Previous values')} testID="set-previous-values" value={st.prevSource === 'template' ? tr('Same routine') : tr('Any workout')}
           onPress={() => pick(tr('Previous values'), [{ value: 'any', label: tr('Any workout') }, { value: 'template', label: tr('Same routine') }], st.prevSource, (v) => set('prevSource', v as Settings['prevSource']))} />

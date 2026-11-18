@@ -6,7 +6,7 @@
 // exercise on screen shows none; Reduce Motion steps it once a second. Light
 // and dark at 375 pt.
 import assert from 'node:assert/strict';
-import { launch, devices, grantWakeLock, APP, shots } from './env.mjs';
+import { launch, devices, grantWakeLock, APP, shots, storedData, waitStored } from './env.mjs';
 import { SEED_EXERCISES, SEED_VERSION } from '../../core/index.js';
 
 const OUT = shots('app-set-rest');
@@ -83,10 +83,16 @@ for (const theme of ['light', 'dark']) {
   assert.ok(Math.abs(await left(s1) - await barLeft()) <= 1);
   ok(`${theme}: logging set 1 puts the rest under it; −15, +15 and a reload keep it in step with the Action bar`);
 
-  // Skip: gone from both
+  // Skip: gone from both, with its actual end kept for the reminder.
+  const restBeforeSkip = (await storedData(page)).kv.active.rest;
+  const beforeSkip = Date.now();
   await id('rest-skip').click();
   await id(`set-rest-${s1}`).waitFor({ state: 'detached' });
   assert.equal(await id('rest-bar').count(), 0);
+  await waitStored(page, (d) => d.kv.active.rest === null);
+  const afterSkip = (await storedData(page)).kv.active;
+  assert.equal(afterSkip.rest, null);
+  assert.ok(afterSkip.restEndedAt >= beforeSkip && afterSkip.restEndedAt <= restBeforeSkip.end);
   // the next set takes it over; deleting that set takes the line away, the Action bar keeps the rest
   await log(s2);
   await id(`set-rest-${s2}`).waitFor();

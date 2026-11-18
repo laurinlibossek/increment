@@ -1151,5 +1151,6 @@ export function adjustRest(deltaSec: number) {
   patchActive({ rest: { ...r, end, total: Math.max(1, r.total + deltaSec) } });
 }
 export function skipRest() {
-  if (state.active?.rest) patchActive({ rest: null });
+  const rest = state.active?.rest;
+  if (rest) patchActive({ rest: null, restEndedAt: Math.min(Date.now(), rest.end) });
 }
