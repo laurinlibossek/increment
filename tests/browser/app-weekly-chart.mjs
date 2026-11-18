@@ -9,13 +9,15 @@ import { launch, devices, grantWakeLock, APP, shots, selectTab } from './env.mjs
 import { SEED_EXERCISES, SEED_VERSION, weeklyCounts } from '../../core/index.js';
 
 const OUT = shots('app-weekly-chart');
+const before = process.env.REVIEW_BEFORE === '1';
 const browser = await launch();
 let passed = 0;
 const ok = (label) => { passed++; console.log('PASS', label); };
 
 // eleven past weeks around a goal of 5, then this week
 const PAST = [3, 5, 5, 5, 3, 4, 5, 5, 4, 5, 5];
-const now = Date.now();
+// Keep September's long German labels in the range, regardless of the run date.
+const now = new Date(2026, 10, 15, 12).getTime();
 const starts = weeklyCounts([], { weeks: 12, weekStart: 1, now }).map((w) => w.start);
 const workouts = (thisWeek) => [...PAST, thisWeek].flatMap((n, wi) => Array.from({ length: n }, (_, k) => {
   const from = starts[wi], to = wi === 11 ? now : from + 7 * 86400000;
@@ -27,13 +29,15 @@ const data = (thisWeek, theme, language) => ({
   kv: { settings: { language, theme, weeklyGoal: 5, showExamples: false, appKeepAwake: false }, meta: { seedVersion: SEED_VERSION, createdAt: 1000, lastBackupAt: now } },
 });
 
-async function open(thisWeek, { theme = 'system', scheme = 'light', language = 'en' } = {}) {
-  const ctx = await browser.newContext({ ...devices['iPhone 13'], viewport: { width: 375, height: 812 }, locale: language === 'de' ? 'de-DE' : 'en-US', colorScheme: scheme });
+async function open(thisWeek, { theme = 'system', scheme = 'light', language = 'en', width = 375 } = {}) {
+  const ctx = await browser.newContext({ ...devices['iPhone 13'], viewport: { width, height: 812 }, deviceScaleFactor: 1, locale: language === 'de' ? 'de-DE' : 'en-US', colorScheme: scheme });
   await ctx.addInitScript(grantWakeLock);
   await ctx.addInitScript((json) => { if (!localStorage.getItem('increment.data')) localStorage.setItem('increment.data', json); }, JSON.stringify(data(thisWeek, theme, language)));
   const page = await ctx.newPage();
+  await page.clock.setFixedTime(now);
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e)));
+  page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   await page.goto(APP);
   await selectTab(page, 'progress');
   const chart = page.getByTestId('weekly-chart');
@@ -109,6 +113,27 @@ for (const [name, opts] of VARIANTS) {
   assert.deepEqual(errors, []);
   await ctx.close();
   ok('touching a week of 5 next to the label hides it while the bubble shows, and it comes back; touching a week of 3 leaves it');
+}
+// Dates at narrow phone widths (#124): measure the rendered text, as for Goal 5.
+for (const language of ['en', 'de']) {
+  for (const width of [320, 375]) {
+    for (const scheme of ['light', 'dark']) {
+      const { ctx, page, errors, chart } = await open(5, { language, width, scheme });
+      const format = new Intl.DateTimeFormat(language === 'de' ? 'de-DE' : 'en-US', { day: 'numeric', month: 'short' });
+      const dates = starts.map((at) => format.format(at));
+      const labels = (await drawn(chart)).texts.filter((x) => dates.includes(x.text)).sort((a, b) => a.x0 - b.x0);
+      assert.ok(labels.length > 1, 'several date labels remain');
+      assert.equal(labels.at(-1).text, dates.at(-1), 'this week is always the rightmost label');
+      if (!before) for (let i = 1; i < labels.length; i++) {
+        assert.ok(!overlap(labels[i - 1], labels[i]), JSON.stringify(labels));
+        assert.ok(labels[i].x0 - labels[i - 1].x1 >= 8, `at least space-2 between dates: ${JSON.stringify(labels)}`);
+      }
+      await page.screenshot({ path: `${OUT}/${before ? 'before' : 'after'}-dates-${language}-${width}-${scheme}.png` });
+      assert.deepEqual(errors, []);
+      await ctx.close();
+    }
+    ok(before ? `${language} at ${width}px: before date captures, light and dark` : `${language} at ${width}px: dates stay apart with a space-2 gap and this week's label, light and dark`);
+  }
 }
 await browser.close();
 console.log(`\n${passed} checks passed`);
