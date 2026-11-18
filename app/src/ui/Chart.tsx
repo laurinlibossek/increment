@@ -10,7 +10,7 @@ import {
 import Svg, {
   G, Line, Path, Text as SvgText,
 } from 'react-native-svg';
-import { boxesOverlap, labelBox, niceTicks } from '@increment/core';
+import { boxesOverlap, labelBox, labelStep, niceTicks } from '@increment/core';
 
 import { RADIUS, SPACE, TYPE } from '@/design/tally';
 import { useFormat } from '@/lib/format';
@@ -62,10 +62,10 @@ export function BarChart({
     return `M${x},${b}V${y + r}Q${x},${y} ${x + r},${y}H${x + bw - r}Q${x + bw},${y} ${x + bw},${y + r}V${b}Z`;
   };
   const lastI = bars.length - 1;
-  const every = Math.ceil(bars.length / 6);
   const pick = (px: number) => setSel(Math.max(0, Math.min(lastI, Math.floor((px - padL) / band))));
   const sb = sel !== null ? bars[sel] : null;
   const fs = TYPE.footnote.fontSize;
+  const every = labelStep(bars.map((b) => b.label), band, fs, SPACE.s2);
   const valueY = (v: number) => sy(v) - SPACE.s2;
   // the goal's label, at the start of its line; hidden while a touched week's
   // number would land on it (the bubble shows that number)
