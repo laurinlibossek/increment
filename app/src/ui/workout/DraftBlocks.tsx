@@ -1,20 +1,25 @@
 // The exercise blocks of a draft being edited (a template in the editor or a
 // finished workout), each with what it needs from the history, plus the
-// "Done" bar above the iPhone number pad. The running workout shows its
-// exercises one at a time (active.tsx) with the same blocks.
+// "Done" bar above the iPhone number pad. Press and hold an exercise's name
+// to drag it into place: the blocks fold to one row each while it moves
+// (#137). The running workout shows its exercises one at a time (active.tsx)
+// with the same blocks.
 import {
-  InputAccessoryView, Keyboard, Platform, Pressable, StyleSheet, Text, View,
+  Animated, InputAccessoryView, Keyboard, Platform, Pressable, StyleSheet, Text, View,
 } from 'react-native';
-import { supersetLetters, draftTemplateId } from '@increment/core';
+import {
+  supersetLetters, draftTemplateId, exerciseSetCount, isUnilateral, moveItem,
+} from '@increment/core';
 
 import {
-  activeRecords, exerciseFor, getState, previousSets, useAppSelector, useSettings,
+  activeRecords, editDraft, exerciseFor, getState, previousSets, useAppSelector, useSettings,
 } from '@/data/store';
 import type { AnyDraft, DraftKey, EntryDraft } from '@/data/types';
 import { useFormat } from '@/lib/format';
 import { useColors } from '@/lib/theme';
-import { CONTROL } from '@/design/tally';
-import { hitTarget } from '@/ui/kit';
+import { CONTROL, SPACE, TYPE } from '@/design/tally';
+import { DragContext, useDragList, type ScrollHost } from '@/ui/drag';
+import { hitTarget, Icon } from '@/ui/kit';
 import { ExerciseBlock, type EditorMode } from './ExerciseBlock';
 import { KEYBOARD_BAR } from './SetRow';
 
@@ -42,9 +47,54 @@ export function useBlockProps(draftKey: DraftKey, draft: AnyDraft) {
   });
 }
 
-export function DraftBlocks({ draftKey, mode, draft }: { draftKey: DraftKey; mode: EditorMode; draft: AnyDraft }) {
+/** A folded exercise while one is dragged: its name and sets. */
+const FOLD_H = 64;
+
+export function DraftBlocks({
+  draftKey, mode, draft, scroll,
+}: { draftKey: DraftKey; mode: EditorMode; draft: AnyDraft; scroll?: ScrollHost }) {
   const props = useBlockProps(draftKey, draft);
-  return <>{draft.exercises.map((e) => <ExerciseBlock key={e.id} {...props(e)} mode={mode} />)}</>;
+  const c = useColors();
+  const f = useFormat();
+  const { tr } = f;
+  const pair = useAppSelector((s) => s.settings.pairSides);
+  const ids = draft.exercises.map((e) => e.id);
+  const list = useDragList({
+    ids, rowH: FOLD_H, scroll,
+    onDrop: (from, to) => { editDraft(draftKey, (x) => { moveItem(x.exercises, from, to); }); },
+    onFold: scroll?.lock,
+  });
+  const folded = !!list.drag;
+  return (
+    <DragContext.Provider value={ids.length > 1 ? list.api : null}>
+      <View {...list.pan} testID="draft-blocks">
+        {list.gap > 0 && <View style={{ height: list.gap }} />}
+        {draft.exercises.map((e, i) => {
+          const p = props(e);
+          const lifted = list.drag?.from === i;
+          const letter = p.superset?.letter;
+          return (
+            <Animated.View key={e.id} {...list.item(e.id, i, c.surface)}>
+              <View style={folded ? styles.folded : null}><ExerciseBlock {...p} mode={mode} /></View>
+              {folded && (
+                <View style={[styles.fold, { backgroundColor: lifted ? c.surface : c.bg }]} testID={`fold-${e.exerciseId}`}>
+                  {i > 0 && !lifted && <View style={[styles.hairline, { backgroundColor: c.line }]} />}
+                  <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
+                    <Text style={{ ...TYPE.headline, color: c.ink }} numberOfLines={1}>{f.exName(p.ex) || tr('Exercise')}</Text>
+                    <Text style={{ ...TYPE.footnote, color: c.ink2 }} numberOfLines={1}>
+                      {[f.setsText(exerciseSetCount(e.sets, isUnilateral(p.ex), { pair })), letter ? tr('Superset {letter}', { letter }) : ''].filter(Boolean).join(' · ')}
+                    </Text>
+                  </View>
+                  <Icon name="grip" size={20} color={c.ink3} />
+                </View>
+              )}
+            </Animated.View>
+          );
+        })}
+        {list.tail > 0 && <View style={{ height: list.tail }} />}
+      </View>
+    </DragContext.Provider>
+  );
 }
 
 /** "Done" above the number pad on iPhone (the pad has no return key). Mount once per screen. */
@@ -64,5 +114,8 @@ export function KeyboardDoneBar() {
 }
 
 const styles = StyleSheet.create({
+  folded: { height: 0, overflow: 'hidden' },
+  fold: { height: FOLD_H, flexDirection: 'row', alignItems: 'center', gap: SPACE.s3, paddingHorizontal: SPACE.s5 },
+  hairline: { position: 'absolute', top: 0, left: SPACE.s5, right: 0, height: StyleSheet.hairlineWidth },
   keys: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 16, paddingVertical: 0, minHeight: CONTROL.hitMin, borderTopWidth: StyleSheet.hairlineWidth },
 });

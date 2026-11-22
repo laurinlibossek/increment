@@ -19,6 +19,7 @@ import {
   Button, Empty, Field, HeaderButton, Txt,
 } from '@/ui/kit';
 import { toast } from '@/ui/overlay';
+import { useScrollHost } from '@/ui/drag';
 import { DraftBlocks, KeyboardDoneBar } from '@/ui/workout/DraftBlocks';
 import { useEditor } from '@/ui/workout/useEditor';
 import { attempt } from '@/lib/saving';
@@ -29,6 +30,7 @@ export default function TemplateEditScreen() {
   const { tr } = f;
   const c = useColors();
   const insets = useSafeAreaInsets();
+  const scrollHost = useScrollHost();
   const { draft: d, leave } = useEditor<TemplateDraft>(() => {
     const s = getState();
     const template = id ? s.templates.find((t) => t.id === id) || null : null;
@@ -69,11 +71,11 @@ export default function TemplateEditScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       {header}
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: SPACE.s4, paddingTop: SPACE.s3, paddingBottom: insets.bottom + SPACE.s12 }}
+      <ScrollView {...scrollHost.props} style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: SPACE.s4, paddingTop: SPACE.s3, paddingBottom: insets.bottom + SPACE.s12 }}
         keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets>
         <View style={{ gap: SPACE.s3, paddingHorizontal: SPACE.s1 }}>
           <Field value={d.name} onChange={(v) => patchDraft('edit', { name: v })} placeholder={tr('Routine name')} big testID="tpl-name" />
-          <Field value={d.folder} onChange={(v) => patchDraft('edit', { folder: v })} placeholder={tr('Folder (optional)')} testID="tpl-folder" />
+          <Field value={d.folder} onChange={(v) => patchDraft('edit', { folder: v })} placeholder={tr('Folder')} testID="tpl-folder" />
           {folders.length > 0 && (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: SPACE.s2 }} keyboardShouldPersistTaps="handled">
               {folders.map((name) => {
@@ -87,10 +89,10 @@ export default function TemplateEditScreen() {
               })}
             </ScrollView>
           )}
-          <Field value={d.notes} onChange={(v) => patchDraft('edit', { notes: v })} placeholder={tr('Notes (optional)')} multiline testID="tpl-notes" />
-          <Field value={d.pinnedNote} onChange={(v) => patchDraft('edit', { pinnedNote: v })} placeholder={tr('Pin a note for next time (optional)')} multiline testID="tpl-pinned" />
+          <Field value={d.notes} onChange={(v) => patchDraft('edit', { notes: v })} placeholder={tr('Notes')} multiline testID="tpl-notes" />
+          <Field value={d.pinnedNote} onChange={(v) => patchDraft('edit', { pinnedNote: v })} placeholder={tr('Pin a note for next time')} multiline testID="tpl-pinned" />
         </View>
-        <DraftBlocks draftKey="edit" mode="template" draft={d} />
+        <DraftBlocks draftKey="edit" mode="template" draft={d} scroll={scrollHost.host} />
         {!d.exercises.length && <Empty title={tr('Build your routine')} text={tr('Add the exercises and sets you want to repeat.')} />}
         <View style={{ marginTop: SPACE.s4 }}>
           <Button large kind="tinted" icon="plus" title={tr('Add exercises')} onPress={addExercises} testID="add-exercises" />

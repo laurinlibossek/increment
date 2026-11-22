@@ -4,7 +4,7 @@
 // set rows and "Add set". Only this exercise re-renders when one of its sets
 // changes (see editDraft in the store). Logging, the keypad and live records
 // belong to the running workout only (Session.tsx).
-import { Fragment, memo, useMemo } from 'react';
+import { Fragment, memo, useContext, useMemo } from 'react';
 import {
   Platform, Pressable, StyleSheet, Text, TextInput, View,
 } from 'react-native';
@@ -26,6 +26,7 @@ import { haptic } from '@/lib/haptics';
 import { setLabels, useFormat } from '@/lib/format';
 import { pickExercises } from '@/lib/picker';
 import { useTally } from '@/lib/theme';
+import { DragContext } from '@/ui/drag';
 import { Icon } from '@/ui/kit';
 import { actionSheet, prompt, toast } from '@/ui/overlay';
 import { SetHeader, SetRow, Times, type SetNote, type TickState } from '@/ui/tally/SetRow';
@@ -65,6 +66,8 @@ export const ExerciseBlock = memo(function ExerciseBlock({
   const { tr } = f;
   const { colors: t } = useTally();
   const session = useSession();
+  // press and hold the name to drag the exercise into place (#137)
+  const drag = useContext(DragContext);
   const rows = useMemo(() => placeholders(entry, prevSets, settings), [entry, prevSets, settings]);
   // the set the running rest follows (#53): this block re-renders only when that changes, never each second
   const restSetId = useAppSelector((s) => (mode === 'active' && s.active?.rest?.entryId === entry.id ? s.active.rest.setId || null : null));
@@ -352,7 +355,10 @@ export const ExerciseBlock = memo(function ExerciseBlock({
     <View accessibilityLabel={name} testID={`block-${ex.id}`} style={styles.block}>
       <View style={styles.head}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACE.s2 }}>
-          <Pressable onPress={menu} style={{ flex: 1, minWidth: CONTROL.hitMin, minHeight: CONTROL.hitMin, justifyContent: 'center', paddingVertical: 2 }} accessibilityRole="button" testID={`ex-title-${ex.id}`}>
+          <Pressable onPress={menu} style={{ flex: 1, minWidth: CONTROL.hitMin, minHeight: CONTROL.hitMin, justifyContent: 'center', paddingVertical: 2 }} accessibilityRole="button" testID={`ex-title-${ex.id}`}
+            onLongPress={drag ? () => drag.current.begin(entry.id) : undefined} delayLongPress={320} onPressOut={drag ? () => drag.current.release(entry.id) : undefined}
+            accessibilityActions={drag ? [{ name: 'moveUp', label: tr('Move up') }, { name: 'moveDown', label: tr('Move down') }] : undefined}
+            onAccessibilityAction={drag ? (e) => drag.current.step(entry.id, e.nativeEvent.actionName === 'moveUp' ? -1 : 1) : undefined}>
             <Text style={{ ...TYPE.title3, color: t.ink }} testID={`exercise-header-${ex.id}`}>{active ? f.exBase(ex) : name}</Text>
           </Pressable>
           {focusOpts.length > 0 && (

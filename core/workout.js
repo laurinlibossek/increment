@@ -518,6 +518,40 @@ export function moveUnit(list, fromId, toId) {
   return true;
 }
 
+/**
+ * Move a unit in the running workout (moveUnit) and return the entry to show
+ * afterwards, the new `current` (#137); null when nothing moved. An exercise
+ * on screen with a set logged stays on screen. One with nothing logged yet
+ * gives way: an exercise dropped above it comes on screen, and when it is
+ * dragged down, the first one it passed that has sets left takes its place.
+ * Any other move leaves the screen as it was.
+ * @param {(Grouped & { sets: { done?: boolean }[] })[]} list
+ * @param {string} fromId the unit moved (the id of its first entry)
+ * @param {string} toId the unit whose place it takes
+ * @param {string | null} shownId an entry of the unit on screen
+ * @returns {string | null}
+ */
+export function sessionMove(list, fromId, toId, shownId) {
+  const before = sessionUnits(list);
+  const shown = shownId ? unitOf(before, shownId) : null;
+  if (!moveUnit(list, fromId, toId)) return null;
+  if (!shown) return null;
+  const sets = unitSets(shown);
+  if (sets.some((x) => x.set.done)) return shown.id;
+  const after = sessionUnits(list);
+  /** @param {Unit<Grouped & { sets: { done?: boolean }[] }>[]} units @param {string} id */
+  const at = (units, id) => units.findIndex((u) => u.id === id);
+  /** @param {Unit<Grouped & { sets: { done?: boolean }[] }>} u */
+  const left = (u) => unitSets(u).some((x) => !x.set.done);
+  if (fromId === shown.id) {
+    const was = at(before, shown.id), now = at(after, shown.id);
+    return (now > was && after.slice(was, now).find(left)?.id) || shown.id;
+  }
+  const moved = after[at(after, fromId)];
+  const above = at(before, fromId) > at(before, shown.id) && at(after, fromId) < at(after, shown.id);
+  return above && moved && left(moved) ? moved.id : shown.id;
+}
+
 // ---------- editing the list ----------
 /**
  * New entries for picked exercises, with as many sets as last time (templates

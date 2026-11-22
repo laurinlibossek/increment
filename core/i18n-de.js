@@ -128,7 +128,6 @@ export default {
   'Remove note': 'Notiz entfernen',
   'Add note': 'Notiz hinzufügen',
   'Pin a note for next time': 'Notiz fürs nächste Mal anheften',
-  'Pin a note for next time (optional)': 'Notiz fürs nächste Mal anheften (optional)',
   'Shown on {name} and the next time you do it, until you change it.': 'Steht bei {name} und beim nächsten Mal, bis du sie änderst.',
   'Edit pinned note': 'Angeheftete Notiz bearbeiten',
   'Pin a note to this exercise': 'Notiz an diese Übung heften',
@@ -546,9 +545,7 @@ export default {
   'Give the template a name': 'Gib der Vorlage einen Namen',
   'Add at least one exercise': 'Füge mindestens eine Übung hinzu',
   '“{name}” created': '„{name}“ erstellt',
-  'Folder (optional)': 'Ordner (optional)',
   Folder: 'Ordner',
-  'Notes (optional)': 'Notizen (optional)',
 
   // running workout, summary, template update
   'A workout is already running': 'Es läuft schon ein Training',
