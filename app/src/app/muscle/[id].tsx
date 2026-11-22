@@ -22,6 +22,7 @@ import { useToday } from '@/lib/useNow';
 import {
   MARGIN, SectionHeadLink, tnum, WorkoutTally,
 } from '@/ui/facts';
+import { SectionCard } from '@/ui/tally/SectionCard';
 import { Stroke } from '@/ui/tally/Tally';
 
 export default function MuscleSets() {
@@ -75,7 +76,7 @@ export default function MuscleSets() {
                 {e.helper && <Text style={{ ...TYPE.footnote, color: t.ink2 }} testID="muscle-helper-note">{tr('Exercises where this muscle helps count half a set.')}</Text>}
               </View>
             )}
-            {!group && i > 0 && <View style={{ height: 0.5, marginLeft: MARGIN, marginTop: SPACE.s4, backgroundColor: t.line }} />}
+            <SectionCard style={{ paddingTop: 0 }}>
             <SectionHeadLink title={exName} count={halfText(e.sets)} lines={2} testID={`muscle-ex-link-${e.exerciseId}`}
               accessibilityLabel={`${exName}, ${f.setsText(e)}`}
               onPress={() => router.push({ pathname: '/exercise/[id]', params: { id: e.exerciseId } })} />
@@ -87,13 +88,14 @@ export default function MuscleSets() {
                 <Pressable key={w.id} testID={`muscle-workout-${e.exerciseId}-${w.id}`} accessibilityRole="button"
                   accessibilityLabel={`${when}, ${count}`}
                   onPress={() => router.push({ pathname: '/workout/[id]', params: { id: w.id } })}
-                  style={({ pressed }) => ({ minHeight: CONTROL.hitMin, justifyContent: 'center', paddingHorizontal: MARGIN, paddingVertical: SPACE.s1, backgroundColor: pressed ? t.paper2 : 'transparent' })}>
+                  style={({ pressed }) => ({ minHeight: CONTROL.hitMin, justifyContent: 'center', paddingHorizontal: MARGIN, paddingVertical: SPACE.s1, backgroundColor: pressed ? t.paper3 : 'transparent' })}>
                   <Text style={{ ...TYPE.subhead, color: t.ink }} numberOfLines={2}>
                     {when}<Text style={[{ color: t.ink2 }, tnum]}>{` · ${count}`}</Text>
                   </Text>
                 </Pressable>
               );
             })}
+            </SectionCard>
           </View>
         );
       })}

@@ -17,7 +17,7 @@ import { beginWorkout, openWorkout } from '@/lib/workout';
 import { AccountButton } from '@/ui/tally/AccountButton';
 import { MuscleVolume } from '@/ui/tally/MuscleVolume';
 import { RoutineCard } from '@/ui/tally/RoutineCard';
-import { SectionHeader } from '@/ui/tally/SectionHeader';
+import { SectionCard } from '@/ui/tally/SectionCard';
 import { SearchButton } from '@/ui/tally/SearchButton';
 import { TabRoot } from '@/ui/tally/TabRoot';
 import type { StrokeState } from '@/ui/tally/Tally';
@@ -103,19 +103,21 @@ export default function TodayTab() {
 
       {/* An empty slot the store version can fill (docs/design/phases.md, phase 7). */}
 
-      <SectionHeader title={tr('This week')} scope={scope} testID="week-head" />
-      <WeekStrip testID="week-strip" today={week.today} label={`${tr('This week')}: ${scope}`}
-        days={week.days.map((d) => ({ ...d, letter: f.date.weekdayNarrow(d.start) }))} />
+      <SectionCard title={tr('This week')} scope={scope} headerTestID="week-head" testID="week-card" style={{ paddingBottom: SPACE.s5 }}>
+        <WeekStrip testID="week-strip" today={week.today} label={`${tr('This week')}: ${scope}`}
+          days={week.days.map((d) => ({ ...d, letter: f.date.weekdayNarrow(d.start) }))} />
+      </SectionCard>
 
-      <SectionHeader title={tr('Sets per muscle')} scope={tr('Last 7 days')} />
-      {muscles.length ? (
-        <MuscleVolume rows={muscles.map((m) => ({ ...m, label: tr(m.label) }))}
-          accessibilityLabel={(r) => `${r.label}, ${f.setsCount(r.sets)}`}
-          // the sets behind each number (#89)
-          onPress={(r) => router.push({ pathname: '/muscle/[id]', params: { id: r.muscle } })} />
-      ) : (
-        <Text style={[TYPE.subhead, { color: t.ink2, paddingHorizontal: SPACE.s5 }]}>{tr('No sets in the last 7 days.')}</Text>
-      )}
+      <SectionCard title={tr('Sets per muscle')} scope={tr('Last 7 days')} testID="muscle-card">
+        {muscles.length ? (
+          <MuscleVolume rows={muscles.map((m) => ({ ...m, label: tr(m.label) }))}
+            accessibilityLabel={(r) => `${r.label}, ${f.setsCount(r.sets)}`}
+            // the sets behind each number (#89)
+            onPress={(r) => router.push({ pathname: '/muscle/[id]', params: { id: r.muscle } })} />
+        ) : (
+          <Text style={[TYPE.subhead, { color: t.ink2, paddingHorizontal: SPACE.s5, paddingBottom: SPACE.s2 }]}>{tr('No sets in the last 7 days.')}</Text>
+        )}
+      </SectionCard>
     </TabRoot>
   );
 }

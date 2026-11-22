@@ -3,6 +3,7 @@
 // component for: the screen margin, tabular figures, a workout's length, an
 // exercise's header link and a finished workout's tally. The stat strip,
 // highlight, section header and list row are the shared ones in ui/tally/ (#100).
+import { useContext } from 'react';
 import {
   Pressable, Text, View, type StyleProp, type TextStyle, type ViewStyle,
 } from 'react-native';
@@ -11,6 +12,7 @@ import { pad2 } from '@increment/core';
 import { CONTROL, SPACE, TYPE } from '@/design/tally';
 import type { Workout } from '@/data/types';
 import { useTally } from '@/lib/theme';
+import { OnCard } from '@/ui/tally/ground';
 import { STROKE_DIMS, Tally, type StrokeState } from '@/ui/tally/Tally';
 
 /** The screen margin every left edge lines up on. */
@@ -34,9 +36,11 @@ export function SectionHeadLink({ title, count, lines = 1, onPress, accessibilit
   title: string; count?: string; lines?: number; onPress: () => void; accessibilityLabel?: string; testID?: string;
 }) {
   const { colors: t } = useTally();
+  // on a card the title starts `space-4` under the card's top, on the page `space-6` under what's above
+  const above = useContext(OnCard) ? SPACE.s4 : SPACE.s6;
   return (
     <Pressable onPress={onPress} accessibilityRole="link" accessibilityLabel={accessibilityLabel} testID={testID}
-      style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: MARGIN, minHeight: CONTROL.hitMin, paddingTop: CONTROL.hitMin - TYPE.title3.lineHeight, marginTop: SPACE.s6 - (CONTROL.hitMin - TYPE.title3.lineHeight), marginBottom: SPACE.s1, opacity: pressed ? 0.6 : 1 })}>
+      style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: MARGIN, minHeight: CONTROL.hitMin, paddingTop: CONTROL.hitMin - TYPE.title3.lineHeight, marginTop: above - (CONTROL.hitMin - TYPE.title3.lineHeight), marginBottom: SPACE.s1, opacity: pressed ? 0.6 : 1 })}>
       <Text style={{ ...TYPE.title3, color: t.ink, flexShrink: 1 }} numberOfLines={lines}>{title}</Text>
       {/* in the column of the counts in the rows below; halves never wrap */}
       {count !== undefined && <Text numberOfLines={1} style={[{ ...TYPE.headline, color: t.ink, flexShrink: 0, marginLeft: 'auto', paddingLeft: SPACE.s3, minWidth: 28, textAlign: 'right' }, tnum]}>{count}</Text>}

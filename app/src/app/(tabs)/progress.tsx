@@ -17,7 +17,7 @@ import { useTally } from '@/lib/theme';
 import { hitTarget } from '@/ui/kit';
 import { BarChart } from '@/ui/Chart';
 import { ListRow } from '@/ui/tally/ListRow';
-import { SectionHeader } from '@/ui/tally/SectionHeader';
+import { SectionCard } from '@/ui/tally/SectionCard';
 import { StatStrip } from '@/ui/tally/StatStrip';
 import { AccountButton } from '@/ui/tally/AccountButton';
 import { SearchButton } from '@/ui/tally/SearchButton';
@@ -72,35 +72,39 @@ export default function ProgressTab() {
         </View>
       )}
 
-      <View style={{ paddingHorizontal: SPACE.s5, gap: SPACE.s1 }}>
-        <StatStrip testID="last-30" stats={[
-          { label: tr('Workouts'), value: f.num(m.workouts, 0) },
-          { label: tr('Volume'), value: vol.value, unit: vol.unit },
-          { label: tr('Records'), value: f.num(m.recent, 0) },
-        ]} />
-        <Text style={[TYPE.footnote, { color: t.ink2 }]}>{tr('Last 30 days')}</Text>
-      </View>
+      <SectionCard first style={{ paddingTop: SPACE.s4, paddingBottom: SPACE.s4 }} testID="last-30-card">
+        <View style={{ paddingHorizontal: SPACE.s5, gap: SPACE.s1 }}>
+          <StatStrip testID="last-30" stats={[
+            { label: tr('Workouts'), value: f.num(m.workouts, 0) },
+            { label: tr('Volume'), value: vol.value, unit: vol.unit },
+            { label: tr('Records'), value: f.num(m.recent, 0) },
+          ]} />
+          <Text style={[TYPE.footnote, { color: t.ink2 }]}>{tr('Last 30 days')}</Text>
+        </View>
+      </SectionCard>
 
-      <View style={{ marginTop: SPACE.s6 }}>
+      <SectionCard style={{ paddingVertical: 0 }}>
         <ListRow first symbol="calendar" title={tr('Workouts')} onPress={() => router.push('/history')} testID="progress-workouts" />
         <ListRow symbol="dumbbell" title={tr('Lifts')} onPress={() => router.push('/exercises')} testID="progress-lifts" />
         <ListRow symbol="rosette" title={tr('Records')} onPress={() => router.push('/records')} testID="progress-records" />
         <ListRow symbol="figure.stand" title={tr('Body')} trailing={bw ? fmtMeasure(measureDef('bodyweight'), bw.value, s.settings, f) : undefined}
           onPress={() => router.push('/measure')} testID="progress-body" />
-      </View>
+      </SectionCard>
 
-      <SectionHeader title={tr('Workouts per week')} scope={tr('Last 12 weeks')} />
-      <View style={{ paddingHorizontal: SPACE.s5 }}>
-        <BarChart bars={m.weeks.map((w) => ({ label: f.date.dayMonth(w.start), value: w.value, title: tr('Week of {date}', { date: f.date.dayMonth(w.start) }) }))}
-          goal={goal} label={tr('Workouts per week')} testID="weekly-chart" />
-        <Text style={[TYPE.footnote, { color: t.ink2 }]}>
-          {`${tr('Goal: {n} per week', { n: goal })} · ${m.streak === 1 ? `1 ${tr('week on goal')}` : `${f.num(m.streak, 0)} ${tr('weeks on goal')}`}`}
-        </Text>
-      </View>
+      <SectionCard title={tr('Workouts per week')} scope={tr('Last 12 weeks')} style={{ paddingBottom: SPACE.s5 }}>
+        <View style={{ paddingHorizontal: SPACE.s5 }}>
+          <BarChart bars={m.weeks.map((w) => ({ label: f.date.dayMonth(w.start), value: w.value, title: tr('Week of {date}', { date: f.date.dayMonth(w.start) }) }))}
+            goal={goal} label={tr('Workouts per week')} testID="weekly-chart" />
+          <Text style={[TYPE.footnote, { color: t.ink2 }]}>
+            {`${tr('Goal: {n} per week', { n: goal })} · ${m.streak === 1 ? `1 ${tr('week on goal')}` : `${f.num(m.streak, 0)} ${tr('weeks on goal')}`}`}
+          </Text>
+        </View>
+      </SectionCard>
 
-      <SectionHeader title={tr('Tools')} />
-      <ListRow first symbol="circle.circle" title={tr('Plate calculator')} onPress={() => router.push({ pathname: '/tools', params: { tab: 'plates' } })} testID="open-plates" />
-      <ListRow symbol="function" title={tr('1RM calculator')} onPress={() => router.push({ pathname: '/tools', params: { tab: 'rm' } })} testID="open-rm" />
+      <SectionCard title={tr('Tools')} style={{ paddingBottom: 0 }}>
+        <ListRow first symbol="circle.circle" title={tr('Plate calculator')} onPress={() => router.push({ pathname: '/tools', params: { tab: 'plates' } })} testID="open-plates" />
+        <ListRow symbol="function" title={tr('1RM calculator')} onPress={() => router.push({ pathname: '/tools', params: { tab: 'rm' } })} testID="open-rm" />
+      </SectionCard>
     </TabRoot>
   );
 }

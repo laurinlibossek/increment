@@ -19,7 +19,7 @@ import {
 import { toast } from '@/ui/overlay';
 import { ActionBar } from '@/ui/tally/ActionBar';
 import { ListRow } from '@/ui/tally/ListRow';
-import { SectionHeader } from '@/ui/tally/SectionHeader';
+import { SectionCard } from '@/ui/tally/SectionCard';
 import { attempt } from '@/lib/saving';
 
 export default function TemplatePreview() {
@@ -67,11 +67,10 @@ export default function TemplatePreview() {
         <Text style={[TYPE.title1, { color: colors.ink, paddingHorizontal: SPACE.s5 }]} accessibilityRole="header" testID="template-title">{t.name}</Text>
         <Text style={[TYPE.footnote, { color: colors.ink2, paddingHorizontal: SPACE.s5, marginTop: SPACE.s1 }]}>{info}</Text>
         {!!t.pinnedNote && !t.example && <View style={{ paddingHorizontal: SPACE.s5, marginTop: SPACE.s4 }}><PinnedNote text={t.pinnedNote} testID="template-pinned" /></View>}
-        {!!t.notes && <>
-          <SectionHeader title={tr('Notes')} />
+        {!!t.notes && <SectionCard title={tr('Notes')} style={{ marginTop: SPACE.s5, paddingBottom: SPACE.s5 }}>
           <Text style={[TYPE.subhead, { color: colors.ink, paddingHorizontal: SPACE.s5 }]} testID="template-notes">{t.notes}</Text>
-        </>}
-        <SectionHeader title={tr('Exercises')} />
+        </SectionCard>}
+        <SectionCard title={tr('Exercises')} style={{ marginTop: t.notes ? undefined : SPACE.s5 }}>
         {rows.map((e, i) => {
           const exr = s.exercises.get(e.exerciseId)!;
           const targets = e.sets.map((x) => {
@@ -90,6 +89,7 @@ export default function TemplatePreview() {
               {!!r && <View style={{ marginTop: SPACE.s1 }}><Highlight chip testID={`template-ready-${i}`}>{readyText(r, tr)}</Highlight></View>}
             </>} />;
         })}
+        </SectionCard>
       </ScrollView>
       <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
         <ActionBar testID="template-action-bar" onLayout={(e) => setBarHeight(e.nativeEvent.layout.height)} state={{

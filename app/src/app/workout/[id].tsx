@@ -25,6 +25,7 @@ import {
   hm, MARGIN, SectionHeadLink, tnum, workoutStrokes, WorkoutTally,
 } from '@/ui/facts';
 import { Highlight } from '@/ui/tally/Highlight';
+import { SectionCard } from '@/ui/tally/SectionCard';
 import { StatStrip } from '@/ui/tally/StatStrip';
 import {
   Button, Empty, IconButton, Page,
@@ -102,7 +103,11 @@ export default function WorkoutDetail() {
         <Text style={{ ...TYPE.footnote, color: t.ink2 }}>
           {`${f.date.full(w.startedAt)} · ${f.date.time(w.startedAt)}–${f.date.time(w.endedAt)}`}
         </Text>
-        <StatStrip style={{ marginTop: SPACE.s5 }} stats={[
+      </View>
+
+      <SectionCard style={{ marginTop: SPACE.s5, paddingVertical: SPACE.s5 }} testID="workout-facts">
+      <View style={{ paddingHorizontal: MARGIN }}>
+        <StatStrip stats={[
           { label: tr('Time'), value: hm(w.endedAt - w.startedAt), testID: 'workout-time' },
           vol ? { label: tr('Volume'), value: f.num(shown, 0), unit: f.unit, testID: 'workout-volume' } : { label: tr('Volume'), value: '—' },
           { label: tr('Sets'), value: f.num(sets.sets, 0), testID: 'workout-sets' },
@@ -113,12 +118,13 @@ export default function WorkoutDetail() {
         <Text style={{ ...TYPE.footnote, color: t.ink2, marginTop: SPACE.s2 }}>{tallyLine}</Text>
         {!!w.notes && <Text style={{ ...TYPE.subhead, color: t.ink, marginTop: SPACE.s4 }}>{w.notes}</Text>}
       </View>
+      </SectionCard>
 
       {w.exercises.map((e) => {
         const ex = s.exercises.get(e.exerciseId);
         const labels = setLabels(e.sets);
         return (
-          <View key={e.id}>
+          <SectionCard key={e.id} style={{ paddingTop: 0 }} testID={`workout-exercise-${e.id}`}>
             <SectionHeadLink title={f.exName(ex) || tr('Unknown exercise')} testID={`ex-link-${e.exerciseId}`}
               onPress={() => router.push({ pathname: '/exercise/[id]', params: { id: e.exerciseId } })} />
             {!!e.notes && <Text style={{ ...TYPE.footnote, color: t.ink2, paddingHorizontal: MARGIN, marginBottom: SPACE.s1 }}>{e.notes}</Text>}
@@ -138,7 +144,7 @@ export default function WorkoutDetail() {
                 </View>
               );
             })}
-          </View>
+          </SectionCard>
         );
       })}
       <View style={{ paddingHorizontal: MARGIN, marginTop: SPACE.s8 }}>
