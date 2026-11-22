@@ -21,6 +21,17 @@ const cardLook = (row, theme) => row.evaluate((e, want) => {
   return { bg: s.backgroundColor === want.bg, radius: parseFloat(s.borderTopLeftRadius) === want.radius, fills: Math.abs(r.width - o.width) < 1 && Math.abs(r.height - o.height) < 1 };
 }, { bg: rgb(color('paper-2', theme)), radius: radiusL });
 const normal = value => value.replace(/\s+/g, ' ').trim();
+// The list renders its rows in batches (FlatList) and again after every scroll, moving
+// what's below. A click while it does can land on a row that just moved there, or keep
+// scrolling a row that keeps moving: act once nothing has changed for 300 ms (at most 5 s).
+const settled = page => page.evaluate(() => new Promise(resolve => {
+  let timer;
+  const done = () => { observer.disconnect(); clearTimeout(cap); resolve(); };
+  const observer = new MutationObserver(() => { clearTimeout(timer); timer = setTimeout(done, 300); });
+  observer.observe(document.body, { subtree: true, childList: true, attributes: true, characterData: true });
+  timer = setTimeout(done, 300);
+  const cap = setTimeout(done, 5000);
+}));
 const hm = ms => { const m = Math.max(0, Math.round(ms / 60000)); return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`; };
 const dayKey = at => { const d = new Date(at); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
 let passed = 0;
@@ -202,6 +213,7 @@ try {
     assert.ok(normal(await id(`history-month-${startOfMonth(at.getTime())}`).innerText()).endsWith('45 workouts'));
     const older = page.getByRole('button', { name: 'Show older workouts', exact: true });
     await older.scrollIntoViewIfNeeded();
+    await settled(page);
     await older.click();
     // the button goes once the list re-renders; count() alone doesn't wait for that
     await older.waitFor({ state: 'detached' });
@@ -212,6 +224,9 @@ try {
       await page.waitForTimeout(150);
     }
     await id('workout-page-44').waitFor();
+    // the row exists before it's on screen (the list renders ahead): bring it into view, let the list settle, then tap
+    await id('workout-page-44').evaluate(e => e.scrollIntoView({ block: 'center' }));
+    await settled(page);
     await id('workout-page-44').click();
     await id('workout-title').waitFor();
     assert.equal(await id('workout-title').innerText(), 'Session 44');
