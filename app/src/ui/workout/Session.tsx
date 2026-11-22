@@ -1,17 +1,17 @@
 // The running workout's own pieces (docs/design/navigation.md, The session):
 // logging a set (stroke, Log button or the keypad's Next), the keypad, the
 // header with the hero tally, and the exercises before and after the one on
-// screen ("Up next": tap to switch, press and hold to drag). The order of the
-// session is the core's (sessionState in core/workout.js).
+// screen as rows ("Up next": tap to switch, press and hold to drag, #137).
+// The order of the session is the core's (sessionState in core/workout.js).
 import {
   createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode,
 } from 'react';
 import {
-  Animated, AppState, Keyboard, PanResponder, Platform, Pressable, StyleSheet, Text, View, type TextInputInstance,
+  AppState, Keyboard, Platform, Pressable, StyleSheet, Text, View, type TextInputInstance,
 } from 'react-native';
 import {
   checkOffSet, placeholders, restFor, currentAfterLog, loggedFields, platesFor, plateMax, parseNum,
-  numToInput, digitsToSec, secToDigits, fmtDigits, weightStep, moveUnit, BODY_PART_LABEL, sessionProgress,
+  numToInput, digitsToSec, secToDigits, fmtDigits, weightStep, BODY_PART_LABEL, sessionProgress,
 } from '@increment/core';
 
 import {
@@ -22,6 +22,7 @@ import { SPACE, TYPE } from '@/design/tally';
 import { haptic } from '@/lib/haptics';
 import { setLabels, useFormat } from '@/lib/format';
 import { useTally } from '@/lib/theme';
+import type { DragApi } from '@/ui/drag';
 import { toast } from '@/ui/overlay';
 import { Keypad, keypadInput, type KeypadKey } from '@/ui/tally/Keypad';
 import { setStroke, Tally, type StrokeState } from '@/ui/tally/Tally';
@@ -305,143 +306,63 @@ export function useSessionStrokes(a: ActiveWorkout, live: string | null) {
 }
 
 // ---------- exercises off screen ----------
-type UnitLike = { id: string; entries: EntryDraft[] };
-const ROW_H = 60;
+export type UnitLike = { id: string; entries: EntryDraft[] };
+/** a row's height, also the height of every exercise while one is dragged */
+export const ROW_H = 60;
 
-/** The exercises before or after the one on screen, as rows with their own tally. "Up next" rows drag to reorder. */
-export function UnitRows({
-  units, strokes, onJump, draggable, onDragging,
+/**
+ * An exercise (or superset) that isn't on screen, as a row with its own
+ * tally: tap to switch to it, press and hold to drag it into place (#137).
+ * While one is dragged, the exercise on screen is a row too.
+ */
+export function UnitRow({
+  unit, strokes, first, lifted, onJump, drag,
 }: {
-  units: UnitLike[];
+  unit: UnitLike;
   strokes: Map<string, StrokeState[]>;
+  first: boolean;
+  lifted: boolean;
   onJump: (entryId: string) => void;
-  draggable?: boolean;
-  onDragging?: (on: boolean) => void;
+  drag: { current: DragApi } | null;
 }) {
   const f = useFormat();
   const { tr } = f;
+  const { colors: t } = useTally();
   const exercises = useAppSelector((x) => x.exercises);
   const pair = useAppSelector((x) => x.settings.pairSides);
   const templateId = useAppSelector((x) => x.active?.templateId ?? null);
-  const [drag, setDrag] = useState<{ from: number; over: number } | null>(null);
-  const dragRef = useRef(drag);
-  const dy = useRef(new Animated.Value(0)).current;
-  const unitsRef = useRef(units);
-  unitsRef.current = units;
-  const set = (d: typeof drag) => { dragRef.current = d; setDrag(d); };
-  const move = (from: number, to: number) => {
-    const list = unitsRef.current;
-    if (from === to || !list[from] || !list[to]) return;
-    editActive((d) => { moveUnit(d.exercises, list[from].id, list[to].id); });
-  };
-  const api = useRef({
-    begin: (i: number) => {
-      if (dragRef.current) return;
-      dy.setValue(0);
-      set({ from: i, over: i });
-      onDragging?.(true);
-      haptic.select();
-    },
-    move: (y: number) => {
-      const d = dragRef.current;
-      if (!d) return;
-      dy.setValue(y);
-      const over = Math.max(0, Math.min(unitsRef.current.length - 1, Math.round(d.from + y / ROW_H)));
-      if (over !== d.over) { set({ ...d, over }); haptic.select(); }
-    },
-    end: () => {
-      const d = dragRef.current;
-      captured.current = false;
-      if (!d) return;
-      move(d.from, d.over);
-      dy.setValue(0);
-      set(null);
-      onDragging?.(false);
-    },
-    dragging: (i: number) => dragRef.current?.from === i,
-    /** the row's pan handler has the finger (from then on it ends the drag) */
-    grab: () => { captured.current = true; },
-    /** the press ended: a long press without moving ends the drag here */
-    release: (i: number) => setTimeout(() => { if (!captured.current && dragRef.current?.from === i) api.current.end(); }, 0),
-  });
-  const captured = useRef(false);
-  const shift = (i: number) => {
-    if (!drag || i === drag.from) return 0;
-    if (drag.from < drag.over && i > drag.from && i <= drag.over) return -ROW_H;
-    if (drag.over < drag.from && i >= drag.over && i < drag.from) return ROW_H;
-    return 0;
-  };
+  const names = unit.entries.map((e) => f.exName(exercises.get(e.exerciseId)) || tr('Exercise'));
+  const ex = exercises.get(unit.entries[0].exerciseId);
+  let sub = '';
+  if (unit.entries.length > 1) sub = tr('Superset');
+  else if (ex) {
+    const part = BODY_PART_LABEL[ex.bodyPart as keyof typeof BODY_PART_LABEL];
+    const last = lastTimeText(previousSets(ex.id, { templateId }), ex.category, f, tr);
+    sub = [part ? tr(part) : '', last ? tr('last {sets}', { sets: last }) : ''].filter(Boolean).join(' · ');
+  }
+  const groups = unit.entries.map((e) => strokes.get(e.id) || []);
+  const { done, total } = sessionProgress(unit.entries, exercises, { pair });
   return (
-    <View>
-      {units.map((u, i) => {
-        const names = u.entries.map((e) => f.exName(exercises.get(e.exerciseId)) || tr('Exercise'));
-        const ex = exercises.get(u.entries[0].exerciseId);
-        let sub = '';
-        if (u.entries.length > 1) sub = tr('Superset');
-        else if (ex) {
-          const part = BODY_PART_LABEL[ex.bodyPart as keyof typeof BODY_PART_LABEL];
-          const last = lastTimeText(previousSets(ex.id, { templateId }), ex.category, f, tr);
-          sub = [part ? tr(part) : '', last ? tr('last {sets}', { sets: last }) : ''].filter(Boolean).join(' · ');
-        }
-        const groups = u.entries.map((e) => strokes.get(e.id) || []);
-        const { done, total } = sessionProgress(u.entries, exercises, { pair });
-        return (
-          <UnitRow key={u.id} index={i} title={names.join(' + ')} sub={sub} groups={groups} first={i === 0}
-            label={`${names.join(', ')}, ${tr('{done} of {total} working sets', { done, total })}`}
-            testID={`jump-${u.entries[0].exerciseId}`} onPress={() => onJump(u.entries[0].id)}
-            draggable={!!draggable} lifted={drag?.from === i} shift={shift(i)} dy={dy} api={api}
-            onStep={(by) => move(i, i + by)} moveLabels={[tr('Move up'), tr('Move down')]} />
-        );
-      })}
-    </View>
-  );
-}
-
-type DragApi = {
-  begin: (i: number) => void; move: (y: number) => void; end: () => void; dragging: (i: number) => boolean;
-  grab: () => void; release: (i: number) => void;
-};
-
-function UnitRow({
-  index, title, sub, groups, first, label, testID, onPress, draggable, lifted, shift, dy, api, onStep, moveLabels,
-}: {
-  index: number; title: string; sub: string; groups: StrokeState[][]; first: boolean; label: string; testID: string; onPress: () => void;
-  draggable: boolean; lifted: boolean; shift: number; dy: Animated.Value; api: { current: DragApi }; onStep: (by: number) => void; moveLabels: [string, string];
-}) {
-  const { colors: t } = useTally();
-  const idx = useRef(index);
-  idx.current = index;
-  // after a long press the row follows the finger
-  const pan = useRef(PanResponder.create({
-    onMoveShouldSetPanResponderCapture: () => api.current.dragging(idx.current),
-    onPanResponderGrant: () => api.current.grab(),
-    onPanResponderMove: (_, g) => api.current.move(g.dy),
-    onPanResponderRelease: () => api.current.end(),
-    onPanResponderTerminate: () => api.current.end(),
-    onPanResponderTerminationRequest: () => false,
-  })).current;
-  return (
-    <Animated.View {...(draggable ? pan.panHandlers : {})}
-      style={{ height: ROW_H, backgroundColor: t.paper, zIndex: lifted ? 2 : 0, transform: [{ translateY: lifted ? dy : shift }], ...(lifted ? styles.lifted : null) }}>
+    <View style={{ height: ROW_H, backgroundColor: lifted ? t.paper2 : t.paper }}>
       {!first && !lifted && <View style={[styles.hairline, { backgroundColor: t.line }]} />}
-      <Pressable onPress={onPress} testID={testID} accessibilityRole="button" accessibilityLabel={label}
-        onLongPress={draggable ? () => api.current.begin(idx.current) : undefined} delayLongPress={320}
-        onPressOut={() => api.current.release(idx.current)}
-        accessibilityActions={draggable ? [{ name: 'moveUp', label: moveLabels[0] }, { name: 'moveDown', label: moveLabels[1] }] : undefined}
-        onAccessibilityAction={(e) => onStep(e.nativeEvent.actionName === 'moveUp' ? -1 : 1)}
-        style={({ pressed }) => [styles.row, { backgroundColor: pressed && !lifted ? t.paper2 : t.paper }]}>
+      <Pressable onPress={() => onJump(unit.entries[0].id)} testID={`jump-${unit.entries[0].exerciseId}`} accessibilityRole="button"
+        accessibilityLabel={`${names.join(', ')}, ${tr('{done} of {total} working sets', { done, total })}`}
+        onLongPress={drag ? () => drag.current.begin(unit.id) : undefined} delayLongPress={320}
+        onPressOut={drag ? () => drag.current.release(unit.id) : undefined}
+        accessibilityActions={drag ? [{ name: 'moveUp', label: tr('Move up') }, { name: 'moveDown', label: tr('Move down') }] : undefined}
+        onAccessibilityAction={drag ? (e) => drag.current.step(unit.id, e.nativeEvent.actionName === 'moveUp' ? -1 : 1) : undefined}
+        style={({ pressed }) => [styles.row, { backgroundColor: pressed && !lifted ? t.paper2 : 'transparent' }]}>
         <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
-          <Text style={{ ...TYPE.body, color: t.ink }} numberOfLines={1}>{title}</Text>
+          <Text style={{ ...TYPE.body, color: t.ink }} numberOfLines={1}>{names.join(' + ')}</Text>
           {!!sub && <Text style={{ ...TYPE.footnote, color: t.ink2, fontVariant: ['tabular-nums'] }} numberOfLines={1}>{sub}</Text>}
         </View>
         <Tally groups={groups} size="small" label="" />
       </Pressable>
-    </Animated.View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   row: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: SPACE.s3, paddingHorizontal: SPACE.s5 },
   hairline: { position: 'absolute', top: 0, left: SPACE.s5, right: 0, height: StyleSheet.hairlineWidth, zIndex: 1 },
-  lifted: { shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 8 },
 });

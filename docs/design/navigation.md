@@ -30,7 +30,7 @@ The running workout is a full-height sheet, like Now Playing in a music app.
 - **Minimized**, it becomes the Now Lifting accessory above the tab bar (`NativeTabs.BottomAccessory`): the session's tally, the exercise and set, the rest countdown, and Skip. It shrinks to the inline layout when the tab bar minimizes. Tapping it opens the sheet again.
 - **Header**: Minimize (`chevron.down`), ⋯ (rename, change start time, notes, discard), the workout name in `t-title-1`, elapsed time in `t-number-m` `ink-2`, and the hero tally of every set in the session with "4 of 22 sets · 1 record" under it.
 - **Current exercise**: base name in `t-title-3`, equipment · body part ("Smith Machine · Legs") and last time in `t-footnote`, a slot the store version can fill, then the set rows. The next pending set's fields are filled with last time's numbers (or a target from the store version) as ghost values.
-- **Up next**: the remaining exercises as list rows, each with its own small tally. Drag to reorder; tap to jump.
+- **Up next**: the remaining exercises as list rows, each with its own small tally. Tap to jump; press and hold to drag. While one is dragged, the exercise on screen folds to a row too, so any exercise can go anywhere, above it too (#137).
 - **Action bar**, bottom, three states:
   1. *Logging*: one primary button, "Log 82.5 × 8". Tapping it logs the set, turns its stroke into a stem with a light haptic, and starts the rest.
   2. *Resting*: the countdown in `t-number-l`, −15, +15 and Skip, the drain bar, and "Reps left?" with 0 · 1 · 2+ to rate the set just done (0 is failure, 1 the target). Rating is optional and one tap.

@@ -241,6 +241,50 @@ test('session: units keep supersets together, rounds alternate, the next set fol
   assert.deepEqual(list.map((e) => e.id), ['b', 'c', 'a', 'd']);
   assert.equal(core.moveUnit(list, 'b', 'b'), false);
   assert.equal(core.moveUnit(list, 'zz', 'b'), false);
+  // what's on screen after a move (#137)
+  const ex = (id, done = []) => entry(id, [set(`${id}1`, done.includes(1)), set(`${id}2`, done.includes(2))]);
+  const order = (l) => l.map((e) => e.id).join('');
+  const plan = () => [ex('a', [1, 2]), ex('r'), ex('t'), ex('l'), ex('p')];
+  let l = plan();
+  // nothing logged of R yet: T dropped above it comes on screen, ready to log
+  assert.equal(core.sessionMove(l, 't', 'r', 'r'), 't');
+  assert.equal(order(l), 'atrlp');
+  // dropped at the very top, above a finished exercise too
+  l = plan();
+  assert.equal(core.sessionMove(l, 'l', 'a', 'r'), 'l');
+  // R dragged down below T and L: T, the first it passed, takes its place
+  l = plan();
+  assert.equal(core.sessionMove(l, 'r', 'l', 'r'), 't');
+  assert.equal(order(l), 'atlrp');
+  // ...skipping one that is done
+  l = [ex('a', [1, 2]), ex('r'), ex('t', [1, 2]), ex('l'), ex('p')];
+  assert.equal(core.sessionMove(l, 'r', 'l', 'r'), 'l');
+  l = [ex('a', [1, 2]), ex('r'), ex('t', [1, 2]), ex('l')];
+  assert.equal(core.sessionMove(l, 'r', 't', 'r'), 'r', 'passed only a finished one: it stays');
+  // moves that don't cross it, or move it up, or bring a finished one above it, leave it
+  l = plan();
+  assert.equal(core.sessionMove(l, 'p', 't', 'r'), 'r');
+  assert.equal(order(l), 'arptl');
+  l = plan();
+  assert.equal(core.sessionMove(l, 'r', 'a', 'r'), 'r');
+  l = [ex('a'), ex('r'), ex('t'), ex('d', [1, 2])];
+  assert.equal(core.sessionMove(l, 'd', 'a', 'r'), 'r');
+  // an exercise dropped above, but from above it, leaves it too (a picked exercise further down stays)
+  l = plan();
+  assert.equal(core.sessionMove(l, 'a', 'l', 't'), 't');
+  // a set of R logged: it stays on screen whatever moves
+  l = [ex('a', [1, 2]), ex('r', [1]), ex('t'), ex('l')];
+  assert.equal(core.sessionMove(l, 't', 'r', 'r'), 'r');
+  assert.equal(order(l), 'atrl');
+  assert.equal(core.sessionMove(l, 'r', 'l', 'r'), 'r');
+  // a superset moves and stays together; any of its entries names it
+  l = [ex('r'), { ...ex('s'), supersetId: 'x' }, { ...ex('u'), supersetId: 'x' }, ex('t')];
+  assert.equal(core.sessionMove(l, 's', 'r', 'r'), 's');
+  assert.equal(order(l), 'surt');
+  assert.equal(core.sessionMove(l, 'r', 's', 'u'), 'r', 'the superset on screen dragged up: it stays');
+  // nothing moved, or nothing on screen
+  assert.equal(core.sessionMove(plan(), 'r', 'r', 'r'), null);
+  assert.equal(core.sessionMove(plan(), 't', 'r', null), null);
   // plates per side, and the heaviest total they're worked out for (#130)
   assert.deepEqual(core.platesFor(100, 20, core.KG_PLATES), { plates: [25, 15], remainder: 0 });
   assert.deepEqual(core.platesFor(101, 20, [25, 20, 10, 5, 2.5, 1.25]), { plates: [25, 10, 5], remainder: 1 });

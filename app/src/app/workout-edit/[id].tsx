@@ -16,6 +16,7 @@ import {
   Button, Empty, Field, HeaderButton, Icon, Txt,
 } from '@/ui/kit';
 import { pickDateTime, toast } from '@/ui/overlay';
+import { useScrollHost } from '@/ui/drag';
 import { DraftBlocks, KeyboardDoneBar } from '@/ui/workout/DraftBlocks';
 import { useEditor } from '@/ui/workout/useEditor';
 import { SPACE, TYPE } from '@/design/tally';
@@ -27,6 +28,7 @@ export default function WorkoutEditScreen() {
   const { tr } = f;
   const c = useColors();
   const insets = useSafeAreaInsets();
+  const scrollHost = useScrollHost();
   const { draft: d, leave } = useEditor<WorkoutEditDraft>(() => {
     const s = getState();
     const w = s.workouts.find((x) => x.id === id);
@@ -67,7 +69,7 @@ export default function WorkoutEditScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       {header}
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 12, paddingBottom: insets.bottom + 48 }}
+      <ScrollView {...scrollHost.props} style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 12, paddingBottom: insets.bottom + 48 }}
         keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets>
         <View style={{ gap: 10, paddingHorizontal: 4 }}>
           <Field value={d.name} onChange={(v) => patchDraft('edit', { name: v })} placeholder={tr('Workout name')} big testID="edit-name" />
@@ -86,10 +88,10 @@ export default function WorkoutEditScreen() {
           </View>
           <Field value={d.notes} onChange={(v) => patchDraft('edit', { notes: v })} placeholder={tr('Workout note')} multiline testID="edit-notes" />
           {d.pinnedNote !== undefined && (
-            <Field value={d.pinnedNote} onChange={(v) => patchDraft('edit', { pinnedNote: v })} placeholder={tr('Pin a note for next time (optional)')} multiline testID="edit-pinned" />
+            <Field value={d.pinnedNote} onChange={(v) => patchDraft('edit', { pinnedNote: v })} placeholder={tr('Pin a note for next time')} multiline testID="edit-pinned" />
           )}
         </View>
-        <DraftBlocks draftKey="edit" mode="edit" draft={d} />
+        <DraftBlocks draftKey="edit" mode="edit" draft={d} scroll={scrollHost.host} />
         <View style={{ marginTop: 16 }}>
           <Button large kind="tinted" icon="plus" title={tr('Add exercises')} onPress={addExercises} testID="add-exercises" />
         </View>

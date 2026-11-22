@@ -4,16 +4,16 @@
 // screen with its set rows, the others as rows ("Up next"), and the Action
 // bar: Log → Rest → Finish workout. The keypad takes the Action bar's place
 // while a number is typed.
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import {
-  Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
-  type ScrollViewInstance, type TextInputInstance, type ViewInstance,
+  Animated, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
+  type TextInputInstance, type ViewInstance,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useKeepAwake } from 'expo-keep-awake';
 import {
-  newEntries, sessionState, hasPendingSets, nextUnit, placeholders, loggedFields, rateSet, setRir, REST_PRESETS, isUnilateral,
+  newEntries, sessionState, sessionMove, hasPendingSets, nextUnit, placeholders, loggedFields, rateSet, setRir, REST_PRESETS, isUnilateral,
 } from '@increment/core';
 
 import {
@@ -28,6 +28,7 @@ import { useFormat } from '@/lib/format';
 import { pickExercises } from '@/lib/picker';
 import { useTally } from '@/lib/theme';
 import { confirmDiscard, finishFlow, workoutReady } from '@/lib/workout';
+import { DragContext, useDragList, useScrollHost } from '@/ui/drag';
 import { Empty, Icon } from '@/ui/kit';
 import {
   OverlayHost, actionSheet, pickDateTime, prompt, toast,
@@ -39,7 +40,7 @@ import { WorkoutTally } from '@/ui/facts';
 import { useBlockProps } from '@/ui/workout/DraftBlocks';
 import { ExerciseBlock } from '@/ui/workout/ExerciseBlock';
 import {
-  KeypadHost, SessionProvider, UnitRows, useElapsed, useSession, useSessionStrokes,
+  KeypadHost, ROW_H, SessionProvider, UnitRow, useElapsed, useSession, useSessionStrokes,
 } from '@/ui/workout/Session';
 import type { Field } from '@/ui/workout/SetRow';
 import { effortText, setValueText } from '@/ui/workout/text';
@@ -86,14 +87,12 @@ function Running({ a, reveal }: { a: ActiveWorkout; reveal: { current: (ref: Tex
   const insets = useSafeAreaInsets();
   const session = useSession()!;
   const nameRef = useRef<TextInputInstance>(null);
-  const scrollRef = useRef<ScrollViewInstance>(null);
   const contentRef = useRef<ViewInstance>(null);
-  const scrollY = useRef(0);
-  const viewH = useRef(0);
+  const shownRef = useRef<ViewInstance>(null);
   const targetRef = useRef<TextInputInstance | null>(null);
-  const unitY = useRef(0);
   const scrollToUnit = useRef(false);
-  const [dragging, setDragging] = useState(false);
+  const { host: scroll, props: scrollProps } = useScrollHost({ onLayout: () => { if (targetRef.current) show(targetRef.current); } });
+  const scrollRef = scroll.ref;
 
   // ---------- where the session is ----------
   const st = useMemo(() => sessionState(a, { current: a.current ?? null, restEntryId: a.rest?.entryId ?? null }), [a]);
@@ -102,8 +101,6 @@ function Running({ a, reveal }: { a: ActiveWorkout; reveal: { current: (ref: Tex
   const ahead = useMemo(() => (st.unit && !st.next ? nextUnit(a, st.unit.id) : null), [a, st]);
   const strokes = useSessionStrokes(a, live);
   const at = st.unit ? st.units.indexOf(st.unit) : -1;
-  const before = at > 0 ? st.units.slice(0, at) : [];
-  const after = at >= 0 ? st.units.slice(at + 1) : [];
   const blockProps = useBlockProps('active', a);
   // "Weight increase recommended" per exercise, from the routine's latest workout (#49)
   const workouts = useAppSelector((s) => s.workouts);
@@ -116,8 +113,8 @@ function Running({ a, reveal }: { a: ActiveWorkout; reveal: { current: (ref: Tex
     targetRef.current = ref;
     if (!ref || !contentRef.current) return;
     ref.measureLayout(contentRef.current, (_x, y, _w, h) => {
-      const top = scrollY.current;
-      const height = viewH.current;
+      const top = scroll.y.current;
+      const height = scroll.viewH.current;
       if (y + h + SPACE.s4 > top + height) scrollRef.current?.scrollTo({ y: y + h + SPACE.s4 - height, animated: true });
       else if (y - SPACE.s4 < top) scrollRef.current?.scrollTo({ y: Math.max(0, y - SPACE.s4), animated: true });
     }, () => {});
@@ -130,6 +127,24 @@ function Running({ a, reveal }: { a: ActiveWorkout; reveal: { current: (ref: Tex
     scrollToUnit.current = true;
     patchActive({ current: entryId });
   };
+  // drag any exercise to any place (#137); one with nothing logged gives way on screen (sessionMove)
+  const list = useDragList({
+    ids: st.units.map((u) => u.id), rowH: ROW_H, scroll,
+    indexOf: (id) => st.units.findIndex((u) => u.entries.some((e) => e.id === id)),
+    onDrop: (from, to) => {
+      const shownId = st.unit?.id ?? null;
+      let now: string | null = null;
+      editActive((d) => {
+        now = sessionMove(d.exercises, st.units[from].id, st.units[to].id, shownId);
+        if (now) d.current = now;
+      });
+      if (!now || now === shownId) return false;
+      scrollToUnit.current = true;
+      return true;
+    },
+    onFold: (on) => { if (on) session.close(); scroll.lock(on); },
+  });
+  const folded = !!list.drag;
   const addExercises = async () => {
     const ids = await pickExercises({ multi: true, title: tr('Add exercises') });
     if (!ids) return;
@@ -255,10 +270,8 @@ function Running({ a, reveal }: { a: ActiveWorkout; reveal: { current: (ref: Tex
         </Pressable>
       </View>
 
-      <ScrollView ref={scrollRef} style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: SPACE.s8 }} scrollEnabled={!dragging}
-        keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets scrollEventThrottle={32}
-        onScroll={(e) => { scrollY.current = e.nativeEvent.contentOffset.y; }}
-        onLayout={(e) => { viewH.current = e.nativeEvent.layout.height; if (targetRef.current) show(targetRef.current); }}>
+      <ScrollView {...scrollProps} style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: SPACE.s8 }}
+        keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets>
         <View ref={contentRef} collapsable={false}>
           <View style={styles.head}>
             <View style={styles.titleRow}>
@@ -282,24 +295,37 @@ function Running({ a, reveal }: { a: ActiveWorkout; reveal: { current: (ref: Tex
             )}
           </View>
 
-          {before.length > 0 && (
-            <View style={{ marginTop: SPACE.s4 }}>
-              <UnitRows units={before} strokes={strokes.byEntry} onJump={jump} />
-            </View>
-          )}
-          {st.unit && (
-            <View onLayout={(e) => {
-              unitY.current = e.nativeEvent.layout.y;
-              if (scrollToUnit.current) { scrollToUnit.current = false; scrollRef.current?.scrollTo({ y: Math.max(0, unitY.current - SPACE.s4), animated: true }); }
-            }}>
-              {st.unit.entries.map((e) => <ExerciseBlock key={e.id} {...blockProps(e)} mode="active" live={live} ready={ready.get(e.id) || null} />)}
-            </View>
-          )}
-          {after.length > 0 && (
-            <View style={{ marginTop: SPACE.s6 }}>
-              <Text style={{ ...TYPE.headline, color: t.ink, paddingHorizontal: SPACE.s5, marginBottom: SPACE.s1 }} accessibilityRole="header">{tr('Up next')}</Text>
-              <UnitRows units={after} strokes={strokes.byEntry} onJump={jump} draggable onDragging={setDragging} />
-            </View>
+          {st.units.length > 0 && (
+            <DragContext.Provider value={st.units.length > 1 ? list.api : null}>
+              <View {...list.pan} style={{ paddingTop: at > 0 ? SPACE.s4 : 0 }} testID="session-list">
+                {list.gap > 0 && <View style={{ height: list.gap }} />}
+                {st.units.map((u, i) => {
+                  const shown = u === st.unit;
+                  const lifted = list.drag?.from === i;
+                  const item = list.item(u.id, i, t.paper2);
+                  const row = <UnitRow unit={u} strokes={strokes.byEntry} first={i === 0 || (!folded && st.units[i - 1] === st.unit)} lifted={lifted} onJump={jump} drag={st.units.length > 1 ? list.api : null} />;
+                  if (!shown) return <Animated.View key={u.id} {...item}>{row}</Animated.View>;
+                  return (
+                    <Animated.View key={u.id} ref={shownRef} {...item} onLayout={(e) => {
+                      item.onLayout(e);
+                      if (!scrollToUnit.current || !contentRef.current) return;
+                      scrollToUnit.current = false;
+                      shownRef.current?.measureLayout(contentRef.current, (_x, y) => scrollRef.current?.scrollTo({ y: Math.max(0, y - SPACE.s4), animated: true }), () => {});
+                    }}>
+                      {/* the exercise on screen; while one is dragged, a row like the others */}
+                      <View style={folded ? styles.folded : null}>
+                        {u.entries.map((e) => <ExerciseBlock key={e.id} {...blockProps(e)} mode="active" live={live} ready={ready.get(e.id) || null} />)}
+                        {i < st.units.length - 1 && (
+                          <Text style={{ ...TYPE.headline, color: t.ink, paddingHorizontal: SPACE.s5, marginTop: SPACE.s6, marginBottom: SPACE.s1 }} accessibilityRole="header">{tr('Up next')}</Text>
+                        )}
+                      </View>
+                      {folded && row}
+                    </Animated.View>
+                  );
+                })}
+                {list.tail > 0 && <View style={{ height: list.tail }} />}
+              </View>
+            </DragContext.Provider>
           )}
           {!a.exercises.length && <Empty title={tr('No exercises yet')} text={tr('Add the exercises you’re about to do. Your numbers from last time show up next to every set.')} />}
           <View style={styles.end}>
@@ -335,6 +361,7 @@ const styles = StyleSheet.create({
   hero: { marginTop: SPACE.s3 },
   notes: { borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10, marginTop: SPACE.s3, fontSize: 15, minHeight: 60 },
   effort: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: SPACE.s3 },
+  folded: { height: 0, overflow: 'hidden' },
   end: { paddingHorizontal: SPACE.s5, paddingTop: SPACE.s6, gap: SPACE.s2, alignItems: 'flex-start' },
   discard: { minHeight: CONTROL.hitMin, justifyContent: 'center' },
 });
