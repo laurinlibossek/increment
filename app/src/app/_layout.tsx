@@ -17,6 +17,8 @@ import { OverlayHost } from '@/ui/overlay';
 import { SaveWarningFrame } from '@/ui/SaveWarning';
 import { CapsuleButton } from '@/ui/tally/RestBar';
 import { RestWatcher } from '@/ui/workout/Rest';
+import { LogReminderWatcher } from '@/ui/workout/LogReminder';
+import { NotificationLinks } from '@/ui/NotificationLinks';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -138,6 +140,8 @@ export default function RootLayout() {
             </Stack>
           </SaveWarningFrame>
           <RestWatcher />
+          <LogReminderWatcher />
+          <NotificationLinks />
           <IncomingLinks />
         </Column>
       )}

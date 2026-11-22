@@ -100,11 +100,13 @@ A full-width row: optional leading symbol, a title with an optional second line,
 - `row-h` minimum, text on the `space-5` margin (or after the leading symbol), hairline separators inset to the text.
 - Subtitles in `t-footnote` `ink-2`: facts separated by " · ".
 - No chevrons. A row that can be tapped shows only its pressed state (`paper-2`); what opens a page should be clear without one (Laurin, 16 Nov 2026, after Plan's routine rows and Search/Lifts rows on 15 Nov). Indicators that show a state stay: the open/closed arrow on Plan's folders and the picker's families, History's month arrows and the running workout's Minimize.
-- No cards around lists.
+- On a section card, the row keeps its `space-5` padding inside the card, its hairline runs from the text to the card's edge, and its pressed state is `paper-3`.
+- `card`: a thing of its own in a list (a workout in Workouts, a routine on Plan, View in history) is a card instead of a row between hairlines: `paper-2`, `radius-l`, `space-3` between cards, `paper-3` while pressed. Its margins are outside its tap area.
+- Long lists of one kind (Search, Lifts, Records, the picker) stay full width on the page, without a card around them.
 
 **Exercise thumbnails** (#50, behind `EXPO_PUBLIC_ENABLE_EXERCISE_THUMBNAILS=1` until #51): Search, the exercise picker and Lifts have a 56 × 56 pt `paper-3` tile with `radius-m` corners (like the keypad keys, clipping the drawing) before the title, with `space-3` to the text and the hairline inset to that text. One medium-build figure, body in `ink`, equipment in `ink-2`, and a `paper-3` halo behind each body part to separate overlapping limbs. Names wrap beside the tile, including at 320 pt; no alphabet scroller. A family row shows the exercise it represents (the last logged visible member, or the usual member), while an expanded or searched row shows its own ID. Never substitute a sibling’s drawing.
 
-Custom exercises always use a letter tile; an undrawn built-in uses the same fallback: the first letter of `f.exName(ex)`, uppercased, centred, `t-large-title` in `ink` on the same 56 pt `paper-3` tile. The letter keeps its size when the phone's text is larger, because the tile doesn't grow. Both letters and drawings are decorative, hidden from screen readers and never separate tap targets. With the switch off there is no tile or reserved space.
+Custom exercises always use a letter tile; an undrawn built-in uses the same fallback: the first letter of `f.exName(ex)`, uppercased, centred, `t-large-title` in `ink` on the same 56 pt `paper-3` tile. The letter keeps its size when the phone's text is larger, because the tile doesn't grow. Both letters and drawings are decorative, hidden from screen readers and never separate tap targets. With the switch off there is no tile or reserved space. Trial (22 Nov 2026): with `EXPO_PUBLIC_ENABLE_EXERCISE_PHOTOS=1` a built-in with a matching photo (CC0, `app/assets/exercise-photos/README.md`) shows it, cropped to fill the tile, instead of its drawing or letter.
 
 ## MuscleVolume
 
@@ -113,12 +115,12 @@ Working sets per muscle over the last 7 days, as tallies.
 **You provide** sets per muscle (counted from the log: each exercise gives its main muscle 1 and each helper ½ after pairing; an old region value counts directly under that region, with no helpers). The store version may pass a target range per muscle; the open app passes none. Optionally what a row does when tapped: on Today it opens the sets behind its number (#89).
 
 **Rules**
-- `direct` sets are done stems, followed by `Math.floor(helper)` full-height stems in `ink-3`. A remaining half is shown only in the number. With a target range, pending hairlines count the missing whole sets: `Math.max(0, Math.ceil(floor - sets))`.
+- `direct` sets are done stems, followed by `Math.floor(helper)` full-height stems in `stroke-helper`. A remaining half is shown only in the number. With a target range, pending hairlines count the missing whole sets: `Math.max(0, Math.ceil(floor - sets))`.
 - The count on the right is `halfText(sets)` in `t-headline` (`7½`, never a decimal). Keep a count on one line beside a long exercise title too. Above the range, the count turns `ink-2`; it never turns red.
 - Muscles in `MUSCLES` order, with any legacy region row after its muscles. Full body counts; Cardio and Other do not.
 - Long muscle labels wrap, so the full name stays visible in German too.
 - A row that can be tapped has no chevron, only the pressed state (`paper-2`). It is at least 44 pt tall (Apple's minimum touch target) and runs the full width, and the rows meet, so they sit a little further apart than rows that can't be tapped (Laurin, 14 Nov 2026).
-- A `line` hairline separates the rows, from the text's margin to the screen's edge like a ListRow's (Laurin, 16 Nov 2026).
+- A `line` hairline separates the rows, from the text's margin to the card's edge like a ListRow's (Laurin, 16 Nov 2026). On Today it sits on the Sets per muscle card, so the pressed state is `paper-3`.
 - Every tappable element’s own layout box is at least 44 × 44 pt (`CONTROL.hitMin` in both directions). `hitSlop` does not count: react-native-web ignores it. Remove it once the box meets the minimum.
 - Keep a small visible shape inside a centred 44 pt Pressable, or use minimum dimensions with padding and matching negative margins to preserve spacing. Adjacent targets may touch but must not overlap. Inputs inside a larger target are focused by that wrapper (as in `SetField`).
 
@@ -154,7 +156,7 @@ A routine as something to start: where it sits in the block, its name, its exerc
 **You provide** the routine, its place in the block if there is one, and the estimated time (from how long it took, #114).
 
 **Rules**
-- `paper-2`, `radius-l`, `space-5` padding. The only card style in the app; the current block on Plan uses it too.
+- `paper-2`, `radius-l`, `space-5` padding, the same card as a section's (SectionCard); the current block on Plan uses it too.
 - Three levels of text, never one grey block (#116):
   - the lead ("Up next", "In progress") in `t-footnote` semibold `accent`, with the reason after it in `ink-2`;
   - the name in `t-title-1`, with "12 sets · about 55 min" under it in `t-subhead` `ink-2`;
@@ -171,13 +173,26 @@ A routine as something to start: where it sits in the block, its name, its exerc
 - At most one Start button per screen: on Today the Up next card has it; on Plan rows open the routine and Start is inside.
 - Never nest a card in a card.
 
+## SectionCard
+
+A section of a page on its own card, so where it starts and ends is clear at a glance (Laurin, 22 Nov 2026).
+
+**You provide** an optional title with its scope or action (a SectionHeader inside the card), and the section's content.
+
+**Rules**
+- `paper-2`, `radius-l`, on the screen margin; `space-4` between cards. No border, no shadow, never a card inside a card.
+- The title sits inside, `space-4` under the card's top. Content keeps its own `space-5` padding, so text lines up with the title. A card without a title (Progress's links, Body's first group) starts with its first row.
+- Rows inside keep their hairlines, from the text to the card's edge. The card clips their pressed state (`paper-3`) to its corners.
+- What draws in the page's colour draws in the card's instead: a chart's outlines and tooltip, a pressed row. Components read this from the card (`ui/tally/ground.ts`), never from a prop.
+- Used on Today (This week, Sets per muscle), Progress, the exercise page, the workout page and summary, the routine page, a muscle's sets, Body and Account. The running workout and the long single-kind lists (Search, Lifts, Records, the picker) stay on the page.
+
 ## SectionHeader
 
 A section's title in `t-title-2`, with one optional trailing item: a scope ("Last 7 days") in `t-footnote` `ink-2`, or one plain action ("Edit", "See all").
 
 **Rules**
 - Sentence case. Never uppercase grey labels.
-- `space-8` above it on tab roots, `space-2` between it and its content.
+- Inside a SectionCard at its top. A heading over several cards (a month in Workouts, Plan's Routines) stays on the page, `space-8` below what's above and `space-2` above its first card.
 
 ## SegmentedControl
 
@@ -243,7 +258,7 @@ A row of strokes, one per set: hairline while pending, a solid stem once logged.
 - Groups are separated by `stroke-group`: per exercise in a session, per five when counting.
 - A whole workout's tally (session header, summary, History) wraps onto new lines, inside a long exercise too, so it never runs off the screen. It grows a line per screen width of strokes: about 29 hero strokes per line on an iPhone; 1000 sets make a block about 1900 pt tall, two and a half screens.
 - `record` is the only coloured state. `live` marks the one set being logged; there is never more than one.
-- A `helper` is a full-height stem at the usual slot width in `ink-3`, used for whole helper contributions in Sets per muscle. `fives(done, pending, helper)` orders done, helper, then pending. A remaining half has no stroke. Never draw helpers at half height: that already means a warm-up (#72).
+- A `helper` is a full-height stem at the usual slot width in `stroke-helper` (`ink-3`, except Strawberry Matcha's pale matcha), used for whole helper contributions in Sets per muscle. `fives(done, pending, helper)` orders done, helper, then pending. A remaining half has no stroke. Never draw helpers at half height: that already means a warm-up (#72).
 - Warm-ups are half height (0.55) in every state: pending (`warmupPending`), being logged (`warmupLive`, the `live` outline at warm-up height) and logged (`warmup`). So nothing changes height when a warm-up is logged; only the outline turns into a solid stem.
 - Strokes are one per row, so a unilateral exercise's Left and Right are two strokes. The count beside them counts sets the way the totals do: a Left and a Right make one set, logged once both are (#72).
 - Never use strokes for weight, time or other continuous numbers.

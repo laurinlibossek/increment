@@ -1,5 +1,5 @@
 import { Fragment, memo } from 'react';
-import { Text, View } from 'react-native';
+import { Image, Text, View } from 'react-native';
 import Svg, { Circle, G, Path } from 'react-native-svg';
 import { exerciseDrawing, type Shape } from '@increment/core';
 
@@ -7,6 +7,11 @@ import { RADIUS, TYPE } from '@/design/tally';
 import { useTally } from '@/lib/theme';
 
 export const EXERCISE_THUMBNAIL_SIZE = 56;
+
+// The trial photos (scripts/exercise-photos.py). The check stays literal here so
+// that Metro drops the map, and with it the images, from builds without it.
+const PHOTOS: Readonly<Record<string, number>> = process.env.EXPO_PUBLIC_ENABLE_EXERCISE_PHOTOS === '1'
+  ? require('@/lib/exercisePhotos').EXERCISE_PHOTOS : {};
 
 function shapeElement(shape: Shape, key: number) {
   return shape.kind === 'path' ? <Path key={key} d={shape.d} /> : <Circle key={key} cx={shape.cx} cy={shape.cy} r={shape.r} />;
@@ -17,11 +22,13 @@ function shapeElement(shape: Shape, key: number) {
 const Tile = memo(function Tile({ exerciseId, name, paper, ink, equipment }: {
   exerciseId: string; name: string; paper: string; ink: string; equipment: string;
 }) {
-  const drawing = exerciseDrawing(exerciseId);
+  const photo = PHOTOS[exerciseId];
+  const drawing = photo ? null : exerciseDrawing(exerciseId);
   return <View testID={`exercise-thumbnail-${exerciseId}`} accessible={false} accessibilityElementsHidden
     importantForAccessibility="no-hide-descendants" aria-hidden pointerEvents="none"
     style={{ width: EXERCISE_THUMBNAIL_SIZE, height: EXERCISE_THUMBNAIL_SIZE, flexShrink: 0, borderRadius: RADIUS.m, overflow: 'hidden', backgroundColor: paper, alignItems: 'center', justifyContent: 'center' }}>
-    {drawing ? <Svg width="100%" height="100%" viewBox="0 0 100 100" accessible={false} aria-hidden focusable={false}>
+    {photo ? <Image source={photo} accessible={false} style={{ width: '100%', height: '100%' }} />
+    : drawing ? <Svg width="100%" height="100%" viewBox="0 0 100 100" accessible={false} aria-hidden focusable={false}>
       <G stroke={equipment} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
         {drawing.equipment.map(({ shape, solid }, i) => <G key={i} fill={solid ? equipment : 'none'}>{shapeElement(shape, i)}</G>)}
       </G>

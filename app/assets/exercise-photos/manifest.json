@@ -1,0 +1,1213 @@
+{
+ "source": "https://github.com/hitmanrepo/open-exercise-illustrations",
+ "license": "CC0-1.0",
+ "note": "AI-generated renders, not reviewed by a coach. exact: same movement and equipment; stand-in: a variant that looks the same in a still.",
+ "exercises": {
+  "x-bench-press-barbell": {
+   "image": "bench-press",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-bench-press-dumbbell": {
+   "image": "dumbbell-chest-press",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-bench-press-smith-machine": {
+   "image": "smith-machine-bench-press",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-incline-bench-press-barbell": {
+   "image": "incline-bench-press",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-incline-bench-press-dumbbell": {
+   "image": "incline-dumbbell-press",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-incline-bench-press-smith-machine": {
+   "image": "smith-machine-incline-press",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-decline-bench-press-barbell": {
+   "image": "decline-bench-press",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-decline-bench-press-dumbbell": {
+   "image": "dumbbell-decline-press",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-decline-bench-press-smith-machine": null,
+  "x-close-grip-bench-press-barbell": {
+   "image": "close-grip-bench-press",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-close-grip-bench-press-smith-machine": null,
+  "x-bench-press-wide-grip-barbell": {
+   "image": "wide-grip-bench-press",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-floor-press-barbell": {
+   "image": "barbell-floor-press",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-floor-press-dumbbell": {
+   "image": "dumbbell-floor-press",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-paused-bench-press-barbell": {
+   "image": "bench-press",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-spoto-press-barbell": {
+   "image": "bench-press",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-pin-bench-press-barbell": null,
+  "x-larsen-press-barbell": null,
+  "x-chest-press-machine": {
+   "image": "chest-press-machine",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-chest-press-cable": {
+   "image": "standing-cable-chest-press",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-incline-chest-press-machine": {
+   "image": "plate-loaded-incline-chest-press",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-decline-chest-press-machine": null,
+  "x-iso-lateral-chest-press-machine": null,
+  "x-chest-fly-dumbbell": {
+   "image": "dumbbell-fly",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-chest-fly-machine": {
+   "image": "pec-deck",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-chest-fly-cable": {
+   "image": "cable-crossover",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-incline-chest-fly-dumbbell": {
+   "image": "incline-dumbbell-fly",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-incline-chest-fly-cable": {
+   "image": "cable-fly-low-to-high",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-decline-chest-fly-dumbbell": null,
+  "x-cable-crossover-cable": {
+   "image": "cable-crossover",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-low-cable-fly-cable": {
+   "image": "cable-fly-low-to-high",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-single-arm-chest-fly-cable": null,
+  "x-push-up": {
+   "image": "push-up",
+   "frame": "start",
+   "match": "exact"
+  },
+  "x-push-up-weighted": {
+   "image": "push-up",
+   "frame": "start",
+   "match": "stand-in"
+  },
+  "x-chest-dip": {
+   "image": "dips",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-chest-dip-weighted": {
+   "image": "dips",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-chest-dip-assisted": {
+   "image": "assisted-dip-machine",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-triceps-dip": {
+   "image": "dips",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-triceps-dip-weighted": {
+   "image": "dips",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-triceps-dip-assisted": {
+   "image": "assisted-dip-machine",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-pullover-dumbbell": {
+   "image": "dumbbell-pullover",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-pullover-machine": {
+   "image": "machine-pullover",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-pullover-cable": null,
+  "x-single-arm-pullover-cable": null,
+  "x-straight-arm-pulldown-cable": {
+   "image": "straight-arm-pulldown",
+   "frame": "start",
+   "match": "exact"
+  },
+  "x-deadlift-barbell": {
+   "image": "deadlift",
+   "frame": "start",
+   "match": "exact"
+  },
+  "x-deadlift-trap-bar": {
+   "image": "trap-bar-deadlift",
+   "frame": "start",
+   "match": "exact"
+  },
+  "x-sumo-deadlift-barbell": {
+   "image": "sumo-deadlift",
+   "frame": "start",
+   "match": "exact"
+  },
+  "x-deficit-deadlift-barbell": {
+   "image": "deadlift",
+   "frame": "start",
+   "match": "stand-in"
+  },
+  "x-paused-deadlift-barbell": {
+   "image": "deadlift",
+   "frame": "start",
+   "match": "stand-in"
+  },
+  "x-rack-pull-barbell": {
+   "image": "rack-pull",
+   "frame": "start",
+   "match": "exact"
+  },
+  "x-romanian-deadlift-barbell": {
+   "image": "romanian-deadlift",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-romanian-deadlift-dumbbell": {
+   "image": "dumbbell-romanian-deadlift",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-romanian-deadlift-smith-machine": {
+   "image": "smith-machine-romanian-deadlift",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-stiff-leg-deadlift-barbell": {
+   "image": "romanian-deadlift",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-stiff-leg-deadlift-dumbbell": {
+   "image": "dumbbell-romanian-deadlift",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-single-leg-romanian-deadlift-dumbbell": {
+   "image": "single-leg-romanian-deadlift",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-bent-over-row-barbell": {
+   "image": "bent-over-row",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-bent-over-row-dumbbell": null,
+  "x-bent-over-row-underhand-barbell": {
+   "image": "reverse-grip-barbell-row",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-pendlay-row-barbell": {
+   "image": "pendlay-row",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-bent-over-one-arm-row-dumbbell": {
+   "image": "dumbbell-row",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-kroc-row-dumbbell": {
+   "image": "dumbbell-row",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-meadows-row-barbell": {
+   "image": "meadows-row",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-t-bar-row": {
+   "image": "t-bar-row",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-chest-supported-t-bar-row-machine": {
+   "image": "chest-supported-t-bar-row",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-chest-supported-row-dumbbell": {
+   "image": "chest-supported-dumbbell-row",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-chest-supported-row-machine": {
+   "image": "machine-row",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-helms-row-dumbbell": {
+   "image": "chest-supported-dumbbell-row",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-seal-row-barbell": null,
+  "x-seated-row-cable": {
+   "image": "seated-cable-row",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-seated-row-machine": {
+   "image": "machine-row",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-seated-wide-grip-row-cable": {
+   "image": "seated-cable-row",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-single-arm-row-cable": {
+   "image": "single-arm-cable-row",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-iso-lateral-row-machine": null,
+  "x-high-row-machine": {
+   "image": "machine-high-row",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-lat-pulldown-cable": {
+   "image": "lat-pulldown",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-lat-pulldown-machine": {
+   "image": "lat-pulldown",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-lat-pulldown-close-grip-cable": {
+   "image": "close-grip-lat-pulldown",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-lat-pulldown-wide-grip-cable": {
+   "image": "lat-pulldown",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-lat-pulldown-underhand-cable": {
+   "image": "reverse-grip-lat-pulldown",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-lat-pulldown-single-arm": null,
+  "x-single-arm-lat-pulldown-machine": null,
+  "x-pull-up": {
+   "image": "pull-up",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-pull-up-weighted": {
+   "image": "pull-up",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-pull-up-assisted": {
+   "image": "assisted-pull-up",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-wide-grip-pull-up": {
+   "image": "wide-grip-pull-up",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-neutral-grip-pull-up": {
+   "image": "neutral-grip-pull-up",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-chin-up": {
+   "image": "chin-up",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-chin-up-weighted": {
+   "image": "chin-up",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-chin-up-assisted": {
+   "image": "assisted-pull-up",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-back-extension": {
+   "image": "back-extensions",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-back-extension-barbell": {
+   "image": "back-extensions",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-back-extension-machine": null,
+  "x-back-extension-weighted": {
+   "image": "back-extensions",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-reverse-hyperextension-machine": {
+   "image": "reverse-hyperextension",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-shrug-barbell": {
+   "image": "shrugs",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-shrug-dumbbell": {
+   "image": "dumbbell-shrug",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-shrug-smith-machine": {
+   "image": "smith-machine-shrug",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-shrug-machine": null,
+  "x-kelso-shrug-dumbbell": null,
+  "x-kelso-shrug-machine": null,
+  "x-keenan-flap-cable": null,
+  "x-cuffed-single-arm-lat-pullover-cable": null,
+  "x-overhead-press-barbell": {
+   "image": "overhead-press",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-overhead-press-dumbbell": null,
+  "x-seated-overhead-press-dumbbell": {
+   "image": "dumbbell-shoulder-press",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-seated-overhead-press-barbell": null,
+  "x-seated-overhead-press-smith-machine": {
+   "image": "smith-machine-overhead-press",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-shoulder-press-machine": {
+   "image": "shoulder-press-machine",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-shoulder-press-smith-machine": {
+   "image": "smith-machine-overhead-press",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-arnold-press-dumbbell": {
+   "image": "arnold-press",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-z-press-barbell": null,
+  "x-push-press-barbell": {
+   "image": "push-press",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-landmine-press-barbell": {
+   "image": "landmine-press",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-lateral-raise-dumbbell": {
+   "image": "lateral-raises",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-lateral-raise-machine": {
+   "image": "machine-lateral-raise",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-lateral-raise-cable": {
+   "image": "cable-lateral-raise",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-seated-lateral-raise-dumbbell": {
+   "image": "lateral-raises",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-leaning-lateral-raise-cable": {
+   "image": "cable-lateral-raise",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-behind-the-back-lateral-raise-cable": null,
+  "x-cuffed-lateral-raise-cable": {
+   "image": "cable-lateral-raise",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-lying-cuffed-lateral-raise-cable": null,
+  "x-front-raise-dumbbell": {
+   "image": "front-raises",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-front-raise-cable": {
+   "image": "cable-front-raise",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-upright-row-dumbbell": {
+   "image": "dumbbell-upright-row",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-upright-row-cable": {
+   "image": "cable-upright-row",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-face-pull-cable": {
+   "image": "face-pulls",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-reverse-fly-machine": {
+   "image": "reverse-pec-deck",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-reverse-fly-cable": null,
+  "x-chest-supported-reverse-fly-dumbbell": null,
+  "x-handstand-push-up": {
+   "image": "handstand-push-up",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-y-raise-dumbbell": null,
+  "x-y-raise-cable": {
+   "image": "cable-y-raise",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-lu-raise-dumbbell": null,
+  "x-external-rotation-dumbbell": null,
+  "x-external-rotation-cable": {
+   "image": "cable-external-rotation",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-neck-curl-plate": null,
+  "x-neck-curl-machine": null,
+  "x-neck-extension-plate": null,
+  "x-neck-extension-machine": null,
+  "x-bicep-curl-barbell": {
+   "image": "barbell-curl",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-bicep-curl-ez-bar": {
+   "image": "ez-bar-curl",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-bicep-curl-dumbbell": {
+   "image": "biceps-curl",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-bicep-curl-machine": {
+   "image": "machine-preacher-curl",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-bicep-curl-cable": {
+   "image": "cable-curl",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-seated-bicep-curl-dumbbell": {
+   "image": "seated-dumbbell-curl",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-incline-curl-dumbbell": {
+   "image": "incline-dumbbell-curl",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-bayesian-curl-cable": null,
+  "x-preacher-curl-barbell": null,
+  "x-preacher-curl-ez-bar": {
+   "image": "preacher-curl",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-preacher-curl-dumbbell": {
+   "image": "dumbbell-preacher-curl",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-preacher-curl-machine": {
+   "image": "machine-preacher-curl",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-preacher-curl-cable": null,
+  "x-spider-curl-ez-bar": {
+   "image": "spider-curl",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-spider-curl-dumbbell": null,
+  "x-concentration-curl-dumbbell": {
+   "image": "concentration-curl",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-drag-curl-barbell": null,
+  "x-hammer-curl-dumbbell": {
+   "image": "hammer-curls",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-hammer-curl-cable": {
+   "image": "rope-hammer-curl",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-reverse-curl-barbell": null,
+  "x-reverse-curl-dumbbell": null,
+  "x-reverse-grip-bicep-curl-cable": null,
+  "x-zottman-curl-dumbbell": {
+   "image": "zottman-curl",
+   "frame": "start",
+   "match": "exact"
+  },
+  "x-triceps-pushdown-cable": {
+   "image": "tricep-pushdowns",
+   "frame": "start",
+   "match": "exact"
+  },
+  "x-triceps-pushdown-rope-cable": {
+   "image": "tricep-pushdowns",
+   "frame": "start",
+   "match": "stand-in"
+  },
+  "x-single-arm-triceps-pushdown-cable": null,
+  "x-cross-body-triceps-extension-cable": null,
+  "x-cuffed-triceps-extension-cable": null,
+  "x-overhead-triceps-extension-cable": {
+   "image": "cable-overhead-triceps-extension",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-overhead-triceps-extension-barbell": null,
+  "x-overhead-triceps-extension-ez-bar": null,
+  "x-overhead-triceps-extension-dumbbell": {
+   "image": "overhead-triceps-extension",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-single-arm-overhead-triceps-extension-cable": null,
+  "x-katana-triceps-extension-cable": null,
+  "x-skullcrusher-barbell": null,
+  "x-skullcrusher-ez-bar": {
+   "image": "skull-crushers",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-skullcrusher-dumbbell": {
+   "image": "dumbbell-skull-crusher",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-skullcrusher-cable": null,
+  "x-triceps-extension-machine": {
+   "image": "machine-triceps-extension",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-triceps-kickback-dumbbell": {
+   "image": "dumbbell-kickback",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-triceps-kickback-cable": {
+   "image": "cable-triceps-kickback",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-jm-press-barbell": null,
+  "x-jm-press-smith-machine": null,
+  "x-wrist-curl-barbell": {
+   "image": "wrist-curl",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-wrist-curl-dumbbell": {
+   "image": "dumbbell-wrist-curl",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-wrist-curl-cable": null,
+  "x-reverse-wrist-curl-barbell": {
+   "image": "reverse-wrist-curl",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-reverse-wrist-curl-dumbbell": {
+   "image": "dumbbell-reverse-wrist-curl",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-reverse-wrist-curl-cable": null,
+  "x-dead-hang": {
+   "image": "dead-hang",
+   "frame": "hold",
+   "match": "exact"
+  },
+  "x-squat-barbell": {
+   "image": "squat",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-squat-smith-machine": {
+   "image": "smith-machine-squat",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-front-squat-barbell": {
+   "image": "front-squat",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-front-squat-smith-machine": null,
+  "x-safety-bar-squat-barbell": null,
+  "x-zercher-squat-barbell": {
+   "image": "zercher-squat",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-box-squat-barbell": null,
+  "x-paused-squat-barbell": {
+   "image": "squat",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-pin-squat-barbell": null,
+  "x-hack-squat-machine": {
+   "image": "hack-squat",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-squat-press-machine": {
+   "image": "v-squat",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-pendulum-squat-machine": {
+   "image": "pendulum-squat",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-belt-squat-machine": {
+   "image": "belt-squat",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-goblet-squat-dumbbell": {
+   "image": "goblet-squat",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-pistol-squat": {
+   "image": "pistol-squat",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-leg-press-machine": {
+   "image": "leg-press",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-seated-leg-press-machine": {
+   "image": "seated-leg-press",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-single-leg-press-machine": {
+   "image": "single-leg-leg-press",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-split-squat-barbell": {
+   "image": "barbell-split-squat",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-split-squat-dumbbell": {
+   "image": "dumbbell-lunge",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-split-squat-smith-machine": {
+   "image": "smith-machine-lunge",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-bulgarian-split-squat-dumbbell": {
+   "image": "bulgarian-split-squat",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-bulgarian-split-squat-barbell": null,
+  "x-bulgarian-split-squat-smith-machine": null,
+  "x-front-foot-elevated-split-squat-dumbbell": null,
+  "x-lunge-dumbbell": {
+   "image": "dumbbell-lunge",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-lunge-barbell": {
+   "image": "barbell-lunge",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-walking-lunge-dumbbell": {
+   "image": "dumbbell-lunge",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-walking-lunge-barbell": {
+   "image": "barbell-lunge",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-reverse-lunge-barbell": {
+   "image": "barbell-reverse-lunge",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-reverse-lunge-dumbbell": {
+   "image": "dumbbell-reverse-lunge",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-reverse-lunge-smith-machine": {
+   "image": "smith-machine-lunge",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-deficit-reverse-lunge-dumbbell": {
+   "image": "dumbbell-reverse-lunge",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-step-up-dumbbell": {
+   "image": "dumbbell-step-up",
+   "frame": "start",
+   "match": "exact"
+  },
+  "x-step-up-cable": null,
+  "x-good-morning-barbell": {
+   "image": "good-morning",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-good-morning-smith-machine": null,
+  "x-leg-extension-machine": {
+   "image": "leg-extension",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-single-leg-extension-machine": {
+   "image": "leg-extension",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-sissy-squat": {
+   "image": "sissy-squat",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-seated-leg-curl-machine": {
+   "image": "seated-leg-curl",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-lying-leg-curl-machine": {
+   "image": "leg-curl",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-standing-leg-curl-machine": {
+   "image": "standing-leg-curl-machine",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-single-leg-curl-machine": {
+   "image": "standing-leg-curl-machine",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-leg-curl-cable": null,
+  "x-nordic-hamstring-curl": {
+   "image": "nordic-hamstring-curl",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-glute-ham-raise": {
+   "image": "glute-ham-raise",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-reverse-nordic": {
+   "image": "reverse-nordic",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-hip-thrust-barbell": {
+   "image": "hip-thrusts",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-hip-thrust-dumbbell": {
+   "image": "dumbbell-hip-thrust",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-hip-thrust-smith-machine": {
+   "image": "smith-machine-hip-thrust",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-hip-thrust-machine": {
+   "image": "hip-thrust-machine",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-glute-bridge-barbell": {
+   "image": "barbell-glute-bridge",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-single-leg-hip-thrust-dumbbell": null,
+  "x-glute-kickback-cable": {
+   "image": "cable-kickback",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-glute-kickback-machine": {
+   "image": "machine-glute-kickback",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-hip-abduction-machine": {
+   "image": "hip-abduction-machine",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-hip-abduction-cable": {
+   "image": "standing-cable-hip-abduction",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-hip-adduction-machine": {
+   "image": "hip-adduction-machine",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-hip-adduction-cable": null,
+  "x-copenhagen-plank": {
+   "image": "copenhagen-plank",
+   "frame": "hold",
+   "match": "exact"
+  },
+  "x-standing-calf-raise-machine": {
+   "image": "standing-calf-raise-machine",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-standing-calf-raise-barbell": null,
+  "x-standing-calf-raise-smith-machine": {
+   "image": "smith-machine-calf-raise",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-calf-raise-dumbbell": {
+   "image": "dumbbell-calf-raise",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-single-leg-calf-raise-dumbbell": null,
+  "x-donkey-calf-raise-machine": null,
+  "x-seated-calf-raise-machine": {
+   "image": "seated-calf-raise-machine",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-calf-press-on-leg-press-machine": {
+   "image": "leg-press-calf-raise",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-tibialis-raise": {
+   "image": "wall-tibialis-raise",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-tibialis-raise-machine": {
+   "image": "tibialis-raise-machine",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-cable-pull-through": {
+   "image": "cable-pull-through",
+   "frame": "start",
+   "match": "exact"
+  },
+  "x-crunch": {
+   "image": "crunches",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-crunch-machine": {
+   "image": "machine-abdominal-crunch",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-crunch-weighted": {
+   "image": "crunches",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-cable-crunch-cable": {
+   "image": "cable-crunch",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-decline-crunch": {
+   "image": "decline-crunch",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-decline-crunch-weighted": {
+   "image": "decline-crunch",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-reverse-crunch": {
+   "image": "reverse-crunch",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-hanging-leg-raise": {
+   "image": "hanging-leg-raise",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-hanging-leg-raise-weighted": {
+   "image": "hanging-leg-raise",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-hanging-knee-raise": {
+   "image": "hanging-knee-raise",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-captain-s-chair-leg-raise": {
+   "image": "captains-chair-knee-raise",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-ab-wheel": {
+   "image": "ab-wheel-rollout",
+   "frame": "start",
+   "match": "exact"
+  },
+  "x-ab-rollout-barbell": null,
+  "x-pallof-press-cable": {
+   "image": "pallof-press",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-plank": {
+   "image": "plank",
+   "frame": "hold",
+   "match": "exact"
+  },
+  "x-side-plank": {
+   "image": "side-plank",
+   "frame": "hold",
+   "match": "exact"
+  },
+  "x-side-bend-dumbbell": {
+   "image": "dumbbell-side-bend",
+   "frame": "hold",
+   "match": "exact"
+  },
+  "x-side-bend-cable": null,
+  "x-clean-barbell": {
+   "image": "power-clean",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-power-clean-barbell": {
+   "image": "power-clean",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-hang-clean-barbell": {
+   "image": "hang-clean",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-clean-and-jerk-barbell": null,
+  "x-snatch-barbell": {
+   "image": "snatch",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-power-snatch-barbell": {
+   "image": "snatch",
+   "frame": "end",
+   "match": "stand-in"
+  },
+  "x-hang-snatch-barbell": null,
+  "x-push-jerk-barbell": {
+   "image": "push-jerk",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-split-jerk-barbell": null,
+  "x-kettlebell-swing": {
+   "image": "kettlebell-swing",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-farmer-s-walk-dumbbell": {
+   "image": "farmers-walk",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-sled-push": null,
+  "x-running": null,
+  "x-running-treadmill": {
+   "image": "treadmill-run",
+   "frame": "hold",
+   "match": "exact"
+  },
+  "x-walking": null,
+  "x-walking-treadmill": {
+   "image": "treadmill-incline-walk",
+   "frame": "hold",
+   "match": "stand-in"
+  },
+  "x-incline-walk-treadmill": {
+   "image": "treadmill-incline-walk",
+   "frame": "hold",
+   "match": "exact"
+  },
+  "x-cycling": null,
+  "x-cycling-indoor": {
+   "image": "stationary-bike",
+   "frame": "hold",
+   "match": "exact"
+  },
+  "x-recumbent-bike": null,
+  "x-rowing-machine": {
+   "image": "rowing-machine",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-elliptical-trainer": {
+   "image": "elliptical",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-stair-climber": {
+   "image": "stair-climber",
+   "frame": "hold",
+   "match": "exact"
+  },
+  "x-ski-erg": {
+   "image": "ski-machine",
+   "frame": "end",
+   "match": "exact"
+  },
+  "x-air-bike": {
+   "image": "air-bike",
+   "frame": "hold",
+   "match": "exact"
+  }
+ }
+}

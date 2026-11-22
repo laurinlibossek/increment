@@ -25,7 +25,7 @@ import {
 import { Empty } from '@/ui/kit';
 import { Highlight } from '@/ui/tally/Highlight';
 import { ListRow } from '@/ui/tally/ListRow';
-import { SectionHeader } from '@/ui/tally/SectionHeader';
+import { SectionCard } from '@/ui/tally/SectionCard';
 import { StatStrip } from '@/ui/tally/StatStrip';
 import { OverlayHost } from '@/ui/overlay';
 
@@ -114,7 +114,11 @@ export default function Summary() {
         <View style={{ paddingHorizontal: MARGIN }}>
           <Text style={{ ...TYPE.eyebrow, color: t.ink2, textTransform: 'uppercase' }} numberOfLines={1}>{eyebrow}</Text>
           <Text style={{ ...TYPE.largeTitle, color: t.ink, marginTop: 2 }} accessibilityRole="header" testID="summary-title">{w.name}</Text>
-          <StatStrip style={{ marginTop: SPACE.s5 }} stats={[
+        </View>
+
+        <SectionCard style={{ marginTop: SPACE.s5, paddingVertical: SPACE.s5 }} testID="summary-facts">
+        <View style={{ paddingHorizontal: MARGIN }}>
+          <StatStrip stats={[
             { label: tr('Time'), value: hm(w.endedAt - w.startedAt), testID: 'summary-time' },
             volume ? { label: tr('Volume'), value: f.num(kgShown, 0), unit: f.unit, testID: 'summary-volume' } : { label: tr('Volume'), value: '—' },
             { label: tr('Sets'), value: f.num(sets.sets, 0), testID: 'summary-sets' },
@@ -124,10 +128,10 @@ export default function Summary() {
           </View>
           <Text style={{ ...TYPE.footnote, color: t.ink2, marginTop: SPACE.s2 }}>{tallyLine}</Text>
         </View>
+        </SectionCard>
 
         {rows.length > 0 && (
-          <>
-            <SectionHeader title={tr('Records')} />
+          <SectionCard title={tr('Records')}>
             {rows.map(({ exerciseId, lead, others }, i) => {
               const ex = exercises.get(exerciseId);
               const set = lead.setId ? setById.get(lead.setId) : undefined;
@@ -143,26 +147,24 @@ export default function Summary() {
                   right={<Highlight style={TYPE.headline}>{value(lead.metric, lead.value)}</Highlight>} />
               );
             })}
-          </>
+          </SectionCard>
         )}
 
         {/* a slot the store version can fill (phase 7) */}
         {!!w.notes && (
-          <>
-            <SectionHeader title={tr('Notes')} />
+          <SectionCard title={tr('Notes')} style={{ paddingBottom: SPACE.s5 }}>
             <Text style={{ ...TYPE.subhead, color: t.ink, paddingHorizontal: MARGIN }}>{w.notes}</Text>
-          </>
+          </SectionCard>
         )}
 
         {!!routineText && (
-          <>
-            <SectionHeader title={tr('Routine')} />
+          <SectionCard title={tr('Routine')} style={{ paddingBottom: SPACE.s5 }}>
             <Text style={{ ...TYPE.subhead, color: t.ink, paddingHorizontal: MARGIN }} testID="routine-line">{routineText}</Text>
-          </>
+          </SectionCard>
         )}
 
-        <View style={{ marginTop: SPACE.s6 }}>
-          <ListRow first title={tr('View in history')} onPress={viewInHistory} testID="view-in-history" />
+        <View style={{ marginTop: SPACE.s4 }}>
+          <ListRow card first title={tr('View in history')} onPress={viewInHistory} testID="view-in-history" />
         </View>
       </ScrollView>
       <OverlayHost />

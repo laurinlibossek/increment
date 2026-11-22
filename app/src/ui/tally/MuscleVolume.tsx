@@ -11,6 +11,7 @@ import { Pressable, Text, View } from 'react-native';
 
 import { CONTROL, SPACE, STROKE, TYPE } from '@/design/tally';
 import { useTally } from '@/lib/theme';
+import { usePressedFill } from './ground';
 import { fives, Tally } from './Tally';
 
 export type MuscleRow = { muscle: string; label: string; sets: number; direct: number; helper: number; floor?: number; ceiling?: number };
@@ -24,6 +25,7 @@ export function MuscleVolume({ rows, accessibilityLabel, onPress, testID }: {
   rows: MuscleRow[]; accessibilityLabel: (r: MuscleRow) => string; onPress?: (r: MuscleRow) => void; testID?: string;
 }) {
   const { colors: t } = useTally();
+  const pressedFill = usePressedFill();
   // as many strokes as fit; the count on the right includes a final half
   const [width, setWidth] = useState(0);
   const room = width ? Math.max(1, Math.floor((width + STROKE.group) / (FIVE + STROKE.group))) * 5 : 0;
@@ -44,7 +46,7 @@ export function MuscleVolume({ rows, accessibilityLabel, onPress, testID }: {
             <Text style={[TYPE.headline, { color: over ? t.ink2 : t.ink, minWidth: 28, textAlign: 'right', fontVariant: ['tabular-nums'] }]}>{halfText(r.sets)}</Text>
           </>
         );
-        // from the text's margin to the screen's edge, like ListRow's
+        // from the text's margin to the screen's (or card's) edge, like ListRow's
         const line = i > 0 && <View testID={`volume-line-${r.muscle}`} style={{ height: 0.5, marginRight: -SPACE.s5, backgroundColor: t.line }} />;
         if (!onPress) {
           return <Fragment key={r.muscle}>{line}<View accessible accessibilityLabel={accessibilityLabel(r)} testID={`muscle-${r.muscle}`} style={row}>{content}</View></Fragment>;
@@ -53,7 +55,7 @@ export function MuscleVolume({ rows, accessibilityLabel, onPress, testID }: {
           <Fragment key={r.muscle}>
             {line}
             <Pressable onPress={() => onPress(r)} accessibilityRole="button" accessibilityLabel={accessibilityLabel(r)} testID={`muscle-${r.muscle}`}
-              style={({ pressed }) => [row, PRESS_AREA, { backgroundColor: pressed ? t.paper2 : 'transparent' }]}>
+              style={({ pressed }) => [row, PRESS_AREA, { backgroundColor: pressed ? pressedFill : 'transparent' }]}>
               {content}
             </Pressable>
           </Fragment>

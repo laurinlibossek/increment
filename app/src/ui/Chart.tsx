@@ -10,11 +10,12 @@ import {
 import Svg, {
   G, Line, Path, Text as SvgText,
 } from 'react-native-svg';
-import { boxesOverlap, labelBox, niceTicks } from '@increment/core';
+import { boxesOverlap, labelBox, labelStep, niceTicks } from '@increment/core';
 
 import { RADIUS, SPACE, TYPE } from '@/design/tally';
 import { useFormat } from '@/lib/format';
 import { useColors } from '@/lib/theme';
+import { useGround } from '@/ui/tally/ground';
 import { SVG_FONT as FONT } from '@/ui/tally/LineChart';
 
 function useWidth(): [number, (e: LayoutChangeEvent) => void] {
@@ -42,6 +43,7 @@ export function BarChart({
   bars: { label: string; value: number; title?: string }[]; height?: number; goal?: number | null; fmtVal?: (v: number) => string; label: string; testID?: string;
 }) {
   const c = useColors();
+  const ground = useGround();
   const { tr } = useFormat();
   const [width, onLayout] = useWidth();
   const [sel, setSel] = useState<number | null>(null);
@@ -62,10 +64,10 @@ export function BarChart({
     return `M${x},${b}V${y + r}Q${x},${y} ${x + r},${y}H${x + bw - r}Q${x + bw},${y} ${x + bw},${y + r}V${b}Z`;
   };
   const lastI = bars.length - 1;
-  const every = Math.ceil(bars.length / 6);
   const pick = (px: number) => setSel(Math.max(0, Math.min(lastI, Math.floor((px - padL) / band))));
   const sb = sel !== null ? bars[sel] : null;
   const fs = TYPE.footnote.fontSize;
+  const every = labelStep(bars.map((b) => b.label), band, fs, SPACE.s2);
   const valueY = (v: number) => sy(v) - SPACE.s2;
   // the goal's label, at the start of its line; hidden while a touched week's
   // number would land on it (the bubble shows that number)
@@ -99,9 +101,9 @@ export function BarChart({
             );
           })}
           {showGoal && (
-            // over the bars, with a paper outline so a week above the goal doesn't cut through it
+            // over the bars, outlined in the ground's colour so a week above the goal doesn't cut through it
             <G>
-              <SvgText aria-hidden fontFamily={FONT} x={goalBox!.x0} y={valueY(goal!)} fontSize={fs} fill={c.bg} stroke={c.bg} strokeWidth={4} strokeLinejoin="round">{goalText}</SvgText>
+              <SvgText aria-hidden fontFamily={FONT} x={goalBox!.x0} y={valueY(goal!)} fontSize={fs} fill={ground} stroke={ground} strokeWidth={4} strokeLinejoin="round">{goalText}</SvgText>
               <SvgText fontFamily={FONT} x={goalBox!.x0} y={valueY(goal!)} fontSize={fs} fill={c.ink2}>{goalText}</SvgText>
             </G>
           )}

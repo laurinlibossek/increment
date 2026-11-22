@@ -28,7 +28,7 @@ import { useTally } from '@/lib/theme';
 import { HeaderButton, Txt } from '@/ui/kit';
 import { SegmentedControl } from '@/ui/tally/SegmentedControl';
 import { SymbolIcon } from '@/ui/tally/ListRow';
-import { SectionHeader } from '@/ui/tally/SectionHeader';
+import { SectionCard } from '@/ui/tally/SectionCard';
 import { SettingRow, SwitchSettingRow } from '@/ui/tally/SettingRow';
 import {
   actionSheet, ask, choose, pickDateTime, prompt, toast,
@@ -209,7 +209,7 @@ export default function AccountSheet() {
         </View>
       </Pressable>
 
-      <SectionHeader title={tr('Units')} />
+      <SectionCard title={tr('Units')} style={{ marginTop: SPACE.s6, paddingBottom: SPACE.s5 }}>
       <View style={{ gap: SPACE.s2, paddingHorizontal: SPACE.s5 }}>
         <Txt tone="ink2" style={TYPE.subhead}>{tr('Lifting weight')}</Txt>
         <SegmentedControl testID="set-unit" label={tr('Lifting weight')} value={st.unit} onChange={(v) => set('unit', v)} options={[{ value: 'kg', label: 'kg' }, { value: 'lb', label: 'lb' }]} />
@@ -220,13 +220,15 @@ export default function AccountSheet() {
         <Txt tone="ink2" style={[TYPE.subhead, { marginTop: SPACE.s1 }]}>{tr('Body measurements')}</Txt>
         <SegmentedControl label={tr('Body measurements')} value={lengthUnit(st)} onChange={(v) => set('sizeUnit', v)} options={[{ value: 'cm', label: 'cm' }, { value: 'in', label: 'in' }]} />
       </View>
+      </SectionCard>
 
-      <SectionHeader title={tr('Workouts')} />
-      <View>
+      <SectionCard title={tr('Workouts')} style={{ paddingBottom: 0 }}>
         <SettingRow first title={tr('Default rest timer')} sub={tr('Per-exercise timers override this')} value={restLabel(st.defaultRest)} testID="set-rest"
           onPress={() => pick(tr('Default rest timer'), (REST_CHOICES as number[]).map((x) => ({ value: x, label: restLabel(x) })), st.defaultRest, (v) => set('defaultRest', v))} />
         <SwitchSettingRow title={tr('Rest timer alerts')} sub={tr('A notification when rest is over, also with the phone locked')} value={st.restAlert}
           onChange={(v) => set('restAlert', v)} testID="set-rest-alert" />
+        <SwitchSettingRow title={tr('Reminder to log sets')} sub={tr('A notification when no set was logged for 15 minutes')} value={st.logReminder}
+          onChange={(v) => set('logReminder', v)} testID="set-log-reminder" />
         <SwitchSettingRow title={tr('Keep screen on')} sub={tr('While a workout is running')} value={st.appKeepAwake} onChange={(v) => set('appKeepAwake', v)} testID="set-keep-awake" />
         <SettingRow title={tr('Previous values')} testID="set-previous-values" value={st.prevSource === 'template' ? tr('Same routine') : tr('Any workout')}
           onPress={() => pick(tr('Previous values'), [{ value: 'any', label: tr('Any workout') }, { value: 'template', label: tr('Same routine') }], st.prevSource, (v) => set('prevSource', v as Settings['prevSource']))} />
@@ -240,44 +242,40 @@ export default function AccountSheet() {
           onPress={() => pick(tr('Weekly goal'), [1, 2, 3, 4, 5, 6, 7].map((n) => ({ value: n, label: tr('{n} per week', { n }) })), st.weeklyGoal, (v) => set('weeklyGoal', v))} />
         <SettingRow title={tr('Week starts on')} value={weekdays.find((x) => x.value === st.weekStart)?.label || tr('Monday')}
           onPress={() => pick(tr('Week starts on'), weekdays, st.weekStart, (v) => set('weekStart', v))} />
-      </View>
+      </SectionCard>
 
-      <SectionHeader title={tr('Stats')} />
-      <View>
+      <SectionCard title={tr('Stats')} style={{ paddingBottom: 0 }}>
         <SettingRow first title={tr('1RM formula')} value={tr(formula.label)}
           onPress={() => pick(tr('1RM formula'), (FORMULAS as { id: string; label: string }[]).map((x) => ({ value: x.id, label: tr(x.label) })), st.formula, (v) => set('formula', v))} />
         <SwitchSettingRow title={tr('Count dumbbells twice')} sub={tr('For volume')} value={!!st.dumbbellTwice} onChange={(v) => set('dumbbellTwice', v)} testID="set-dumbbell-twice" />
         <SwitchSettingRow title={tr('Weighted bodyweight exercises')} sub={tr('Count body weight in volume')} value={!!st.bwWeighted} onChange={(v) => setBw('bwWeighted', v)} testID="set-bw-weighted" />
         <SwitchSettingRow title={tr('Assisted bodyweight exercises')} sub={tr('Count body weight in volume')} value={!!st.bwAssisted} onChange={(v) => setBw('bwAssisted', v)} testID="set-bw-assisted" />
         <SettingRow title={tr('Start history from')} value={st.historyStart ? f.date.short(st.historyStart) : tr('All workouts')} onPress={historyStart} testID="set-history-start" />
-      </View>
+      </SectionCard>
 
-      <SectionHeader title={tr('Plates')} />
-      <View>
+      <SectionCard title={tr('Plates')} style={{ paddingBottom: 0 }}>
         <SettingRow first title={tr('Bar weight')} value={`${f.num(st.bar, 1)} ${st.unit}`}
           onPress={() => pick(tr('Bar weight'), barOptions.map((b) => ({ value: b, label: b ? `${f.num(b, 1)} ${st.unit}` : tr('None') })), st.bar, (v) => set('bar', v))} />
         <SettingRow title={tr('Available plates')} value={st.plates.map((p) => f.num(p, 2)).join(', ')} onPress={editPlates} testID="set-plates" />
-      </View>
+      </SectionCard>
 
-      <SectionHeader title={tr('Theme')} />
-      <View>
+      <SectionCard title={tr('Theme')} style={{ paddingBottom: 0 }}>
         {themes.map((t, i) => (
           <SettingRow key={t.value} first={i === 0} title={t.label} onPress={() => set('theme', t.value)} testID={`theme-${t.value}`}
             checked={st.theme === t.value} />
         ))}
-      </View>
+      </SectionCard>
 
       {ENABLE_GERMAN && <>
-        <SectionHeader title={tr('Language')} />
-        <View>
+        <SectionCard title={tr('Language')} style={{ paddingBottom: 0 }}>
           {langs.map((l, i) => (
             <SettingRow key={l.value} first={i === 0} title={l.label} onPress={() => set('language', l.value)} testID={`language-${l.value}`}
               checked={st.language === l.value} />
           ))}
-        </View>
+        </SectionCard>
       </>}
 
-      <SectionHeader title={tr('Your data')} />
+      <SectionCard title={tr('Your data')} style={{ paddingBottom: SPACE.s5 }}>
       <View>
         <SettingRow first symbol="square.and.arrow.up" title={tr('Back up now')} sub={s.meta.lastBackupAt ? tr('Last backup {when}', { when: f.relDayLower(s.meta.lastBackupAt) }) : tr('No backup yet')}
           onPress={busy ? undefined : doBackup} testID="backup-now" />
@@ -294,14 +292,15 @@ export default function AccountSheet() {
       <Txt tone="ink2" style={[TYPE.subhead, { marginTop: SPACE.s3, paddingHorizontal: SPACE.s5 }]}>
         {storageNote(tr)}
       </Txt>
+      </SectionCard>
 
-      <View style={{ marginTop: SPACE.s6 }}>
+      <SectionCard style={{ paddingVertical: 0 }}>
         <SettingRow first title={tr('Delete all data')} danger onPress={busy ? undefined : doDeleteAll} testID="delete-all" />
-      </View>
+      </SectionCard>
 
-      <View style={{ marginTop: SPACE.s6 }}>
+      <SectionCard style={{ paddingVertical: 0 }}>
         <SettingRow first title={tr('Privacy policy')} onPress={openPrivacy} testID="privacy" />
-      </View>
+      </SectionCard>
 
       <Txt tone="ink2" style={[TYPE.subhead, { textAlign: 'center', marginTop: SPACE.s6, paddingHorizontal: SPACE.s5 }]}>
         {`Increment ${appVersion()} · ${tr('{n} stored', { n: f.plural(s.workouts.length, 'workout') })}`}

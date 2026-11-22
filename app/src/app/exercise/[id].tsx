@@ -26,7 +26,7 @@ import { MARGIN, tnum } from '@/ui/facts';
 import { Button, Empty, IconButton, Page } from '@/ui/kit';
 import { LineChart, type LineChartPoint } from '@/ui/tally/LineChart';
 import { ListRow } from '@/ui/tally/ListRow';
-import { SectionHeader } from '@/ui/tally/SectionHeader';
+import { SectionCard } from '@/ui/tally/SectionCard';
 import { StatStrip, type Stat } from '@/ui/tally/StatStrip';
 import { NumberDisplay } from '@/ui/tally/NumberDisplay';
 import { SegmentedControl } from '@/ui/tally/SegmentedControl';
@@ -137,9 +137,12 @@ function ExercisePage({ id }: { id: string }) {
           {[f.exEquipment(ex), tr(BODY_PART_LABEL[ex.bodyPart] || 'Other'), ex.hidden ? tr('Hidden') : ''].filter(Boolean).join(' · ')}
         </Text>
         <ExerciseFamilyChips exercise={ex} />
+      </View>
 
+      <SectionCard style={{ marginTop: SPACE.s5, paddingTop: SPACE.s5, paddingBottom: SPACE.s5 }} testID="exercise-progress">
+      <View style={{ paddingHorizontal: MARGIN }}>
         {last !== null && (
-          <View style={{ marginTop: SPACE.s5 }}>
+          <View>
             <NumberDisplay size="xl" value={number(last)} unit={unit || undefined} label={heroLabel} change={change} changeUp={up}
               onLabelPress={metrics.length > 1 ? pickMetric : undefined} labelTestID="exercise-metric" testID="exercise-hero" />
           </View>
@@ -155,22 +158,21 @@ function ExercisePage({ id }: { id: string }) {
         </View>
         <StatStrip style={{ marginTop: SPACE.s4 }} stats={stripStats} />
       </View>
+      </SectionCard>
 
       {repMaxes.length > 0 && (
-        <>
-          <SectionHeader title={tr('Rep maxes')} />
+        <SectionCard title={tr('Rep maxes')}>
           {repMaxes.map(([r, v], i) => (
             <ListRow key={r} first={i === 0} testID={`repmax-${r}`}
               lead={<Text style={[{ ...TYPE.headline, color: t.ink, width: 58 }, tnum]}>{tr('{n} RM', { n: r })}</Text>}
               title={<Text style={[{ ...TYPE.body, color: t.ink }, tnum]}>{f.wu(v.w)}</Text>}
               trailing={f.date.workoutDay(v.at, { now })} />
           ))}
-        </>
+        </SectionCard>
       )}
 
       {every.length > 0 && (
-        <>
-          <SectionHeader title={tr('History')} scope={tr('Since {date}', { date: f.date.short(every[every.length - 1].startedAt) })} />
+        <SectionCard title={tr('History')} scope={tr('Since {date}', { date: f.date.short(every[every.length - 1].startedAt) })}>
           {every.slice(0, limit).map((x, i) => (
             <ListRow key={x.workoutId + x.entry.id} first={i === 0} testID={`ex-session-${x.workoutId}`}
               onPress={() => router.push({ pathname: '/workout/[id]', params: { id: x.workoutId } })}
@@ -187,16 +189,15 @@ function ExercisePage({ id }: { id: string }) {
               trailing={f.date.workoutDay(x.startedAt, { now })} />
           ))}
           {every.length > limit && (
-            <View style={{ paddingHorizontal: MARGIN, marginTop: SPACE.s3 }}>
+            <View style={{ paddingHorizontal: MARGIN, marginTop: SPACE.s3, marginBottom: SPACE.s2 }}>
               <Button kind="tinted" title={tr('Show more')} onPress={() => setLimit(limit + 20)} testID="history-more" />
             </View>
           )}
-        </>
+        </SectionCard>
       )}
 
       {(!!ex.notes || !!ex.pinnedNote) && (
-        <>
-          <SectionHeader title={tr('How to')} action={{ title: tr('Edit'), onPress: () => editExercise({ id: ex.id }), testID: 'howto-edit' }} />
+        <SectionCard title={tr('How to')} action={{ title: tr('Edit'), onPress: () => editExercise({ id: ex.id }), testID: 'howto-edit' }} style={{ paddingBottom: SPACE.s5 }}>
           <View style={{ paddingHorizontal: MARGIN, gap: SPACE.s3 }}>
             {!!ex.pinnedNote && (
               <View style={{ gap: 2 }}>
@@ -206,7 +207,7 @@ function ExercisePage({ id }: { id: string }) {
             )}
             {!!ex.notes && <Text style={{ ...TYPE.subhead, color: t.ink }} testID="exercise-notes">{ex.notes}</Text>}
           </View>
-        </>
+        </SectionCard>
       )}
       {!every.length && !ex.notes && !ex.pinnedNote && (
         <Empty title={tr('Not done yet')} text={tr('Every workout with this exercise will show up here.')} />

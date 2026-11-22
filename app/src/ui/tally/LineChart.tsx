@@ -16,6 +16,7 @@ import { TYPE } from '@/design/tally';
 import { useFormat } from '@/lib/format';
 import { haptic } from '@/lib/haptics';
 import { useTally } from '@/lib/theme';
+import { useGround } from './ground';
 
 /** SVG text in a browser falls back to a serif font; the charts use the system one. */
 export const SVG_FONT = Platform.OS === 'web' ? 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' : undefined;
@@ -42,6 +43,7 @@ export function LineChart({
   points, formatValue, formatAxis = (v) => String(v), time = false, label, emptyText, height = 170, testID,
 }: LineChartProps) {
   const { colors: t } = useTally();
+  const ground = useGround();
   const f = useFormat();
   const [width, setWidth] = useState(0);
   const [sel, setSel] = useState<number | null>(null);
@@ -115,16 +117,16 @@ export function LineChart({
           {sp && <Line x1={sx(sp.at)} x2={sx(sp.at)} y1={padT} y2={sy(y0)} stroke={t.ink3} strokeWidth={1} />}
           {points.length > 1
             ? <Path d={d} fill="none" stroke={t.chart} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
-            : <Circle cx={sx(last.at)} cy={sy(last.value)} r={4} fill={t.paper} stroke={t.chart} strokeWidth={2} />}
+            : <Circle cx={sx(last.at)} cy={sy(last.value)} r={4} fill={ground} stroke={t.chart} strokeWidth={2} />}
           {points.map((p, i) => (p.record
             ? <Circle key={`r${i}`} cx={sx(p.at)} cy={sy(p.value)} r={4} fill={t.signal} stroke={t.signalEdge} strokeWidth={1.5} />
             : null))}
-          {sp && !sp.record && points.length > 1 && <Circle cx={sx(sp.at)} cy={sy(sp.value)} r={4} fill={t.paper} stroke={t.chart} strokeWidth={2} />}
+          {sp && !sp.record && points.length > 1 && <Circle cx={sx(sp.at)} cy={sy(sp.value)} r={4} fill={ground} stroke={t.chart} strokeWidth={2} />}
         </Svg>
       )}
       {sp && (
         <View pointerEvents="none" testID="chart-tip"
-          style={{ position: 'absolute', top: -8, left: tipLeft, width: 140, alignItems: 'center', backgroundColor: t.paper, paddingVertical: 2 }}>
+          style={{ position: 'absolute', top: -8, left: tipLeft, width: 140, alignItems: 'center', backgroundColor: ground, paddingVertical: 2 }}>
           <Text style={{ ...TYPE.headline, color: t.ink, fontVariant: ['tabular-nums'] }} numberOfLines={1}>{formatValue(sp.value)}</Text>
           <Text style={{ ...TYPE.caption, color: t.ink2 }} numberOfLines={1}>{f.date.medium(sp.at)}</Text>
         </View>

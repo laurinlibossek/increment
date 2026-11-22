@@ -670,6 +670,18 @@ test('chart ticks, weekly counts and the streak', () => {
   assert.equal(core.weekStreak(ws, { goal: 3, weekStart: 1, now }), 1, 'this week doesn’t count until it reaches the goal');
 });
 
+test('chart label step: the smallest spacing that fits, anchored at the last label', () => {
+  assert.equal(core.labelStep([], 10, 10, 2), 1);
+  assert.equal(core.labelStep(['14. Sept.'], 10, 13, 8), 1, 'a single label always stays');
+  assert.equal(core.labelStep(['abc', 'abc', 'abc', 'abc'], 20, 10, 2), 1, 'exactly the requested gap fits');
+  assert.equal(core.labelStep(['abc', 'abc', 'abc', 'abc'], 10, 10, 2), 2);
+  assert.equal(core.labelStep(['abc', 'abc', 'abc', 'abc'], 10, 10, 3), 3, 'a gap changes the step');
+  assert.equal(core.labelStep(['very long label', 'x', 'abc', 'x'], 10, 10, 2), 2, 'count back from the right; skipped labels do not take space');
+  const dates = ['31. Aug.', '7. Sept.', '14. Sept.', '21. Sept.', '28. Sept.', '5. Okt.'];
+  assert.equal(core.labelStep(dates, 24, 13, 8), 3, 'German dates need more than two weeks');
+  assert.equal(core.labelStep(dates, 1, 13, 8), dates.length, 'only the rightmost label fits');
+});
+
 test('History calendar: the grid from the week start, workouts per day, the month’s totals', () => {
   const at = (m, d, h = 18, min = 0) => new Date(2026, m, d, h, min).getTime();
   const w = (start, minutes) => ({ id: String(start), startedAt: start, endedAt: start + minutes * 60000 });
@@ -783,9 +795,7 @@ test('Sets per muscle’s breakdown (#89): by exercise, adding up to the number 
     ['fly', 1, 5, ['w1:1/1', 'w2:0/2', 'w6:0/2']],
   ], 'most sets first, bench before dip (done more recently); workouts newest first; left and right never pair across workouts');
   const bench = chest.exercises[0].workouts[0];
-  assert.deepEqual([bench.name, bench.startedAt], ['Workout w1', at(14)]);
-  assert.deepEqual(bench.rows.map((r) => r.w), [60, 60, 80], 'warm-ups out; the repeated entry joins the same row, in logged order');
-  assert.deepEqual(chest.exercises[2].workouts[0].rows.map((r) => r.side), ['left', 'right', 'left'], 'the unpaired row is listed too');
+  assert.deepEqual(bench, { id: 'w1', name: 'Workout w1', startedAt: at(14), sets: 3, unpaired: 0 }, 'warm-ups out, the repeated entry joins the same count; no rows or weights (Laurin, 17 Nov 2026)');
   assert.equal(ws[0].id, 'w3', 'the workouts aren’t reordered in place');
 
   // adds up to Today's number, for every muscle
@@ -1118,6 +1128,46 @@ test('Strong import (#40): exact names pass the field check, negative weights an
   // the remembered choice for Pull Up matches silently next time, past the incompatible exact name
   const again = core.parseStrongCSV(strongFile([['Pull Up', 12, 6, 0, 0, '2026-10-05 12:00:00']]), { exercises: core.SEED_EXERCISES, aliases: r.aliases });
   assert.deepEqual([again.review.length, again.matches['Pull Up']], [0, 'x-pull-up-weighted']);
+});
+
+test('logReminderAt: one reminder after the latest logging or rest, including warm-ups (#117)', () => {
+  const minute = 60000, delay = 15 * minute;
+  assert.equal(core.LOG_REMINDER_DELAY, delay);
+  assert.equal(core.logReminderAt(null), null);
+  assert.equal(core.logReminderAt(undefined), null);
+  const a = { id: 'active', startedAt: minute, exercises: [], rest: null };
+  assert.equal(core.logReminderAt(a), minute + delay, 'no sets yet');
+  a.exercises = [
+    { id: 'e1', exerciseId: 'bench', sets: [{ done: true, doneAt: 2 * minute }] },
+    { id: 'e2', exerciseId: 'row', supersetId: 'g', sets: [{ done: true, doneAt: 4 * minute }] },
+    { id: 'e3', exerciseId: 'curl', supersetId: 'g', sets: [{ done: true, doneAt: 3 * minute }, { done: false, doneAt: 9 * minute }, { done: true }] },
+  ];
+  assert.equal(core.logReminderAt(a), 4 * minute + delay, 'latest across entries and supersets; unticked and legacy rows ignored');
+  core.uncheckSet(a.exercises[1].sets[0]);
+  assert.equal(core.logReminderAt(a), 3 * minute + delay, 'unticking the latest falls back');
+  a.exercises[0].sets.push({ type: 'warmup', done: true, doneAt: 5 * minute });
+  assert.equal(core.logReminderAt(a), 5 * minute + delay, 'a warm-up is logging');
+  a.rest = { end: 8 * minute };
+  assert.equal(core.logReminderAt(a), 8 * minute + delay, 'running rest');
+  a.restEndedAt = a.rest.end;
+  a.rest = null;
+  assert.equal(core.logReminderAt(a), 8 * minute + delay, 'finished rest keeps its end');
+  a.exercises[0].sets.push({ done: true, doneAt: 10 * minute });
+  assert.equal(core.logReminderAt(a), 10 * minute + delay, 'logging after rest wins');
+  assert.equal(core.logReminderAt(a, { restEnd: 12 * minute, delay: 123 }), 12 * minute + 123);
+  assert.equal(core.logReminderAt(a, { restEnd: 2 * minute, delay: 0 }), 10 * minute, 'explicit restEnd still competes with sets');
+  assert.equal(core.logReminderAt({ ...a, exercises: [] }, { restEnd: 0 }), minute + delay, 'explicit restEnd overrides stored rest end; start still wins');
+  const finished = core.finishWorkout(a, { settings: core.withDefaults(), exercises: new Map(), now: 20 * minute });
+  assert.equal('restEndedAt' in finished, false, 'rest metadata stays out of saved workouts');
+  assert.equal(core.logReminderAt(null), null, 'finishing or discarding clears active');
+});
+
+test('an older backup without logReminder restores with reminders on (#117)', () => {
+  const data = { exercises: [], workouts: [], templates: [], measurements: [], kv: { settings: { restAlert: false } } };
+  const restored = core.parseBackup(core.makeBackup(data, 'old'), []).data;
+  // The store applies withDefaults when restoring kv settings.
+  assert.equal(core.withDefaults(restored.kv.settings).logReminder, true);
+  assert.equal(restored.kv.settings.restAlert, false);
 });
 
 test('logging times (#43): set by logging, gone on uncheck, kept by edits and backups, never copied into routines or new sessions', () => {
@@ -1625,6 +1675,26 @@ test('app/src/design/tally.ts and web/css/tally.css match docs/design/tokens.jso
   assert.equal(tally.themes.dark.colors.paper, '#000000', 'dark themes are true black');
   assert.equal(tally.themes.light.colors.strokeDone, tally.themes.light.colors.ink, 'aliases resolve');
   assert.equal(tally.themes['intense-red'].scheme, 'dark');
+});
+
+test('trial exercise photos: the map, the manifest and the files agree, and only the switch loads them', () => {
+  const dir = path.join(ROOT, 'app/assets/exercise-photos');
+  const manifest = JSON.parse(read(path.join(dir, 'manifest.json')));
+  assert.deepEqual(Object.keys(manifest.exercises).sort(), core.SEED_EXERCISES.map((e) => e.id).sort(), 'the manifest lists every built-in');
+  const shown = Object.entries(manifest.exercises).filter(([, v]) => v);
+  for (const [id, v] of shown) assert.ok(['exact', 'stand-in'].includes(v.match), id);
+  // app/src/lib/exercisePhotos.ts is generated by scripts/exercise-photos.py from the same list
+  const map = [...read(path.join(ROOT, 'app/src/lib/exercisePhotos.ts')).matchAll(/'([^']+)': require\('\.\.\/\.\.\/assets\/exercise-photos\/([^']+)\.webp'\)/g)].map((m) => `${m[1]} ${m[2]}`);
+  assert.deepEqual(map.sort(), shown.map(([id, v]) => `${id} ${v.image}`).sort());
+  const files = fs.readdirSync(dir).filter((f) => f.endsWith('.webp')).map((f) => f.slice(0, -5)).sort();
+  assert.deepEqual(files, [...new Set(shown.map(([, v]) => v.image))].sort(), 'one file per image, none left over');
+  // a literal check beside the require, so Metro drops the map and the images from builds without the switch
+  const tile = read(path.join(ROOT, 'app/src/ui/ExerciseThumbnail.tsx'));
+  assert.match(tile, /process\.env\.EXPO_PUBLIC_ENABLE_EXERCISE_PHOTOS === '1'\s*\?\s*require\('@\/lib\/exercisePhotos'\)/);
+  const importers = [];
+  const walk = (d) => { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name); if (e.isDirectory()) walk(p); else if (/\.tsx?$/.test(e.name) && /exercisePhotos'/.test(read(p))) importers.push(path.relative(ROOT, p)); } };
+  walk(path.join(ROOT, 'app/src'));
+  assert.deepEqual(importers, ['app/src/ui/ExerciseThumbnail.tsx'], 'nothing else imports the photos');
 });
 
 // ---------- German exercise names ----------
@@ -3084,7 +3154,7 @@ test('muscle counts and breakdowns retain legacy region rows after that region�
     const breakdown = core.muscleSets([workout], lib, row.muscle, { now });
     assert.equal(breakdown.sets, row.sets); assert.equal(breakdown.label, row.label);
     assert.equal(breakdown.exercises.length, 1);
-    assert.equal(breakdown.exercises[0].workouts[0].rows.length, 1);
+    assert.equal(breakdown.exercises[0].workouts[0].sets, 1);
   }
   for (const id of ['cardio', 'other', 'unknown']) assert.equal(core.muscleSets([workout], lib, id, { now }).label, null);
   assert.deepEqual(core.routineMuscles(workout, lib).map((r) => r.muscle), ['arms', 'legs', 'full']);
@@ -3229,7 +3299,7 @@ test('helper sets are weighted after warm-ups and left/right pairs are counted',
     for (const e of b.exercises) assert.equal(e.workouts.reduce((n, w) => n + w.sets, 0), e.sets);
   }
   const unilateral = breakdown.exercises.at(-1).workouts[0];
-  assert.equal(unilateral.rows.length, 5); assert.equal(unilateral.unpaired, 1);
+  assert.deepEqual([unilateral.sets, unilateral.unpaired], [1, 1], 'two complete pairs make one helper set; the third left is unpaired');
   assert.deepEqual(core.routineMuscles(workout, library).map((r) => r.muscle), ['arms', 'legs']);
   const ownNone = library.map((e) => e.id === byName('Squat (Barbell)') ? { ...e, helpers: [] } : e);
   assert.equal(core.setsPerMuscle([workout], ownNone, { now }).find((r) => r.muscle === 'glutes').helper, 2.5, 'explicit none overrides the live table in the count');

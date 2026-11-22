@@ -116,6 +116,29 @@ export function labelBox(text, x, y, size, anchor = 'start') {
 export const boxesOverlap = (a, b) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
 
 /**
+ * Smallest step for centred labels with a gap between neighbours. The last
+ * label is always shown; earlier labels count back from it (#124).
+ * @param {string[]} labels @param {number} band distance between label centres
+ * @param {number} size font size @param {number} gap minimum space between labels
+ * @returns {number}
+ */
+export function labelStep(labels, band, size, gap) {
+  const boxes = labels.map((text, i) => labelBox(text, i * band, 0, size, 'middle'));
+  for (let step = 1; step < labels.length; step++) {
+    let fits = true;
+    for (let i = labels.length - 1; i >= step; i -= step) {
+      const left = boxes[i - step];
+      if (boxesOverlap({ ...left, x1: left.x1 + gap }, boxes[i])) {
+        fits = false;
+        break;
+      }
+    }
+    if (fits) return step;
+  }
+  return Math.max(1, labels.length);
+}
+
+/**
  * Workouts per week for the last `weeks` weeks (oldest first).
  * @param {{ startedAt: number }[]} workouts
  * @returns {{ start: number, value: number }[]}

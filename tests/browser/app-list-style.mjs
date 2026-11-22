@@ -1,5 +1,6 @@
 // Design todo group 4. REVIEW_BEFORE=1 captures the matching review baseline.
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import path from 'node:path';
 import { selectTab, launch, devices, grantWakeLock, APP, shots, waitStored } from './env.mjs';
 import { demoData } from './store-demo.mjs';
@@ -12,28 +13,45 @@ const normal = text => text.replace(/\s+/g, ' ').trim();
 let passed = 0;
 const ok = label => { passed++; console.log('PASS', label); };
 
-// A row reaches both paper edges. Its enclosing list has no rounded card;
-// subsequent rows get the shared hairline rather than a surrounding border.
-async function plainRow(row, { hairline = false } = {}) {
-  const style = await row.evaluate(element => {
+// Every section sits on its own card (Laurin, 22 Nov 2026): paper-2 with radius-l
+// corners and no border, on the screen margin of the (at most 600 px) content
+// column. A row spans its card; rows after the first get the shared hairline.
+const tokens = JSON.parse(fs.readFileSync(new URL('../../docs/design/tokens.json', import.meta.url)));
+const rgb = hex => `rgb(${[1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)).join(', ')})`;
+const cardWant = theme => ({ bg: rgb(tokens.color.tokens.find(t => t.name === 'paper-2').value[theme]), radius: parseFloat(tokens.radius.tokens.find(t => t.name === 'radius-l').value) });
+function onMargin(box, viewport) {
+  const content = Math.min(viewport, 600), left = Math.max(0, (viewport - 600) / 2);
+  assert.ok(Math.abs(box.x - (left + 20)) <= 1 && Math.abs(box.width - (content - 40)) <= 1, `a card on the screen margin: ${JSON.stringify({ box, viewport })}`);
+}
+async function rowOnCard(row, theme, { hairline = false } = {}) {
+  const style = await row.evaluate((element, want) => {
     const box = element.getBoundingClientRect();
     const visible = color => !['transparent', 'rgba(0, 0, 0, 0)'].includes(color);
-    const parents = [];
-    for (let e = element; e && e !== document.body; e = e.parentElement) parents.push(e);
-    const card = parents.some(e => {
+    let card = null;
+    for (let e = element.parentElement; e && e !== document.body && !card; e = e.parentElement) {
       const s = getComputedStyle(e), r = e.getBoundingClientRect();
-      return r.width >= box.width * 0.8 && r.height >= 40 && parseFloat(s.borderRadius) > 0 && visible(s.backgroundColor);
-    });
+      if (parseFloat(s.borderTopLeftRadius) > 0 && visible(s.backgroundColor)) card = { x: r.x, width: r.width, bg: s.backgroundColor === want.bg, radius: parseFloat(s.borderTopLeftRadius) === want.radius, border: parseFloat(s.borderTopWidth) || 0 };
+    }
     const line = [...element.querySelectorAll('div')].some(e => {
       const s = getComputedStyle(e), r = e.getBoundingClientRect();
       return r.height > 0 && r.height <= 1 && r.width > box.width * 0.75 && visible(s.backgroundColor);
     });
     return { x: box.x, width: box.width, viewport: innerWidth, card, line };
-  });
-  assert.ok(Math.abs(style.width - Math.min(style.viewport, 600)) <= 1, JSON.stringify(style));
-  assert.ok(Math.abs(style.x - Math.max(0, (style.viewport - 600) / 2)) <= 1, JSON.stringify(style));
-  assert.equal(style.card, false, 'full-width paper row without a rounded enclosing card');
-  if (hairline) assert.equal(style.line, true, 'hairline between rows');
+  }, cardWant(theme));
+  assert.ok(style.card, `the row sits on a section card: ${JSON.stringify(style)}`);
+  onMargin(style.card, style.viewport);
+  assert.deepEqual([style.card.bg, style.card.radius, style.card.border], [true, true, 0], `paper-2, radius-l, no border: ${JSON.stringify(style)}`);
+  assert.ok(Math.abs(style.x - style.card.x) <= 1 && Math.abs(style.width - style.card.width) <= 1, `the row spans its card: ${JSON.stringify(style)}`);
+  assert.equal(style.line, hairline, hairline ? 'hairline between rows' : 'no hairline above the first row');
+}
+// A thing of its own in a list (a routine on Plan) is a card of its own.
+async function ownCard(row, theme) {
+  const style = await row.evaluate((element, want) => {
+    const box = element.getBoundingClientRect(), c = element.firstElementChild, s = getComputedStyle(c), r = c.getBoundingClientRect();
+    return { x: box.x, width: box.width, viewport: innerWidth, bg: s.backgroundColor === want.bg, radius: parseFloat(s.borderTopLeftRadius) === want.radius, fills: Math.abs(r.width - box.width) < 1 };
+  }, cardWant(theme));
+  onMargin(style, style.viewport);
+  assert.deepEqual([style.bg, style.radius, style.fills], [true, true, true], `paper-2 card with radius-l corners: ${JSON.stringify(style)}`);
 }
 
 async function title2(page, title) {
@@ -73,9 +91,9 @@ try {
       await shot(name);
     }
     if (!before) {
-      await plainRow(id('set-rest'));
-      await plainRow(id('set-previous-values'), { hairline: true });
-      await plainRow(id('set-plates'), { hairline: true });
+      await rowOnCard(id('set-rest'), theme);
+      await rowOnCard(id('set-previous-values'), theme, { hairline: true });
+      await rowOnCard(id('set-plates'), theme, { hairline: true });
       for (const section of ['Units', 'Workouts', 'Stats', 'Plates', 'Theme', 'Language', 'Your data']) await title2(page, tr(section));
       // German titles retain the wrapping fixed in group 1. A long value can
       // shorten independently; it must never squeeze a title into one line.
@@ -89,7 +107,7 @@ try {
         assert.ok(bounds.sw > bounds.w, 'long plate value shortens within its row');
         assert.ok(bounds.clamp === '1' || bounds.whiteSpace === 'nowrap', JSON.stringify(bounds));
       }
-      ok(`${lang} ${theme}: Account paper rows, hairlines, Title 2 sections and independent title/value wrapping`);
+      ok(`${lang} ${theme}: Account rows on section cards, hairlines, Title 2 sections and independent title/value wrapping`);
     }
     if (lang === 'de') {
       await page.setViewportSize({ width: 375, height: 844 });
@@ -127,8 +145,8 @@ try {
     await id('measure-bodyweight').waitFor();
     await shot('body');
     if (!before) {
-      await plainRow(id('measure-bodyweight'));
-      await plainRow(id('measure-bodyfat'), { hairline: true });
+      await rowOnCard(id('measure-bodyweight'), theme);
+      await rowOnCard(id('measure-bodyfat'), theme, { hairline: true });
       await title2(page, tr('Circumference'));
       assert.match(await id('measure-bodyweight').innerText(), /kg/);
       for (const measure of MEASUREMENTS.filter(measure => measure.id !== 'bodyweight')) {
@@ -141,7 +159,7 @@ try {
       await page.goBack();
       await id('measure-bodyfat').click();
       await id('measure-add').waitFor();
-      ok(`${lang} ${theme}: Body has full-width rows, a populated value, name-only empty rows and working navigation`);
+      ok(`${lang} ${theme}: Body has rows on section cards, a populated value, name-only empty rows and working navigation`);
     }
 
     await go(`/template/${routine.id}`);
@@ -150,8 +168,8 @@ try {
     if (!before) {
       await title2(page, tr('Exercises'));
       await title2(page, tr('Notes'));
-      await plainRow(id('template-exercise-0'));
-      await plainRow(id('template-exercise-1'), { hairline: true });
+      await rowOnCard(id('template-exercise-0'), theme);
+      await rowOnCard(id('template-exercise-1'), theme, { hairline: true });
       assert.equal(normal(await id('template-notes').innerText()), routine.notes);
       const lib = new Map(data.exercises.map(exercise => [exercise.id, exercise]));
       for (const [index, exercise] of routine.exercises.entries()) {
@@ -163,7 +181,7 @@ try {
         for (const set of exercise.sets) assert.ok(text.includes(`${new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(set.w)} × ${set.r}`), text);
         assert.ok(text.includes(`${Math.floor(exercise.restSec / 60)}:${String(exercise.restSec % 60).padStart(2, '0')}`), text);
       }
-      ok(`${lang} ${theme}: routine notes and exercises use plain rows and retain every target and rest`);
+      ok(`${lang} ${theme}: routine notes and exercises on section cards, with every target and rest`);
     }
 
     await go('/');
@@ -172,7 +190,7 @@ try {
     await row.waitFor();
     await shot('plan');
     if (!before) {
-      await plainRow(row);
+      await ownCard(row, theme);
       assert.equal(await menu.locator('[aria-hidden="true"]').count(), 1, 'the options button keeps its symbol');
       assert.equal(await row.locator('[aria-hidden="true"]').count(), 1, 'the row has no additional chevron');
       await menu.click();
@@ -182,7 +200,7 @@ try {
       await row.click({ position: { x: 90, y: 20 } });
       await id('start-template').waitFor();
       assert.ok(page.url().includes(`/template/${routine.id}`), page.url());
-      ok(`${lang} ${theme}: Plan keeps the options menu, drops the row chevron and opens from the whole row`);
+      ok(`${lang} ${theme}: Plan's routine is a card that keeps the options menu, has no chevron and opens from the whole card`);
     }
     assert.deepEqual(errors, []);
     await ctx.close();
