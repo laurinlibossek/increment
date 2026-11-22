@@ -108,7 +108,7 @@ export default function TodayTab() {
           days={week.days.map((d) => ({ ...d, letter: f.date.weekdayNarrow(d.start) }))} />
       </SectionCard>
 
-      <SectionCard title={tr('Sets per muscle')} scope={tr('Last 7 days')} testID="muscle-card">
+      <SectionCard title={tr('Sets per muscle')} scope={tr('Last 7 days')} testID="sets-per-muscle-card">
         {muscles.length ? (
           <MuscleVolume rows={muscles.map((m) => ({ ...m, label: tr(m.label) }))}
             accessibilityLabel={(r) => `${r.label}, ${f.setsCount(r.sets)}`}

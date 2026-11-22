@@ -89,15 +89,18 @@ for (const theme of ['light', 'dark']) {
   await id('muscle-chest').scrollIntoViewIfNeeded();
   const before = await id('muscle-chest').boundingBox();
   const armsRow = await id('muscle-biceps').boundingBox();
-  const vw = page.viewportSize().width;
-  for (const b of [before, armsRow]) assert.ok(b.height >= 44 && b.x === 0 && b.width === vw, `a 44 pt row across the full width: ${JSON.stringify(b)}`);
+  // the rows sit on Today's Sets per muscle card (Laurin, 22 Nov 2026) and span it
+  const card = await id('sets-per-muscle-card').boundingBox();
+  const vw = card.x + card.width;
+  assert.ok(card.x === 20 && Math.abs(vw - (page.viewportSize().width - 20)) < 0.5, `the card sits on the screen margin: ${JSON.stringify(card)}`);
+  for (const b of [before, armsRow]) assert.ok(b.height >= 44 && b.x === card.x && b.width === card.width, `a 44 pt row across the card's full width: ${JSON.stringify(b)}`);
   const front = await id('muscle-front_delts').boundingBox();
-  // only a hairline between neighbouring rows, from the text's margin to the screen's edge (Laurin, 16 Nov 2026)
+  // only a hairline between neighbouring rows, from the text's margin to the card's edge (Laurin, 16 and 22 Nov 2026)
   const line = await id('volume-line-front_delts').boundingBox();
   const labelX = (await id('muscle-chest').getByText('Chest', { exact: true }).boundingBox()).x;
   assert.ok(line.height > 0 && line.height <= 1 && Math.abs(line.y - (before.y + before.height)) < 0.01 && Math.abs(front.y - (line.y + line.height)) < 0.01,
     `a hairline between Chest and the helper-only Front delts, and nothing else: ${JSON.stringify({ before, line, front })}`);
-  assert.ok(Math.abs(line.x - labelX) < 0.5 && Math.abs(line.x + line.width - vw) < 0.5, `inset to the labels, to the edge: ${JSON.stringify(line)}`);
+  assert.ok(Math.abs(line.x - labelX) < 0.5 && Math.abs(line.x + line.width - vw) < 0.5, `inset to the labels, to the card's edge: ${JSON.stringify(line)}`);
   assert.equal(await page.locator('[data-testid="volume-line-chest"]').count(), 0, 'no line above the first row');
   if (theme === 'light') await a.shot('today');
   await openMuscle(a, 'chest');

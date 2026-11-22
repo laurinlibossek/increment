@@ -1,6 +1,7 @@
 // Design todo group 3: the first Tally Workouts list, before further polish.
 // REVIEW_BEFORE=1 captures matching screens from main without new assertions.
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import path from 'node:path';
 import { selectTab, launch, devices, grantWakeLock, APP, shots } from './env.mjs';
 import { demoData } from './store-demo.mjs';
@@ -10,6 +11,15 @@ const before = process.env.REVIEW_BEFORE === '1';
 const checksOnly = process.env.WORKOUTS_CHECKS_ONLY === '1';
 const OUT = shots(before ? 'before' : 'after');
 const browser = await launch();
+const tokens = JSON.parse(fs.readFileSync(new URL('../../docs/design/tokens.json', import.meta.url)));
+const color = (token, theme) => tokens.color.tokens.find(t => t.name === token).value[theme];
+const rgb = hex => `rgb(${[1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)).join(', ')})`;
+const radiusL = parseFloat(tokens.radius.tokens.find(t => t.name === 'radius-l').value);
+// each workout is a card of its own, like Strong's history (Laurin, 22 Nov 2026): paper-2, radius-l
+const cardLook = (row, theme) => row.evaluate((e, want) => {
+  const c = e.firstElementChild, s = getComputedStyle(c), r = c.getBoundingClientRect(), o = e.getBoundingClientRect();
+  return { bg: s.backgroundColor === want.bg, radius: parseFloat(s.borderTopLeftRadius) === want.radius, fills: Math.abs(r.width - o.width) < 1 && Math.abs(r.height - o.height) < 1 };
+}, { bg: rgb(color('paper-2', theme)), radius: radiusL });
 const normal = value => value.replace(/\s+/g, ' ').trim();
 const hm = ms => { const m = Math.max(0, Math.round(ms / 60000)); return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`; };
 const dayKey = at => { const d = new Date(at); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
@@ -82,23 +92,20 @@ try {
       const line = await exercises.evaluate(e => { const s = getComputedStyle(e); return { height: e.getBoundingClientRect().height, lineHeight: parseFloat(s.lineHeight), clamp: s.webkitLineClamp, whiteSpace: s.whiteSpace }; });
       assert.ok(line.clamp !== '1' && line.whiteSpace !== 'nowrap', 'full names can wrap');
       assert.ok(line.height >= line.lineHeight, JSON.stringify(line));
-      const card = await row.evaluate(e => [...e.querySelectorAll('div')].some(child => {
-        const s = getComputedStyle(child), r = child.getBoundingClientRect();
-        return parseFloat(s.borderRadius) > 0 && r.width > e.getBoundingClientRect().width * 0.8 && r.height > 50 && !['transparent', 'rgba(0, 0, 0, 0)'].includes(s.backgroundColor);
-      }));
-      assert.equal(card, false, 'the workout is a row without an inset card');
+      assert.deepEqual(await cardLook(row, theme), { bg: true, radius: true, fills: true }, 'the workout is a paper-2 card with radius-l corners');
       const month = startOfMonth(newest.startedAt);
       const count = data.workouts.filter(workout => startOfMonth(workout.startedAt) === month).length;
       assert.ok(normal(await id(`history-month-${month}`).innerText()).endsWith(`${count} ${lang === 'de' ? 'Trainings' : 'workouts'}`));
-      ok(`${lang} ${theme}: full-width list content, translated exercise line, month count, one stroke per set and distinct record sets`);
+      ok(`${lang} ${theme}: each workout on its own card, translated exercise line, month count, one stroke per set and distinct record sets`);
     }
     for (const [width, name] of [[375, 'list-375'], [1280, 'list-desktop']]) {
       await page.setViewportSize({ width, height: width === 1280 ? 800 : 844 });
       await shot(name);
       if (!before) {
+        // the card sits on the screen margin of the (at most 600 px) content column
         const r = await row.boundingBox();
-        assert.ok(Math.abs(r.width - Math.min(width, 600)) <= 1, JSON.stringify(r));
-        assert.ok(Math.abs(r.x - Math.max(0, (width - 600) / 2)) <= 1, JSON.stringify(r));
+        assert.ok(Math.abs(r.width - (Math.min(width, 600) - 40)) <= 1, JSON.stringify(r));
+        assert.ok(Math.abs(r.x - (Math.max(0, (width - 600) / 2) + 20)) <= 1, JSON.stringify(r));
         const meta = await id(`history-meta-${newest.id}`).boundingBox();
         assert.ok(meta.x >= r.x && meta.x + meta.width <= r.x + r.width + 1, JSON.stringify(meta));
       }
@@ -111,7 +118,7 @@ try {
       assert.equal(await id('workout-tally').getAttribute('aria-label'), `${sets} ${lang === 'de' ? 'Sätze' : 'sets'} · ${records} ${lang === 'de' ? 'Rekorde' : 'records'}`);
       await page.goBack();
       await row.waitFor();
-      ok(`${lang} ${theme}: phone/desktop row widths and tapping through to the matching workout tally`);
+      ok(`${lang} ${theme}: phone/desktop card widths and tapping through to the matching workout tally`);
     }
     await id('history-view').click();
     await id('cal-stats').waitFor();
@@ -126,7 +133,7 @@ try {
     await row.waitFor();
     await shot('calendar-selected');
     if (!before) {
-      // The selected day is a Title 2 heading over the same full-width row as the list.
+      // The selected day is a Title 2 heading over the same card as the list.
       const dayTitle = new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(newest.startedAt);
       assert.equal(normal(await id('cal-day').innerText()), dayTitle);
       const cardText = normal(await row.innerText());
@@ -136,11 +143,12 @@ try {
       assert.equal(normal(await id(`history-meta-${newest.id}`).innerText()), `${hm(newest.endedAt - newest.startedAt)} · ${vol} kg`, 'the heading has the day, the row length and volume');
       assert.ok(await id(`history-tally-${newest.id}`).isVisible(), 'the row has the workout tally');
       const r = await row.boundingBox();
-      assert.ok(Math.abs(r.x) <= 1 && Math.abs(r.width - 390) <= 1, `the row runs full width: ${JSON.stringify(r)}`);
+      assert.ok(Math.abs(r.x - 20) <= 1 && Math.abs(r.width - 350) <= 1, `the card sits on the screen margin: ${JSON.stringify(r)}`);
+      assert.deepEqual(await cardLook(row, theme), { bg: true, radius: true, fills: true }, 'the same card as the list');
       await row.click();
       await id('workout-title').waitFor();
       assert.equal(await id('workout-title').innerText(), newest.name);
-      ok(`${lang} ${theme}: the calendar grid, h:mm totals, and the selected day as a heading over the list's row, which opens the workout`);
+      ok(`${lang} ${theme}: the calendar grid, h:mm totals, and the selected day as a heading over the list's card, which opens the workout`);
     }
     assert.deepEqual(errors, []);
     await ctx.close();

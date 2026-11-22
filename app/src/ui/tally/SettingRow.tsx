@@ -30,7 +30,7 @@ export function SettingRow({ title, sub, value, symbol, onPress, first, danger, 
       subtitle={sub ? <Text style={[TYPE.subhead, { color: t.ink2 }]} numberOfLines={3}>{sub}</Text> : undefined}
       symbol={symbol} onPress={onPress} first={first} checked={checked} testID={testID}
       right={<>
-        {!!value && <Text style={[TYPE.body, { color: t.ink2, fontVariant: ['tabular-nums'], flexShrink: 1, maxWidth: '50%' }]} numberOfLines={1}>{value}</Text>}
+        {!!value && <Text style={[TYPE.body, { color: t.ink2, fontVariant: ['tabular-nums'], flexShrink: 1, maxWidth: '55%' }]} numberOfLines={1}>{value}</Text>}
         {right}
         {checked && <SymbolIcon name="checkmark" size={20} color={t.ink} />}
       </>}
