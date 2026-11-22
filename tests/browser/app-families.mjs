@@ -46,8 +46,10 @@ for (const theme of ['light', 'dark']) {
     assert.match(await search.getAttribute('placeholder'), /Search 22 exercises/);
     assert.equal(await page.locator('[data-testid^="family-"]').count(), 3);
     assert.match(await page.getByTestId('exercise-c-own-row').innerText(), /My Row \(Upper\) \(Cybex Machine\)/);
-    const order = await page.locator('[data-testid^="family-"], [data-testid="exercise-c-own-row"]').allInnerTexts();
-    assert.deepEqual(order.map((t) => t.split('\n')[0]), ['Bicep Curl', 'Dead Hang', 'My Row (Upper) (Cybex Machine)', 'Squat']);
+    // each row's first text after its tile (a letter tile has text of its own)
+    const order = await page.locator('[data-testid^="family-"], [data-testid="exercise-c-own-row"]').evaluateAll((rows) => rows.map((row) =>
+      [...row.querySelectorAll('[dir="auto"]')].find((e) => !e.closest('[data-testid^="exercise-thumbnail-"]'))?.textContent));
+    assert.deepEqual(order, ['Bicep Curl', 'Dead Hang', 'My Row (Upper) (Cybex Machine)', 'Squat']);
     await page.getByTestId('search-parts-other').click();
     assert.equal(await page.getByTestId('family-f-squat').count(), 1, 'the family offers its matching custom Other member');
     assert.match(await page.getByTestId('family-f-squat').innerText(), /Other/);
