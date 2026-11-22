@@ -1,13 +1,15 @@
 // A full-width row: optional leading symbol, a title with an optional second
 // line, and a trailing value or tally. No chevrons: a row that can be tapped
 // shows its pressed state (Laurin, 16 Nov 2026). Hairlines between rows are
-// inset to the text; no cards around lists. docs/design/components.md
+// inset to the text. A row that is a thing of its own (a workout, a routine) can
+// be a card instead (Laurin, 22 Nov 2026). docs/design/components.md
 import type { ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 
 import { CONTROL, SPACE, TYPE } from '@/design/tally';
 import { useTally } from '@/lib/theme';
+import { ITEM_GAP, OnCard, cardStyle, usePressedFill } from './ground';
 import { Tally, type StrokeState } from './Tally';
 
 /** SF Symbols used by Tally rows and tabs, with their Material Symbol (Android and web). */
@@ -64,21 +66,24 @@ type Props = {
   onPress?: () => void;
   /** The first row of a list has no hairline above it. */
   first?: boolean;
+  /** A card of its own instead of a row between hairlines; `first` drops the space above. */
+  card?: boolean;
   testID?: string;
   accessibilityLabel?: string;
   /** Choice rows keep radio semantics alongside their visible checkmark. */
   checked?: boolean;
 };
 
-export function ListRow({ title, subtitle, children, symbol, lead, leadWidth, trailing, right, onPress, first, testID, accessibilityLabel, checked }: Props) {
+export function ListRow({ title, subtitle, children, symbol, lead, leadWidth, trailing, right, onPress, first, card, testID, accessibilityLabel, checked }: Props) {
   const { colors: t } = useTally();
+  const pressedFill = usePressedFill();
   const inset = SPACE.s5 + (symbol ? 30 + SPACE.s3 : leadWidth ? leadWidth + SPACE.s3 : 0);
-  const body = (pressed: boolean) => (
-    <View style={{
+  const row = (pressed: boolean) => (
+    <View style={[{
       flexDirection: 'row', alignItems: 'center', gap: SPACE.s3, minHeight: CONTROL.rowH,
-      paddingVertical: children ? SPACE.s4 : 6, paddingHorizontal: SPACE.s5, backgroundColor: pressed ? t.paper2 : 'transparent',
-    }}>
-      {!first && <View style={{ position: 'absolute', top: 0, right: 0, left: inset, height: 0.5, backgroundColor: t.line }} />}
+      paddingVertical: children ? SPACE.s4 : 6, paddingHorizontal: SPACE.s5, backgroundColor: pressed ? pressedFill : 'transparent',
+    }, card && { ...cardStyle(t, pressed), marginHorizontal: 0, paddingVertical: SPACE.s4 }]}>
+      {!first && !card && <View style={{ position: 'absolute', top: 0, right: 0, left: inset, height: 0.5, backgroundColor: t.line }} />}
       {symbol && <View style={{ width: 30, alignItems: 'center' }}><SymbolIcon name={symbol} size={22} color={t.ink2} /></View>}
       {lead}
       <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
@@ -93,9 +98,12 @@ export function ListRow({ title, subtitle, children, symbol, lead, leadWidth, tr
       {right}
     </View>
   );
-  if (!onPress) return <View testID={testID}>{body(false)}</View>;
+  const body = (pressed: boolean) => card ? <OnCard.Provider value>{row(pressed)}</OnCard.Provider> : row(pressed);
+  // A card's margins sit outside its tap area.
+  const outer = card ? { marginHorizontal: SPACE.s5, marginTop: first ? 0 : ITEM_GAP } : undefined;
+  if (!onPress) return <View testID={testID} style={outer}>{body(false)}</View>;
   return (
-    <Pressable onPress={onPress} accessibilityRole={checked === undefined ? 'button' : 'radio'} aria-checked={checked} accessibilityState={checked === undefined ? undefined : { checked }} accessibilityLabel={accessibilityLabel} testID={testID}>
+    <Pressable onPress={onPress} style={outer} accessibilityRole={checked === undefined ? 'button' : 'radio'} aria-checked={checked} accessibilityState={checked === undefined ? undefined : { checked }} accessibilityLabel={accessibilityLabel} testID={testID}>
       {({ pressed }) => body(pressed)}
     </Pressable>
   );

@@ -14,7 +14,7 @@ import {
 } from '@/lib/measure';
 import { ActionBar } from '@/ui/tally/ActionBar';
 import { ListRow } from '@/ui/tally/ListRow';
-import { SectionHeader } from '@/ui/tally/SectionHeader';
+import { SectionCard } from '@/ui/tally/SectionCard';
 
 export default function MeasureTab() {
   const s = useAppState();
@@ -50,9 +50,8 @@ export default function MeasureTab() {
   return (
     <View style={{ flex: 1, backgroundColor: t.paper }}>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: SPACE.s4, paddingBottom: barHeight + SPACE.s5 }} contentInsetAdjustmentBehavior="automatic" testID="body-scroll">
-        {defs.filter((d) => d.group === 'core').map(row)}
-        <SectionHeader title={tr('Circumference')} />
-        {defs.filter((d) => d.group === 'body').map(row)}
+        <SectionCard first style={{ paddingVertical: 0 }} testID="body-core">{defs.filter((d) => d.group === 'core').map(row)}</SectionCard>
+        <SectionCard title={tr('Circumference')} style={{ paddingBottom: 0 }} testID="body-circumference">{defs.filter((d) => d.group === 'body').map(row)}</SectionCard>
       </ScrollView>
       <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
         <ActionBar testID="body-action-bar" onLayout={(e) => setBarHeight(e.nativeEvent.layout.height)}

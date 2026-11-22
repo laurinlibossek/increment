@@ -185,7 +185,7 @@ function Stat({ value, label }: { value: string; label: string }) {
 }
 
 /**
- * One finished workout: the same set strokes and record sets as its detail page.
+ * One finished workout, on its own card: the same set strokes and record sets as its detail page.
  * In the calendar the day is the heading above, so the row leaves it out (`day={false}`).
  */
 function WorkoutRow({ w, s, f, first, day = true }: { w: Workout; s: State; f: Format & { tr: (t: string, v?: Record<string, string | number>) => string }; first: boolean; day?: boolean }) {
@@ -200,7 +200,7 @@ function WorkoutRow({ w, s, f, first, day = true }: { w: Workout; s: State; f: F
   // Exact variations, each once, so history says which equipment was used.
   const exercises = [...new Set(w.exercises.map((e) => f.exName(s.exercises.get(e.exerciseId)) || tr('Unknown exercise')))].join(', ');
   return (
-    <ListRow first={first}
+    <ListRow card first={first}
       title={<Text style={[TYPE.headline, { color: t.ink }]} numberOfLines={2}>{w.name}</Text>}
       subtitle={<Text style={[TYPE.footnote, { color: t.ink2, fontVariant: ['tabular-nums'] }]} numberOfLines={1} testID={`history-meta-${w.id}`}>{meta}</Text>}
       onPress={() => router.push({ pathname: '/workout/[id]', params: { id: w.id } })} testID={`workout-${w.id}`}

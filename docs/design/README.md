@@ -11,7 +11,7 @@ Files here: `tokens.json` (the source of every value; `npm run tally` turns it i
 1. **One job per screen, one action in reach.** Every screen has one primary action: a `primary` Button, placed in the Action bar or at the bottom of a card, inside the bottom third where the thumb is. Everything else goes in the ⋯ menu or a sheet.
 2. **Numbers are the interface.** Weights, reps and times are the largest text wherever they appear (`t-number-xl`, `t-number-l`, `t-number-m`, always with `ic-tnum`). Labels shrink to `t-footnote` to make room. A number you can change is a field you tap, in place.
 3. **Colour is earned.** Draw everything in `ink` on `paper`. `signal` appears only when something went up: a record, a beaten target, an upward change. A screen where nothing went up has no colour at all.
-4. **Structure from type and space, not boxes.** Hierarchy comes from the type scale and the `space-*` steps. Lists run full width with `line` hairlines. A `paper-2` card marks an object you can pick up and start (a routine, the current block); never put a card inside a card.
+4. **Every section on its own card.** Where one section ends and the next begins should be clear at a glance, so each section of a page sits on a `paper-2` card with its title inside: Today's This week and Sets per muscle, Progress, the exercise and workout pages, Account. A thing of its own in a list (a workout in Workouts, a routine on Plan) is a card of its own (Laurin, 22 Nov 2026). Inside a card, hierarchy still comes from the type scale and the `space-*` steps, with `line` hairlines between rows. Long lists of one kind (Search, Lifts, Records, the picker) and the running workout stay full width on the page. Never a card inside a card, never a border.
 5. **Native and frugal.** Use the platform's own tab bar, sheets, menus, symbols, glass and haptics. Nothing moves unless the person moved it or a value changed. Dark themes are true black. Timers run in the system (notifications, Live Activities) instead of being redrawn by the app.
 
 ## The tally
@@ -40,7 +40,7 @@ Voice: plain, short, numbers first. The person is mid-set with sweaty hands; eve
 
 ## Colour
 
-- `paper` is the screen. `paper-2` raises a card, a sheet or the keypad. `paper-3` fills anything you type into or press (fields, secondary buttons, chips, keys).
+- `paper` is the screen. `paper-2` raises a card (a section, a workout, a routine), a sheet or the keypad. `paper-3` fills anything you type into or press (fields, secondary buttons, chips, keys).
 - `ink` for text, icons, logged strokes and the primary button (with `paper` as its label). `ink-2` for everything secondary. `ink-3` only for pending strokes, ghost values and disabled text, never for text someone has to read.
 - `signal` is never a button, link, tab, icon or chrome colour. In light themes use it as a fill behind `on-signal` text (the `ic-hl` highlight, the Record chip) or as a mark outlined in `signal-edge`. In dark themes it may also colour text and strokes directly ("+6%").
 - `danger` only for destructive actions, as text ("Discard workout", "Delete").
@@ -48,7 +48,7 @@ Voice: plain, short, numbers first. The person is mid-set with sweaty hands; eve
 - `pinned-note` (a faint tint of `signal`) only behind an exercise's pinned note at the top of its block, so the note stands out from this time's note on `paper-3` without reading as a record (Laurin, 12 Nov 2026). Nowhere else.
 - `line` is a hairline between rows and stat cells. Never draw a border around a card.
 - `control-on` raises the chosen option of a segmented control above its `paper-3` track: `paper` in light themes, a lighter grey in dark ones. A switch that's on has an `ink` track; one that's off a `paper-3` track, with an `ink-2` knob in dark themes so it reads as the dimmer of the two.
-- Dark themes are true black (`paper` #000), so OLED pixels switch off. Raise with `paper-2` only where a surface has to read as separate.
+- Dark themes are true black (`paper` #000), so OLED pixels switch off; the cards are the only raised `paper-2` surfaces on the page.
 - Named themes swap the paper and ink colours, `signal` and `stroke-done`. Intense Red has red strokes and gold records, and since 11 Nov 2026 Setlog's colour zones too: `primary` buttons and `chart` in red `#d91f2c`, dark red control fills `#37171a`, `accent` labels and the selected tab in `#ff4f5a`, on a true black page. Strawberry Matcha follows Setlog's colourway, a little calmer (Laurin, 11 Nov 2026): a cream page with lighter cards, pale matcha control fills, olive greys, matcha strokes, `accent` labels and the selected tab in matcha, and `primary` buttons and `chart` bars, lines and tooltips in strawberry, the same colour as its records. `primary`, `on-primary`, `accent` and `chart` follow ink and paper in every other theme.
 - Keyboard focus is the `focus` ring: 2 px solid, 2 px offset, on every surface.
 
@@ -62,9 +62,9 @@ Voice: plain, short, numbers first. The person is mid-set with sweaty hands; eve
 
 ## Space and layout
 
-- Four-point grid, steps `space-1` to `space-12`. The screen margin is `space-5` (20 px) and every left edge lines up on it: titles, list text, set values, the action bar.
+- Four-point grid, steps `space-1` to `space-12`. The screen margin is `space-5` (20 px): page titles, full-width lists, the action bar and the cards' edges line up on it. Inside a card, its title, row text and values line up `space-5` further in.
 - Rows are `row-h` tall. Nothing tappable is smaller than `hit-min` in either direction.
-- On tab roots, sections are `space-8` apart and the first content starts `space-4` under the large title.
+- Section cards are `space-4` apart, cards that are one item each (workouts, routines) `space-3`. On tab roots the first content starts `space-4` under the large title.
 - The tab bar floats over content; content scrolls under it and fades out at the bottom. In the session the Action bar sits on the content's bottom edge.
 
 ## Shape and depth
