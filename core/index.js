@@ -26,7 +26,6 @@ export * from './seed.js';
 export * from './exercise-catalogue.js';
 export * from './exercise-families.js';
 export * from './exercise-equipment.js';
-export * from './exercise-drawings.js';
 export * from './seed-sync.js';
 export * from './i18n.js';
 export * from './settings.js';

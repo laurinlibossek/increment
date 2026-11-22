@@ -1721,7 +1721,7 @@ test('app/src/design/tally.ts and web/css/tally.css match docs/design/tokens.jso
   assert.equal(tally.themes['intense-red'].scheme, 'dark');
 });
 
-test('trial exercise photos: the map, the manifest and the files agree, and only the switch loads them', () => {
+test('exercise photos: the map, the manifest and the files agree, and only the tile loads them', () => {
   const dir = path.join(ROOT, 'app/assets/exercise-photos');
   const manifest = JSON.parse(read(path.join(dir, 'manifest.json')));
   assert.deepEqual(Object.keys(manifest.exercises).sort(), core.SEED_EXERCISES.map((e) => e.id).sort(), 'the manifest lists every built-in');
@@ -1732,9 +1732,6 @@ test('trial exercise photos: the map, the manifest and the files agree, and only
   assert.deepEqual(map.sort(), shown.map(([id, v]) => `${id} ${v.image}`).sort());
   const files = fs.readdirSync(dir).filter((f) => f.endsWith('.webp')).map((f) => f.slice(0, -5)).sort();
   assert.deepEqual(files, [...new Set(shown.map(([, v]) => v.image))].sort(), 'one file per image, none left over');
-  // a literal check beside the require, so Metro drops the map and the images from builds without the switch
-  const tile = read(path.join(ROOT, 'app/src/ui/ExerciseThumbnail.tsx'));
-  assert.match(tile, /process\.env\.EXPO_PUBLIC_ENABLE_EXERCISE_PHOTOS === '1'\s*\?\s*require\('@\/lib\/exercisePhotos'\)/);
   const importers = [];
   const walk = (d) => { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name); if (e.isDirectory()) walk(p); else if (/\.tsx?$/.test(e.name) && /exercisePhotos'/.test(read(p))) importers.push(path.relative(ROOT, p)); } };
   walk(path.join(ROOT, 'app/src'));
@@ -2995,66 +2992,6 @@ test('setChange (#48): the value that decided the change since last time, and by
   assert.deepEqual(c({ t: 1200 }, { t: 1500 }, 'cardio'), { dir: 1, key: 't', diff: 300 });
   // floating-point noise doesn't leak into the text
   assert.deepEqual(c({ w: 0.1, r: 8 }, { w: 0.3, r: 8 }, 'barbell'), { dir: 1, key: 'w', diff: 0.2 });
-});
-
-test('exercise drawing limbs taper at the fixed medium build, round joints and handle zero length', () => {
-  assert.deepEqual(core.limbGeometry([[0, 0, 7], [10, 0, 4]]), [
-    { kind: 'path', d: 'M0,4.875L10,3.375L10,-3.375L0,-4.875Z' },
-    { kind: 'circle', cx: 0, cy: 0, r: 4.875 },
-    { kind: 'circle', cx: 10, cy: 0, r: 3.375 },
-  ]);
-  assert.deepEqual(core.limbGeometry([]), []);
-  const zero = core.limbGeometry([[5, 5, 4], [5, 5, 4]]);
-  assert.doesNotMatch(JSON.stringify(zero), /NaN|Infinity|null/);
-  const vertical = core.limbGeometry([[0, 0, 2.75], [0, 10, 2.75]]);
-  assert.equal(vertical[0].d, 'M-2.75,0L-2.75,10L2.75,10L2.75,0Z');
-});
-
-test('figure geometry orders far limbs, torso, near limbs and head for per-part halos', () => {
-  const pose = { head: [72, 18], shoulder: [61, 27], hip: [31, 47], knee: [45, 68], ankle: [37, 90], elbow: [43, 31], hand: [56, 52] };
-  const near = core.figureGeometry(pose);
-  assert.equal(near.length, 4);
-  assert.deepEqual(near.at(-1), [{ kind: 'circle', cx: 72, cy: 18, r: 6.3 }]);
-  const far = core.figureGeometry({ ...pose, farArm: { elbow: [47, 40], hand: [60, 52] }, farLeg: { knee: [53, 68], ankle: [49, 90] } });
-  assert.equal(far.length, 6);
-  assert.deepEqual(far.slice(2), near);
-  assert.deepEqual(near[1].at(-1), { kind: 'circle', cx: 44, cy: 91, r: 2.375 }, 'toe follows face');
-  assert.deepEqual(core.figureGeometry({ ...pose, face: -1 })[1].at(-1), { kind: 'circle', cx: 30, cy: 91, r: 2.375 });
-  assert.equal(core.figureGeometry({ ...pose, toe: null })[1].length, near[1].length - 3);
-});
-
-test('drawings resolve only explicit catalogue IDs, never a sibling or a custom name/family', () => {
-  const catalogue = core.EXERCISE_CATALOGUE.flatMap((f) => f.members);
-  const ids = new Set(catalogue.map((e) => e.id));
-  assert.equal(new Set(core.EXERCISE_DRAWING_IDS).size, core.EXERCISE_DRAWING_IDS.length);
-  for (const id of core.EXERCISE_DRAWING_IDS) {
-    assert.ok(ids.has(id), `${id} exists in the real catalogue`);
-    const own = core.exerciseDrawing(id);
-    assert.ok(own?.parts.length && own.equipment.length, `${id} has body and equipment`);
-    assert.equal(core.exerciseDrawing(id), own, 'geometry is cached per exercise');
-    for (const other of core.EXERCISE_DRAWING_IDS.filter((x) => x !== id)) {
-      assert.notDeepEqual(core.exerciseDrawing(other), own, 'each sample is its own drawing');
-    }
-    for (const shape of [...own.parts.flat(), ...own.equipment.map((e) => e.shape)]) {
-      assert.doesNotMatch(JSON.stringify(shape), /NaN|Infinity|null|undefined/);
-      if (shape.kind === 'circle') {
-        assert.ok(shape.r > 0 && shape.cx - shape.r >= 0 && shape.cx + shape.r <= 100);
-        assert.ok(shape.cy - shape.r >= 0 && shape.cy + shape.r <= 100);
-      } else {
-        const coordinates = shape.d.match(/-?\d+(?:\.\d+)?/g).map(Number);
-        assert.ok(coordinates.length > 0 && coordinates.every(n => n >= 0 && n <= 100), 'sample paths fit the viewBox');
-      }
-    }
-  }
-  assert.deepEqual(core.exerciseDrawing('x-bent-over-row-barbell').equipment[1].shape, { kind: 'circle', cx: 56, cy: 52, r: 12 }, 'barbell plate');
-  assert.deepEqual(core.exerciseDrawing('x-seated-row-cable').equipment[2].shape, { kind: 'circle', cx: 87, cy: 58, r: 4 }, 'cable pulley');
-  assert.deepEqual(core.exerciseDrawing('x-bent-over-one-arm-row-dumbbell').equipment[2].shape, { kind: 'circle', cx: 58, cy: 47, r: 5.5 }, 'one-arm dumbbell');
-  for (const ex of catalogue.filter((e) => !core.EXERCISE_DRAWING_IDS.includes(e.id))) {
-    assert.equal(core.exerciseDrawing(ex.id), undefined, `${ex.name} must not borrow a drawing`);
-  }
-  for (const id of ['c-bent-over-row-barbell', 'f-row', 'x-seated-row-machine', 'Bent Over Row (Barbell)', '', 'toString', '__proto__']) {
-    assert.equal(core.exerciseDrawing(id), undefined);
-  }
 });
 
 // Laurin's fixed main-muscle table, 15 Nov 2026 (seed 4).
