@@ -96,6 +96,10 @@ export async function selectTab(page, name) {
   await page.getByTestId(`tab-${name}`).and(page.getByRole('tab', { selected: true })).waitFor();
 }
 
+/** A list row's first text after its exercise tile (a letter tile has text of its own). */
+export const rowTitle = (row) => row.evaluate((r) =>
+  [...r.querySelectorAll('[dir="auto"]')].find((e) => !e.closest('[data-testid^="exercise-thumbnail-"]'))?.textContent);
+
 /** Open Search from the accessible tab root; inactive web roots stay mounted. */
 export async function openSearch(page) {
   await page.getByRole('button').and(page.getByTestId(/^open-search-/)).click();

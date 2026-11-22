@@ -1,7 +1,7 @@
 // Families browse siblings; every selected id retains its own history/records.
 // REVIEW_BEFORE=1 captures the matching main screens, before family UI existed.
 import assert from 'node:assert/strict';
-import { selectTab, openSearch, launch, devices, grantWakeLock, APP, shots, storedData } from './env.mjs';
+import { selectTab, openSearch, launch, devices, grantWakeLock, APP, shots, storedData, rowTitle } from './env.mjs';
 import { familiesData, SQ, SMITH, DB, FRONT, FRONT_SMITH, CABLE, CURL_DB } from './families-data.mjs';
 import { SEED_EXERCISES } from '../../core/index.js';
 const before = process.env.REVIEW_BEFORE === '1';
@@ -46,9 +46,7 @@ for (const theme of ['light', 'dark']) {
     assert.match(await search.getAttribute('placeholder'), /Search 22 exercises/);
     assert.equal(await page.locator('[data-testid^="family-"]').count(), 3);
     assert.match(await page.getByTestId('exercise-c-own-row').innerText(), /My Row \(Upper\) \(Cybex Machine\)/);
-    // each row's first text after its tile (a letter tile has text of its own)
-    const order = await page.locator('[data-testid^="family-"], [data-testid="exercise-c-own-row"]').evaluateAll((rows) => rows.map((row) =>
-      [...row.querySelectorAll('[dir="auto"]')].find((e) => !e.closest('[data-testid^="exercise-thumbnail-"]'))?.textContent));
+    const order = await Promise.all((await page.locator('[data-testid^="family-"], [data-testid="exercise-c-own-row"]').all()).map(rowTitle));
     assert.deepEqual(order, ['Bicep Curl', 'Dead Hang', 'My Row (Upper) (Cybex Machine)', 'Squat']);
     await page.getByTestId('search-parts-other').click();
     assert.equal(await page.getByTestId('family-f-squat').count(), 1, 'the family offers its matching custom Other member');
