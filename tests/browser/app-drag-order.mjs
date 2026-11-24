@@ -53,7 +53,9 @@ async function open(seed, path, { scheme = 'light', locale = 'en-US' } = {}) {
 
 /** Press and hold `target`, check what's under the finger once it's picked up (`held`), drag it by `dy`, let go. */
 async function drag(page, target, dy, { held, shot, during } = {}) {
-  await target.scrollIntoViewIfNeeded();
+  // Press away from the screen's edges: within 72 px of one the screen scrolls a frame-rate-dependent
+  // amount before the finger leaves it (a row at the bottom landed one place short on a slow runner).
+  await target.evaluate((e) => e.scrollIntoView({ block: 'center' }));
   await page.waitForTimeout(200);
   const b = await target.boundingBox();
   const x = b.x + Math.min(60, b.width / 3), y = b.y + b.height / 2;
