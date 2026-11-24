@@ -9,7 +9,6 @@ import { allSessions, useAppState } from '@/data/store';
 import { SPACE, TYPE } from '@/design/tally';
 import { useFormat } from '@/lib/format';
 import { useTally } from '@/lib/theme';
-import { ENABLE_EXERCISE_THUMBNAILS } from '@/lib/exerciseThumbnails';
 import { ExerciseThumbnail, EXERCISE_THUMBNAIL_SIZE } from '@/ui/ExerciseThumbnail';
 import { Empty, SearchField } from '@/ui/kit';
 import { ListRow } from '@/ui/tally/ListRow';
@@ -43,9 +42,9 @@ export default function LiftsScreen() {
         </View>
       ) : undefined}
       renderItem={({ item, index }) => (
-        <ListRow first={index === 0} title={ENABLE_EXERCISE_THUMBNAILS ? <Text style={[TYPE.body, { color: t.ink }]}>{f.exName(item.ex)}</Text> : f.exName(item.ex)} testID={`lift-${item.ex.id}`}
-          lead={ENABLE_EXERCISE_THUMBNAILS ? <ExerciseThumbnail exerciseId={item.ex.id} name={f.exName(item.ex)} /> : undefined}
-          leadWidth={ENABLE_EXERCISE_THUMBNAILS ? EXERCISE_THUMBNAIL_SIZE : undefined}
+        <ListRow first={index === 0} title={<Text style={[TYPE.body, { color: t.ink }]}>{f.exName(item.ex)}</Text>} testID={`lift-${item.ex.id}`}
+          lead={<ExerciseThumbnail exerciseId={item.ex.id} name={f.exName(item.ex)} />}
+          leadWidth={EXERCISE_THUMBNAIL_SIZE}
           subtitle={`${partLabel(item.ex.bodyPart)} · ${f.plural(item.n, 'time')} · ${f.relDayLower(item.last)}`}
           onPress={() => router.push({ pathname: '/exercise/[id]', params: { id: item.ex.id } })} />
       )}

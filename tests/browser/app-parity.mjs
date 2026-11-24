@@ -4,7 +4,7 @@
 // link directly (the web build reads it from the page address, the phone
 // through +native-intent.tsx), and the German exercise names.
 import assert from 'node:assert/strict';
-import { selectTab, openSearch, devices, launch, grantWakeLock, APP as BASE, BACKUP, shots, storedData } from './env.mjs';
+import { selectTab, openSearch, devices, launch, grantWakeLock, APP as BASE, BACKUP, shots, storedData, rowTitle } from './env.mjs';
 import * as core from '../../core/index.js';
 
 const OUT = shots('app-parity');
@@ -396,7 +396,7 @@ function startOfDayOf(t) { const d = new Date(t); d.setHours(0, 0, 0, 0); return
   await page.goBack();
   await wait(page, 300);
   await openSearch(page);
-  const rowName = async (exId) => (await id(page, `exercise-${exId}`).innerText()).split('\n')[0];
+  const rowName = (exId) => rowTitle(id(page, `exercise-${exId}`));
   const search = async (q) => { await id(page, 'exercise-search').fill(q); await wait(page, 250); };
   await search('latzug');
   assert.equal(await rowName('x-lat-pulldown-cable'), 'Latzug (Kabelzug)');

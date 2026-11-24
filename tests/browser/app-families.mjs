@@ -1,7 +1,7 @@
 // Families browse siblings; every selected id retains its own history/records.
 // REVIEW_BEFORE=1 captures the matching main screens, before family UI existed.
 import assert from 'node:assert/strict';
-import { selectTab, openSearch, launch, devices, grantWakeLock, APP, shots, storedData } from './env.mjs';
+import { selectTab, openSearch, launch, devices, grantWakeLock, APP, shots, storedData, rowTitle } from './env.mjs';
 import { familiesData, SQ, SMITH, DB, FRONT, FRONT_SMITH, CABLE, CURL_DB } from './families-data.mjs';
 import { SEED_EXERCISES } from '../../core/index.js';
 const before = process.env.REVIEW_BEFORE === '1';
@@ -42,12 +42,12 @@ for (const theme of ['light', 'dark']) {
   const search = page.getByTestId('exercise-search');
   if (!before) {
     assert.match(await page.getByTestId('family-f-squat').innerText(), /Squat[\s\S]*Quads · 17 variations/);
-    assert.equal(await page.getByTestId('family-f-squat').locator('[aria-hidden="true"]').count(), 0, 'Search family rows have no chevron');
+    assert.equal(await page.getByTestId('family-f-squat').locator('[aria-hidden="true"]:not([data-testid^="exercise-thumbnail-"])').count(), 0, 'Search family rows have no chevron');
     assert.match(await search.getAttribute('placeholder'), /Search 22 exercises/);
     assert.equal(await page.locator('[data-testid^="family-"]').count(), 3);
     assert.match(await page.getByTestId('exercise-c-own-row').innerText(), /My Row \(Upper\) \(Cybex Machine\)/);
-    const order = await page.locator('[data-testid^="family-"], [data-testid="exercise-c-own-row"]').allInnerTexts();
-    assert.deepEqual(order.map((t) => t.split('\n')[0]), ['Bicep Curl', 'Dead Hang', 'My Row (Upper) (Cybex Machine)', 'Squat']);
+    const order = await Promise.all((await page.locator('[data-testid^="family-"], [data-testid="exercise-c-own-row"]').all()).map(rowTitle));
+    assert.deepEqual(order, ['Bicep Curl', 'Dead Hang', 'My Row (Upper) (Cybex Machine)', 'Squat']);
     await page.getByTestId('search-parts-other').click();
     assert.equal(await page.getByTestId('family-f-squat').count(), 1, 'the family offers its matching custom Other member');
     assert.match(await page.getByTestId('family-f-squat').innerText(), /Other/);
@@ -57,7 +57,7 @@ for (const theme of ['light', 'dark']) {
   await shot(page, theme, 'search');
   await search.fill('smith squat');
   if (!before) {
-    assert.equal(await page.getByTestId(`exercise-${SMITH}`).locator('[aria-hidden="true"]').count(), 0, 'Search exercise rows have no chevron');
+    assert.equal(await page.getByTestId(`exercise-${SMITH}`).locator('[aria-hidden="true"]:not([data-testid^="exercise-thumbnail-"])').count(), 0, 'Search exercise rows have no chevron');
     assert.match(await page.getByTestId(`exercise-${SMITH}`).innerText(), /Squat \(Smith Machine\)/);
     assert.match(await page.getByTestId(`exercise-${FRONT_SMITH}`).innerText(), /Front Squat \(Smith Machine\)/);
     assert.equal(await page.getByTestId('family-f-squat').count(), 0);

@@ -15,7 +15,6 @@ import { MuscleFilters } from '@/ui/MuscleFilters';
 import { editExercise } from '@/lib/exerciseForm';
 import { useFormat } from '@/lib/format';
 import { useTally } from '@/lib/theme';
-import { ENABLE_EXERCISE_THUMBNAILS } from '@/lib/exerciseThumbnails';
 import { ExerciseThumbnail, EXERCISE_THUMBNAIL_SIZE } from '@/ui/ExerciseThumbnail';
 import { Button, Empty, SearchField } from '@/ui/kit';
 import { ListRow, SymbolIcon } from '@/ui/tally/ListRow';
@@ -75,8 +74,8 @@ export default function SearchScreen() {
         renderItem={({ item, index }) => {
           return (
             <ListRow first={index === 0} title={<Text style={[TYPE.body, { color: t.ink }]}>{item.title}</Text>}
-              lead={ENABLE_EXERCISE_THUMBNAILS ? <ExerciseThumbnail exerciseId={item.exercise.id} name={f.exName(item.exercise)} /> : undefined}
-              leadWidth={ENABLE_EXERCISE_THUMBNAILS ? EXERCISE_THUMBNAIL_SIZE : undefined}
+              lead={<ExerciseThumbnail exerciseId={item.exercise.id} name={f.exName(item.exercise)} />}
+              leadWidth={EXERCISE_THUMBNAIL_SIZE}
               testID={item.family ? `family-${item.id}` : `exercise-${item.exercise.id}`}
               subtitle={<Text style={[TYPE.footnote, { color: t.ink2 }]}>{item.subtitle}</Text>}
               onPress={() => router.push({ pathname: '/exercise/[id]', params: { id: item.exercise.id } })} />
